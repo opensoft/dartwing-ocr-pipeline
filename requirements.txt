@@ -1,0 +1,14 @@
+paddleocr==2.8.1
+paddlepaddle==2.6.1
+Pillow==10.4.0
+opencv-python-headless==4.10.0.84
+torch==2.4.0+cpu
+torchvision==0.19.0+cpu
+torchaudio==2.4.0+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
+llama-cpp-python
+transformers
+numpy
+pydantic
+python-dotenv
+tqdm
