@@ -1,0 +1,39 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_016",
+  "difficulty": "missing_name",
+  "challenge_tags": [
+    "missing_company_name",
+    "logo_only",
+    "low_quality_scan"
+  ],
+  "expected_review": {
+    "manual_review_required": true,
+    "review_reason": "company_name_inferred"
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Acme Industrial Supply LLC",
+      "present": false,
+      "inferred": true
+    },
+    "address": {
+      "street_1": "123 Main St",
+      "street_2": null,
+      "city": "Phoenix",
+      "state": "AZ",
+      "postal_code": "85001",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": null,
+    "phone": null,
+    "email": null
+  },
+  "notes": "No explicit company name; only logo visible. Best-guess name inferred from logo shape and address proximity."
+}

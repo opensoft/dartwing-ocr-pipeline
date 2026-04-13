@@ -1,0 +1,52 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-edge-v0.1",
+  "document_id": "inv_001",
+  "processed_at": "2026-04-12T13:15:00Z",
+  "model_runtime": {
+    "provider": "ollama",
+    "model_name": "gemma4-edge",
+    "model_version": "current",
+    "runtime": "host_ollama_rocm"
+  },
+  "document_type": { "value": "invoice", "confidence": 0.99 },
+  "vendor_candidate": {
+    "company_name": {
+      "value": "ACME Industrial Supply LLC",
+      "present": true,
+      "inferred": false,
+      "confidence": 0.94,
+      "evidence": ["p1_l1"]
+    },
+    "address": {
+      "street_1": { "value": "123 Main St", "confidence": 0.84, "evidence": ["p1_l3"] },
+      "street_2": { "value": null, "confidence": 0.0, "evidence": [] },
+      "city": { "value": "Phoenix", "confidence": 0.86, "evidence": ["p1_l4"] },
+      "state": { "value": "AZ", "confidence": 0.9, "evidence": ["p1_l4"] },
+      "postal_code": { "value": "85001", "confidence": 0.88, "evidence": ["p1_l4"] },
+      "country": { "value": "US", "confidence": 0.8, "evidence": ["p1_l4"] }
+    },
+    "tax_ids": {
+      "ein": { "value": "12-3456789", "confidence": 0.73, "evidence": ["p1_l6"] },
+      "state_tax_id": { "value": null, "confidence": 0.0, "evidence": [] },
+      "vat_id": { "value": null, "confidence": 0.0, "evidence": [] },
+      "other_tax_id": { "value": null, "confidence": 0.0, "evidence": [] }
+    },
+    "website": { "value": "acmeindustrial.com", "confidence": 0.76, "evidence": ["p1_l7"] },
+    "phone": { "value": "602-555-0199", "confidence": 0.71, "evidence": ["p1_l8"] },
+    "email": { "value": "billing@acmeindustrial.com", "confidence": 0.78, "evidence": ["p1_l9"] }
+  },
+  "invoice_header_fields": {
+    "invoice_number": { "value": "INV-20481", "confidence": 0.96, "evidence": ["p1_l12"] },
+    "invoice_date": { "value": "2026-03-18", "confidence": 0.95, "evidence": ["p1_l13"] },
+    "total_amount": {
+      "value": 1824.55,
+      "currency": "USD",
+      "confidence": 0.97,
+      "evidence": ["p1_l27"]
+    }
+  },
+  "extraction_notes": [],
+  "warnings": [],
+  "status": "success"
+}

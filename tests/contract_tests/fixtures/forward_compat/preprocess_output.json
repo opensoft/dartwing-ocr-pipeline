@@ -1,0 +1,109 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-edge-v0.1",
+  "document_id": "inv_001",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3300,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "title",
+          "bbox": [120, 80, 980, 210],
+          "reading_order": 1,
+          "text": "ACME Industrial Supply LLC",
+          "confidence": 0.97
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "text",
+          "bbox": [120, 240, 980, 400],
+          "reading_order": 2,
+          "text": "123 Main St\nPhoenix, AZ 85001",
+          "confidence": 0.91
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [120, 80, 980, 210],
+          "text": "ACME Industrial Supply LLC",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [120, 240, 600, 290],
+          "text": "123 Main St",
+          "confidence": 0.84
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [120, 300, 600, 350],
+          "text": "Phoenix, AZ 85001",
+          "confidence": 0.88
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [120, 420, 600, 470],
+          "text": "EIN 12-3456789",
+          "confidence": 0.73
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [120, 480, 600, 530],
+          "text": "acmeindustrial.com",
+          "confidence": 0.76
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [120, 540, 600, 590],
+          "text": "602-555-0199",
+          "confidence": 0.71
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [120, 600, 600, 650],
+          "text": "billing@acmeindustrial.com",
+          "confidence": 0.78
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [1200, 80, 2400, 130],
+          "text": "Invoice INV-20481",
+          "confidence": 0.96
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [1200, 140, 2400, 190],
+          "text": "Date 2026-03-18",
+          "confidence": 0.95
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [1800, 2800, 2400, 2850],
+          "text": "Total $1824.55",
+          "confidence": 0.97
+        }
+      ]
+    }
+  ],
+  "document_text": "ACME Industrial Supply LLC\n123 Main St\nPhoenix, AZ 85001\nEIN 12-3456789\nacmeindustrial.com\n602-555-0199\nbilling@acmeindustrial.com\nInvoice INV-20481\nDate 2026-03-18\nTotal $1824.55",
+  "tables": [],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": { "enabled": true, "status": "success" },
+    "falcon_ocr": { "enabled": false, "status": "not_implemented" },
+    "falcon_perception": { "enabled": false, "status": "not_implemented" }
+  },
+  "warnings": []
+}

@@ -1,0 +1,60 @@
+{
+  "contract_set_version": "1.0.0",
+  "run_id": "stage1_eval_2026-04-12_01",
+  "pipeline_version": "stage1-edge-v0.1",
+  "policy_version": "stage1-routing-v0.1",
+  "document_count": 2,
+  "overall_metrics": {
+    "field_accuracy": 0.87,
+    "vendor_identity_pass_rate": 0.8,
+    "review_routing_pass_rate": 0.95,
+    "overall_document_pass_rate": 0.75
+  },
+  "consensus_metrics": {
+    "single_voter_baseline_runs": 2,
+    "majority_vote_documents": 0,
+    "split_decision_documents": 0
+  },
+  "by_difficulty": {
+    "easy": {
+      "document_count": 1,
+      "field_accuracy": 0.96,
+      "overall_document_pass_rate": 1.0
+    },
+    "medium": {
+      "document_count": 0,
+      "field_accuracy": 0.0,
+      "overall_document_pass_rate": 0.0
+    },
+    "hard": {
+      "document_count": 1,
+      "field_accuracy": 0.77,
+      "overall_document_pass_rate": 0.6
+    },
+    "missing_name": {
+      "document_count": 0,
+      "field_accuracy": 0.0,
+      "overall_document_pass_rate": 0.0
+    }
+  },
+  "by_field": {
+    "company_name.value": 0.8,
+    "address.street_1": 0.85,
+    "tax_ids.ein": 0.7,
+    "website": 0.84,
+    "manual_review_required": 1.0,
+    "review_reason": 0.95
+  },
+  "documents": [
+    {
+      "document_id": "inv_001",
+      "overall_passed": true,
+      "field_accuracy": 0.93
+    },
+    {
+      "document_id": "inv_003",
+      "overall_passed": false,
+      "field_accuracy": 0.67
+    }
+  ]
+}

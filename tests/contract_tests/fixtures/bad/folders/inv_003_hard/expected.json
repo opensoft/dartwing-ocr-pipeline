@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_003",
+  "difficulty": "hard",
+  "challenge_tags": ["dense_header", "remit_to_differs_from_vendor"],
+  "expected_review": {
+    "manual_review_required": true,
+    "review_reason": "remit_to_mismatch"
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "ACME Industrial Supply LLC",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "123 Main St",
+      "street_2": null,
+      "city": "Phoenix",
+      "state": "AZ",
+      "postal_code": "85001",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "12-3456789",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": null,
+    "phone": null,
+    "email": null
+  }
+}

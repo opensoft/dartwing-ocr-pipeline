@@ -1,0 +1,30 @@
+{
+  "$schema": "https://ledgerlinc.local/contracts/stage1_vendor_identity/folder_contract_schema_v1.0.0",
+  "$comment": "This file is a JSON configuration consumed by `ledgerlinc_ocr.validator.folder`, NOT a JSON Schema applied to another JSON file. The filename uses `.schema.json` for consistency with the other artifact contracts in this directory, but this one describes a filesystem layout.",
+  "title": "folder_contract",
+  "corpus_root_relative_to_repo": "tests/stage1_vendor_identity",
+  "folder_name_pattern": "^inv_\\d{3}_(easy|medium|hard|missing_name)$",
+  "document_id_pattern": "^inv_\\d{3}$",
+  "difficulty_values": ["easy", "medium", "hard", "missing_name"],
+  "required_files": {
+    "unconditional": ["source.pdf", "expected.json"],
+    "notes_md_by_difficulty": {
+      "easy": "soft",
+      "medium": "soft",
+      "hard": "hard",
+      "missing_name": "hard"
+    }
+  },
+  "reserved_generated_filenames": [
+    "preprocess_output.json",
+    "edge_extraction_output.json",
+    "routing_decision.json",
+    "final_structured_payload.json",
+    "evaluation_document.json"
+  ],
+  "corpus_root_files": ["evaluation_run_summary.json"],
+  "ensemble_reserved": {
+    "subdirs": ["votes"],
+    "files": ["consensus_output.json"]
+  }
+}

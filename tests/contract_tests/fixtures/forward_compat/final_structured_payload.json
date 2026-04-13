@@ -1,0 +1,48 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-edge-v0.1",
+  "document_id": "inv_001",
+  "processed_at": "2026-04-12T13:15:00Z",
+  "document_type": "invoice",
+  "vendor_candidate": {
+    "company_name": {
+      "value": "ACME Industrial Supply LLC",
+      "present": true,
+      "inferred": false,
+      "confidence": 0.94
+    },
+    "address": {
+      "street_1": { "value": "123 Main St", "confidence": 0.84 },
+      "street_2": { "value": null, "confidence": 0.0 },
+      "city": { "value": "Phoenix", "confidence": 0.86 },
+      "state": { "value": "AZ", "confidence": 0.9 },
+      "postal_code": { "value": "85001", "confidence": 0.88 },
+      "country": { "value": "US", "confidence": 0.8 }
+    },
+    "tax_ids": {
+      "ein": { "value": "12-3456789", "confidence": 0.73 },
+      "state_tax_id": { "value": null, "confidence": 0.0 },
+      "vat_id": { "value": null, "confidence": 0.0 },
+      "other_tax_id": { "value": null, "confidence": 0.0 }
+    },
+    "website": { "value": "acmeindustrial.com", "confidence": 0.76 },
+    "phone": { "value": "602-555-0199", "confidence": 0.71 },
+    "email": { "value": "billing@acmeindustrial.com", "confidence": 0.78 }
+  },
+  "review_status": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "quality_summary": {
+    "overall_vendor_confidence": 0.86,
+    "explicit_name_found": true,
+    "consensus_level": "single_voter_baseline",
+    "secondary_identifiers_found": ["address", "ein", "website", "phone", "email"]
+  },
+  "trace": {
+    "source_file": "source.pdf",
+    "preprocess_output_file": "preprocess_output.json",
+    "edge_extraction_output_file": "edge_extraction_output.json",
+    "routing_decision_file": "routing_decision.json"
+  }
+}
