@@ -1,0 +1,7 @@
+interface:
+  display_name: "/speckit.constitution"
+  short_description: "Create or update the constitution"
+  default_prompt: "Use $speckit-constitution to create or update the project constitution."
+policy:
+  allow_implicit_invocation: false
+

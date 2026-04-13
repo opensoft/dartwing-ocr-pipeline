@@ -1,0 +1,7 @@
+interface:
+  display_name: "/speckit.plan"
+  short_description: "Create implementation plan artifacts"
+  default_prompt: "Use $speckit-plan to generate the implementation planning artifacts."
+policy:
+  allow_implicit_invocation: false
+

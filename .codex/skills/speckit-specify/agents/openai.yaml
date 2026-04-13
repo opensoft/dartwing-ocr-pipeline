@@ -1,0 +1,7 @@
+interface:
+  display_name: "/speckit.specify"
+  short_description: "Create or update a feature spec"
+  default_prompt: "Use $speckit-specify to create or update the feature specification."
+policy:
+  allow_implicit_invocation: false
+

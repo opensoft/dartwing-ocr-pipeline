@@ -1,0 +1,7 @@
+interface:
+  display_name: "/speckit.checklist"
+  short_description: "Create or append a checklist"
+  default_prompt: "Use $speckit-checklist to create or append a feature checklist."
+policy:
+  allow_implicit_invocation: false
+

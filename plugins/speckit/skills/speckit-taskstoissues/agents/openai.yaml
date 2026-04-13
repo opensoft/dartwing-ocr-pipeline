@@ -1,0 +1,7 @@
+interface:
+  display_name: "/speckit.taskstoissues"
+  short_description: "Convert tasks into GitHub issues"
+  default_prompt: "Use $speckit-taskstoissues to convert the current tasks into GitHub issues."
+policy:
+  allow_implicit_invocation: false
+

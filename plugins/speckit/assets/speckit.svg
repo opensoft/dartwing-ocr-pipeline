@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Speckit">
+  <rect width="128" height="128" rx="24" fill="#2563EB"/>
+  <path d="M34 42c0-6.627 5.373-12 12-12h36c6.627 0 12 5.373 12 12v10H74v-6H54v12h24c8.837 0 16 7.163 16 16v12c0 6.627-5.373 12-12 12H46c-6.627 0-12-5.373-12-12V76h20v6h20V70H50c-8.837 0-16-7.163-16-16V42z" fill="#fff"/>
+</svg>

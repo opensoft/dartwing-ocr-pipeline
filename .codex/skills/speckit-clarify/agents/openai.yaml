@@ -1,0 +1,7 @@
+interface:
+  display_name: "/speckit.clarify"
+  short_description: "Clarify gaps in the current spec"
+  default_prompt: "Use $speckit-clarify to clarify gaps in the current specification."
+policy:
+  allow_implicit_invocation: false
+

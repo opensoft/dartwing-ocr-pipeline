@@ -1,0 +1,7 @@
+interface:
+  display_name: "/speckit.analyze"
+  short_description: "Analyze spec, plan, and tasks"
+  default_prompt: "Use $speckit-analyze to analyze the current spec, plan, and tasks."
+policy:
+  allow_implicit_invocation: false
+

@@ -1,0 +1,7 @@
+interface:
+  display_name: "/speckit.tasks"
+  short_description: "Generate dependency-ordered tasks"
+  default_prompt: "Use $speckit-tasks to generate dependency-ordered implementation tasks."
+policy:
+  allow_implicit_invocation: false
+
