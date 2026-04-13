@@ -1,0 +1,36 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-edge-v0.1",
+  "policy_version": "stage1-routing-v0.1",
+  "document_id": "inv_001",
+  "processed_at": "2026-04-12T13:15:02Z",
+  "status": "success",
+  "decision": "edge_accept",
+  "consensus_summary": {
+    "mode": "single_voter_baseline",
+    "agreement_level": "not_applicable"
+  },
+  "scores": {
+    "company_name_score": 0.94,
+    "address_score": 0.84,
+    "tax_id_score": 0.73,
+    "contact_score": 0.75,
+    "overall_vendor_identity_score": 0.86
+  },
+  "checks": {
+    "company_name_present": true,
+    "company_name_inferred": false,
+    "address_has_minimum_components": true,
+    "at_least_one_tax_id_present": true,
+    "website_or_email_present": true,
+    "post_extraction_spam_gate_passed": true
+  },
+  "review_status": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "reasons": [
+    "explicit company name found",
+    "multiple secondary vendor identifiers found"
+  ]
+}

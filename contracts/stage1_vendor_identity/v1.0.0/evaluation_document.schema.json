@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.0.0/evaluation_document.schema.json",
+  "title": "evaluation_document",
+  "description": "Per-document evaluation output comparing expected.json to final_structured_payload.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_set_version",
+    "document_id",
+    "difficulty",
+    "challenge_tags",
+    "comparison_summary",
+    "document_pass_fail",
+    "field_results",
+    "notes"
+  ],
+  "properties": {
+    "contract_set_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "document_id": { "type": "string", "minLength": 1 },
+    "difficulty": {
+      "type": "string",
+      "enum": ["easy", "medium", "hard", "missing_name"]
+    },
+    "challenge_tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "comparison_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicable_field_count",
+        "matched_field_count",
+        "mismatched_field_count",
+        "missing_prediction_count",
+        "unexpected_prediction_count",
+        "field_accuracy"
+      ],
+      "properties": {
+        "applicable_field_count": { "type": "integer", "minimum": 0 },
+        "matched_field_count": { "type": "integer", "minimum": 0 },
+        "mismatched_field_count": { "type": "integer", "minimum": 0 },
+        "missing_prediction_count": { "type": "integer", "minimum": 0 },
+        "unexpected_prediction_count": { "type": "integer", "minimum": 0 },
+        "field_accuracy": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+    "document_pass_fail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vendor_identity_passed", "review_routing_passed", "overall_passed"],
+      "properties": {
+        "vendor_identity_passed": { "type": "boolean" },
+        "review_routing_passed": { "type": "boolean" },
+        "overall_passed": { "type": "boolean" }
+      }
+    },
+    "field_results": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expected", "actual", "result"],
+        "properties": {
+          "expected": {},
+          "actual": {},
+          "result": {
+            "type": "string",
+            "enum": [
+              "match",
+              "partial_match",
+              "mismatch",
+              "missing_prediction",
+              "unexpected_prediction",
+              "not_applicable"
+            ]
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

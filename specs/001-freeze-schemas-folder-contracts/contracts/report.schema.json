@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgerlinc.local/specs/001-freeze-schemas-folder-contracts/report.schema.json",
+  "title": "Validator Structured Report",
+  "description": "Canonical machine-readable output of `python -m ledgerlinc_ocr.validator ... --json`. Consumed by the harness, CI, and regression gates. Frozen at contract-set 1.0.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "contract_set_version_checked",
+    "target_summary",
+    "passed",
+    "violations",
+    "warnings",
+    "counts"
+  ],
+  "properties": {
+    "report_version": {
+      "description": "Semver of the report schema itself. 1.0.0 for this contract set.",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "contract_set_version_checked": {
+      "description": "The contract-set version this validation was performed against.",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "target_summary": {
+      "description": "What was validated. Format: `artifact:<name>`, `folder:<path>`, or `corpus:<path>`.",
+      "type": "string",
+      "pattern": "^(artifact:[a-z_]+|folder:.+|corpus:.+)$"
+    },
+    "passed": {
+      "description": "True iff no error-severity violations exist. Warnings alone do not cause passed=false.",
+      "type": "boolean"
+    },
+    "violations": {
+      "description": "Error-severity findings. Empty when passed=true.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/Violation" }
+    },
+    "warnings": {
+      "description": "Warning-severity findings. May be non-empty even when passed=true (e.g. missing notes.md for an easy/medium document).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/Violation" }
+    },
+    "counts": {
+      "description": "Aggregate counts for quick consumption by harness dashboards.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error", "warning"],
+      "properties": {
+        "error": { "type": "integer", "minimum": 0 },
+        "warning": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sub_reports": {
+      "description": "Present only for `corpus:...` targets. One entry per folder or root-level artifact validated in the corpus run.",
+      "type": "array",
+      "items": { "$ref": "#" }
+    }
+  },
+  "$defs": {
+    "Violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "target", "field_path", "violation_code", "reason"],
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["error", "warning"]
+        },
+        "target": {
+          "description": "Artifact name (e.g. `edge_extraction_output`) or a folder path. Matches the scope of the violation, which may differ from the top-level `target_summary` when a corpus report aggregates sub-targets.",
+          "type": "string"
+        },
+        "field_path": {
+          "description": "JSON Pointer-style path into the artifact (e.g. `/vendor_candidate/company_name/value`). Empty string for artifact-level or folder-level issues that do not point at a single field.",
+          "type": "string"
+        },
+        "violation_code": {
+          "description": "Stable machine code from the violation-code vocabulary frozen at this contract-set version.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]+$"
+        },
+        "reason": {
+          "description": "Human-readable sentence suitable for CLI rendering and for labelers.",
+          "type": "string",
+          "minLength": 1
+        },
+        "expected": {
+          "description": "The rule or contract name being violated (e.g. `FR-012 tax_ids enum`, `FR-029 notes.md conditional`). Nullable when not meaningfully applicable.",
+          "type": ["string", "null"]
+        },
+        "source_file": {
+          "description": "Path to the offending artifact file, when the violation is file-scoped. Enables corpus-level aggregation without recomputing.",
+          "type": ["string", "null"]
+        }
+      }
+    }
+  }
+}

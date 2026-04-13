@@ -1,0 +1,4 @@
+{
+  "note": "Hand-authored stray file using a reserved filename. Deliberately missing pipeline_version and contract_set_version to trip FOLDER_RESERVED_FILENAME_COLLISION.",
+  "scratch": "some operator's notes"
+}

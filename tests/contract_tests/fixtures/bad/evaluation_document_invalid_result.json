@@ -1,0 +1,27 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_001",
+  "difficulty": "easy",
+  "challenge_tags": ["explicit_company_name"],
+  "comparison_summary": {
+    "applicable_field_count": 5,
+    "matched_field_count": 4,
+    "mismatched_field_count": 1,
+    "missing_prediction_count": 0,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 0.8
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": true,
+    "review_routing_passed": true,
+    "overall_passed": true
+  },
+  "field_results": {
+    "vendor_candidate.company_name.value": {
+      "expected": "ACME Industrial Supply LLC",
+      "actual": "ACME Industrial Supply LLC",
+      "result": "partial"
+    }
+  },
+  "notes": []
+}

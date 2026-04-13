@@ -1,0 +1,57 @@
+{
+  "contract_set_version": "1.0.0",
+  "description": "Stage 1 vendor-identity contract set. Frozen at 1.0.0 on 2026-04-12.",
+  "artifact_names": [
+    "preprocess_output",
+    "edge_extraction_output",
+    "routing_decision",
+    "final_structured_payload",
+    "expected",
+    "evaluation_document",
+    "evaluation_run_summary"
+  ],
+  "artifact_schemas": {
+    "preprocess_output": "preprocess_output.schema.json",
+    "edge_extraction_output": "edge_extraction_output.schema.json",
+    "routing_decision": "routing_decision.schema.json",
+    "final_structured_payload": "final_structured_payload.schema.json",
+    "expected": "expected.schema.json",
+    "evaluation_document": "evaluation_document.schema.json",
+    "evaluation_run_summary": "evaluation_run_summary.schema.json"
+  },
+  "folder_schema": "folder.schema.json",
+  "pipeline_versioned_artifacts": [
+    "preprocess_output",
+    "edge_extraction_output",
+    "routing_decision",
+    "final_structured_payload"
+  ],
+  "policy_versioned_artifacts": [
+    "routing_decision"
+  ],
+  "challenge_tags": [
+    "address_only",
+    "dense_header",
+    "ein_present",
+    "email_domain_present",
+    "explicit_company_name",
+    "faint_text",
+    "footer_only",
+    "logo_only",
+    "low_quality_scan",
+    "missing_company_name",
+    "multi_entity_page",
+    "other_tax_id_present",
+    "portal_cover_page",
+    "remit_to_differs_from_vendor",
+    "rotated_scan",
+    "state_tax_id_present",
+    "vat_id_present",
+    "website_present"
+  ],
+  "cross_artifact_rules": [
+    "PROVENANCE_TRIAD_INCONSISTENT",
+    "EVIDENCE_REFERENCE_UNRESOLVED",
+    "DOCUMENT_COUNT_MISMATCH"
+  ]
+}
