@@ -1,0 +1,26 @@
+services:
+  ollama:
+    image: ollama/ollama:rocm
+    container_name: ledgerlinc-ollama
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    ipc: host
+    shm_size: 8gb
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    volumes:
+      - ollama-models:/root/.ollama
+
+volumes:
+  ollama-models:

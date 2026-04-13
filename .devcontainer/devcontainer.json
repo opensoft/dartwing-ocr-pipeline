@@ -1,10 +1,15 @@
 {
-  "name": "LedgerLinc OCR Pipeline - CPU",
-  "image": "mcr.microsoft.com/devcontainers/python:3.11",
-  "features": {
-    "ghcr.io/devcontainers/features/python:1": {}
+  "name": "LedgerLinc OCR Pipeline",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "pipeline-dev",
+  "runServices": ["pipeline-dev"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "PYTHONUNBUFFERED": "1",
+    "PIP_DISABLE_PIP_VERSION_CHECK": "1"
   },
-  "postCreateCommand": "pip install -r requirements.txt && python -c 'import paddleocr; print(\"PaddleOCR ready\")'",
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -14,5 +19,11 @@
       ]
     }
   },
-  "forwardPorts": [7860]
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "Pipeline API",
+      "onAutoForward": "notify"
+    }
+  }
 }

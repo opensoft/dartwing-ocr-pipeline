@@ -1,0 +1,41 @@
+services:
+  pipeline-dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    container_name: ledgerlinc-ocr-pipeline
+    working_dir: /workspace
+    command: sleep infinity
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    volumes:
+      - ..:/workspace:cached
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  ollama:
+    image: ollama/ollama:rocm
+    profiles: ["ollama"]
+    container_name: ledgerlinc-ollama
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    ipc: host
+    shm_size: 8gb
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    devices:
+      - /dev/dxg:/dev/dxg
+    volumes:
+      - ollama-models:/root/.ollama
+      - /usr/lib/wsl/lib/libdxcore.so:/usr/lib/libdxcore.so:ro
+      - /usr/lib/wsl/lib/libd3d12.so:/usr/lib/libd3d12.so:ro
+      - /usr/lib/wsl/lib/libd3d12core.so:/usr/lib/libd3d12core.so:ro
+      - /opt/rocm-7.2.0/lib/libhsa-runtime64.so.1:/opt/rocm/lib/libhsa-runtime64.so.1:ro
+
+volumes:
+  ollama-models:
