@@ -1,0 +1,171 @@
+# Feature Specification: PDF Preprocessing (Stage 1)
+
+**Feature Branch**: `003-pdf-preprocessing`
+**Created**: 2026-04-13
+**Status**: Draft
+**Input**: User description: "PDF Preprocessing — Create the stage 1 PDF preprocessing slice for the LedgerLinc OCR pipeline. Accept a single input PDF, rasterize each page into images suitable for OCR, perform deterministic page-level preprocessing and structure capture, and emit a schema-aligned `preprocess_output.json`."
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Produce a Schema-Valid Preprocessing Artifact for One PDF (Priority: P1)
+
+A pipeline operator (or downstream extraction workstream) runs the stage 1 pipeline against a single invoice PDF from the test corpus. The preprocessing step transforms that PDF into a deterministic, schema-aligned `preprocess_output.json` that downstream work (evidence-packet assembly, extraction, routing) can consume without further OCR or layout work.
+
+**Why this priority**: Without a schema-valid `preprocess_output.json`, every downstream stage 1 workstream is blocked. This is the MVP slice that unblocks parallel work on extraction, routing, and evaluation. It is also the layer that gives stage 1 its evidence-first, schema-first foundation.
+
+**Independent Test**: Run preprocessing against a single easy-difficulty invoice PDF from `tests/stage1_vendor_identity/inv_XXX_easy/source.pdf`. Verify the command writes `preprocess_output.json` into that document's folder and that the validator (`python -m ledgerlinc_ocr.validator validate artifact preprocess_output`) accepts the artifact. No other stage 1 artifact is required for this test to pass.
+
+**Acceptance Scenarios**:
+
+1. **Given** a readable single-page invoice PDF in a per-document folder, **When** preprocessing runs on that document, **Then** a `preprocess_output.json` file is written next to `source.pdf` that validates against the frozen contract `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json`, contains `source_type: "pdf"`, matches the `document_id` derived from the folder name, and reports `page_count == 1` with one fully populated `pages[0]` entry.
+2. **Given** the same readable single-page PDF is preprocessed twice with identical configuration and pipeline version, **When** the two output files are compared, **Then** their contents are byte-identical: ordering of blocks, `raw_ocr_lines`, `reading_order` values, `block_id`s (`p{page}_b{n}`), `line_id`s (`p{page}_l{n}`), bbox values, and `document_text` are all deterministic and stable.
+3. **Given** a PDF whose text is legibly recognized end-to-end, **When** preprocessing completes, **Then** `ingestion_sources.paddleocr_vl.enabled == true` and `.status == "success"`, while `falcon_ocr` and `falcon_perception` both report `enabled == false` and `status == "not_implemented"`.
+4. **Given** a PDF with no structural issues, **When** preprocessing completes, **Then** `quality` is fully populated (`scan_quality`, `skew_detected`, `noise_level`) and `warnings` is an empty list.
+5. **Given** a preprocessed document, **When** a downstream consumer reads `document_text`, **Then** the string contains page text joined in reading order, consistent with the per-page `blocks` ordering used to build it.
+
+---
+
+### User Story 2 - Handle Multi-Page PDFs Deterministically (Priority: P2)
+
+A pipeline operator processes an invoice PDF that has more than one page (e.g., a remittance cover page followed by the invoice body). Preprocessing must rasterize every page, produce per-page blocks and OCR lines with page-scoped identifiers, and assemble a single multi-page `preprocess_output.json`.
+
+**Why this priority**: Stage 1 scope is PDF-only and real invoices in the corpus include multi-page documents (cover pages, continuation sheets). Downstream extraction must be able to cite evidence across pages using stable identifiers.
+
+**Independent Test**: Run preprocessing against a known multi-page PDF. Verify `page_count` matches the source PDF page count, that `pages` contains exactly that many entries in order, that identifiers are unique and follow the `p{N}_b{n}` / `p{N}_l{n}` convention, and that `document_text` concatenates all pages in document order.
+
+**Acceptance Scenarios**:
+
+1. **Given** an N-page PDF where every page is readable, **When** preprocessing runs, **Then** `page_count == N`, `pages` has N entries ordered by `page_number` ascending starting at 1, and every block and line identifier is unique across the document and carries its page prefix.
+2. **Given** an N-page PDF, **When** preprocessing completes, **Then** each page's `reading_order` values are contiguous integers starting at 1 within that page and no two blocks on the same page share a `reading_order`.
+3. **Given** pages that differ in dimensions or rotation, **When** preprocessing runs, **Then** each page records its own `width`, `height`, and `rotation_detected` (one of 0/90/180/270) independently; a page's own rasterized image is used for its OCR and layout output.
+4. **Given** a multi-page PDF, **When** `document_text` is produced, **Then** it is the concatenation of per-page text in `page_number` order using a deterministic page separator.
+
+---
+
+### User Story 3 - Degrade Gracefully on Unreadable Pages and Partial Failures (Priority: P2)
+
+A pipeline operator processes an invoice PDF that has a blank page, a badly scanned page, or one page that triggers a rasterization or OCR failure. Preprocessing must not crash the run; it must record the failure as a warning, continue with the remaining pages, and still emit a schema-valid `preprocess_output.json` whenever at least one page was processed successfully.
+
+**Why this priority**: Real corpora include poor scans, blank pages, and occasional rasterization failures. A partial result is more valuable to downstream extraction than a failed run, provided the failure is visible in the artifact rather than hidden.
+
+**Independent Test**: Run preprocessing against a PDF deliberately seeded with one unreadable page (e.g., corrupted image stream or blank). Verify the run exits successfully, `preprocess_output.json` is written, the failing page is represented with an empty `blocks`/`raw_ocr_lines` list (or equivalent minimal record), and `warnings` contains a human-readable description citing the affected `page_number`.
+
+**Acceptance Scenarios**:
+
+1. **Given** a PDF with one unreadable page among otherwise readable pages, **When** preprocessing runs, **Then** the run completes without raising to the caller, the output artifact validates against the schema, the unreadable page appears in `pages` with empty `blocks` and empty `raw_ocr_lines`, and `warnings` includes an entry naming the page and cause.
+2. **Given** a blank page, **When** preprocessing runs, **Then** the blank page is represented with empty `blocks` and `raw_ocr_lines`, `scan_quality` and other document-level quality signals are not downgraded to `poor` purely because of blankness, and no warning is emitted if blankness is the expected content.
+3. **Given** a malformed PDF that cannot be opened at all, **When** preprocessing runs, **Then** the pipeline surfaces a clear error (non-zero exit, explicit error message) without writing an invalid `preprocess_output.json`; no partial artifact that would fail schema validation is persisted.
+4. **Given** preprocessing failed on a page because of a layout-extraction error rather than a rasterization error, **When** the artifact is produced, **Then** `raw_ocr_lines` may still be populated for that page while `blocks` is empty, and `warnings` records which step failed and on which page.
+5. **Given** the PaddleOCR-VL source fails entirely, **When** preprocessing runs, **Then** `ingestion_sources.paddleocr_vl.status == "failure"`, `enabled` reflects whether it was supposed to run, the artifact still validates, and `warnings` includes the failure.
+
+---
+
+### User Story 4 - Capture Tables and Layout Structure When Available (Priority: P3)
+
+When a page contains tabular structure (e.g., a line-item grid on an invoice), preprocessing should capture it structurally in the `tables` array and as table-typed blocks, so that later workstreams can reference the structure without re-running layout analysis. This is structural capture only — no line-item field extraction.
+
+**Why this priority**: Tables appear on most invoices and are needed by later workstreams, but vendor-identity extraction (the stage 1 focus) does not strictly require table contents. Including structural capture now avoids re-running layout later while staying inside schema scope.
+
+**Independent Test**: Run preprocessing against a PDF containing a recognizable table. Verify `tables` is non-empty, that at least one block has `block_type == "table"` with a bbox that reasonably aligns with the table, and that no business-level line-item fields (descriptions, quantities, prices) are interpreted or added to any other artifact.
+
+**Acceptance Scenarios**:
+
+1. **Given** a PDF page containing a table, **When** preprocessing runs, **Then** the corresponding page has at least one block of `block_type == "table"` covering the table region, and `tables` contains a structural record for that table.
+2. **Given** a PDF with no tabular structure, **When** preprocessing runs, **Then** `tables` is an empty array and no block is forced to `block_type == "table"`.
+3. **Given** a captured table, **When** downstream code inspects the artifact, **Then** the table record contains only structural information (page reference, bbox, and optionally a deterministic grid representation) and does not contain business-field interpretation such as "line_item_description" or "unit_price".
+
+---
+
+### Edge Cases
+
+- A PDF file with zero pages (or whose page count cannot be determined) is treated as malformed per User Story 3, AC #3.
+- A page whose detected rotation is not one of `{0, 90, 180, 270}` is snapped to the nearest allowed value and a warning is recorded; the schema does not admit arbitrary rotations.
+- A PDF that is actually an image wrapper (single raster page) is still accepted as PDF input and rasterized normally.
+- A PDF embedding a searchable text layer is still rasterized; text is obtained from OCR over the rasterized image so that `confidence` values and bbox coordinates are comparable across the corpus. The embedded text layer is not used as a shortcut.
+- A document larger than typical invoice size (many pages, very large dimensions) still produces a single `preprocess_output.json`; page images are kept next to the artifact only if the implementation chooses to persist them (see Assumptions).
+- A PDF whose `source.pdf` filename differs from expectation still works; `source_file` records what was actually read and `document_id` derives from the folder name, not the filename.
+- Re-running preprocessing on a folder that already contains `preprocess_output.json` overwrites the prior artifact; no merging of prior state occurs.
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+#### Input and invocation
+
+- **FR-001**: The system MUST accept exactly one PDF document per invocation, addressed via the stage 1 CLI contract already established for one-document processing. Input that is not a PDF MUST be rejected with a clear error before any rasterization is attempted.
+- **FR-002**: The system MUST derive `document_id` from the per-document folder name convention (`inv_XXX_<difficulty>`) so that the artifact remains self-consistent when the corpus is moved.
+- **FR-003**: The system MUST record the relative source filename in `source_file` and MUST set `source_type` to the literal value `"pdf"`.
+
+#### Rasterization and page metadata
+
+- **FR-004**: The system MUST rasterize every page of the input PDF into an image representation suitable for OCR and layout analysis, at a resolution consistent enough across the corpus that confidence values, bbox coordinates, and block ordering are comparable across documents.
+- **FR-005**: The system MUST record per-page `width` and `height` in pixels of the rasterized image actually processed (not PDF point dimensions), so that all bboxes are expressed in the same coordinate space as `width` and `height`.
+- **FR-006**: The system MUST record per-page `rotation_detected` as one of `{0, 90, 180, 270}`. If the OCR/layout stack detects a different rotation, preprocessing MUST normalize to the nearest allowed value and MUST emit a warning when such normalization occurs.
+- **FR-007**: The system MAY persist per-page image files alongside `preprocess_output.json` for debugging. Downstream correctness MUST NOT depend on those image files being present; the JSON artifact is the contract.
+
+#### Deterministic layout and OCR output
+
+- **FR-008**: For each page, the system MUST emit `blocks` with `block_id` matching `^p\d+_b\d+$`, `block_type` from the closed vocabulary `{text, title, table, figure, header, footer}`, an integer `bbox` of exactly four non-negative integers in the page's coordinate space, a `reading_order` integer unique and contiguous starting from 1 within each page, a `text` string (may be empty), and a `confidence` in [0.0, 1.0].
+- **FR-009**: For each page, the system MUST emit `raw_ocr_lines` with `line_id` matching `^p\d+_l\d+$`, `bbox`, `text`, and `confidence`. Line identifiers MUST be unique within a page and stable across reruns of the same input.
+- **FR-010**: The system MUST emit `document_text` as a single string that is the deterministic concatenation of page-level text, ordered by `page_number`. The join strategy MUST be fixed and documented in code so that the concatenation is byte-stable.
+- **FR-011**: The system MUST emit `tables` as an array of structural table records when tables are detected. Each record MUST contain only structural information (page reference, bbox, optionally a grid) and MUST NOT contain business-field interpretation. When no tables are detected, `tables` MUST be `[]`.
+- **FR-012**: The system MUST produce deterministic, repeatable output for identical inputs and identical configuration: given the same PDF bytes, same pipeline version, and same ingestion-source configuration, two preprocessing runs MUST produce byte-identical `preprocess_output.json` contents.
+
+#### Quality signals and warnings
+
+- **FR-013**: The system MUST emit `quality` with `scan_quality` in `{good, fair, poor}`, `skew_detected` as a boolean, and `noise_level` in `{low, medium, high}`. These signals MUST be derived from deterministic rules (thresholds on measurable page-level metrics), not from model judgment.
+- **FR-014**: The system MUST emit `warnings` as an array of human-readable strings describing any recoverable anomaly encountered during preprocessing (rotation normalization, unreadable page, layout-extraction failure, ingestion-source failure, etc.). The array MUST be empty when no anomalies occurred.
+
+#### Ingestion sources and Trijunction readiness
+
+- **FR-015**: The system MUST emit `ingestion_sources` with exactly three keys — `paddleocr_vl`, `falcon_ocr`, `falcon_perception` — each containing `enabled` and `status`, where `status` is one of `{success, failure, not_implemented}`. For stage 1, `paddleocr_vl` is the only source expected to run; the other two MUST report `enabled: false` and `status: "not_implemented"` unless the slice explicitly wires them up.
+- **FR-016**: The system MUST be structured so that `falcon_ocr` and `falcon_perception` can be added later by populating their ingestion-source status and contributing blocks/lines into the existing per-page arrays, without changing the `preprocess_output` contract.
+
+#### Artifact placement and contract compliance
+
+- **FR-017**: The system MUST write `preprocess_output.json` into the same per-document folder as `source.pdf` (i.e., `tests/stage1_vendor_identity/inv_XXX_<difficulty>/preprocess_output.json`). No other artifact (`edge_extraction_output.json`, `routing_decision.json`, `final_structured_payload.json`) is written by this slice.
+- **FR-018**: The system MUST set `contract_set_version` to the currently frozen contract-set version (`1.0.0`) and `pipeline_version` to a value identifying the stage 1 pipeline build that produced the artifact.
+- **FR-019**: Every emitted `preprocess_output.json` MUST validate against `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` using the repository's validator. An invocation that cannot produce a schema-valid artifact MUST fail loudly and MUST NOT persist a partial artifact.
+- **FR-020**: The system MUST use `null` only in places where the schema permits it. Missing OCR text MUST be represented as an empty string (per the block/line schema), not as `null`. No schema-prohibited keys (e.g., business vendor fields) may appear anywhere in the artifact.
+
+#### Scope boundaries (explicit exclusions)
+
+- **FR-021**: The system MUST NOT perform any business-field extraction (company name, address, tax IDs, invoice number, totals, line items). Those concerns belong to later slices.
+- **FR-022**: The system MUST NOT invoke any model for voting, consensus, routing, or final payload assembly, and MUST NOT produce `edge_extraction_output.json`, `routing_decision.json`, or `final_structured_payload.json`.
+- **FR-023**: The system MUST NOT call any cloud service during preprocessing. All OCR/layout work for stage 1 runs locally.
+- **FR-024**: The system MUST NOT interpret tabular content beyond structural capture (bboxes, grid cells). Line-item parsing (descriptions, quantities, unit prices, line totals) is out of scope.
+
+### Key Entities
+
+- **Preprocessing Invocation**: A single run that reads one PDF and produces one `preprocess_output.json`. Attributes: source PDF path, resolved per-document folder, pipeline version, contract-set version, chosen ingestion-source configuration.
+- **Page Record**: One entry in `pages`. Attributes: `page_number` (1-based), rasterized `width` and `height`, `rotation_detected`, ordered `blocks`, ordered `raw_ocr_lines`. Serves as the coordinate frame for all bboxes on that page.
+- **Block**: A layout-level region on one page. Attributes: `block_id` (page-scoped), `block_type` (closed vocabulary), `bbox`, `reading_order` (page-scoped integer), `text`, `confidence`. Referenced by downstream extraction via `block_id`.
+- **OCR Line**: A low-level OCR text line on one page. Attributes: `line_id` (page-scoped), `bbox`, `text`, `confidence`. Serves as fine-grained evidence for later voters.
+- **Table Record**: A structural description of a detected table at the document level. Attributes: page reference, bbox, optional grid structure. Contains no business-field interpretation.
+- **Quality Signals**: Deterministic, rule-derived descriptors of the document as a whole: `scan_quality`, `skew_detected`, `noise_level`.
+- **Ingestion Source Status**: A fixed three-element record (`paddleocr_vl`, `falcon_ocr`, `falcon_perception`) declaring which sources were configured and whether each one succeeded, failed, or is not implemented for this run.
+- **Warning Entry**: A human-readable string describing a recoverable anomaly (rotation normalization, unreadable page, layout failure, ingestion-source failure).
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: For every invoice in the 20-document stage 1 corpus, a single preprocessing invocation produces a `preprocess_output.json` that validates against the frozen contract on the first run, with 0 schema validation errors across the corpus.
+- **SC-002**: Rerunning preprocessing against the same PDF produces byte-identical `preprocess_output.json` output in 100% of cases across the corpus, confirming determinism.
+- **SC-003**: For the 5 "easy" corpus documents, every detected OCR line on the page containing the vendor name is addressable by a stable `line_id` (reruns return the same identifier for the same detection), enabling downstream extraction to cite evidence reliably.
+- **SC-004**: Preprocessing completes successfully (exit code 0, valid artifact written) for at least 90% of the stage 1 corpus, including the 5 "hard" and 5 "missing_name" documents, without any manual intervention.
+- **SC-005**: When a page is deliberately corrupted, the run still exits successfully, the artifact still validates, and `warnings` contains at least one entry naming the affected `page_number` in 100% of seeded-failure cases.
+- **SC-006**: When the input is a malformed PDF that cannot be opened, the run exits non-zero with an explicit error and does not persist any `preprocess_output.json`, in 100% of seeded-failure cases.
+- **SC-007**: Downstream extraction work (next slice) can begin consuming `preprocess_output.json` without requesting any change to the `preprocess_output` contract, confirming compatibility with both current routing and future Trijunction evidence assembly.
+- **SC-008**: A documented one-command invocation processes one PDF end-to-end through preprocessing in a developer's devcontainer without requiring cloud access or GPU acceleration.
+
+## Assumptions
+
+- The stage 1 one-document CLI contract already established in the pipeline (i.e., an entry point that accepts a single document and writes artifacts next to the source PDF) is the surface through which this slice is invoked. The CLI's exact flag names are not redefined here; they are inherited.
+- The per-document folder layout documented in `docs/stage1-vendor-identity/dataset-layout.md` (each document lives in its own `inv_XXX_<difficulty>/` folder with `source.pdf` at the top) is the canonical input/output location.
+- `contract_set_version` is `1.0.0` and frozen; this slice is a consumer of the frozen contract, not an amender of it. Any needed contract change would follow `contracts/stage1_vendor_identity/AMENDMENTS.md` and is out of scope.
+- PaddleOCR-VL (or an equivalent deterministic OCR+layout source) is the single active ingestion source for stage 1. Falcon OCR and Falcon Perception are declared in `ingestion_sources` for Trijunction readiness but are `not_implemented` here.
+- Rasterization resolution is a fixed project-wide constant chosen for OCR quality, not a per-invocation flag. Changing it is a pipeline-version bump, not a runtime toggle.
+- All preprocessing work runs locally in the lightweight devcontainer (no cloud, no managed GPU requirement). GPU acceleration via host Ollama is not involved in preprocessing.
+- Per-page image files, if written at all, are treated as debug outputs and are not part of the contract; their presence or absence does not affect downstream correctness.
+- The evaluation harness, routing logic, extraction, and final payload assembly are owned by other slices and are not produced or modified by this work.
