@@ -126,7 +126,7 @@ get_highest_from_specs() {
 
 # Function to get highest number from git branches
 get_highest_from_branches() {
-    git branch -a 2>/dev/null | sed 's/^[* ]*//; s|^remotes/[^/]*/||' | _extract_highest_number
+    git branch -a 2>/dev/null | sed 's/^[+* ]*//; s|^remotes/[^/]*/||' | _extract_highest_number
 }
 
 # Extract the highest sequential feature number from a list of ref names (one per line).
@@ -306,6 +306,19 @@ PY
     fi
 }
 
+resolve_git_common_dir() {
+    local common_dir
+    common_dir=$(git rev-parse --git-common-dir 2>/dev/null || true)
+    if [ -z "$common_dir" ]; then
+        return 1
+    fi
+    if [[ "$common_dir" == /* ]]; then
+        printf '%s\n' "$common_dir"
+    else
+        printf '%s\n' "$REPO_ROOT/$common_dir"
+    fi
+}
+
 resolve_base_ref() {
     local base_ref="$1"
 
@@ -346,6 +359,45 @@ find_worktree_for_branch() {
     done < <(git worktree list --porcelain 2>/dev/null)
 
     return 1
+}
+
+write_last_worktree_state() {
+    local branch_name="$1"
+    local worktree_path="$2"
+    local base_branch="$3"
+    local common_dir
+
+    common_dir=$(resolve_git_common_dir) || return 0
+    local state_file="$common_dir/speckit-last-worktree.json"
+    local updated_at
+    updated_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "")
+
+    if command -v jq >/dev/null 2>&1; then
+        jq -cn \
+            --arg branch_name "$branch_name" \
+            --arg worktree_path "$worktree_path" \
+            --arg base_branch "$base_branch" \
+            --arg repo_root "$REPO_ROOT" \
+            --arg updated_at "$updated_at" \
+            '{BRANCH_NAME:$branch_name,WORKTREE_PATH:$worktree_path,BASE_BRANCH:$base_branch,REPO_ROOT:$repo_root,UPDATED_AT:$updated_at}' \
+            > "$state_file"
+    else
+        if type json_escape >/dev/null 2>&1; then
+            _je_branch=$(json_escape "$branch_name")
+            _je_worktree=$(json_escape "$worktree_path")
+            _je_base=$(json_escape "$base_branch")
+            _je_repo=$(json_escape "$REPO_ROOT")
+            _je_updated=$(json_escape "$updated_at")
+        else
+            _je_branch="$branch_name"
+            _je_worktree="$worktree_path"
+            _je_base="$base_branch"
+            _je_repo="$REPO_ROOT"
+            _je_updated="$updated_at"
+        fi
+        printf '{"BRANCH_NAME":"%s","WORKTREE_PATH":"%s","BASE_BRANCH":"%s","REPO_ROOT":"%s","UPDATED_AT":"%s"}\n' \
+            "$_je_branch" "$_je_worktree" "$_je_base" "$_je_repo" "$_je_updated" > "$state_file"
+    fi
 }
 
 cd "$REPO_ROOT"
@@ -570,6 +622,7 @@ if [ "$DRY_RUN" != true ]; then
 
     printf '# To persist: export SPECIFY_FEATURE=%q\n' "$BRANCH_NAME" >&2
     if [ "$CHECKOUT_MODE" = "worktree" ] && [ -n "$WORKTREE_PATH" ]; then
+        write_last_worktree_state "$BRANCH_NAME" "$WORKTREE_PATH" "$BASE_BRANCH"
         printf '# Feature worktree: %q\n' "$WORKTREE_PATH" >&2
     fi
 fi

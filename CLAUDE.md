@@ -35,6 +35,13 @@ docker compose -f docker/compose.ollama-rocm-linux.yml up -d
 
 There is no test suite, linter, or build system configured yet.
 
+Speckit worktree helper:
+```bash
+source /home/brett/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline/.specify/shell/ct.zsh
+```
+- After `/speckit.specify`, run `/ct` for the jump target or `/ctp` for full worktree details
+- Run `ct` to actually change the shell into that worktree
+
 ## Architecture
 
 ### Target architecture (long-term)

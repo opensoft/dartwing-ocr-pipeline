@@ -266,6 +266,18 @@ function Resolve-PathFromRepoRoot {
     return [System.IO.Path]::GetFullPath((Join-Path $repoRoot $RawPath))
 }
 
+function Resolve-GitCommonDir {
+    $commonDir = git rev-parse --git-common-dir 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commonDir)) {
+        return $null
+    }
+    $commonDir = $commonDir.Trim()
+    if ([System.IO.Path]::IsPathRooted($commonDir)) {
+        return [System.IO.Path]::GetFullPath($commonDir)
+    }
+    return [System.IO.Path]::GetFullPath((Join-Path $repoRoot $commonDir))
+}
+
 function Resolve-BaseRef {
     param([string]$BaseRef)
 
@@ -303,6 +315,29 @@ function Find-WorktreePathForBranch {
     } catch { }
 
     return $null
+}
+
+function Write-LastWorktreeState {
+    param(
+        [string]$BranchName,
+        [string]$WorktreePath,
+        [string]$BaseBranch
+    )
+
+    $commonDir = Resolve-GitCommonDir
+    if (-not $commonDir) {
+        return
+    }
+
+    $stateFile = Join-Path $commonDir 'speckit-last-worktree.json'
+    $payload = [ordered]@{
+        BRANCH_NAME = $BranchName
+        WORKTREE_PATH = $WorktreePath
+        BASE_BRANCH = $BaseBranch
+        REPO_ROOT = $repoRoot
+        UPDATED_AT = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+    }
+    [PSCustomObject]$payload | ConvertTo-Json -Compress | Set-Content -Path $stateFile -Encoding UTF8
 }
 
 Set-Location $repoRoot
@@ -536,6 +571,7 @@ if (-not $DryRun) {
     $env:SPECIFY_FEATURE = $branchName
     if ($checkoutMode -eq 'worktree' -and $worktreePath) {
         $env:SPECIFY_FEATURE_WORKTREE = $worktreePath
+        Write-LastWorktreeState -BranchName $branchName -WorktreePath $worktreePath -BaseBranch $baseBranch
     }
 }
 

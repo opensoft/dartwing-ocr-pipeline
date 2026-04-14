@@ -75,6 +75,7 @@ Given that feature description, do this:
    - Set `TARGET_REPO_ROOT` to `WORKTREE_PATH` when it is returned.
    - Otherwise, set `TARGET_REPO_ROOT` to the current project root.
    - Note `BRANCH_NAME` for reference, but the branch name does **not** dictate the spec directory name.
+   - A linked worktree does **not** change the user's current shell directory automatically. If `WORKTREE_PATH` is returned, remember that the current CLI session is still in the original checkout unless the user manually changes directories or opens a new session there.
 
    If the user explicitly provided `GIT_BRANCH_NAME`, pass it through to the hook so the branch script uses the exact value as the branch name (bypassing all prefix/suffix generation).
 
@@ -233,6 +234,10 @@ Given that feature description, do this:
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
 
 8. **Report completion** to the user with:
+   - A leading `Worktree Handoff` note when `WORKTREE_PATH` was returned, explicitly stating:
+     - the spec artifacts were written in `WORKTREE_PATH`
+     - the user's current shell did **not** automatically move there
+     - all follow-on commands (`/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`) must be run from that worktree
    - `SPECIFY_FEATURE_DIRECTORY` — the feature directory path
    - `SPEC_FILE` — the spec file path
    - `WORKTREE_PATH` — include when the hook created a linked worktree, and state that subsequent `/speckit.*` commands should run from that worktree
@@ -268,7 +273,7 @@ Given that feature description, do this:
        ```
    - If no hooks are registered or `TARGET_REPO_ROOT/.specify/extensions.yml` does not exist, skip silently
 
-**NOTE:** Feature checkout creation is handled by the `before_specify` hook (git extension). Spec directory and file creation are always handled by this core command inside the target checkout or worktree.
+**NOTE:** Feature checkout creation is handled by the `before_specify` hook (git extension). Spec directory and file creation are always handled by this core command inside the target checkout or worktree. Worktree creation does not move the user's existing shell session.
 
 ## Quick Guidelines
 

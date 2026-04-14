@@ -71,15 +71,28 @@ Given that feature description, do this:
      - "Create a dashboard for analytics" → "analytics-dashboard"
      - "Fix payment processing timeout bug" → "fix-payment-timeout"
 
-2. **Branch creation** (optional, via hook):
+2. **Checkout creation** (optional, via hook):
 
-   If a `before_specify` hook ran successfully in the Pre-Execution Checks above, it will have created/switched to a git branch and output JSON containing `BRANCH_NAME` and `FEATURE_NUM`. Note these values for reference, but the branch name does **not** dictate the spec directory name.
+   If a `before_specify` hook ran successfully in the Pre-Execution Checks above, it will have created or switched to a git feature checkout and output JSON containing `BRANCH_NAME` and `FEATURE_NUM`. In worktree mode it also returns `WORKTREE_PATH` and `BASE_BRANCH`.
+
+   If `WORKTREE_PATH` is returned:
+   - Treat `WORKTREE_PATH` as the target repo root for all file writes in this command
+   - Write the spec files and `.specify/feature.json` in that worktree, not in the original checkout
+   - Remember that a linked worktree does **not** change the user's current shell directory automatically
 
    If the user explicitly provided `GIT_BRANCH_NAME`, pass it through to the hook so the branch script uses the exact value as the branch name (bypassing all prefix/suffix generation).
 
 3. **Create the spec feature directory**:
 
    Specs live under the default `specs/` directory unless the user explicitly provides `SPECIFY_FEATURE_DIRECTORY`.
+
+   When `WORKTREE_PATH` is returned by the hook:
+   - Set `TARGET_REPO_ROOT` to `WORKTREE_PATH`
+   - Resolve all paths in this command from `TARGET_REPO_ROOT`
+   - Persist `.specify/feature.json` at `TARGET_REPO_ROOT/.specify/feature.json`
+
+   When `WORKTREE_PATH` is not returned:
+   - Set `TARGET_REPO_ROOT` to the current repository root
 
    **Resolution order for `SPECIFY_FEATURE_DIRECTORY`**:
    1. If the user explicitly provided `SPECIFY_FEATURE_DIRECTORY` (e.g., via environment variable, argument, or configuration), use it as-is
@@ -91,10 +104,10 @@ Given that feature description, do this:
       - Set `SPECIFY_FEATURE_DIRECTORY` to `specs/<directory-name>`
 
    **Create the directory and spec file**:
-   - `mkdir -p SPECIFY_FEATURE_DIRECTORY`
-   - Copy `.specify/templates/spec-template.md` to `SPECIFY_FEATURE_DIRECTORY/spec.md` as the starting point
+   - `mkdir -p TARGET_REPO_ROOT/SPECIFY_FEATURE_DIRECTORY`
+   - Copy `TARGET_REPO_ROOT/.specify/templates/spec-template.md` to `TARGET_REPO_ROOT/SPECIFY_FEATURE_DIRECTORY/spec.md` as the starting point
    - Set `SPEC_FILE` to `SPECIFY_FEATURE_DIRECTORY/spec.md`
-   - Persist the resolved path to `.specify/feature.json`:
+   - Persist the resolved path to `TARGET_REPO_ROOT/.specify/feature.json`:
      ```json
      {
        "feature_directory": "<resolved feature dir>"
@@ -107,6 +120,7 @@ Given that feature description, do this:
    - You must only create one feature per `/speckit.specify` invocation
    - The spec directory name and the git branch name are independent — they may be the same but that is the user's choice
    - The spec directory and file are always created by this command, never by the hook
+   - When `WORKTREE_PATH` is returned, subsequent `/speckit.*` commands should run from that worktree
 
 4. Load `.specify/templates/spec-template.md` to understand required sections.
 
@@ -232,6 +246,7 @@ Given that feature description, do this:
 8. **Report completion** to the user with:
    - `SPECIFY_FEATURE_DIRECTORY` — the feature directory path
    - `SPEC_FILE` — the spec file path
+   - `WORKTREE_PATH` — include when the hook created a linked worktree, and state that subsequent `/speckit.*` commands should run from that worktree
    - Checklist results summary
    - Readiness for the next phase (`/speckit.clarify` or `/speckit.plan`)
 
@@ -264,7 +279,7 @@ Given that feature description, do this:
        ```
    - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
 
-**NOTE:** Branch creation is handled by the `before_specify` hook (git extension). Spec directory and file creation are always handled by this core command.
+**NOTE:** Checkout creation is handled by the `before_specify` hook (git extension). Spec directory and file creation are always handled by this core command.
 
 ## Quick Guidelines
 

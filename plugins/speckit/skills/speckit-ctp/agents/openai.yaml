@@ -1,0 +1,6 @@
+interface:
+  display_name: "/ctp"
+  short_description: "Show the latest Speckit worktree path"
+  default_prompt: "Use $speckit-ctp to show the latest Speckit worktree path and metadata."
+policy:
+  allow_implicit_invocation: false
