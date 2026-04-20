@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "look in the docs for 004 — Evidence packet assembly (Trijunction-ready shape, feeds all downstream voters)"
 
+## Clarifications
+
+### Session 2026-04-20
+
+- Q: How does the assembler decide to persist `evidence_packet.json` — Python logger level, dedicated CLI flag, both, or env var? → A: Python logger level only. Persist iff the `ledgerlinc_ocr` (or equivalent) Python logger's effective level is `DEBUG` or lower. CLI `-v/--verbose` sets that logger level; no separate persistence flag.
+- Q: What JSON canonical form makes packet output byte-identical across runs? → A: Reuse 003's existing `write_atomic` convention: `json.dump(packet, f, ensure_ascii=False, indent=2, sort_keys=False)`, atomic rename, no trailing newline. Key order = assembler's deterministic insertion order.
+- Q: Is the packet validated against `evidence_packet.schema.json` when returned in-memory (default path), or only when persisted? → A: Always validate. The assembler validates the packet against `evidence_packet.schema.json` before returning it, regardless of logging level; validation failure raises and no file is written.
+- Q: How are duplicate/ordered regex hints represented in `candidate_vendor_signals`? → A: Emit matches in document order (offset ascending), one entry per occurrence with its own source line/offset reference. No deduplication, no sorting. Downstream voters dedupe if they need to.
+- Q: What source-reference fields are required on each regex hint? → A: All four: `document_text` character offset + length, plus `{page_index, block_index, line_index}` derived from `preprocess_output`'s reading-order join. All four fields are non-null in stage 1 (the assembler owns the reverse-mapping).
+
 ## Summary
 
 Stage 1 already produces `preprocess_output.json` (003) — page images, OCR lines, layout blocks, tables, document text, quality, ingestion-source flags. The next slice on the critical path (`docs/stage1-vendor-identity/implementation-plan.md` step 4) is **evidence packet assembly**: take that preprocess artifact and assemble the **shared evidence packet** that downstream model voters will reason over. The packet must reflect the long-term Trijunction shape (PaddleOCR-VL + Falcon OCR + Falcon Perception) so additional ingestion sources and additional model voters can be slotted in without re-shaping the contract that voters consume.
@@ -105,33 +115,33 @@ A pipeline operator running stage 1 against a corpus document expects evidence p
 - **FR-005**: Each Trijunction section MUST carry a status flag (`success`, `failure`, `not_implemented`, mirroring `preprocess_output.ingestion_sources`) so downstream consumers detect availability without inspecting key presence.
 - **FR-006**: System MUST include in the packet: page-level OCR (lines + blocks), reading order, layout blocks with bounding boxes, document text in reading order, table snippets when present.
 - **FR-007**: System MUST include in the packet a section for **perceptual observations** (logos, stamps, header/footer candidates) populated by Falcon Perception when available; for stage 1 this section is structurally present but empty with `not_implemented` status.
-- **FR-008**: System MUST include in the packet a section for **candidate vendor signals** (company-name candidate, address candidates, tax-ID candidates, website, email, phone) shaped to match the fields the eventual `edge_extraction_output` voter will produce. Stage 1 population: deterministic regex hints over `document_text` for **email addresses, URLs/website, US phone numbers, and EIN-shaped tax IDs**. The **company-name** and **address** candidate slots remain empty/`null` in stage 1 (they require Falcon Perception / layout-aware heuristics that arrive in a later slice). Each populated hint MUST be marked as `unverified` provenance so downstream voters know to confirm.
+- **FR-008**: System MUST include in the packet a section for **candidate vendor signals** (company-name candidate, address candidates, tax-ID candidates, website, email, phone) shaped to match the fields the eventual `edge_extraction_output` voter will produce. Stage 1 population: deterministic regex hints over `document_text` for **email addresses, URLs/website, US phone numbers, and EIN-shaped tax IDs**. URL hints match only strings prefixed by `http://` or `https://`; bare-domain matches (e.g. `acme.com` without a scheme) are out of scope in stage 1 and are deferred to a later slice that can bring layout context. The **company-name** and **address** candidate slots remain empty/`null` in stage 1 (they require Falcon Perception / layout-aware heuristics that arrive in a later slice). Each populated hint MUST be marked as `unverified` provenance so downstream voters know to confirm. Ordering and duplicates: matches MUST be emitted in document order (ascending offset within `document_text`), with one entry per occurrence — no deduplication, no sorting. Voters may dedupe downstream if they wish. Source-reference fields on each hint: every hint MUST carry (a) `document_text` character offset and length of the match and (b) `{page_index, block_index, line_index}` derived from 003's reading-order join used to build `document_text`. All four fields are non-null in stage 1; the assembler owns the reverse-mapping from `document_text` offsets back to the originating line.
 - **FR-009**: System MUST NOT include any section, key, or value that would make the packet voter-specific, model-specific, or prompt-specific.
 - **FR-010**: System MUST NOT include the four existing persisted artifacts' decision content (no `routing_decision` content, no `final_structured_payload` content, no per-field `confidence`/`evidence` from extraction). The packet is upstream of voting and routing.
 
 **Determinism and provenance:**
 
-- **FR-011**: System MUST produce a byte-identical packet on repeated runs over the same input.
+- **FR-011**: System MUST produce a byte-identical packet on repeated runs over the same input. Canonical serialization reuses 003's `write_atomic` helper (or equivalent): `json.dump(packet, f, ensure_ascii=False, indent=2, sort_keys=False)` with atomic rename and no trailing newline. Key order is the assembler's deterministic insertion order; there is no `sort_keys=True` normalization, so the assembler is responsible for inserting keys in a fixed order.
 - **FR-012**: The packet MUST NOT contain wall-clock timestamps, run IDs, or other non-input-derived values inside its payload (such metadata, if needed at all, lives outside the packet body — for example, in a sidecar or in CLI logs).
-- **FR-013**: System MUST stamp the packet with a `contract_set_version` field aligned to the existing stage 1 contract set (currently `1.0.0`), so consumers can detect contract drift.
+- **FR-013**: System MUST stamp the packet with a `contract_set_version` field aligned to the stage 1 contract set. This slice bumps the contract set from `1.0.0` to `1.1.0` (MINOR, additive) via `AMENDMENTS.md`; the packet carries `"1.1.0"`. Consumers use this field to detect contract drift.
 - **FR-014**: System MUST use `null` for missing scalar fields and empty arrays for missing list fields — never empty strings, never absent keys.
 
 **Persistence and folder contract:**
 
-- **FR-015a**: Default persistence is **in-memory only** — the assembler returns the packet to the caller and writes nothing to disk.
-- **FR-015b**: When the assembler is invoked with logging set to debug/verbose level (CLI flag and/or library-level logging configuration), it MUST also persist the packet as `evidence_packet.json` into the same per-document folder it read from. The persisted file MUST validate against a new `evidence_packet.schema.json` to be added under `contracts/stage1_vendor_identity/v1.0.0/`.
+- **FR-015a**: Default persistence is **in-memory only** — the assembler returns the packet to the caller and writes nothing to disk. The in-memory packet MUST be validated against `evidence_packet.schema.json` before being returned to the caller; validation failure raises and no file is written. Validation is unconditional on logging level.
+- **FR-015b**: When the `ledgerlinc_ocr` (or equivalent) Python logger's effective level is `DEBUG` or lower at invocation time, the assembler MUST also persist the packet as `evidence_packet.json` into the same per-document folder it read from. The persisted file MUST validate against a new `evidence_packet.schema.json` to be added under `contracts/stage1_vendor_identity/v1.1.0/` (the MINOR-bump directory created by this slice's amendment; see FR-015c). There is no dedicated `--persist-packet` flag and no environment-variable trigger; CLI verbosity flags work by configuring the logger.
 - **FR-015c**: This slice MUST file an amendment via `contracts/stage1_vendor_identity/AMENDMENTS.md` adding `evidence_packet.json` to `folder.schema.json` as an **optional** generated file (so the folder validator accepts its presence at debug-logging level and its absence at default level). The contract-set version is bumped accordingly per the amendment policy.
 - **FR-016**: System MUST NOT modify, re-write, or invalidate the four existing per-document artifacts (`preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, `final_structured_payload.json`).
 
 **Failure handling:**
 
-- **FR-017**: When `preprocess_output.json` is missing, unreadable, or schema-invalid, System MUST emit a clear error identifying which precondition failed and exit with a non-zero status if invoked via CLI.
+- **FR-017**: When `preprocess_output.json` is missing, unreadable, or schema-invalid, System MUST emit a clear error identifying which precondition failed and exit with a non-zero status if invoked via CLI. The closed exit-code and `kind`-discriminator vocabulary is defined in `specs/004-evidence-packet-assembly/contracts/cli-contract.md`.
 - **FR-018**: When `preprocess_output.json` is valid but reports a partial-failure or step-failure state (per 003 semantics), System MUST still produce a packet whose affected sections carry the corresponding failure status flag rather than fabricating data or omitting keys.
 
 **API surface:**
 
 - **FR-019**: System MUST expose an importable Python function (assemble-from-folder and/or assemble-from-loaded-artifact) so the next-slice voter code and the eventual extraction CLI can reuse the same assembly path. The exact function signature is an implementation concern.
-- **FR-020**: System MUST ship a new console script `ledgerlinc-evidence-packet <folder>` (mirroring 003's `ledgerlinc-preprocess`), wired through `[project.scripts]` in `pyproject.toml`. The CLI MUST accept a logging-level flag (or honor a standard logging environment variable) that, when set to debug/verbose, triggers the persistence behavior in FR-015b.
+- **FR-020**: System MUST ship a new console script `ledgerlinc-evidence-packet <folder>` (mirroring 003's `ledgerlinc-preprocess`), wired through `[project.scripts]` in `pyproject.toml`. The CLI MUST accept a verbosity flag (e.g. `-v/--verbose`) whose sole effect relevant to persistence is to set the `ledgerlinc_ocr` (or equivalent) Python logger level to `DEBUG`, thereby satisfying the trigger condition in FR-015b. No separate `--persist-packet` flag is added.
 
 ### Key Entities
 
@@ -143,7 +153,7 @@ A pipeline operator running stage 1 against a corpus document expects evidence p
 
 ### Measurable Outcomes
 
-- **SC-001**: Given any document folder in the existing 20-document corpus that has a valid `preprocess_output.json`, the assembler produces an evidence packet in well under one second on the devcontainer reference profile (no model calls, no I/O beyond reading one file and optionally writing one file).
+- **SC-001** (soft, non-gating): Given any document folder in the existing 20-document corpus that has a valid `preprocess_output.json`, the assembler produces an evidence packet in well under one second on the devcontainer reference profile. This is a reviewer-observed sanity check captured by the corpus run in Phase 7 polish (tasks.md T081); it is not a release gate (per constitution §"Stage 1 Scope Constraints" — no latency target as a release gate).
 - **SC-002**: Re-running the assembler on the same input folder ten times in a row produces ten byte-identical packet outputs.
 - **SC-003**: 100% of valid `preprocess_output.json` inputs (including partial-failure and step-failure states) yield a packet whose required sections are all present; 0% of invalid inputs yield a packet at all.
 - **SC-004**: A reviewer reading only the packet contract (schema or dataclass docstring) can identify the slot for each of the three Trijunction sources without reading any prose documentation.
@@ -151,7 +161,7 @@ A pipeline operator running stage 1 against a corpus document expects evidence p
 - **SC-006**: The four existing per-document artifact files remain byte-identical before and after running the assembler over a folder, regardless of logging level.
 - **SC-007**: At default logging level the assembler writes zero files; at debug/verbose logging level it writes exactly one file (`evidence_packet.json`) into the per-document folder.
 - **SC-008**: A persisted `evidence_packet.json` validates against the new `evidence_packet.schema.json`, and the per-document folder still validates against the amended `folder.schema.json` whether the file is present or absent.
-- **SC-009**: For at least the easy-bucket subset of the corpus, deterministic regex hints in `candidate_vendor_signals` correctly surface every visible email address, URL, US phone number, and EIN-shaped tax ID present in `document_text` (precision is not graded here — false positives are explicitly allowed and are flagged `unverified`).
+- **SC-009**: For every `tests/stage1_vendor_identity/inv_*_easy/preprocess_output.json` present on disk, deterministic regex hints in `candidate_vendor_signals` achieve 100% recall on every literally-visible email address, `http(s)://` URL, US phone number, and EIN-shaped tax ID present in `document_text`. Precision is NOT gated — false positives are explicitly allowed and are flagged `unverified` so downstream voters can confirm.
 
 ## Assumptions
 
@@ -161,12 +171,12 @@ A pipeline operator running stage 1 against a corpus document expects evidence p
 - Host Ollama and PyTorch are not required for this slice; assembly is deterministic Python over JSON, in line with the schemas/CLI/preprocessing slices already shipped.
 - "Trijunction-ready" means **shape-ready**, not behavior-ready: stage 1 only wires PaddleOCR, but the packet exposes named slots for Falcon OCR and Falcon Perception so a future slice can populate them without breaking consumers.
 - The packet is always assembled from one preprocess output at a time; multi-document or batch assembly is out of scope.
-- "Logging set" in FR-015b is a CLI-and-library logging-level signal, not a dedicated `--persist-packet` flag. The exact flag name and any companion env var are deferred to `/speckit.plan`; the spec only commits to the **trigger condition** (debug/verbose) and the **resulting on-disk behavior**.
+- "Logging set" in FR-015b is specifically the `ledgerlinc_ocr` Python logger's effective level being `DEBUG` or lower. Library callers configure the logger directly; the CLI's `-v/--verbose` flag is just a shortcut that sets that logger level. No dedicated persistence flag, no persistence env var.
 
 ## Dependencies
 
 - Hard upstream dependency: 003 (`preprocess_output.json` shape and per-document folder location).
-- Hard upstream dependency: the frozen contract set at `contracts/stage1_vendor_identity/v1.0.0/`. Any new persisted artifact requires a `1.0.x` amendment (per `AMENDMENTS.md`).
+- Hard upstream dependency: the frozen contract set at `contracts/stage1_vendor_identity/v1.0.0/`. Adding a new persisted artifact is a MINOR amendment (per `AMENDMENTS.md`); this slice bumps the contract set to `1.1.0` and places the new `evidence_packet.schema.json` plus the amended `folder.schema.json` under `contracts/stage1_vendor_identity/v1.1.0/`.
 - Soft downstream dependency: 005 (single-voter edge extraction) will consume the packet; the API surface defined here is the contract that slice will program against.
 - No new external libraries beyond what 001/002/003 already pulled in; assembly is JSON-in / JSON-or-Python-out.
 
