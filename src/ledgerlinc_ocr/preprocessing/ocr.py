@@ -1,7 +1,8 @@
-"""PaddleOCR + PP-StructureV2 wrapper for deterministic CPU inference (FR-008, FR-009, Decision 2)."""
+"""PaddleOCR + PP-StructureV2 wrapper for deterministic CPU inference (FR-008, FR-009, FR-011a, Decision 2)."""
 
 from __future__ import annotations
 
+import re
 import warnings
 from dataclasses import dataclass
 from typing import Any
@@ -105,6 +106,32 @@ def _clip_bbox(bbox: list[int], width: int, height: int) -> list[int]:
     return [int(x0), int(y0), int(x1), int(y1)]
 
 
+_TR_RE = re.compile(r"<tr\b[^>]*>", re.IGNORECASE)
+_TD_TH_RE = re.compile(r"<t[dh]\b[^>]*>", re.IGNORECASE)
+
+
+def _parse_table_dims(html: str) -> tuple[int, int]:
+    """Extract (rows, columns) from a PP-Structure HTML table fragment.
+
+    Returns (0, 0) if the structure can't be parsed. Columns are the max
+    cells-per-row; FR-011a allows 0 for unknown.
+    """
+    if not html:
+        return 0, 0
+    row_spans = [m.end() for m in _TR_RE.finditer(html)]
+    if not row_spans:
+        return 0, 0
+    row_starts = row_spans
+    row_ends = row_starts[1:] + [len(html)]
+    max_cols = 0
+    for s, e in zip(row_starts, row_ends):
+        segment = html[s:e]
+        count = len(_TD_TH_RE.findall(segment))
+        if count > max_cols:
+            max_cols = count
+    return len(row_starts), max_cols
+
+
 def _sort_key_bbox_idx(item: tuple[int, Any]) -> tuple[int, int, int]:
     det_idx, rec = item
     bbox = rec["bbox"]
@@ -204,12 +231,15 @@ def run_layout(
             html = res.get("html")
             if isinstance(html, str):
                 text_parts.append(html)
+                table_rows, table_cols = _parse_table_dims(html)
             cell_bbox = res.get("cell_bbox") or []
             for ci, cb in enumerate(cell_bbox):
+                row_idx = (ci // table_cols) if table_cols > 0 else 0
+                col_idx = (ci % table_cols) if table_cols > 0 else ci
                 cells.append(
                     {
-                        "row": 0,
-                        "col": ci,
+                        "row": int(row_idx),
+                        "column": int(col_idx),
                         "bbox": _clip_bbox(
                             [int(x) for x in cb[:4]] if len(cb) >= 4 else _bbox_from_points(cb),
                             width,

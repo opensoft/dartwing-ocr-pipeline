@@ -20,6 +20,8 @@ US3_ENCRYPTED_PDF = FIXTURE_ROOT / "inv_032_encrypted" / "source.pdf"
 US3_MALFORMED_PDF = FIXTURE_ROOT / "inv_033_malformed" / "source.pdf"
 US3_NON_PDF = FIXTURE_ROOT / "inv_034_non_pdf" / "source.pdf"
 US3_ZERO_PAGE_PDF = FIXTURE_ROOT / "inv_035_zero_page" / "source.pdf"
+US4_WITH_TABLE_PDF = FIXTURE_ROOT / "inv_040_with_table" / "source.pdf"
+US4_NO_TABLE_PDF = FIXTURE_ROOT / "inv_041_no_table" / "source.pdf"
 
 
 def _ensure_source_pdf() -> Path:
@@ -103,6 +105,27 @@ def us2_three_page_artifact(tmp_path_factory) -> dict:
 @pytest.fixture(scope="session")
 def us3_fixtures() -> dict[str, Path]:
     return _ensure_us3_fixtures()
+
+
+def _ensure_us4_fixtures() -> tuple[Path, Path]:
+    if US4_WITH_TABLE_PDF.exists() and US4_NO_TABLE_PDF.exists():
+        return US4_WITH_TABLE_PDF, US4_NO_TABLE_PDF
+    sys.path.insert(0, str(FIXTURE_ROOT))
+    from make_us4_fixtures import build_no_table, build_with_table  # type: ignore
+
+    return build_with_table(), build_no_table()
+
+
+@pytest.fixture(scope="session")
+def us4_with_table_artifact(tmp_path_factory) -> dict:
+    with_tbl, _ = _ensure_us4_fixtures()
+    return _run_pipeline(tmp_path_factory, "inv_040", with_tbl)
+
+
+@pytest.fixture(scope="session")
+def us4_no_table_artifact(tmp_path_factory) -> dict:
+    _, no_tbl = _ensure_us4_fixtures()
+    return _run_pipeline(tmp_path_factory, "inv_041", no_tbl)
 
 
 @pytest.fixture

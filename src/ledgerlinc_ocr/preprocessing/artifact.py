@@ -13,6 +13,32 @@ from ledgerlinc_ocr.preprocessing.document_text import join_document_text
 from ledgerlinc_ocr.preprocessing.errors import ArtifactInvalidError
 
 ARTIFACT_FILENAME = "preprocess_output.json"
+
+TABLE_REQUIRED_KEYS = ("page_number", "block_id", "bbox", "rows", "columns")
+TABLE_OPTIONAL_KEYS = ("cells",)
+TABLE_ALLOWED_KEYS = set(TABLE_REQUIRED_KEYS) | set(TABLE_OPTIONAL_KEYS)
+CELL_ALLOWED_KEYS = {"row", "column", "bbox", "text"}
+
+
+def _normalize_table(entry: dict[str, Any]) -> dict[str, Any]:
+    """FR-011a: keep exactly the pinned key set; drop any unexpected keys."""
+    missing = [k for k in TABLE_REQUIRED_KEYS if k not in entry]
+    if missing:
+        raise ArtifactInvalidError(
+            f"table entry missing required keys {missing}: {entry!r}"
+        )
+    normalized: dict[str, Any] = {k: entry[k] for k in TABLE_REQUIRED_KEYS}
+    cells = entry.get("cells")
+    if cells is not None:
+        if not isinstance(cells, list):
+            raise ArtifactInvalidError(f"table cells must be a list, got {type(cells)!r}")
+        normalized_cells: list[dict[str, Any]] = []
+        for cell in cells:
+            if not isinstance(cell, dict):
+                raise ArtifactInvalidError(f"table cell must be an object: {cell!r}")
+            normalized_cells.append({k: cell[k] for k in CELL_ALLOWED_KEYS if k in cell})
+        normalized["cells"] = normalized_cells
+    return normalized
 SCHEMA_PATH = Path(__file__).resolve().parents[3] / (
     "contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json"
 )
@@ -46,6 +72,7 @@ def assemble(
     warnings: list[str],
 ) -> dict[str, Any]:
     ordered_pages = sorted(pages, key=lambda p: p["page_number"])
+    normalized_tables = [_normalize_table(t) for t in tables]
     artifact: dict[str, Any] = {
         "contract_set_version": contract_set_version,
         "pipeline_version": pipeline_version,
@@ -55,7 +82,7 @@ def assemble(
         "page_count": len(ordered_pages),
         "pages": ordered_pages,
         "document_text": join_document_text(ordered_pages),
-        "tables": tables,
+        "tables": normalized_tables,
         "quality": quality,
         "ingestion_sources": ingestion_sources,
         "warnings": warnings,

@@ -146,16 +146,16 @@ description: "Task list for 003-pdf-preprocessing"
 
 ### Tests for User Story 4
 
-- [ ] T052 [P] [US4] Create fixture `tests/fixtures/preprocessing/us4_with_table/source.pdf` — a single-page invoice with a recognizable 3×4 table.
-- [ ] T053 [P] [US4] Create fixture `tests/fixtures/preprocessing/us4_no_table/source.pdf` — a single-page invoice with zero tabular structure.
-- [ ] T054 [P] [US4] Integration test `tests/integration/preprocessing/test_us4_tables.py::test_ac1_table_captured` — covers US4 AC#1 (block + record present, bbox alignment).
-- [ ] T055 [P] [US4] Integration test `tests/integration/preprocessing/test_us4_tables.py::test_ac2_no_tables_empty_array` — covers US4 AC#2.
-- [ ] T056 [P] [US4] Integration test `tests/integration/preprocessing/test_us4_tables.py::test_ac3_structural_only_no_business_keys` — covers US4 AC#3 + FR-011a (pinned keys, no forbidden keys anywhere in artifact).
+- [x] T052 [P] [US4] Create fixture `tests/fixtures/preprocessing/us4_with_table/source.pdf` — a single-page invoice with a recognizable 3×4 table.
+- [x] T053 [P] [US4] Create fixture `tests/fixtures/preprocessing/us4_no_table/source.pdf` — a single-page invoice with zero tabular structure.
+- [x] T054 [P] [US4] Integration test `tests/integration/preprocessing/test_us4_tables.py::test_ac1_table_captured` — covers US4 AC#1 (block + record present, bbox alignment).
+- [x] T055 [P] [US4] Integration test `tests/integration/preprocessing/test_us4_tables.py::test_ac2_no_tables_empty_array` — covers US4 AC#2.
+- [x] T056 [P] [US4] Integration test `tests/integration/preprocessing/test_us4_tables.py::test_ac3_structural_only_no_business_keys` — covers US4 AC#3 + FR-011a (pinned keys, no forbidden keys anywhere in artifact).
 
 ### Implementation for User Story 4
 
-- [ ] T057 [US4] Extend `src/ledgerlinc_ocr/preprocessing/ocr.py` to request PP-Structure's table recognition output (structure + cell grid) and return normalized `(rows, columns, cells)` alongside the table block's bbox.
-- [ ] T058 [US4] Extend `src/ledgerlinc_ocr/preprocessing/artifact.py` to assemble `tables[*]` entries with the exact key set pinned in FR-011a (`page_number`, `block_id`, `bbox`, `rows`, `columns`, optional `cells`). Include a guard that strips any unexpected keys before validation.
+- [x] T057 [US4] Extend `src/ledgerlinc_ocr/preprocessing/ocr.py` to request PP-Structure's table recognition output (structure + cell grid) and return normalized `(rows, columns, cells)` alongside the table block's bbox.
+- [x] T058 [US4] Extend `src/ledgerlinc_ocr/preprocessing/artifact.py` to assemble `tables[*]` entries with the exact key set pinned in FR-011a (`page_number`, `block_id`, `bbox`, `rows`, `columns`, optional `cells`). Include a guard that strips any unexpected keys before validation.
 
 **Checkpoint**: US4 complete — table structural capture works without crossing into line-item parsing. US1–US3 regressions clean.
 
