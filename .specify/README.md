@@ -48,12 +48,54 @@ Move into that worktree and continue the feature there:
 cd /home/brett/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline-worktrees/002-one-doc-cli
 ```
 
-Then run the rest of the flow from that worktree:
+Then run the rest of the flow from that worktree. The core path is:
 
 ```text
 /speckit.clarify
 /speckit.plan
 /speckit.tasks
+/speckit.implement
+```
+
+### All Speckit commands (required + optional)
+
+**Project-wide (run from root checkout, usually once):**
+
+- `/speckit.constitution` — create or update the project constitution and keep dependent templates in sync. Lives at `.specify/memory/constitution.md`.
+
+**Per-feature core flow (run from the feature worktree):**
+
+- `/speckit.specify <description>` — create the feature spec and (via the git extension) the linked worktree. **Required, run from root checkout on `main`.**
+- `/speckit.clarify` — ask clarifying questions and update `spec.md`. *Optional but recommended before `plan`.*
+- `/speckit.plan` — generate `plan.md` and design artifacts (data model, research, quickstart, contracts). **Required before tasks.**
+- `/speckit.tasks` — generate dependency-ordered `tasks.md` from the plan. **Required before implement.**
+- `/speckit.analyze` — non-destructive cross-artifact consistency check across `spec.md`, `plan.md`, `tasks.md`. *Optional, run after `tasks`.*
+- `/speckit.implement` — execute `tasks.md` end-to-end with verification. **Terminal step of the core flow.**
+
+**Per-feature optional add-ons (run from the feature worktree, any time after `specify`):**
+
+- `/speckit.checklist <topic>` — generate a custom checklist for the feature (security, a11y, rollout, etc.). Writes under `specs/<feature>/checklists/`. Can be re-run with different topics.
+- `/speckit.taskstoissues` — convert `tasks.md` into dependency-ordered GitHub issues. *Optional, run after `tasks` if you want issue tracking.*
+
+**Git extension helpers (mostly invoked automatically, but available directly):**
+
+- `/speckit.git.feature` — the worktree/branch creator that `/speckit.specify` calls under the hood. Rarely invoked manually.
+- `/speckit.git.initialize` — one-time git extension bootstrap for a repo.
+- `/speckit.git.validate` — verify the current branch follows feature-branch naming.
+- `/speckit.git.commit` — auto-commit the changes a Speckit command just produced.
+- `/speckit.git.remote` — detect the GitHub remote URL (used by `taskstoissues`).
+
+**Typical full flow for a new feature:**
+
+```text
+/speckit.specify <description>   # from root checkout
+cd <WORKTREE_PATH>                # or run /ct, then ct
+/speckit.clarify                  # optional
+/speckit.plan
+/speckit.checklist <topic>        # optional, repeatable
+/speckit.tasks
+/speckit.analyze                  # optional
+/speckit.taskstoissues            # optional
 /speckit.implement
 ```
 
@@ -85,10 +127,14 @@ After `/speckit.specify`, there are two shortcuts:
     - `3` Gemini
   - pressing Enter picks the newest worktree and Anthropic by default
 
-Enable the shell helper in your current zsh session:
+The shell helpers (`ct`, `ctp`, `cta`, `ctc`, `ctg`, `cts`, `ctlist`) are loaded automatically in every new shell via `/usr/local/share/ct/ct-functions.zsh`, which is sourced from `~/.zshrc`. No per-shell setup is required.
+
+Each command detects the current repo at call time via `git rev-parse`. If you run one outside a git repo or inside a repo without a `.specify/` directory, it errors with a clear message.
+
+**Fallback for environments without the container-level helper** (e.g. a plain WSL shell outside the devcontainer): source the in-repo file directly.
 
 ```bash
-source /home/brett/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline/.specify/shell/ct.zsh
+source "$(git rev-parse --show-toplevel)/.specify/shell/worktrees.sh"
 ```
 
 Then your flow can be:

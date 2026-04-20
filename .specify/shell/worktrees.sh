@@ -1,6 +1,17 @@
 # Source this file from bash or zsh to enable LedgerLinc Speckit worktree helpers.
+#
+# NOTE: Prefer the container-wide `ctinit` command (defined in /etc/skel/.zshrc)
+# which loads project-agnostic helpers from /usr/local/share/ct/ct-functions.zsh.
+# This file is kept as a per-repo fallback for environments without the
+# container-level helpers.
 
-LEDGERLINC_SPECKIT_REPO_ROOT="/home/brett/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline"
+# Auto-detect repo root from this script's own location so the file is
+# relocatable and does not embed a host-specific absolute path.
+LEDGERLINC_SPECKIT_REPO_ROOT="$(CDPATH="" cd "${${(%):-%x}:A:h}/../.." 2>/dev/null && pwd)"
+if [ -z "$LEDGERLINC_SPECKIT_REPO_ROOT" ]; then
+  # bash fallback when the zsh prompt expansion above is unavailable
+  LEDGERLINC_SPECKIT_REPO_ROOT="$(CDPATH="" cd "$(dirname "${BASH_SOURCE[0]:-$0}")/../.." 2>/dev/null && pwd)"
+fi
 LEDGERLINC_SPECKIT_LAST_WORKTREE_SCRIPT="$LEDGERLINC_SPECKIT_REPO_ROOT/.specify/extensions/git/scripts/bash/get-last-worktree.sh"
 LEDGERLINC_SPECKIT_SELECT_WORKTREE_SCRIPT="$LEDGERLINC_SPECKIT_REPO_ROOT/.specify/shell/select-worktree.sh"
 
