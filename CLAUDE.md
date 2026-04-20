@@ -99,6 +99,11 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `contracts/stage1_vendor_identity/v1.0.0/` — executable contract set
 - `contracts/stage1_vendor_identity/AMENDMENTS.md` — amendment checklist + changelog
 - `specs/001-freeze-schemas-folder-contracts/quickstart.md` — validator quickstart
+- `specs/003-pdf-preprocessing/spec.md` — PDF preprocessing slice requirements and user stories
+- `specs/003-pdf-preprocessing/plan.md` — PDF preprocessing technical plan, structure, and milestones
+- `specs/003-pdf-preprocessing/research.md` — PDF preprocessing decisions (DPI, determinism, version string, quality thresholds, document_text join)
+- `specs/003-pdf-preprocessing/quickstart.md` — end-to-end preprocessing walk-through for devcontainer
+- `specs/003-pdf-preprocessing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `scope.md` — release-gate checklists for the preprocessing slice
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 
 ## Active Technologies

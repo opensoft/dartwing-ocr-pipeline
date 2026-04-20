@@ -43,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         out_path = pipeline.run(invocation)
+        with out_path.open("r", encoding="utf-8") as f:
+            written = json.load(f)
     except InputRejectedError as exc:
         print(
             json.dumps({"status": "error", "kind": "input_rejected", "message": str(exc)}),
@@ -62,7 +64,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         return EXIT_UNEXPECTED
 
-    print(json.dumps({"status": "ok", "artifact": str(out_path)}))
+    print(
+        json.dumps(
+            {
+                "status": "ok",
+                "document_id": written["document_id"],
+                "artifact": str(out_path),
+                "warnings": len(written.get("warnings", [])),
+            }
+        )
+    )
     return EXIT_OK
 
 
