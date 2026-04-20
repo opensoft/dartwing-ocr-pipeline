@@ -10,19 +10,29 @@ requires-python = ">=3.12"
 dependencies = [
     "jsonschema>=4.22,<5",
     "pydantic>=2.7,<3",
+    "pypdfium2>=4.30,<5",
+    "paddleocr>=2.8,<3",
+    "paddlepaddle>=3.0,<4",
+    "Pillow>=10.4,<11",
+    "numpy>=1.26,<3",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2,<9",
+    "pypdf>=5.0,<7",
+    "pytest-socket>=0.7,<1",
 ]
+
+[project.scripts]
+ledgerlinc-preprocess = "ledgerlinc_ocr.preprocessing.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["ledgerlinc_ocr*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/contract_tests"]
+testpaths = ["tests/contract_tests", "tests/unit", "tests/integration"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
