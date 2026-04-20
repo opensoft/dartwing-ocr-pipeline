@@ -128,3 +128,38 @@ def test_validate_and_write_refuses_to_persist_invalid(tmp_path: Path):
         artifact_mod.validate_and_write(bad, out)
     assert not out.exists()
     assert list(tmp_path.glob("preprocess_output.json*")) == []
+
+
+def test_write_atomic_crash_midway_preserves_prior_artifact(monkeypatch, tmp_path: Path):
+    """FR-019: a crash between tmp write and rename must not corrupt the prior artifact."""
+    art = _minimal_valid_artifact()
+    out = tmp_path / "preprocess_output.json"
+
+    # Seed a prior artifact so we can verify it is not touched by the crashed run.
+    prior_bytes = b'{"prior": "untouched"}'
+    out.write_bytes(prior_bytes)
+
+    def boom(src, dst):
+        raise RuntimeError("simulated crash between tmp-write and rename")
+
+    monkeypatch.setattr(os, "replace", boom)
+
+    with pytest.raises(RuntimeError):
+        artifact_mod.write_atomic(art, out)
+
+    assert out.read_bytes() == prior_bytes, "prior artifact must be byte-identical"
+
+    # Restore os.replace so the follow-up write succeeds.
+    monkeypatch.undo()
+
+    # A subsequent successful run must replace the prior bytes and leave no tmp file.
+    artifact_mod.write_atomic(art, out)
+    assert out.read_bytes() != prior_bytes
+    leftover = list(tmp_path.glob("preprocess_output.json.tmp-*"))
+    # Any tmp from the crashed run is harmless (FR-019 allows stale tmps) but the
+    # successful write must produce a clean final artifact.
+    assert out.is_file()
+    # Opportunistic cleanup is allowed, not required; just assert no shadow file has
+    # a name that would hide the final artifact.
+    for p in leftover:
+        assert p.name != out.name

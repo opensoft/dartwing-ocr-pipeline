@@ -91,17 +91,17 @@ description: "Task list for 003-pdf-preprocessing"
 
 ### Tests for User Story 2
 
-- [ ] T029 [P] [US2] Create fixture `tests/fixtures/preprocessing/us2_two_page/source.pdf` — 2 readable pages with distinct content.
-- [ ] T030 [P] [US2] Create fixture `tests/fixtures/preprocessing/us2_three_page_mixed/source.pdf` — 3 pages: page 1 clean portrait, page 2 rotated 90°, page 3 clean but different dimensions. All readable.
-- [ ] T031 [P] [US2] Integration test `tests/integration/preprocessing/test_us2_multi_page.py::test_ac1_page_count_and_unique_ids` — covers US2 AC#1.
-- [ ] T032 [P] [US2] Integration test `tests/integration/preprocessing/test_us2_multi_page.py::test_ac2_reading_order_per_page` — covers US2 AC#2.
-- [ ] T033 [P] [US2] Integration test `tests/integration/preprocessing/test_us2_multi_page.py::test_ac3_per_page_dimensions_and_rotation` — covers US2 AC#3; asserts page 2's `rotation_detected == 0` post-snap and the rotation warning format pinned in FR-006.
-- [ ] T034 [P] [US2] Integration test `tests/integration/preprocessing/test_us2_multi_page.py::test_ac4_document_text_concat` — covers US2 AC#4 (`"\n\n"` between pages, order follows `page_number`).
+- [x] T029 [P] [US2] Create fixture `tests/fixtures/preprocessing/us2_two_page/source.pdf` — 2 readable pages with distinct content.
+- [x] T030 [P] [US2] Create fixture `tests/fixtures/preprocessing/us2_three_page_mixed/source.pdf` — 3 pages: page 1 clean portrait, page 2 rotated 90°, page 3 clean but different dimensions. All readable.
+- [x] T031 [P] [US2] Integration test `tests/integration/preprocessing/test_us2_multi_page.py::test_ac1_page_count_and_unique_ids` — covers US2 AC#1.
+- [x] T032 [P] [US2] Integration test `tests/integration/preprocessing/test_us2_multi_page.py::test_ac2_reading_order_per_page` — covers US2 AC#2.
+- [x] T033 [P] [US2] Integration test `tests/integration/preprocessing/test_us2_multi_page.py::test_ac3_per_page_dimensions_and_rotation` — covers US2 AC#3; asserts page 2's `rotation_detected == 0` post-snap and the rotation warning format pinned in FR-006.
+- [x] T034 [P] [US2] Integration test `tests/integration/preprocessing/test_us2_multi_page.py::test_ac4_document_text_concat` — covers US2 AC#4 (`"\n\n"` between pages, order follows `page_number`).
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Extend `src/ledgerlinc_ocr/preprocessing/pipeline.py` with a per-page loop that constructs pages independently, maintains page-scoped identifier counters (FR-009a), and passes each page's rasterized `width`/`height`/`rotation_detected` through unchanged to the assembler.
-- [ ] T036 [US2] Extend `src/ledgerlinc_ocr/preprocessing/rasterize.py` to emit the rotation warning string exactly as `"page {page_number}: rotation {orig}° normalized to {snapped}°"` when snapping from non-`{0,90,180,270}` raw angles (FR-006). Warning passed back to pipeline for inclusion in `warnings[]`.
+- [x] T035 [US2] Extend `src/ledgerlinc_ocr/preprocessing/pipeline.py` with a per-page loop that constructs pages independently, maintains page-scoped identifier counters (FR-009a), and passes each page's rasterized `width`/`height`/`rotation_detected` through unchanged to the assembler.
+- [x] T036 [US2] Extend `src/ledgerlinc_ocr/preprocessing/rasterize.py` to emit the rotation warning string exactly as `"page {page_number}: rotation {orig}° normalized to {snapped}°"` when snapping from non-`{0,90,180,270}` raw angles (FR-006). Warning passed back to pipeline for inclusion in `warnings[]`.
 
 **Checkpoint**: US2 complete — multi-page PDFs produce deterministic schema-valid artifacts. US1 fixtures still pass (regression check).
 
@@ -115,24 +115,24 @@ description: "Task list for 003-pdf-preprocessing"
 
 ### Tests for User Story 3
 
-- [ ] T037 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_partial_failure/source.pdf` — 3 pages where page 2 has a corrupted image stream (synthetic) but pages 1 and 3 are clean.
-- [ ] T038 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_blank_page/source.pdf` — 2 pages where page 1 is entirely blank and page 2 has content.
-- [ ] T039 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_encrypted/source.pdf` — a password-protected PDF.
-- [ ] T040 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_malformed/source.pdf` — a deliberately truncated PDF.
-- [ ] T041 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_non_pdf/source.pdf` — a text file renamed to `source.pdf`.
-- [ ] T042 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_zero_page/source.pdf` — a PDF whose page count resolves to 0.
-- [ ] T043 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_partial_failure.py::test_ac1_one_unreadable_page` — covers US3 AC#1 including FR-005a fallback dims.
-- [ ] T044 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_blank_page.py::test_ac2_blank_page_no_warning` — covers US3 AC#2 (silent success).
-- [ ] T045 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_malformed_inputs.py::test_ac3_encrypted_exits_2` + `::test_ac3_malformed_exits_2` + `::test_ac3_non_pdf_exits_2` + `::test_ac3_zero_page_exits_2` — covers US3 AC#3 and all clarification cases; asserts no artifact written.
-- [ ] T046 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_step_failure.py::test_ac4_ocr_failed_layout_succeeded` + `::test_ac4_layout_failed_ocr_succeeded` — covers US3 AC#4 symmetric rule.
-- [ ] T047 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_source_total_failure.py::test_ac5_paddleocr_total_failure` — covers US3 AC#5 (all pages failed → `paddleocr_vl.status == "failure"`, artifact still valid, warning present). Exercise via monkeypatched `ocr.run_paddle` raising on every page.
+- [x] T037 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_partial_failure/source.pdf` — 3 pages where page 2 has a corrupted image stream (synthetic) but pages 1 and 3 are clean.
+- [x] T038 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_blank_page/source.pdf` — 2 pages where page 1 is entirely blank and page 2 has content.
+- [x] T039 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_encrypted/source.pdf` — a password-protected PDF.
+- [x] T040 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_malformed/source.pdf` — a deliberately truncated PDF.
+- [x] T041 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_non_pdf/source.pdf` — a text file renamed to `source.pdf`.
+- [x] T042 [P] [US3] Create fixture `tests/fixtures/preprocessing/us3_zero_page/source.pdf` — a PDF whose page count resolves to 0.
+- [x] T043 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_partial_failure.py::test_ac1_one_unreadable_page` — covers US3 AC#1 including FR-005a fallback dims.
+- [x] T044 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_blank_page.py::test_ac2_blank_page_no_warning` — covers US3 AC#2 (silent success).
+- [x] T045 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_malformed_inputs.py::test_ac3_encrypted_exits_2` + `::test_ac3_malformed_exits_2` + `::test_ac3_non_pdf_exits_2` + `::test_ac3_zero_page_exits_2` — covers US3 AC#3 and all clarification cases; asserts no artifact written.
+- [x] T046 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_step_failure.py::test_ac4_ocr_failed_layout_succeeded` + `::test_ac4_layout_failed_ocr_succeeded` — covers US3 AC#4 symmetric rule.
+- [x] T047 [P] [US3] Integration test `tests/integration/preprocessing/test_us3_source_total_failure.py::test_ac5_paddleocr_total_failure` — covers US3 AC#5 (all pages failed → `paddleocr_vl.status == "failure"`, artifact still valid, warning present). Exercise via monkeypatched `ocr.run_paddle` raising on every page.
 
 ### Implementation for User Story 3
 
-- [ ] T048 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/rasterize.py`: detect encryption (pypdfium2 permission/password error) → raise `EncryptedPdfError`; detect truncated/unreadable bytes → `MalformedPdfError`; detect `page_count == 0` → `ZeroPagePdfError`; implement FR-005a PDF-metadata fallback (`round(point_dim × 300 / 72)`, rotation `0`) when rasterization of a single page fails while the document itself is readable.
-- [ ] T049 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/pipeline.py`: wrap each page in per-step try/except boundaries. On `RasterizationFailure`: emit page record with fallback dims and empty arrays + warning. On `OcrFailure` with successful layout: keep `blocks` (with empty `text`), empty `raw_ocr_lines`, warning. On `LayoutFailure` with successful OCR: keep `raw_ocr_lines`, empty `blocks`, warning. Document-level errors (`MalformedPdfError`, `EncryptedPdfError`, `ZeroPagePdfError`, `NonPdfInputError`) propagate → CLI exit `2`, no artifact write.
-- [ ] T050 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/cli.py`: magic-byte check on the input file before opening (reject non-PDF with `NonPdfInputError`); map exception classes to exit codes per `contracts/cli-contract.md` (malformed → `2`, validator reject → `3`).
-- [ ] T051 [US3] Extend `tests/unit/preprocessing/test_artifact.py` (created in T025) with an induced-crash test: simulate a crash mid-write via monkeypatched `os.rename` raising, and assert the original `preprocess_output.json` (if any) is untouched and no `.tmp-*` file shadows it on subsequent runs.
+- [x] T048 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/rasterize.py`: detect encryption (pypdfium2 permission/password error) → raise `EncryptedPdfError`; detect truncated/unreadable bytes → `MalformedPdfError`; detect `page_count == 0` → `ZeroPagePdfError`; implement FR-005a PDF-metadata fallback (`round(point_dim × 300 / 72)`, rotation `0`) when rasterization of a single page fails while the document itself is readable.
+- [x] T049 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/pipeline.py`: wrap each page in per-step try/except boundaries. On `RasterizationFailure`: emit page record with fallback dims and empty arrays + warning. On `OcrFailure` with successful layout: keep `blocks` (with empty `text`), empty `raw_ocr_lines`, warning. On `LayoutFailure` with successful OCR: keep `raw_ocr_lines`, empty `blocks`, warning. Document-level errors (`MalformedPdfError`, `EncryptedPdfError`, `ZeroPagePdfError`, `NonPdfInputError`) propagate → CLI exit `2`, no artifact write.
+- [x] T050 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/cli.py`: magic-byte check on the input file before opening (reject non-PDF with `NonPdfInputError`); map exception classes to exit codes per `contracts/cli-contract.md` (malformed → `2`, validator reject → `3`).
+- [x] T051 [US3] Extend `tests/unit/preprocessing/test_artifact.py` (created in T025) with an induced-crash test: simulate a crash mid-write via monkeypatched `os.rename` raising, and assert the original `preprocess_output.json` (if any) is untouched and no `.tmp-*` file shadows it on subsequent runs.
 
 **Checkpoint**: US3 complete — corpus's hard and missing_name documents can be run without halting the pipeline; malformed inputs fail loud. US1 and US2 fixtures still pass.
 

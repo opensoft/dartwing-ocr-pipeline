@@ -12,6 +12,7 @@ from ledgerlinc_ocr.preprocessing.errors import (
     EXIT_INPUT_REJECTED,
     EXIT_INTERNAL_ERROR,
     EXIT_OK,
+    EXIT_UNEXPECTED,
     ArtifactInvalidError,
     InputRejectedError,
 )
@@ -59,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps({"status": "error", "kind": "unexpected", "message": f"{type(exc).__name__}: {exc}"}),
             file=sys.stderr,
         )
-        return EXIT_INTERNAL_ERROR
+        return EXIT_UNEXPECTED
 
     print(json.dumps({"status": "ok", "artifact": str(out_path)}))
     return EXIT_OK

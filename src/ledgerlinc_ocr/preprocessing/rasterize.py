@@ -1,20 +1,28 @@
-"""Deterministic CPU-only PDF rasterization via pypdfium2 (FR-004, FR-005, FR-006)."""
+"""Deterministic CPU-only PDF rasterization via pypdfium2 (FR-004, FR-005, FR-005a, FR-006)."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import pypdfium2 as pdfium
 from PIL import Image
 
-from ledgerlinc_ocr.preprocessing.errors import InputRejectedError
+from ledgerlinc_ocr.preprocessing.errors import (
+    EncryptedPdfError,
+    MalformedPdfError,
+    NonPdfInputError,
+    ZeroPagePdfError,
+)
 from ledgerlinc_ocr.preprocessing.version import DPI
 
 ALLOWED_ROTATIONS = (0, 90, 180, 270)
 
 PDF_MAGIC = b"%PDF-"
+
+FALLBACK_WIDTH = 1
+FALLBACK_HEIGHT = 1
+FALLBACK_ROTATION = 0
 
 
 @dataclass(frozen=True)
@@ -26,6 +34,17 @@ class PageRaster:
     rotation_original: int
     rotation_snapped: bool
     image: Image.Image
+
+
+@dataclass(frozen=True)
+class PageRasterFailure:
+    """Page where rasterization itself failed; fallback dims per FR-005a."""
+
+    page_number: int
+    width: int
+    height: int
+    rotation_detected: int
+    error: str
 
 
 def _snap_rotation(angle_deg: float) -> tuple[int, bool]:
@@ -40,9 +59,9 @@ def _check_pdf_magic(pdf_path: Path) -> None:
         with pdf_path.open("rb") as f:
             header = f.read(8)
     except OSError as exc:
-        raise InputRejectedError(f"cannot read PDF bytes: {exc}") from exc
+        raise MalformedPdfError(f"cannot read PDF bytes: {exc}") from exc
     if not header.startswith(PDF_MAGIC):
-        raise InputRejectedError(
+        raise NonPdfInputError(
             f"file {pdf_path.name} does not start with %PDF- magic — not a PDF"
         )
 
@@ -54,37 +73,81 @@ def open_pdf(pdf_path: Path) -> pdfium.PdfDocument:
     except pdfium.PdfiumError as exc:
         message = str(exc).lower()
         if "password" in message or "encrypted" in message:
-            raise InputRejectedError(f"encrypted or password-protected PDF: {exc}") from exc
-        raise InputRejectedError(f"malformed PDF: {exc}") from exc
-    if len(doc) == 0:
-        raise InputRejectedError("PDF has zero pages")
+            raise EncryptedPdfError(f"encrypted or password-protected PDF: {exc}") from exc
+        raise MalformedPdfError(f"malformed PDF: {exc}") from exc
+    try:
+        page_count = len(doc)
+    except Exception as exc:
+        doc.close()
+        raise MalformedPdfError(f"cannot determine page count: {exc}") from exc
+    if page_count == 0:
+        doc.close()
+        raise ZeroPagePdfError("PDF has zero pages")
     return doc
 
 
-def rasterize_pdf(pdf_path: Path, dpi: int = DPI) -> list[PageRaster]:
+def _metadata_fallback_dims(page) -> tuple[int, int]:
+    """FR-005a: point dims × DPI / 72, rounded, minimum 1 (schema constraint)."""
+    try:
+        width_pt, height_pt = page.get_size()
+        w = max(FALLBACK_WIDTH, round(float(width_pt) * DPI / 72.0))
+        h = max(FALLBACK_HEIGHT, round(float(height_pt) * DPI / 72.0))
+        return int(w), int(h)
+    except Exception:
+        return FALLBACK_WIDTH, FALLBACK_HEIGHT
+
+
+def rasterize_pdf(
+    pdf_path: Path, dpi: int = DPI
+) -> list[PageRaster | PageRasterFailure]:
     doc = open_pdf(pdf_path)
-    pages: list[PageRaster] = []
+    pages: list[PageRaster | PageRasterFailure] = []
     try:
         scale = dpi / 72.0
         for idx in range(len(doc)):
-            page = doc[idx]
+            page_number = idx + 1
             try:
-                original_rotation = int(page.get_rotation() or 0)
-                snapped_rotation, changed = _snap_rotation(original_rotation)
-                bitmap = page.render(scale=scale, rotation=snapped_rotation)
-                pil_image = bitmap.to_pil().convert("RGB")
-                width, height = pil_image.size
+                page = doc[idx]
+            except Exception as exc:
                 pages.append(
-                    PageRaster(
-                        page_number=idx + 1,
-                        width=int(width),
-                        height=int(height),
-                        rotation_detected=snapped_rotation,
-                        rotation_original=original_rotation,
-                        rotation_snapped=changed,
-                        image=pil_image,
+                    PageRasterFailure(
+                        page_number=page_number,
+                        width=FALLBACK_WIDTH,
+                        height=FALLBACK_HEIGHT,
+                        rotation_detected=FALLBACK_ROTATION,
+                        error=f"{type(exc).__name__}: {exc}",
                     )
                 )
+                continue
+            try:
+                try:
+                    original_rotation = int(page.get_rotation() or 0)
+                    snapped_rotation, changed = _snap_rotation(original_rotation)
+                    bitmap = page.render(scale=scale, rotation=snapped_rotation)
+                    pil_image = bitmap.to_pil().convert("RGB")
+                    width, height = pil_image.size
+                    pages.append(
+                        PageRaster(
+                            page_number=page_number,
+                            width=int(width),
+                            height=int(height),
+                            rotation_detected=snapped_rotation,
+                            rotation_original=original_rotation,
+                            rotation_snapped=changed,
+                            image=pil_image,
+                        )
+                    )
+                except Exception as exc:
+                    fb_w, fb_h = _metadata_fallback_dims(page)
+                    pages.append(
+                        PageRasterFailure(
+                            page_number=page_number,
+                            width=fb_w,
+                            height=fb_h,
+                            rotation_detected=FALLBACK_ROTATION,
+                            error=f"{type(exc).__name__}: {exc}",
+                        )
+                    )
             finally:
                 page.close()
     finally:

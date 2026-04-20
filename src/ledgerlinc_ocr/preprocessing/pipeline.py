@@ -70,26 +70,47 @@ def run(invocation: Invocation) -> Path:
         page_tables: list[dict[str, Any]] = []
         lines: list[dict[str, Any]] = []
 
+        if isinstance(pr, rasterize.PageRasterFailure):
+            page_warnings.append(
+                f"page {pr.page_number}: rasterization failed: {pr.error}"
+            )
+            pages.append(
+                {
+                    "page_number": pr.page_number,
+                    "width": pr.width,
+                    "height": pr.height,
+                    "rotation_detected": pr.rotation_detected,
+                    "blocks": [],
+                    "raw_ocr_lines": [],
+                }
+            )
+            warnings_out.extend(page_warnings)
+            continue
+
         try:
             lines, w_ocr = ocr.run_ocr_lines(pr.image, pr.page_number, pr.width, pr.height)
             page_warnings.extend(w_ocr)
+            ocr_ok = True
         except Exception as exc:
             page_warnings.append(
                 f"page {pr.page_number}: OCR failed: {type(exc).__name__}: {exc}"
             )
             lines = []
+            ocr_ok = False
 
         try:
             blocks, page_tables, w_layout = ocr.run_layout(
                 pr.image, pr.page_number, pr.width, pr.height
             )
             page_warnings.extend(w_layout)
+            layout_ok = True
         except Exception as exc:
             page_warnings.append(
                 f"page {pr.page_number}: layout extraction failed: {type(exc).__name__}: {exc}"
             )
             blocks = []
             page_tables = []
+            layout_ok = False
 
         if pr.rotation_snapped:
             page_warnings.append(
@@ -109,7 +130,7 @@ def run(invocation: Invocation) -> Path:
         tables.extend(page_tables)
         warnings_out.extend(page_warnings)
         all_lines.extend(lines)
-        if blocks or lines:
+        if ocr_ok or layout_ok:
             pages_with_output += 1
 
         if invocation.write_page_images:
