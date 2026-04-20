@@ -110,7 +110,8 @@ src/ledgerlinc_ocr/
     ├── document_text.py                # deterministic reading-order join for document_text
     ├── ingestion_sources.py            # assembles the paddleocr_vl / falcon_ocr / falcon_perception status block
     ├── artifact.py                     # assembles preprocess_output dict, runs validator before returning
-    └── errors.py                       # typed errors: MalformedPdfError, EncryptedPdfError, PageFailure
+    ├── errors.py                       # typed errors: MalformedPdfError, EncryptedPdfError, PageFailure
+    └── version.py                      # DPI constant + build_pipeline_version() per FR-018
 
 tests/
 ├── contract_tests/                     # existing
@@ -119,13 +120,24 @@ tests/
 │   ├── test_quality.py
 │   ├── test_document_text.py
 │   ├── test_ingestion_sources.py
-│   └── test_rasterize.py
-├── integration/preprocessing/          # NEW
-│   ├── test_single_page_easy.py        # US1 acceptance + determinism
-│   ├── test_multi_page.py              # US2
-│   ├── test_degraded_pages.py          # US3
-│   ├── test_tables.py                  # US4
-│   └── test_malformed_inputs.py        # edge cases: encrypted, zero-page, non-pdf
+│   ├── test_version.py
+│   ├── test_artifact.py                # atomic-write + schema-invalid-dict rejection
+│   ├── test_rasterize.py               # 300 DPI, rotation snap, FR-005a fallback, error boundaries
+│   ├── test_null_discipline.py         # FR-020 — no null outside schema-permitted slots
+│   └── test_falcon_extension.py        # FR-016 — ingestion-source shape accepts future Falcon wiring
+├── integration/preprocessing/          # NEW — per-story files; one acceptance-scenario test per AC
+│   ├── test_us1_schema_valid.py        # US1 AC#1
+│   ├── test_us1_determinism.py         # US1 AC#2
+│   ├── test_us1_ingestion_sources.py   # US1 AC#3
+│   ├── test_us1_quality_and_text.py    # US1 AC#4 + AC#5
+│   ├── test_us2_multi_page.py          # US2 all ACs
+│   ├── test_us3_partial_failure.py     # US3 AC#1 + FR-005a fallback
+│   ├── test_us3_blank_page.py          # US3 AC#2 (silent success)
+│   ├── test_us3_malformed_inputs.py    # US3 AC#3 — encrypted / malformed / non-pdf / zero-page
+│   ├── test_us3_step_failure.py        # US3 AC#4 symmetric rule
+│   ├── test_us3_source_total_failure.py # US3 AC#5
+│   ├── test_us4_tables.py              # US4 all ACs + FR-011a pinned keys
+│   └── test_no_ollama_no_cloud.py      # FR-022 / FR-023 — preprocessing is network-free
 └── fixtures/preprocessing/             # NEW — small, redistributable fixture PDFs
     ├── single_page_clean.pdf
     ├── two_page_clean.pdf

@@ -132,7 +132,7 @@ description: "Task list for 003-pdf-preprocessing"
 - [ ] T048 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/rasterize.py`: detect encryption (pypdfium2 permission/password error) → raise `EncryptedPdfError`; detect truncated/unreadable bytes → `MalformedPdfError`; detect `page_count == 0` → `ZeroPagePdfError`; implement FR-005a PDF-metadata fallback (`round(point_dim × 300 / 72)`, rotation `0`) when rasterization of a single page fails while the document itself is readable.
 - [ ] T049 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/pipeline.py`: wrap each page in per-step try/except boundaries. On `RasterizationFailure`: emit page record with fallback dims and empty arrays + warning. On `OcrFailure` with successful layout: keep `blocks` (with empty `text`), empty `raw_ocr_lines`, warning. On `LayoutFailure` with successful OCR: keep `raw_ocr_lines`, empty `blocks`, warning. Document-level errors (`MalformedPdfError`, `EncryptedPdfError`, `ZeroPagePdfError`, `NonPdfInputError`) propagate → CLI exit `2`, no artifact write.
 - [ ] T050 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/cli.py`: magic-byte check on the input file before opening (reject non-PDF with `NonPdfInputError`); map exception classes to exit codes per `contracts/cli-contract.md` (malformed → `2`, validator reject → `3`).
-- [ ] T051 [US3] Verify atomic-write path from T024 survives induced-crash test: unit test that simulates a crash mid-write and asserts the original `preprocess_output.json` (if any) is untouched and no `.tmp-*` file shadows it on subsequent runs (in `tests/unit/preprocessing/test_artifact.py`).
+- [ ] T051 [US3] Extend `tests/unit/preprocessing/test_artifact.py` (created in T025) with an induced-crash test: simulate a crash mid-write via monkeypatched `os.rename` raising, and assert the original `preprocess_output.json` (if any) is untouched and no `.tmp-*` file shadows it on subsequent runs.
 
 **Checkpoint**: US3 complete — corpus's hard and missing_name documents can be run without halting the pipeline; malformed inputs fail loud. US1 and US2 fixtures still pass.
 
@@ -173,6 +173,11 @@ description: "Task list for 003-pdf-preprocessing"
 - [ ] T064 [P] Update top-level `CLAUDE.md` under "Key References" to include `specs/003-pdf-preprocessing/plan.md`, `research.md`, and the four checklists.
 - [ ] T065 [P] Run all four checklists in `specs/003-pdf-preprocessing/checklists/` as a final review gate; any unticked release-gate items must be closed or explicitly deferred with a reason.
 - [ ] T066 Verify `pip install -e .` exposes the `ledgerlinc-preprocess` console script and that a fresh shell can invoke it without `python -m`.
+- [ ] T067 [P] [US1] Unit test `tests/unit/preprocessing/test_rasterize.py`: verifies `rasterize_pdf` at 300 DPI produces post-rotation `width`/`height` per FR-005, snaps out-of-vocabulary rotations to `{0,90,180,270}` per FR-006, applies the FR-005a metadata fallback (`round(point_dim × 300 / 72)`, rotation `0`) when a single page's rasterization fails, and raises `EncryptedPdfError` / `MalformedPdfError` / `ZeroPagePdfError` at the correct boundaries. Depends on T021 + T048.
+- [ ] T068 [P] Unit test `tests/unit/preprocessing/test_null_discipline.py`: asserts FR-020 invariants — missing OCR text is `""` not `null` (exercised via a simulated OCR-fail-layout-succeed page where `blocks[].text == ""` and `raw_ocr_lines == []`), and a recursive walk of the assembled artifact dict finds `null` only in schema-permitted slots. Depends on T024.
+- [ ] T069 [P] SC-003 verification script `scripts/check_line_id_stability.py`: run preprocessing twice over the 5 `inv_*_easy/` corpus docs, extract every `line_id` on the page containing the vendor name, assert 100% identity across the two runs. Fails the polish gate if any easy-corpus line_id differs between runs. Depends on T060.
+- [ ] T070 [P] Unit test `tests/unit/preprocessing/test_falcon_extension.py`: verifies FR-016 by monkeypatching `ingestion_sources.build_status` to return a populated `falcon_ocr` record (`enabled: true, status: "success"`, contributing blocks into the per-page arrays), assembling the artifact, and confirming schema validation still passes without any edit to `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json`. Depends on T009 + T024.
+- [ ] T071 [P] Integration test `tests/integration/preprocessing/test_no_ollama_no_cloud.py`: verifies FR-022 + FR-023 by running preprocessing on the US1 fixture with `OLLAMA_BASE_URL=http://127.0.0.1:1` (deliberately unreachable) and outbound sockets disabled via `pytest-socket` (allowing only loopback to localhost test fixtures). Assert exit 0, valid artifact, and zero network calls — proving preprocessing is Ollama-free and cloud-free. Add `pytest-socket` to `[project.optional-dependencies].dev` if not present. Depends on T027.
 
 ---
 
@@ -210,7 +215,7 @@ description: "Task list for 003-pdf-preprocessing"
 - **Phase 4**: T029–T034 all `[P]`; T035/T036 touch different files → `[P]` each, effectively parallel with test authoring.
 - **Phase 5**: T037–T047 all `[P]`; T048/T049/T050 touch different files → `[P]` each.
 - **Phase 6**: T052–T056 all `[P]`; T057/T058 touch different files.
-- **Phase 7**: T060–T065 all `[P]`.
+- **Phase 7**: T060–T065, T067–T071 all `[P]`.
 
 ---
 
