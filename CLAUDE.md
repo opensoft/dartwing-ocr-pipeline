@@ -106,6 +106,11 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `contracts/stage1_vendor_identity/v1.0.0/` — executable contract set
 - `contracts/stage1_vendor_identity/AMENDMENTS.md` — amendment checklist + changelog
 - `specs/001-freeze-schemas-folder-contracts/quickstart.md` — validator quickstart
+- `specs/003-pdf-preprocessing/spec.md` — PDF preprocessing slice requirements and user stories
+- `specs/003-pdf-preprocessing/plan.md` — PDF preprocessing technical plan, structure, and milestones
+- `specs/003-pdf-preprocessing/research.md` — PDF preprocessing decisions (DPI, determinism, version string, quality thresholds, document_text join)
+- `specs/003-pdf-preprocessing/quickstart.md` — end-to-end preprocessing walk-through for devcontainer
+- `specs/003-pdf-preprocessing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `scope.md` — release-gate checklists for the preprocessing slice
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 
 ## Active Technologies
@@ -113,6 +118,8 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - Filesystem only. JSON artifacts on disk. No database. No model weights. No network calls. (001-freeze-schemas-folder-contracts)
 - Python 3.12 (matches devcontainer and existing package) + `jsonschema >=4.22` (already installed), `pydantic >=2.7` (already installed), `python-magic` or stdlib `struct` for PDF magic detection (see research.md) (002-cli-contract)
 - Filesystem only — JSON artifacts on disk, no database (002-cli-contract)
+- Python 3.12 (devcontainer base image) (003-pdf-preprocessing)
+- Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network. (003-pdf-preprocessing)
 
 ## Recent Changes
 - 001-freeze-schemas-folder-contracts: Added Python 3.12 (matches `.devcontainer/Dockerfile` base image) + `jsonschema >= 4.22` (Draft 2020-12 validator); `pydantic >= 2.7` for the structured-report model and typed CLI results; Python stdlib (`argparse`, `json`, `pathlib`, `dataclasses`). No PyTorch, no PaddleOCR, no network dependencies for this slice.
