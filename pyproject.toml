@@ -21,8 +21,11 @@ dev = [
 where = ["src"]
 include = ["ledgerlinc_ocr*"]
 
+[project.scripts]
+ledgerlinc-pipeline = "ledgerlinc_ocr.pipeline.cli:main"
+
 [tool.pytest.ini_options]
-testpaths = ["tests/contract_tests"]
+testpaths = ["tests/contract_tests", "tests/pipeline_tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
