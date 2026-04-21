@@ -111,6 +111,13 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `specs/003-pdf-preprocessing/research.md` — PDF preprocessing decisions (DPI, determinism, version string, quality thresholds, document_text join)
 - `specs/003-pdf-preprocessing/quickstart.md` — end-to-end preprocessing walk-through for devcontainer
 - `specs/003-pdf-preprocessing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `scope.md` — release-gate checklists for the preprocessing slice
+- `specs/008-routing/spec.md` — deterministic routing slice requirements (edge_accept vs. edge_review_required; priority-ordered forcing rules)
+- `specs/008-routing/plan.md` — routing technical plan; module layout under `src/ledgerlinc_ocr/router/`
+- `specs/008-routing/research.md` — routing decisions (exact-vs-major version check, score formulas, status mapping, atomic write, reason vocabulary, `policy_version` lifecycle)
+- `specs/008-routing/data-model.md` — routing input/output entity model
+- `specs/008-routing/contracts/cli-contract.md` — `python -m ledgerlinc_ocr.router route` CLI surface and exit-code taxonomy (0/1/2/3)
+- `specs/008-routing/quickstart.md` — end-to-end routing walk-through for devcontainer
+- `specs/008-routing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `routing-policy.md` — release-gate checklists for the routing slice
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 
 ## Active Technologies
@@ -120,8 +127,8 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - Filesystem only — JSON artifacts on disk, no database (002-cli-contract)
 - Python 3.12 (devcontainer base image) (003-pdf-preprocessing)
 - Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network. (003-pdf-preprocessing)
-- Python 3.12 (matches devcontainer; matches 001/002/003 slices) (008-routing)
-- Filesystem only. Reads `<per-document-folder>/edge_extraction_output.json`, (008-routing)
+- Python 3.12 (matches devcontainer; matches 001/002/003 slices); reuses `ledgerlinc_ocr.validator` for dual-schema validation; no new third-party dependency. (008-routing)
+- Filesystem only. Reads `<per-document-folder>/edge_extraction_output.json`, writes `routing_decision.json` atomically into the same folder. No network, no model calls. (008-routing)
 
 ## Recent Changes
 - 001-freeze-schemas-folder-contracts: Added Python 3.12 (matches `.devcontainer/Dockerfile` base image) + `jsonschema >= 4.22` (Draft 2020-12 validator); `pydantic >= 2.7` for the structured-report model and typed CLI results; Python stdlib (`argparse`, `json`, `pathlib`, `dataclasses`). No PyTorch, no PaddleOCR, no network dependencies for this slice.
