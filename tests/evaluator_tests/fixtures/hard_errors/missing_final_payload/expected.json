@@ -1,0 +1,19 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_err_001",
+  "difficulty": "easy",
+  "challenge_tags": [],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": { "value": "Whatever Co", "present": true, "inferred": false },
+    "address": {
+      "street_1": null, "street_2": null, "city": null,
+      "state": null, "postal_code": null, "country": null
+    },
+    "tax_ids": { "ein": null, "state_tax_id": null, "vat_id": null, "other_tax_id": null },
+    "website": null, "phone": null, "email": null
+  }
+}

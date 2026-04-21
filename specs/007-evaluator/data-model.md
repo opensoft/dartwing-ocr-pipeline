@@ -149,7 +149,7 @@ class DocumentEvaluation:
 - `contract_set_version == CONTRACT_SET_VERSION`.
 - `len(field_results) == len(SCORED_FIELDS)` and `tuple(f.field_name for f in field_results) == SCORED_FIELDS`.
 - `document_id`, `difficulty`, `challenge_tags` propagated verbatim from `expected.json` (FR-003).
-- `notes` may be empty; any string in it MUST be non-empty per the schema's `items.minLength: 1` is NOT enforced — wait: schema allows empty strings in notes. We preserve that flexibility.
+- `notes` is always an empty tuple in stage 1. Any future advisory/warning content flows through `DocumentEvaluationOutcome.warnings` (data-model §11), not through the persisted `notes` array, so that the machine artifact's content stays purely a function of the inputs (FR-018 determinism).
 
 **Serialization**: The persisted JSON omits `document_score` and `folder_path`.
 

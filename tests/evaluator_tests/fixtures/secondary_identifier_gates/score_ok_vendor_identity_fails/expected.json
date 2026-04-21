@@ -1,0 +1,36 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_gate_01",
+  "difficulty": "easy",
+  "challenge_tags": [
+    "explicit_company_name"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Acme Widgets Inc.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "123 Main St",
+      "street_2": null,
+      "city": "Boston",
+      "state": "MA",
+      "postal_code": "02110",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "12-3456789",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://acme-widgets.example.com",
+    "phone": "+1 617-555-0100",
+    "email": "billing@acme-widgets.example.com"
+  }
+}

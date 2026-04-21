@@ -33,7 +33,7 @@ where = ["src"]
 include = ["ledgerlinc_ocr*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/contract_tests", "tests/pipeline_tests", "tests/unit", "tests/integration"]
+testpaths = ["tests/contract_tests", "tests/pipeline_tests", "tests/unit", "tests/integration", "tests/evaluator_tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

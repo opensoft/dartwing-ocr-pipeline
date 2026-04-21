@@ -1,0 +1,38 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_easy_04",
+  "difficulty": "easy",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present",
+    "website_present"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Delta Parts Corp.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "40 Elm St",
+      "street_2": null,
+      "city": "Austin",
+      "state": "TX",
+      "postal_code": "73301",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "45-6789012",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://deltaparts.example.com",
+    "phone": "+1 512-555-0130",
+    "email": "invoices@deltaparts.example.com"
+  }
+}

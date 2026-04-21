@@ -120,7 +120,6 @@ python -m ledgerlinc_ocr.evaluator evaluate document <folder> \
 - Prints a short human-readable summary to stdout by default (`--text`), or the outcome as JSON with `--json`.
 - Exit codes:
   - `0` — clean completion (document may still be a fail; that is reported in the outcome, not via exit code; FR-023).
-  - `1` — reserved for future non-zero semantic failures.
   - `2` — usage error (bad arguments, missing folder, CLI parse failure).
   - `3` — hard evaluation error (missing/invalid inputs, schema drift, `document_id` mismatch).
 
@@ -129,14 +128,13 @@ python -m ledgerlinc_ocr.evaluator evaluate document <folder> \
 ```
 python -m ledgerlinc_ocr.evaluator evaluate corpus <root> \
     [--contract-set-version 1.0.0] \
-    [--no-lazy] \
-    [--json | --text]
+    [--no-lazy]
 ```
 
 - Writes `evaluation_run_summary.json` and `evaluation_run_summary.md` at `<root>`.
-- Prints the Markdown report to stdout (always; identical to the `.md` file).
-- With `--no-lazy`, folders lacking `evaluation_document.json` cause exit code `3`.
-- Exit codes same as `evaluate document`.
+- Prints the Markdown report to stdout (always; byte-identical to the `.md` file per FR-021). Corpus mode does NOT accept `--json`/`--text`: stdout is always Markdown; the machine-readable `evaluation_run_summary.json` is already written to disk at a known path (`<root>/evaluation_run_summary.json`) and is the machine-consumable surface.
+- With `--no-lazy`, folders lacking (or with an unreadable/schema-invalid) `evaluation_document.json` cause exit code `3`.
+- Exit codes same as `evaluate document` (`0`, `2`, `3`).
 
 ### Examples (normative)
 

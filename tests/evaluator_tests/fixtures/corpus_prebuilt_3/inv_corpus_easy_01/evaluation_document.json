@@ -1,0 +1,116 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_easy_01",
+  "difficulty": "easy",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present",
+    "website_present"
+  ],
+  "comparison_summary": {
+    "applicable_field_count": 13,
+    "matched_field_count": 13,
+    "mismatched_field_count": 0,
+    "missing_prediction_count": 0,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 1.0
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": true,
+    "review_routing_passed": true,
+    "overall_passed": true
+  },
+  "field_results": {
+    "company_name.value": {
+      "expected": "Acme Widgets Inc.",
+      "actual": "ACME WIDGETS INC.",
+      "result": "match"
+    },
+    "company_name.present": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "company_name.inferred": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "address.street_1": {
+      "expected": "1 Main St",
+      "actual": "1 Main St",
+      "result": "match"
+    },
+    "address.street_2": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "address.city": {
+      "expected": "Boston",
+      "actual": "Boston",
+      "result": "match"
+    },
+    "address.state": {
+      "expected": "MA",
+      "actual": "MA",
+      "result": "match"
+    },
+    "address.postal_code": {
+      "expected": "02110",
+      "actual": "02110",
+      "result": "match"
+    },
+    "address.country": {
+      "expected": "US",
+      "actual": "US",
+      "result": "match"
+    },
+    "tax_ids.ein": {
+      "expected": "12-3456789",
+      "actual": "12-3456789",
+      "result": "match"
+    },
+    "tax_ids.state_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.vat_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.other_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "website": {
+      "expected": "https://acme-widgets.example.com",
+      "actual": "https://acme-widgets.example.com",
+      "result": "match"
+    },
+    "phone": {
+      "expected": "+1 617-555-0100",
+      "actual": "+1 617-555-0100",
+      "result": "match"
+    },
+    "email": {
+      "expected": "ap@acme-widgets.example.com",
+      "actual": "ap@acme-widgets.example.com",
+      "result": "match"
+    },
+    "manual_review_required": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "review_reason": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    }
+  },
+  "notes": []
+}

@@ -74,7 +74,7 @@ New code lives exclusively under `src/ledgerlinc_ocr/evaluator/` and `tests/eval
 
 ```text
 src/ledgerlinc_ocr/evaluator/
-├── __init__.py              # Public surface: evaluate_document, evaluate_corpus, result dataclasses
+├── __init__.py              # Public surface: evaluate_document, evaluate_corpus, result dataclasses, exceptions
 ├── __main__.py              # Thin re-export of cli.main for `python -m ledgerlinc_ocr.evaluator`
 ├── cli.py                   # argparse: `evaluate document <folder>` / `evaluate corpus <root>`
 ├── document.py              # Per-document orchestration: read → validate → compare → gate → write
@@ -84,8 +84,10 @@ src/ledgerlinc_ocr/evaluator/
 ├── gates.py                 # vendor_identity_passed, review_routing_passed, overall_passed (incl. missing-name invariants)
 ├── scoring.py               # Weights, document_score, field_accuracy (partial_count derivation)
 ├── report.py                # Deterministic Markdown renderer for evaluation_run_summary.md (+ stdout)
-├── io.py                    # Deterministic JSON reader/writer (sort_keys=False, explicit key order, UTF-8, trailing newline)
-└── schema.py                # Thin wrapper that loads evaluation_document.schema.json + evaluation_run_summary.schema.json via the existing validator.loader
+├── io.py                    # Deterministic JSON reader/writer + write_text (sort_keys=False, explicit key order, UTF-8, trailing newline)
+├── schema.py                # Thin wrapper that loads evaluation_document.schema.json + evaluation_run_summary.schema.json via the existing validator.loader
+├── exceptions.py            # EvaluatorError base + ContractSetVersionMismatchError / DocumentIdMismatchError / SchemaValidationError / EmptyCorpusError
+└── outcomes.py              # Pydantic outcome models: DocumentEvaluationOutcome, RunSummaryOutcome
 
 tests/evaluator_tests/
 ├── __init__.py
