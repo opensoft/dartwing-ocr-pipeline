@@ -186,6 +186,15 @@ order, or types.** They flip flags and populate previously-empty slots.
 That is the entire rationale for the shape locked in this slice (US2 AC#2,
 SC-005).
 
+The specific contract commitment that makes this work: the
+`ingestion_source.payload` schema in
+`contracts/stage1_vendor_identity/v1.1.0/evidence_packet.schema.json` is
+`oneOf(null, object-with-"kind")`, with the object branch intentionally
+open on additional properties and the `kind` string intentionally not
+enum-constrained. A future Falcon adapter populating `falcon_ocr.payload =
+{"kind": "text_plus_spam_gate", ...}` validates under the current schema
+without a contract bump.
+
 ---
 
 ## State transitions

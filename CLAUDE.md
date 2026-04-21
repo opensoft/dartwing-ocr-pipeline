@@ -111,6 +111,8 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `specs/003-pdf-preprocessing/research.md` — PDF preprocessing decisions (DPI, determinism, version string, quality thresholds, document_text join)
 - `specs/003-pdf-preprocessing/quickstart.md` — end-to-end preprocessing walk-through for devcontainer
 - `specs/003-pdf-preprocessing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `scope.md` — release-gate checklists for the preprocessing slice
+- `specs/004-evidence-packet-assembly/spec.md` — evidence-packet slice requirements and user stories
+- `specs/004-evidence-packet-assembly/plan.md` — evidence-packet technical plan, structure, and milestones
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 
 ## Active Technologies
