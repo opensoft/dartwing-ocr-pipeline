@@ -120,6 +120,8 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - Filesystem only — JSON artifacts on disk, no database (002-cli-contract)
 - Python 3.12 (devcontainer base image) (003-pdf-preprocessing)
 - Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network. (003-pdf-preprocessing)
+- Python 3.12 (matches devcontainer; matches 001/002/003 slices) (008-routing)
+- Filesystem only. Reads `<per-document-folder>/edge_extraction_output.json`, (008-routing)
 
 ## Recent Changes
 - 001-freeze-schemas-folder-contracts: Added Python 3.12 (matches `.devcontainer/Dockerfile` base image) + `jsonschema >= 4.22` (Draft 2020-12 validator); `pydantic >= 2.7` for the structured-report model and typed CLI results; Python stdlib (`argparse`, `json`, `pathlib`, `dataclasses`). No PyTorch, no PaddleOCR, no network dependencies for this slice.
