@@ -38,7 +38,15 @@ _ARTIFACT_FILENAMES: dict[str, ArtifactName] = {
     "final_structured_payload.json": ArtifactName.FINAL_STRUCTURED_PAYLOAD,
     "evaluation_document.json": ArtifactName.EVALUATION_DOCUMENT,
     "expected.json": ArtifactName.EXPECTED,
+    "evidence_packet.json": ArtifactName.EVIDENCE_PACKET,
 }
+
+# Artifacts that carry `contract_set_version` but no `pipeline_version`
+# (they are not pipeline_versioned in contract_set.json). Presence-collision
+# detection must still treat them as pipeline-generated output.
+_CONTRACT_ONLY_STAMPED: frozenset[ArtifactName] = frozenset(
+    {ArtifactName.EVIDENCE_PACKET}
+)
 
 
 @dataclass(frozen=True)
@@ -132,12 +140,17 @@ def _check_source_pdf_readable(path: Path, *, target: str) -> list[Violation]:
     return []
 
 
-def _looks_pipeline_generated(doc: dict[str, Any] | None) -> bool:
+def _looks_pipeline_generated(
+    doc: dict[str, Any] | None,
+    artifact: ArtifactName | None = None,
+) -> bool:
     """A file is considered pipeline-generated if it carries both pipeline_version
     and contract_set_version, suggesting it was written by the pipeline rather
     than hand-authored by an operator."""
     if not isinstance(doc, dict):
         return False
+    if artifact in _CONTRACT_ONLY_STAMPED:
+        return bool(doc.get("contract_set_version"))
     return bool(doc.get("pipeline_version")) and bool(doc.get("contract_set_version"))
 
 
@@ -288,8 +301,9 @@ def validate_folder(
             continue
         # If the file looks pipeline-generated (has pipeline_version +
         # contract_set_version), it is not a collision — just pipeline output.
-        doc = present_artifacts.get(_ARTIFACT_FILENAMES[filename])
-        if _looks_pipeline_generated(doc):
+        artifact_name = _ARTIFACT_FILENAMES.get(filename)
+        doc = present_artifacts.get(artifact_name) if artifact_name else None
+        if _looks_pipeline_generated(doc, artifact_name):
             continue
         findings.append(
             Violation(

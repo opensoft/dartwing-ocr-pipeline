@@ -2,7 +2,9 @@
 
 This document records the first draft JSON contracts for stage 1.
 
-> **Machine-readable layer**: the JSON shapes described below are enforced in code by the validator in `src/ledgerlinc_ocr/validator/` against JSON Schema files under `contracts/stage1_vendor_identity/v1.0.0/`. Both layers are updated together via the amendment path in `contracts/stage1_vendor_identity/AMENDMENTS.md`. Every persisted artifact carries a `contract_set_version` field (semver, starts at `1.0.0`) distinct from `pipeline_version` (pipeline build) and `policy_version` (routing policy).
+> **Machine-readable layer**: the JSON shapes described below are enforced in code by the validator in `src/ledgerlinc_ocr/validator/` against JSON Schema files under `contracts/stage1_vendor_identity/v1.1.0/` (current). The frozen v1.0.0 artifacts are preserved unchanged under `contracts/stage1_vendor_identity/v1.0.0/`. Both layers are updated together via the amendment path in `contracts/stage1_vendor_identity/AMENDMENTS.md`. Every persisted artifact carries a `contract_set_version` field (semver, currently `1.1.0`) distinct from `pipeline_version` (pipeline build) and `policy_version` (routing policy).
+>
+> **Evidence packet (v1.1.0 addition)**: an additional artifact shape is defined at `contracts/stage1_vendor_identity/v1.1.0/evidence_packet.schema.json`, produced by `ledgerlinc_ocr.evidence_packet.assemble_from_preprocess` and — at DEBUG logger level only — persisted as `<folder>/evidence_packet.json`. The folder contract treats `evidence_packet.json` as an *optional* reserved filename (unlike the four required per-document artifacts), so folders without it still validate.
 
 ## Design Principles
 
