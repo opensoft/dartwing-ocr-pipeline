@@ -19,7 +19,16 @@ _TAX_ID_FIELDS: frozenset[str] = frozenset(
         "tax_ids.other_tax_id",
     }
 )
-_NO_PARTIAL_FIELDS: frozenset[str] = _BOOLEAN_FIELDS | _TAX_ID_FIELDS | frozenset({"review_reason"})
+# FR-006: PARTIAL_MATCH is permitted only on company_name.value, address.street_1,
+# address.street_2, address.postal_code, and phone. All other SCORED_FIELDS must
+# reject PARTIAL_MATCH. These are the non-boolean / non-tax-id / non-review_reason
+# fields that additionally require exact match.
+_EXACT_ONLY_FIELDS: frozenset[str] = frozenset(
+    {"address.city", "address.state", "address.country", "website", "email"}
+)
+_NO_PARTIAL_FIELDS: frozenset[str] = (
+    _BOOLEAN_FIELDS | _TAX_ID_FIELDS | _EXACT_ONLY_FIELDS | frozenset({"review_reason"})
+)
 
 
 @dataclass(frozen=True, slots=True)

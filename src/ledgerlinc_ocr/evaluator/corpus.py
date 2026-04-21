@@ -10,6 +10,7 @@ from pathlib import Path
 from ledgerlinc_ocr.evaluator.compare import FieldResult
 from ledgerlinc_ocr.evaluator.document import DocumentEvaluation, evaluate_document
 from ledgerlinc_ocr.evaluator.exceptions import EmptyCorpusError
+from ledgerlinc_ocr.evaluator.gates import DocumentPassFail
 from ledgerlinc_ocr.evaluator.io import read_json, write_json, write_text
 from ledgerlinc_ocr.evaluator.schema import (
     load_evaluation_document_schema,
@@ -18,8 +19,10 @@ from ledgerlinc_ocr.evaluator.schema import (
 )
 from ledgerlinc_ocr.evaluator.scoring import (
     CONTRACT_SET_VERSION,
+    ComparisonSummary,
     SCORED_FIELDS,
     ResultLabel,
+    compute_document_score,
 )
 
 
@@ -150,6 +153,51 @@ def list_document_folders(root: Path) -> list[Path]:
     return folders
 
 
+def _hydrate_document_evaluation(
+    instance: dict[str, object], folder: Path
+) -> DocumentEvaluation:
+    """Build a `DocumentEvaluation` from a schema-validated `evaluation_document.json`
+    instance. Dataclass invariants are re-enforced. `document_score` is recomputed
+    from `field_results` (not persisted in the artifact)."""
+    cs = instance["comparison_summary"]  # type: ignore[index]
+    summary = ComparisonSummary(
+        applicable_field_count=cs["applicable_field_count"],
+        matched_field_count=cs["matched_field_count"],
+        mismatched_field_count=cs["mismatched_field_count"],
+        missing_prediction_count=cs["missing_prediction_count"],
+        unexpected_prediction_count=cs["unexpected_prediction_count"],
+        field_accuracy=cs["field_accuracy"],
+    )
+    pf = instance["document_pass_fail"]  # type: ignore[index]
+    pass_fail = DocumentPassFail(
+        vendor_identity_passed=pf["vendor_identity_passed"],
+        review_routing_passed=pf["review_routing_passed"],
+        overall_passed=pf["overall_passed"],
+    )
+    raw_results: dict[str, dict[str, object]] = instance["field_results"]  # type: ignore[assignment]
+    field_results = tuple(
+        FieldResult(
+            field_name=name,
+            expected=raw_results[name]["expected"],
+            actual=raw_results[name]["actual"],
+            result=ResultLabel(raw_results[name]["result"]),
+        )
+        for name in SCORED_FIELDS
+    )
+    return DocumentEvaluation(
+        contract_set_version=instance["contract_set_version"],  # type: ignore[arg-type]
+        document_id=instance["document_id"],  # type: ignore[arg-type]
+        difficulty=instance["difficulty"],  # type: ignore[arg-type]
+        challenge_tags=tuple(instance["challenge_tags"]),  # type: ignore[arg-type]
+        comparison_summary=summary,
+        document_pass_fail=pass_fail,
+        field_results=field_results,
+        notes=tuple(instance["notes"]),  # type: ignore[arg-type]
+        document_score=compute_document_score(field_results),
+        folder_path=folder,
+    )
+
+
 def _ensure_document_evaluation(
     folder: Path,
     *,
@@ -177,12 +225,8 @@ def _ensure_document_evaluation(
             assert outcome.evaluation is not None
             return outcome.evaluation
         else:
-            # Re-run in memory to produce a DocumentEvaluation with all dataclass
-            # invariants. This is deterministic and cheap; caching on disk is
-            # the optimization, dataclass construction is the source of truth.
-            outcome = evaluate_document(folder, contract_set_version=contract_set_version)
-            assert outcome.evaluation is not None
-            return outcome.evaluation
+            # Cache hit — reuse the validated on-disk artifact.
+            return _hydrate_document_evaluation(instance, folder)
     if not lazy:
         raise FileNotFoundError(
             f"--no-lazy: missing evaluation_document.json at {eval_path}"

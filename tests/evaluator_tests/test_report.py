@@ -8,7 +8,23 @@ from pathlib import Path
 import pytest
 
 from ledgerlinc_ocr.evaluator import evaluate_corpus
+from ledgerlinc_ocr.evaluator.compare import FieldResult
+from ledgerlinc_ocr.evaluator.corpus import (
+    ConsensusMetrics,
+    DifficultyStats,
+    DocumentListEntry,
+    OverallMetrics,
+    RunSummary,
+)
+from ledgerlinc_ocr.evaluator.document import DocumentEvaluation
+from ledgerlinc_ocr.evaluator.gates import DocumentPassFail
 from ledgerlinc_ocr.evaluator.report import render_run_summary, summarize_failure
+from ledgerlinc_ocr.evaluator.scoring import (
+    CONTRACT_SET_VERSION,
+    ComparisonSummary,
+    ResultLabel,
+    SCORED_FIELDS,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -138,3 +154,94 @@ def test_md_file_matches_stdout(tmp_path: Path, capsys: pytest.CaptureFixture) -
     assert md_path.is_file()
     on_disk = md_path.read_text(encoding="utf-8")
     assert captured.out == on_disk
+
+
+def test_score_below_threshold_fallback(tmp_path: Path) -> None:
+    """`summarize_failure` falls back to `document_score x.xxx below threshold`
+    when a document fails the overall gate but no field_result is in a failing
+    label. Covers the fallback branch in `report.py` lines 42-44."""
+    # Build a DocumentEvaluation where every field_result is MATCH (so no
+    # failing entries are listed) yet `overall_passed=False`. The weighted
+    # score from all-MATCH is 1.0, which would normally pass — we construct
+    # this state to exercise the fallback branch when no field_result
+    # surfaces a failing label.
+    field_results = tuple(
+        FieldResult(
+            field_name=name,
+            expected="x",
+            actual="x",
+            result=ResultLabel.MATCH,
+        )
+        for name in SCORED_FIELDS
+    )
+    summary = ComparisonSummary(
+        applicable_field_count=len(SCORED_FIELDS),
+        matched_field_count=len(SCORED_FIELDS),
+        mismatched_field_count=0,
+        missing_prediction_count=0,
+        unexpected_prediction_count=0,
+        field_accuracy=1.0,
+    )
+    pass_fail = DocumentPassFail(
+        vendor_identity_passed=False,
+        review_routing_passed=True,
+        overall_passed=False,
+    )
+    # Use an arbitrary sub-threshold document_score to assert the formatted
+    # fallback sentence is rendered verbatim.
+    doc_score = 0.732
+    ev = DocumentEvaluation(
+        contract_set_version=CONTRACT_SET_VERSION,
+        document_id="inv_999_easy",
+        difficulty="easy",
+        challenge_tags=(),
+        comparison_summary=summary,
+        document_pass_fail=pass_fail,
+        field_results=field_results,
+        notes=(),
+        document_score=doc_score,
+        folder_path=tmp_path / "inv_999_easy",
+    )
+
+    # Direct unit on summarize_failure.
+    assert summarize_failure(ev) == f"document_score {doc_score:.3f} below threshold"
+
+    # And the fallback phrase reaches the rendered run summary.
+    run_summary = RunSummary(
+        contract_set_version=CONTRACT_SET_VERSION,
+        run_id="run_test",
+        pipeline_version=None,
+        policy_version=None,
+        document_count=1,
+        overall_metrics=OverallMetrics(
+            field_accuracy=1.0,
+            vendor_identity_pass_rate=0.0,
+            review_routing_pass_rate=1.0,
+            overall_document_pass_rate=0.0,
+        ),
+        consensus_metrics=ConsensusMetrics(
+            single_voter_baseline_runs=1,
+            majority_vote_documents=0,
+            split_decision_documents=0,
+        ),
+        by_difficulty={
+            "easy": DifficultyStats(
+                document_count=1,
+                field_accuracy=1.0,
+                overall_document_pass_rate=0.0,
+            ),
+            "medium": DifficultyStats(0, 0.0, 0.0),
+            "hard": DifficultyStats(0, 0.0, 0.0),
+            "missing_name": DifficultyStats(0, 0.0, 0.0),
+        },
+        by_field={name: 1.0 for name in SCORED_FIELDS},
+        documents=(
+            DocumentListEntry(
+                document_id="inv_999_easy",
+                overall_passed=False,
+                field_accuracy=1.0,
+            ),
+        ),
+    )
+    md = render_run_summary(run_summary, document_evaluations=(ev,))
+    assert f"document_score {doc_score:.3f} below threshold" in md
