@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_002_easy",
+  "difficulty": "easy",
+  "challenge_tags": ["explicit_company_name", "remit_to_differs_from_vendor"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Indigo America, Inc.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "5555 Windward Parkway",
+      "street_2": null,
+      "city": "Alpharetta",
+      "state": "GA",
+      "postal_code": "30004",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": null,
+    "phone": "(800) 204-6344",
+    "email": null
+  }
+}

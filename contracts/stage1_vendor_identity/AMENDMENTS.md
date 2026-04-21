@@ -103,3 +103,29 @@ land, their `ingestion_sources.<source>.status` flips from
 No packet key order, key set, or type changes are required — the shape
 locked in v1.1.0 is the forward-compat commitment (see US2 AC#2 and SC-005
 in `specs/004-evidence-packet-assembly/spec.md`).
+
+## Deferred enhancements (not scheduled)
+
+Proposals captured here are honest signal that a concern is known and valid, but has been deferred from the feature that surfaced it. Each entry should state the motivation, a sketch of the change, and the bump it would require.
+
+### D-001 — Multi-role vendor addresses
+
+**Raised during**: 006-corpus-labeling (T031, HP Indigo invoice had distinct `Sold from` and `Remit To` addresses for the same entity).
+
+**Motivation**: Real vendors commonly print several addresses on a single invoice that play different operational roles. Today `expected_vendor_candidate.address` is a single object, which forces the labeler to pick one and hides the others. The `remit_to_differs_from_vendor` challenge tag is a binary hint but cannot carry the second address.
+
+**Proposed roles to model** (starting point, not final):
+1. Legal address (corporate / registered)
+2. Mailing address (general correspondence)
+3. Physical address (operational site)
+4. Ship-from address
+5. Ship-to / RMA return address
+6. Remit-to address (payment / lockbox)
+
+**Sketch of the change**: replace `expected_vendor_candidate.address` (single object) with either (a) `addresses` (object keyed by role → address) or (b) `address` remains the primary + a new optional `alternate_addresses` array. Option (a) is cleaner; option (b) is more backwards-compatible.
+
+**Version bump**: **MAJOR** — the shape of `expected.schema.json` changes and every existing fixture becomes invalid. Also cascades into `edge_extraction_output` and `final_structured_payload` if consistency is desired across the artifact set.
+
+**Why deferred**: mid-feature contract breakage would re-start the 006 labeling pass and block downstream consumers. Most stage 1 invoices show at most 1–2 addresses, and vendor *identity* does not depend on distinguishing all six roles. Downstream payment / RMA workflows that need role granularity will exist in later stages and are the correct home for this expansion.
+
+**006 workaround**: T064 labeling guide locks `expected_vendor_candidate.address` = primary / sold-from / physical address; remit-to presence is surfaced only via the `remit_to_differs_from_vendor` challenge tag.
