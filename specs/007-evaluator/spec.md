@@ -1,0 +1,207 @@
+# Feature Specification: Evaluator & Reporting (Stage 1 Vendor-Identity)
+
+**Feature Branch**: `007-evaluator`
+**Created**: 2026-04-20
+**Status**: Draft
+**Input**: User description: "Evaluator + reporting as 007-evaluator. read the implementation-plan for details."
+
+## Clarifications
+
+### Session 2026-04-20
+
+- Q: Where do `partial_match` results land in `comparison_summary` counts, and how is `field_accuracy` computed? → A: Option B — `matched_field_count` counts strict matches only; partials are NOT in any `_count` field; `field_accuracy = (matched_field_count + 0.5 × partial_count) / applicable_field_count`, with partial count derivable from `field_results`.
+- Q: How does corpus mode behave when a per-document `evaluation_document.json` is missing? → A: Option A — corpus mode auto-evaluates any folder missing `evaluation_document.json` by re-invoking the per-document evaluator; it hard-fails only on missing/invalid pipeline inputs (`expected.json` or `final_structured_payload.json`), not on missing evaluator outputs.
+- Q: What counts as "address matches" for the `vendor_identity_passed` secondary-identifier gate? → A: Option C — address counts as one matching secondary identifier iff `address.city`, `address.state`, AND `address.postal_code` all resolve to `match` or acceptable `partial_match`. `street_1`, `street_2`, and `country` do not by themselves count toward address-matching at this gate.
+- Q: Format, destination, and filename of the human-readable run report? → A: Option B — write `evaluation_run_summary.md` (Markdown) at the corpus root alongside `evaluation_run_summary.json`, AND print identical content to stdout. The on-disk Markdown file is the canonical human-readable artifact; stdout is a convenience stream.
+- Q: CLI invocation shape for the evaluator? → A: Option A — `python -m ledgerlinc_ocr.evaluator evaluate document <folder>` for one-document mode and `python -m ledgerlinc_ocr.evaluator evaluate corpus <root>` for corpus mode. Mirrors the existing `python -m ledgerlinc_ocr.validator` subcommand pattern.
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Evaluate One Document And Emit `evaluation_document.json` (Priority: P1)
+
+A pipeline developer has run the extraction + routing stages against one invoice folder and now has a `final_structured_payload.json` sitting next to the hand-labeled `expected.json`. They need a single command that reads both files, compares them field by field under the stage 1 scoring rules, and writes a schema-valid `evaluation_document.json` into the same folder.
+
+**Why this priority**: This is the minimum meaningful evaluator capability. Without it, a developer cannot tell whether any change to the extraction pipeline helped or hurt on a specific document. It is also the artifact every higher-level report aggregates over — the run summary is literally a roll-up of these per-document results.
+
+**Independent Test**: Stage a per-document folder containing a committed `expected.json` (from the 006 corpus) and a hand-authored `final_structured_payload.json` fixture that deliberately mixes correct values, formatting-only differences, and wrong values. Run the evaluator against that folder. Verify `evaluation_document.json` is written into the same folder, validates against `contracts/stage1_vendor_identity/v1.0.0/evaluation_document.schema.json`, reports `contract_set_version == "1.0.0"`, propagates `document_id`, `difficulty`, and `challenge_tags` from `expected.json`, populates `comparison_summary` counts that match the fixture, produces one entry in `field_results` for every applicable scored field with a correct `result` label, and reports `document_pass_fail.overall_passed` consistent with the gates in `scoring.md`.
+
+**Acceptance Scenarios**:
+
+1. **Given** a per-document folder containing a valid `expected.json` and a valid `final_structured_payload.json`, **When** the evaluator runs against that folder, **Then** `evaluation_document.json` is written next to the inputs and validates against the frozen schema.
+2. **Given** a folder where every predicted field exactly matches the expected label after normalization, **When** the evaluator runs, **Then** every entry in `field_results` has `result == "match"`, `comparison_summary.matched_field_count` equals `applicable_field_count`, `comparison_summary.field_accuracy == 1.0`, and `document_pass_fail.overall_passed == true`.
+3. **Given** a folder where the expected `company_name.value` is "Acme Widgets Inc." and the predicted value differs only in casing and whitespace ("acme widgets  inc."), **When** the evaluator runs, **Then** the `company_name.value` field result is `match` (not `partial_match` and not `mismatch`), reflecting the normalization rules pinned in `scoring.md`.
+4. **Given** a folder where the expected truth has `ein = "12-3456789"` and the prediction has `ein = null`, **When** the evaluator runs, **Then** the `tax_ids.ein` field result is `missing_prediction`, counted under `comparison_summary.missing_prediction_count`.
+5. **Given** a folder where the expected truth has `website = null` and the prediction has `website = "https://example.com/"`, **When** the evaluator runs, **Then** the `website` field result is `unexpected_prediction`, counted under `comparison_summary.unexpected_prediction_count`.
+6. **Given** a folder where expected has all four tax-ID sub-fields `null` (the document genuinely has no tax IDs), **When** the evaluator runs, **Then** those four fields are marked `not_applicable` when the prediction is also `null`, and `not_applicable` fields are excluded from both the counts and the weighted document score denominator.
+7. **Given** any `expected.json` — `final_structured_payload.json` pair, **When** the evaluator runs, **Then** it writes nothing outside the target folder, does not modify the inputs, and exits non-zero only when a hard error occurs (missing input, unreadable input, schema-invalid inputs). A low-scoring document is not an error — it is a reported outcome.
+8. **Given** the same folder is evaluated twice without changing the inputs, **When** both `evaluation_document.json` files are compared, **Then** they are byte-identical except for any evaluator-provided timestamp/run-id that is explicitly allowed to vary. Per-field results, counts, pass/fail gates, and `comparison_summary.field_accuracy` are deterministic.
+
+---
+
+### User Story 2 - Aggregate The 20-Document Corpus Into `evaluation_run_summary.json` (Priority: P1)
+
+A developer needs a single run-level view of corpus quality: how many documents passed overall, how the pipeline performs by difficulty bucket and by field type, and which documents contributed to the current score. A harness command reads every `evaluation_document.json` across the corpus and writes a schema-valid `evaluation_run_summary.json` at the corpus root.
+
+**Why this priority**: Per-document results are diagnostic; the run summary is the quality headline. This is what a developer reads to answer "is the pipeline better than yesterday?" before opening any individual document. It is also the artifact that makes regressions visible as a single number alongside the breakdowns.
+
+**Independent Test**: Stage a corpus folder containing 20 per-document folders, each with a valid `evaluation_document.json` (mix of passing and failing documents across all four difficulty buckets). Run the run-summary command against the corpus. Verify `evaluation_run_summary.json` is written at the corpus root, validates against `contracts/stage1_vendor_identity/v1.0.0/evaluation_run_summary.schema.json`, reports `document_count == 20`, populates `overall_metrics` with pass rates that match a hand-computed aggregate, exposes `by_difficulty` entries for each of `easy`/`medium`/`hard`/`missing_name`, lists one entry per document under `documents`, and reports stage-1-appropriate `consensus_metrics` (single-voter baseline accounting).
+
+**Acceptance Scenarios**:
+
+1. **Given** a corpus root holding 20 per-document folders, each with a schema-valid `evaluation_document.json`, **When** the run-summary command executes, **Then** `evaluation_run_summary.json` is written at the corpus root and validates against the frozen schema.
+2. **Given** the same set of per-document results, **When** the summary is produced, **Then** `document_count == 20`, `overall_metrics.overall_document_pass_rate` equals (# docs with `overall_passed == true`) / 20, `overall_metrics.vendor_identity_pass_rate` and `review_routing_pass_rate` are computed the same way from the corresponding per-document flags, and `overall_metrics.field_accuracy` is the corpus-wide weighted accuracy as defined in `scoring.md`.
+3. **Given** the corpus, **When** the summary is produced, **Then** `by_difficulty` contains exactly the four keys `easy`, `medium`, `hard`, `missing_name`; each entry reports `document_count`, `field_accuracy`, and `overall_document_pass_rate` for that bucket; and the four `document_count`s sum to `document_count`.
+4. **Given** the corpus, **When** the summary is produced, **Then** `by_field` contains one entry per scored field name (company_name.value, address.*, tax_ids.*, website, phone, email, manual_review_required, review_reason) and each value is a corpus-wide accuracy in `[0.0, 1.0]` derived from per-document `field_results`.
+5. **Given** stage 1 is operating in single-voter baseline mode, **When** the summary is produced, **Then** `consensus_metrics.single_voter_baseline_runs == document_count`, `consensus_metrics.majority_vote_documents == 0`, and `consensus_metrics.split_decision_documents == 0`. The optional ensemble fields (`unanimous_field_rate`, `two_of_three_majority_rate`, `split_decision_rate`) are either omitted or set to values consistent with a single-voter run.
+6. **Given** the corpus, **When** the summary is produced, **Then** `documents` is an array of exactly `document_count` entries ordered by `document_id` ascending, each carrying `document_id`, `overall_passed`, and `field_accuracy` consistent with the corresponding per-document `evaluation_document.json`.
+7. **Given** the same per-document evaluations, **When** the run summary is regenerated, **Then** every metric is deterministic given the same inputs (only `run_id` and optional timestamp-like fields are allowed to vary).
+8. **Given** a corpus where one document folder is missing `evaluation_document.json` but has a valid `expected.json` and `final_structured_payload.json`, **When** the run-summary command executes, **Then** the command transparently runs per-document evaluation on that folder (writing `evaluation_document.json` there) and then aggregates the full corpus into `evaluation_run_summary.json`. The command hard-fails only when a folder's pipeline inputs (`expected.json` or `final_structured_payload.json`) are themselves missing, unreadable, or schema-invalid — in which case it names the offending folder(s), writes no partial `evaluation_run_summary.json`, and exits non-zero.
+
+---
+
+### User Story 3 - Apply Normalization, Partial Matches, Weights, And Pass Gates Per `scoring.md` (Priority: P2)
+
+A developer relying on the evaluator needs it to interpret results the way `scoring.md` prescribes: formatting differences that don't change meaning must not count as mismatches; partial matches must be used sparingly and only in permitted cases; weighted field importance must drive the pass/fail gate; and the stage 1 pass gates (`vendor_identity_passed`, `review_routing_passed`, `overall_passed` with a `document_score >= 0.85` threshold) must be applied faithfully.
+
+**Why this priority**: A plain string-equality comparison would falsely fail half the corpus on legitimate formatting differences and would give equal weight to `company_name.value` and `address.country`. The pass gates are the reason evaluation exists at all — they turn a raw score into a go/no-go signal. This story is what makes US1 and US2 meaningful rather than nominal.
+
+**Independent Test**: Run the evaluator against a pair of fixtures designed to exercise every normalization rule and every partial-match path: state full-name vs abbreviation, ZIP-vs-ZIP+4, website with and without scheme and `www.`, phone with and without punctuation and extension, company name differing in legal-form rendering, and address with an imperfectly normalized street suffix. Verify each field is classified correctly against the `scoring.md` rules. Separately, run the evaluator against a fixture where `document_score = 0.87` but `review_routing_passed = false`; verify `overall_passed == false`, confirming the gates are applied conjunctively and not short-circuited by the threshold alone.
+
+**Acceptance Scenarios**:
+
+1. **Given** the expected state is "California" and the prediction is "CA", **When** the evaluator runs, **Then** `address.state` is classified `match` per the state normalization rule in `scoring.md`.
+2. **Given** the expected postal code is "94110-1234" and the prediction is "94110", **When** the evaluator runs, **Then** `address.postal_code` is classified `partial_match` per the ZIP+4 policy, not `mismatch`.
+3. **Given** the expected website is "https://www.example.com/" and the prediction is "example.com", **When** the evaluator runs, **Then** `website` is classified `match` per the website normalization rule (scheme stripped, trailing slash stripped, `www.` optionally stripped).
+4. **Given** the expected phone is "(415) 555-0198 ext. 203" and the prediction is "4155550198", **When** the evaluator runs, **Then** `phone` is classified `partial_match` (extension lost) rather than `match` or `mismatch`, per the partial-match policy.
+5. **Given** the expected email is "Accounts@Example.COM" and the prediction is "accounts@example.com", **When** the evaluator runs, **Then** `email` is classified `match` per the email lowercasing rule.
+6. **Given** the `manual_review_required` expected is `true` and the prediction is `false`, **When** the evaluator runs, **Then** `manual_review_required` is classified `mismatch` (never `partial_match`, per the partial-match policy exclusion for booleans), and `document_pass_fail.review_routing_passed == false`.
+7. **Given** a fixture where the weighted `document_score` computes to ≥ 0.85 but `vendor_identity_passed == false`, **When** the evaluator runs, **Then** `document_pass_fail.overall_passed == false`. The threshold alone cannot override a failed hard gate.
+8. **Given** a fixture where fewer than two of the five secondary-identifier slots {address, any tax ID, website, phone, email} count as matching under FR-008's slot rules, **When** the evaluator runs, **Then** `vendor_identity_passed == false` even if `company_name` matches. The "at least 2 secondary identifiers match" rule is enforced as a conjunction with `company_name` matching, using the slot semantics in FR-008 (address requires city+state+postal_code; tax-ID slot requires at least one tax_ids sub-field `match`).
+9. **Given** any evaluated document, **When** a reviewer inspects the `field_results` keys, **Then** every scored field name comes from the fixed set defined by `scoring.md` ("Fields To Score") and no scored field is silently omitted when applicable.
+
+---
+
+### User Story 4 - Enforce Missing-Name Invariants During Evaluation (Priority: P2)
+
+A developer processing the 5 missing-name documents relies on the evaluator to treat those cases correctly: the pipeline's best-guess company name is allowed, but `company_name.present` must be `false`, `company_name.inferred` must be `true`, `manual_review_required` must be `true`, and `review_reason` must be `"company_name_inferred"`. A prediction that is "too confident" on a missing-name document (e.g., claims `present == true`) must fail `review_routing_passed` and `overall_passed`.
+
+**Why this priority**: Missing-name handling is explicitly called out in the constitution as the hardest governance rule in stage 1 and the most consequential to get right. If the evaluator is lax here, the whole stage 1 quality claim becomes untrustworthy on the 25% of the corpus that defines the review-routing gate.
+
+**Independent Test**: Run the evaluator against a missing-name document fixture where the expected label satisfies all four invariants and the prediction matches them. Verify `overall_passed == true`. Then run it against variants where the prediction violates each invariant in isolation (e.g., sets `present = true` while `value` matches, or emits a non-canonical `review_reason`); verify each variant fails `review_routing_passed` and therefore `overall_passed`.
+
+**Acceptance Scenarios**:
+
+1. **Given** an `expected.json` in the `missing_name` bucket and a `final_structured_payload.json` satisfying all four invariants (`company_name.present == false`, `company_name.inferred == true`, `manual_review_required == true`, `review_reason == "company_name_inferred"`), **When** the evaluator runs, **Then** `review_routing_passed == true` and the missing-name invariant contributes no mismatches.
+2. **Given** a missing-name document whose prediction claims `company_name.present == true` even though the expected is `false`, **When** the evaluator runs, **Then** `company_name.present` is a `mismatch`, `vendor_identity_passed == false`, and `overall_passed == false`, regardless of how correct the inferred `value` is.
+3. **Given** a missing-name document whose prediction emits `review_reason == "vendor_confidence_low"` rather than the canonical `"company_name_inferred"`, **When** the evaluator runs, **Then** `review_reason` is a `mismatch` and `review_routing_passed == false`.
+4. **Given** the run summary across the 5 missing-name documents, **When** `by_difficulty.missing_name.overall_document_pass_rate` is computed, **Then** a document that violates any invariant is counted as failing even if every other field matches.
+
+---
+
+### User Story 5 - Produce A Human-Readable Run Report Alongside The Machine JSON (Priority: P3)
+
+A developer scanning the results of a corpus run wants a terse, human-readable summary — either printed to standard output or written as a short text/markdown report — that shows the headline metrics (`overall_document_pass_rate`, `vendor_identity_pass_rate`, `review_routing_pass_rate`, `field_accuracy`), the by-difficulty breakdown, and the list of failing documents with the one or two most impactful field failures per document. The machine-readable `evaluation_run_summary.json` remains the source of truth; the human report is a convenience.
+
+**Why this priority**: Reading 21 JSON files to answer "is it better?" is friction. A one-page summary accelerates every investigation without expanding the contract surface. It is explicitly lower priority than the machine JSON because any tooling the team builds on top (dashboards, CI reports, regression alerts) must consume the JSON, not the human report.
+
+**Independent Test**: Run the corpus-level evaluator against a staged corpus with a known mix of failures. Verify a human-readable summary is produced that (a) names the headline metrics with numbers, (b) shows the by-difficulty breakdown, and (c) lists the failing `document_id`s with a short reason per document. Verify the underlying `evaluation_run_summary.json` is unchanged by the addition of the human report (they are generated side-by-side, not derived one from the other with lossy transformations).
+
+**Acceptance Scenarios**:
+
+1. **Given** a completed corpus evaluation, **When** the human-readable report is produced, **Then** it names `overall_document_pass_rate`, `vendor_identity_pass_rate`, `review_routing_pass_rate`, and `field_accuracy` with their numeric values.
+2. **Given** any failing document, **When** the human report lists it, **Then** the entry includes the `document_id`, a short reason (e.g., "company_name mismatch; review_reason wrong"), and its difficulty bucket.
+3. **Given** a corpus with zero failing documents, **When** the human report is produced, **Then** it indicates the corpus is fully passing without listing individual documents.
+4. **Given** any run, **When** the human report is re-generated from the same `evaluation_run_summary.json`, **Then** its content is stable (no random ordering of failing documents; ordering is deterministic, e.g., by `document_id` or by severity).
+
+---
+
+### Edge Cases
+
+- **Inputs missing or schema-invalid**: If `expected.json` or `final_structured_payload.json` is missing, unreadable, or fails its own schema, the evaluator exits non-zero with a clear error naming the offending file. It does NOT write a partial `evaluation_document.json`, and it does NOT silently substitute defaults.
+- **`document_id` mismatch between expected and final**: If `expected.json` and `final_structured_payload.json` disagree on `document_id`, the evaluator fails hard with a mismatch error. The harness must not cross-evaluate documents.
+- **`contract_set_version` drift**: If either input reports a `contract_set_version` different from `1.0.0`, the evaluator refuses to evaluate and names the offending file. Evaluation is pinned to the frozen contract set.
+- **Single-voter baseline accounting when the prediction exists but was produced from only one voter**: The evaluator still emits an `evaluation_document.json` identical in shape to the multi-voter case; ensemble-only signals (unanimous/majority/split) are reported through `consensus_metrics` at the run level, not the document level.
+- **Field that is `null` on both sides**: Treated as `not_applicable`. Not counted as a `match` and not counted as a `mismatch`. Excluded from `applicable_field_count`. This avoids inflating accuracy on documents that legitimately have no tax IDs, no website, etc.
+- **Field that is present on one side only when the scoring weight is 0**: There is no field with weight 0 in the current rubric, but if a future amendment introduces one, the evaluator treats it the same as any other scored field at the labeling level while respecting the weight at the gate level.
+- **Weighted `document_score` = 0.849999...**: Compared against the 0.85 threshold with floating-point tolerance documented by the implementation (e.g., inclusive `>=` with a small epsilon), not by ad-hoc rounding. The spec does not mandate the epsilon, but the evaluator's chosen convention must be documented in code.
+- **Run ID collision**: Two evaluator runs in the same second must produce distinct `run_id`s (e.g., by adding a counter or using a finer-grained timestamp). Overwriting a prior `evaluation_run_summary.json` is allowed — the file is generated, not source-of-truth.
+- **Partial corpus evaluation (N < 20)**: The run-summary command accepts fewer than 20 per-document results only when the user explicitly opts in (e.g., a subset flag). Without opt-in, any corpus with missing per-document results is treated as a pipeline bug per US2 AC#8.
+- **Extra/unknown fields in `final_structured_payload.json`**: Blocked by the schema (`additionalProperties: false`). The evaluator never sees unknown fields at runtime because the schema-validator rejects them before evaluation begins.
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+- **FR-001**: The evaluator MUST accept one per-document folder as input, read that folder's `expected.json` and `final_structured_payload.json`, compare them under the stage 1 scoring rules, and write `evaluation_document.json` into the same folder.
+- **FR-002**: Every `evaluation_document.json` the evaluator writes MUST validate against `contracts/stage1_vendor_identity/v1.0.0/evaluation_document.schema.json` and MUST set `contract_set_version` to `"1.0.0"`.
+- **FR-003**: The evaluator MUST propagate `document_id`, `difficulty`, and `challenge_tags` from `expected.json` into `evaluation_document.json` unchanged.
+- **FR-004**: `field_results` MUST contain one entry per scored field defined in `scoring.md` ("Fields To Score"), using `match`, `partial_match`, `mismatch`, `missing_prediction`, `unexpected_prediction`, or `not_applicable`, exactly as defined by that rubric.
+- **FR-005**: The evaluator MUST normalize values before comparison per the rules pinned in `scoring.md`: company name (lowercase, trim, collapse whitespace, strip punctuation where reasonable), street (normalize common suffix abbreviations), state (full name ↔ 2-letter abbreviation equivalence), postal code (trim spaces, allow ZIP+4 vs ZIP comparison as partial), website (drop scheme, drop trailing slash, optionally drop `www.`), phone (digits-only comparison with extension loss treated as partial), email (lowercase), tax IDs (strip spaces and punctuation).
+- **FR-006**: The evaluator MUST use `partial_match` only in the cases listed in `scoring.md` ("Partial Match Policy"). Booleans (`company_name.present`, `company_name.inferred`, `manual_review_required`), `review_reason`, and normalized tax-ID comparisons MUST never be `partial_match`.
+- **FR-007**: The evaluator MUST compute a weighted `document_score` per the formula `sum(field_result_value * field_weight) / sum(applicable_field_weights)` with the numeric result values and field weights fixed in `scoring.md`. A field labeled `not_applicable` MUST be excluded from both the numerator and the denominator.
+- **FR-008**: The evaluator MUST set `document_pass_fail.vendor_identity_passed` to `true` only when `company_name.value` is `match` or acceptable `partial_match`, `company_name.present` matches expected, `company_name.inferred` matches expected, AND at least 2 secondary vendor identifiers match across the five-slot set {address, any tax ID, website, phone, email}. Secondary-identifier slot semantics:
+  - **address** counts as matching iff `address.city`, `address.state`, AND `address.postal_code` each resolve to `match` or acceptable `partial_match`. `street_1`, `street_2`, and `country` do NOT by themselves contribute to the address slot.
+  - **any tax ID** counts as matching iff at least one of `tax_ids.ein`, `tax_ids.state_tax_id`, `tax_ids.vat_id`, `tax_ids.other_tax_id` is `match` (tax IDs are never `partial_match` per FR-006).
+  - **website**, **phone**, **email** each count as matching iff that field resolves to `match` or acceptable `partial_match`.
+  Each slot contributes at most 1 toward the "at least 2" threshold.
+- **FR-009**: The evaluator MUST set `document_pass_fail.review_routing_passed` to `true` only when `manual_review_required` matches expected AND `review_reason` matches expected.
+- **FR-010**: The evaluator MUST set `document_pass_fail.overall_passed` to `true` only when `vendor_identity_passed == true` AND `review_routing_passed == true` AND `document_score >= 0.85`.
+- **FR-011**: The evaluator MUST populate `comparison_summary` with `applicable_field_count`, `matched_field_count`, `mismatched_field_count`, `missing_prediction_count`, `unexpected_prediction_count`, and `field_accuracy` consistent with the per-field results. `matched_field_count` counts strict `match` results only — `partial_match` results are NOT included in any `_count` field (and the schema has no `partial_match_count`). The partial-match count MUST remain derivable from `field_results`. `field_accuracy = (matched_field_count + 0.5 × partial_match_count) / applicable_field_count`, where `partial_match_count` is derived on the fly from `field_results`. The identity `applicable_field_count == matched_field_count + mismatched_field_count + missing_prediction_count + unexpected_prediction_count + partial_match_count` MUST hold.
+- **FR-012**: On any `expected.json` in the `missing_name` bucket, the evaluator MUST treat the prediction as failing `review_routing_passed` (and therefore `overall_passed`) unless all four invariants hold in the prediction: `company_name.present == false`, `company_name.inferred == true`, `manual_review_required == true`, and `review_reason == "company_name_inferred"`. Matching the inferred `value` is not sufficient.
+- **FR-013**: The evaluator MUST reject inputs where `contract_set_version` in either `expected.json` or `final_structured_payload.json` is not `"1.0.0"`, and MUST reject inputs where `document_id` disagrees between the two files. In both cases it exits non-zero with a clear error and writes no partial output.
+- **FR-014**: A run-summary command MUST accept one corpus root as input, read every per-document `evaluation_document.json` under it, and write `evaluation_run_summary.json` at the corpus root. Every summary file MUST validate against `contracts/stage1_vendor_identity/v1.0.0/evaluation_run_summary.schema.json` and MUST set `contract_set_version` to `"1.0.0"`.
+- **FR-015**: `evaluation_run_summary.json` MUST report `document_count` equal to the number of per-document evaluations read, populate `overall_metrics` (`field_accuracy`, `vendor_identity_pass_rate`, `review_routing_pass_rate`, `overall_document_pass_rate`) from the corpus aggregate, populate `by_difficulty` for each of the four difficulty buckets, and populate `by_field` with a corpus-wide accuracy per scored field.
+- **FR-016**: `consensus_metrics` in the run summary MUST reflect stage 1 single-voter-baseline accounting: `single_voter_baseline_runs == document_count`, `majority_vote_documents == 0`, `split_decision_documents == 0`. The optional ensemble fields (`unanimous_field_rate`, `two_of_three_majority_rate`, `split_decision_rate`) MAY be omitted or set to values consistent with a single-voter run.
+- **FR-017**: `documents` in the run summary MUST contain exactly `document_count` entries, ordered deterministically by `document_id`, each carrying `document_id`, `overall_passed`, and `field_accuracy` copied from the corresponding per-document result.
+- **FR-018**: Given identical inputs, the evaluator MUST produce byte-identical `evaluation_document.json` and `evaluation_run_summary.json` outputs except for fields explicitly allowed to vary (`run_id`, and any human-readable timestamp if the implementation introduces one). Determinism is required for regression detection.
+- **FR-019**: The evaluator MUST NOT modify `expected.json` or `final_structured_payload.json` on disk at any time. Inputs are read-only.
+- **FR-020**: The evaluator MUST NOT produce a partial `evaluation_document.json` or `evaluation_run_summary.json` on hard error. If it cannot evaluate cleanly, it exits non-zero and writes no artifact.
+- **FR-021**: The evaluator MUST produce a terse human-readable run report in Markdown, written to `evaluation_run_summary.md` at the corpus root alongside `evaluation_run_summary.json`, AND MUST print the same content to stdout at the end of a corpus-mode run. The report names the four headline metrics (`overall_document_pass_rate`, `vendor_identity_pass_rate`, `review_routing_pass_rate`, `field_accuracy`), the per-difficulty breakdown, and the failing documents with a short reason each. The on-disk Markdown file and the stdout stream MUST contain byte-identical content (subject to trailing-newline conventions). The machine JSON (`evaluation_run_summary.json`) remains the source of truth; the Markdown file is ancillary and is regenerated on each run. Determinism requirements (FR-018) apply to the Markdown file the same as to the JSON.
+- **FR-022**: The evaluator CLI interface MUST be exposed as the Python module invocation `python -m ledgerlinc_ocr.evaluator`, with two subcommands mirroring the existing `ledgerlinc_ocr.validator` pattern:
+  - `python -m ledgerlinc_ocr.evaluator evaluate document <folder>` — one-document mode, targeting a per-document folder.
+  - `python -m ledgerlinc_ocr.evaluator evaluate corpus <root>` — whole-corpus mode, targeting the corpus root.
+  In corpus mode, for every per-document folder the command first ensures `evaluation_document.json` exists — re-invoking per-document evaluation on any folder missing it — and then aggregates. A folder with valid pipeline inputs but missing `evaluation_document.json` is NOT a hard error; a folder with missing/unreadable/schema-invalid `expected.json` or `final_structured_payload.json` IS a hard error per FR-020. Both modes MUST exit 0 on clean completion and non-zero on hard error.
+- **FR-023**: The evaluator MUST NOT treat low document scores or failed pass gates as error conditions. Reporting a failing document is a successful evaluation; crashing is not.
+- **FR-024**: The evaluator MUST NOT attempt ensemble-aware scoring (unanimous/majority/split) in stage 1. That logic lives behind the same interface but is activated only when ensemble mode is enabled, which is explicitly out of scope for this feature.
+- **FR-025**: The evaluator MUST NOT invoke the extraction pipeline, call any model, or touch any file outside `tests/stage1_vendor_identity/` (or the user-supplied corpus path) during evaluation. Evaluation is artifact-to-artifact.
+
+### Key Entities
+
+- **Scored field**: One entry in `evaluation_document.json:field_results`, keyed by a field name from `scoring.md`'s fixed list, with `expected`, `actual`, and `result` keys. Result is drawn from the fixed six-value enum.
+- **Comparison summary (`comparison_summary`)**: Per-document aggregate of counts and unweighted `field_accuracy`. Derivable from `field_results`; always present in `evaluation_document.json`. `matched_field_count` holds strict matches only; `partial_match` results are intentionally not held in any `_count` field (schema has no `partial_match_count`), but they still influence `field_accuracy` via the 0.5 weight from `scoring.md`.
+- **Document pass/fail gates (`document_pass_fail`)**: Three booleans per document — `vendor_identity_passed`, `review_routing_passed`, `overall_passed` — computed as in `scoring.md`. `overall_passed` is a conjunction of the other two plus `document_score >= 0.85`.
+- **Weighted document score**: The `sum(result_value * weight) / sum(applicable_weights)` number used to gate `overall_passed`. Not persisted in `evaluation_document.json` directly; `field_accuracy` in `comparison_summary` is the stored unweighted metric.
+- **Per-document evaluation artifact (`evaluation_document.json`)**: The frozen-contract per-document output. Conforms to `evaluation_document.schema.json`. Written into the document's folder.
+- **Run summary artifact (`evaluation_run_summary.json`)**: The frozen-contract corpus-level roll-up. Conforms to `evaluation_run_summary.schema.json`. Written at the corpus root. Contains `run_id`, optional `pipeline_version` and `policy_version`, `overall_metrics`, `consensus_metrics`, `by_difficulty`, `by_field`, and `documents`.
+- **Run identifier (`run_id`)**: A short string uniquely identifying a corpus evaluation invocation. Generated by the evaluator; overwriting a prior `evaluation_run_summary.json` is allowed.
+- **Corpus root**: The directory at the top of the stage 1 corpus (`tests/stage1_vendor_identity/` by default). Holds per-document folders and `evaluation_run_summary.json`; does not hold any other runtime state.
+- **Human-readable report**: A Markdown summary written to `evaluation_run_summary.md` at the corpus root alongside `evaluation_run_summary.json`, and also streamed verbatim to stdout at the end of a corpus-mode run. Lists headline metrics, by-difficulty breakdown, and failing documents with a one-line reason each. Ancillary to the machine JSON.
+- **Missing-name invariant set**: The four-rule conjunction (`company_name.present == false`, `company_name.inferred == true`, `manual_review_required == true`, `review_reason == "company_name_inferred"`) that a prediction must satisfy on a missing-name document to pass `review_routing_passed`.
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: Running the evaluator against one valid per-document folder produces a schema-valid `evaluation_document.json` in ≤ 1 second of wall-clock time on a developer workstation (CPU-only, no model calls).
+- **SC-002**: Running the run-summary command against the 20-document corpus produces a schema-valid `evaluation_run_summary.json` in ≤ 5 seconds of wall-clock time on a developer workstation.
+- **SC-003**: Given a pair of fixtures designed to exercise every normalization rule in `scoring.md`, 100% of scored fields are classified according to the rubric (match / partial_match / mismatch / missing_prediction / unexpected_prediction / not_applicable) — no formatting-only difference is misclassified as a mismatch, no true mismatch is absorbed into a partial_match.
+- **SC-004**: For all 5 missing-name documents in the corpus, a prediction that violates any single missing-name invariant fails `review_routing_passed` and therefore `overall_passed`, regardless of how correct the inferred name is. 0 documents in the missing-name bucket can pass while violating an invariant.
+- **SC-005**: The evaluator is deterministic: running it twice on the same inputs produces byte-identical outputs except for `run_id` and any explicitly-declared timestamp fields. No field ordering, metric value, or count changes run over run.
+- **SC-006**: The run summary's `by_difficulty` sums to the overall totals (sum of per-bucket `document_count` == `document_count`), its `documents` array contains exactly `document_count` entries, and its `overall_metrics` values agree with a hand-computed aggregate of the per-document `evaluation_document.json` files to within floating-point tolerance.
+- **SC-007**: On hard errors (missing input, schema-invalid input, `document_id` mismatch, `contract_set_version` drift, incomplete corpus without opt-in), the evaluator exits non-zero with a message that names the offending file or document, and writes no partial artifact.
+- **SC-008**: A developer reading only the human-readable report can answer "did the run pass overall?" and "which documents failed and why at a glance?" without opening any JSON file.
+- **SC-009**: The evaluator does not depend on a running extraction pipeline, model, or network. It can be executed against static fixture pairs and returns the same results, which enables it to be unit- and regression-tested independently of the rest of the stage 1 pipeline.
+- **SC-010**: Adding or changing a scored field requires exactly one code-level change anchored to the `scoring.md` rubric (the scored-field list, weight, and normalization rule). Adding a scored field does not silently break the schema, the run summary, or determinism.
+
+## Assumptions
+
+- Stage 1 operates in single-voter baseline mode; ensemble-aware consensus metrics are forward-compatible but not exercised by this feature.
+- The frozen contract set at `contract_set_version = "1.0.0"` is stable for the life of this feature; any schema change blocks the feature and requires the amendment path.
+- The evaluator is invoked from the same development bench environment used for preprocessing and extraction; no separate service deployment is introduced.
+- `scoring.md` is the authoritative rubric for normalization rules, partial-match policy, weights, and pass gates. Where `scoring.md` says "recommended" (e.g., numeric result values, field weights), this feature pins those recommendations as the stage 1 defaults.
+- The human-readable report format is a convenience for developers; downstream CI/dashboards (if any) consume `evaluation_run_summary.json` directly.
+- Confidence calibration analysis (average confidence for correct vs incorrect predictions) is out of scope. Per `scoring.md`, calibration tracking is a secondary report and may arrive later.
+- Failure-category auto-classification (`ocr_miss`, `wrong_entity_selected`, etc. from `scoring.md`'s "Failure Categories") is out of scope for this feature. The evaluator reports per-field `result` labels; category attribution remains a manual reviewer activity for now.
+- The evaluator is artifact-to-artifact: it does not invoke the extraction pipeline, does not call any model, and does not require network access. The command may optionally run per-document evaluation lazily when asked to produce a run summary for a corpus whose `evaluation_document.json` files are missing, but it does so by re-running itself, not by invoking upstream stages.
+- Corpus layout and `expected.json` contracts produced by feature 006 (Corpus Scaffolding & Human Labeling) are treated as preconditions. This feature does not scaffold the corpus or label documents.
+- `final_structured_payload.json` is assumed to be produced by earlier pipeline stages (preprocessing, extraction, routing, final-payload assembly); this feature does not implement those stages and does not backfill them for unevaluated documents.
