@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.0.0/routing_decision.schema.json",
+  "title": "routing_decision",
+  "description": "Deterministic accept/review decision for stage 1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_set_version",
+    "pipeline_version",
+    "policy_version",
+    "document_id",
+    "processed_at",
+    "status",
+    "decision",
+    "consensus_summary",
+    "scores",
+    "checks",
+    "review_status",
+    "reasons"
+  ],
+  "properties": {
+    "contract_set_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "pipeline_version": { "type": "string", "minLength": 1 },
+    "policy_version": { "type": "string", "minLength": 1 },
+    "document_id": { "type": "string", "minLength": 1 },
+    "processed_at": { "type": "string", "format": "date-time" },
+    "status": { "type": "string", "enum": ["success", "partial", "failure"] },
+    "decision": {
+      "type": "string",
+      "enum": ["edge_accept", "edge_review_required"],
+      "$comment": "Stage 1 vocabulary only. Future ensemble decisions require a contract-set amendment."
+    },
+    "consensus_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "agreement_level"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["single_voter_baseline"] },
+        "agreement_level": { "type": "string", "enum": ["not_applicable"] }
+      }
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "company_name_score",
+        "address_score",
+        "tax_id_score",
+        "contact_score",
+        "overall_vendor_identity_score"
+      ],
+      "properties": {
+        "company_name_score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "address_score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "tax_id_score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "contact_score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "overall_vendor_identity_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "company_name_present",
+        "company_name_inferred",
+        "address_has_minimum_components",
+        "at_least_one_tax_id_present",
+        "website_or_email_present",
+        "post_extraction_spam_gate_passed"
+      ],
+      "properties": {
+        "company_name_present": { "type": "boolean" },
+        "company_name_inferred": { "type": "boolean" },
+        "address_has_minimum_components": { "type": "boolean" },
+        "at_least_one_tax_id_present": { "type": "boolean" },
+        "website_or_email_present": { "type": "boolean" },
+        "post_extraction_spam_gate_passed": { "type": "boolean" }
+      }
+    },
+    "review_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manual_review_required", "review_reason"],
+      "properties": {
+        "manual_review_required": { "type": "boolean" },
+        "review_reason": { "type": ["string", "null"] }
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

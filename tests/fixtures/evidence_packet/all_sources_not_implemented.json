@@ -1,0 +1,31 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-edge-v0.1",
+  "document_id": "inv_004",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3300,
+      "rotation_detected": 0,
+      "blocks": [],
+      "raw_ocr_lines": []
+    }
+  ],
+  "document_text": "",
+  "tables": [],
+  "quality": {
+    "scan_quality": "poor",
+    "skew_detected": false,
+    "noise_level": "high"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": { "enabled": false, "status": "not_implemented" },
+    "falcon_ocr": { "enabled": false, "status": "not_implemented" },
+    "falcon_perception": { "enabled": false, "status": "not_implemented" }
+  },
+  "warnings": []
+}
