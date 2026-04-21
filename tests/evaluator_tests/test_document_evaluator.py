@@ -125,3 +125,22 @@ def test_clean_completion_preserves_input_hashes(tmp_path: Path) -> None:
     evaluate_document(folder)
     assert _sha(folder / "expected.json") == expected_hash
     assert _sha(folder / "final_structured_payload.json") == final_hash
+
+
+def test_evaluate_document_writes_only_inside_folder(tmp_path: Path) -> None:
+    """FR-025 writable-file scope: a successful `evaluate_document` call
+    writes exactly one file (`evaluation_document.json`) inside the supplied
+    folder, and nothing anywhere else under `tmp_path`."""
+    folder = _copy_fixture(FIXTURES / "all_match", tmp_path)
+    # Fixture ships with a pre-built evaluation_document.json for other tests;
+    # remove it so we measure actual writes, not overwrites.
+    (folder / "evaluation_document.json").unlink(missing_ok=True)
+    before = {p for p in tmp_path.rglob("*") if p.is_file()}
+
+    evaluate_document(folder)
+
+    after = {p for p in tmp_path.rglob("*") if p.is_file()}
+    new_files = after - before
+    assert new_files == {folder / "evaluation_document.json"}, (
+        f"evaluate_document wrote outside target folder: {new_files}"
+    )

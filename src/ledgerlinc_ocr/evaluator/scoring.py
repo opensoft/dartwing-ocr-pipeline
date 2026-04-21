@@ -67,6 +67,9 @@ FIELD_WEIGHTS: dict[str, int] = {
 
 CONTRACT_SET_VERSION: str = "1.0.0"
 GATE_THRESHOLD: float = 0.85
+# Edge case "Weighted document_score = 0.849999…" in spec.md: compare with
+# inclusive `>=` + small epsilon so float rounding can't falsely fail a doc
+# whose weighted math lands a few ulps below 0.85.
 GATE_EPSILON: float = 1e-9
 
 assert set(FIELD_WEIGHTS) == set(SCORED_FIELDS), (

@@ -198,3 +198,23 @@ def test_missing_name_bucket_pass_rate(tmp_path: Path) -> None:
         d for d in s.documents if d.document_id == "inv_corpus_missing_05_fail"
     )
     assert violating.overall_passed is False
+
+
+def test_evaluate_corpus_writes_only_inside_root(tmp_path: Path) -> None:
+    """FR-025 writable-file scope: a successful `evaluate_corpus` call writes
+    only `evaluation_run_summary.{json,md}` at the root and per-folder
+    `evaluation_document.json` files inside each discovered doc folder."""
+    root = _copy(FIXTURES / "corpus_20", tmp_path)
+    before = {p for p in tmp_path.rglob("*") if p.is_file()}
+
+    evaluate_corpus(root)
+
+    new_files = {p for p in tmp_path.rglob("*") if p.is_file()} - before
+    allowed = {
+        root / "evaluation_run_summary.json",
+        root / "evaluation_run_summary.md",
+    }
+    for folder in (p for p in root.iterdir() if p.is_dir()):
+        allowed.add(folder / "evaluation_document.json")
+    unexpected = new_files - allowed
+    assert not unexpected, f"evaluate_corpus wrote unexpected files: {unexpected}"
