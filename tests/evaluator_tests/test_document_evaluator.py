@@ -44,6 +44,21 @@ def test_all_match_writes_schema_valid_output(tmp_path: Path) -> None:
     assert ev.comparison_summary.field_accuracy == 1.0
 
 
+def test_challenge_tags_propagate_verbatim(tmp_path: Path) -> None:
+    """FR-003: evaluation.challenge_tags is copied from expected.json unchanged."""
+    import json
+
+    folder = _copy_fixture(FIXTURES / "label_coverage", tmp_path)
+    expected_tags = tuple(
+        json.loads((folder / "expected.json").read_text(encoding="utf-8")).get(
+            "challenge_tags", []
+        )
+    )
+    outcome = evaluate_document(folder)
+    assert outcome.evaluation is not None
+    assert outcome.evaluation.challenge_tags == expected_tags
+
+
 def test_field_results_ordered_by_scored_fields(tmp_path: Path) -> None:
     from ledgerlinc_ocr.evaluator.scoring import SCORED_FIELDS
 

@@ -22,10 +22,16 @@ def test_single_document_under_one_second(tmp_path: Path) -> None:
 
 
 def test_corpus_twenty_under_five_seconds(tmp_path: Path) -> None:
-    """SC-002: `evaluate_corpus` on `corpus_20/` (lazy, cold start) in <= 5.0 s."""
+    """SC-002: `evaluate_corpus` on `corpus_20/` (lazy, cold start).
+
+    Spec contract is <= 5.0 s; local gate is tighter (1.5 s) so early
+    regressions are caught before they approach the contract limit. Relax
+    to 5.0 s in CI if developer hardware proves too noisy."""
     root = tmp_path / "corpus_20"
     shutil.copytree(FIXTURES / "corpus_20", root)
     start = time.perf_counter()
     evaluate_corpus(root)
     elapsed = time.perf_counter() - start
-    assert elapsed <= 5.0, f"corpus_20 eval took {elapsed:.3f}s (budget 5.0 s)"
+    assert elapsed <= 1.5, (
+        f"corpus_20 eval took {elapsed:.3f}s (local gate 1.5 s, SC-002 5.0 s)"
+    )

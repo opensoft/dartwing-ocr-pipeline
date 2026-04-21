@@ -151,6 +151,31 @@ def test_hard_error_no_partial_summary(tmp_path: Path) -> None:
     assert not summary_path.exists()
 
 
+def test_mid_corpus_hard_error_preserves_prior_writes(tmp_path: Path) -> None:
+    """FR-020: when corpus eval aborts on a later folder, per-doc evaluations
+    already written for earlier folders are preserved. Only the corpus-level
+    summary is absent."""
+    root = tmp_path / "mixed"
+    root.mkdir()
+    # Good folder comes first alphabetically so it is evaluated and its
+    # evaluation_document.json is written before the bad folder raises.
+    good_src = FIXTURES / "all_match"
+    good_dst = root / "inv_aaa_good"
+    shutil.copytree(good_src, good_dst)
+    (good_dst / "evaluation_document.json").unlink(missing_ok=True)
+    # Bad folder comes later; inv_bad_02's expected.json is unparsable.
+    bad_src = FIXTURES / "corpus_bad_input" / "inv_bad_02"
+    shutil.copytree(bad_src, root / "inv_zzz_bad")
+
+    summary_path = root / "evaluation_run_summary.json"
+    with pytest.raises(json.JSONDecodeError):
+        evaluate_corpus(root)
+    # Corpus-level summary is absent.
+    assert not summary_path.exists()
+    # Prior good folder's per-doc evaluation IS preserved.
+    assert (good_dst / "evaluation_document.json").is_file()
+
+
 def test_no_lazy_mode_passes_on_prebuilt(tmp_path: Path) -> None:
     """--no-lazy completes against a corpus that already has evaluation_document.json."""
     root = _copy(FIXTURES / "corpus_prebuilt_3", tmp_path)
@@ -177,6 +202,37 @@ def test_empty_corpus_raises(tmp_path: Path) -> None:
     empty.mkdir()
     with pytest.raises(EmptyCorpusError):
         evaluate_corpus(empty)
+
+
+def test_single_document_corpus(tmp_path: Path) -> None:
+    """Edge case: N=1. Aggregation division-by-count still works at the lower
+    boundary above the EmptyCorpusError guard."""
+    root = tmp_path / "corpus_1"
+    root.mkdir()
+    shutil.copytree(FIXTURES / "all_match", root / "inv_only")
+    outcome = evaluate_corpus(root)
+    assert outcome.ok is True
+    assert outcome.summary is not None
+    assert outcome.summary.document_count == 1
+    assert (
+        sum(v.document_count for v in outcome.summary.by_difficulty.values()) == 1
+    )
+
+
+def test_two_document_corpus(tmp_path: Path) -> None:
+    """Edge case: N=2, one passing and one failing. Ensures pass-rate
+    arithmetic at tiny denominators is well-behaved."""
+    root = tmp_path / "corpus_2"
+    root.mkdir()
+    shutil.copytree(FIXTURES / "all_match", root / "inv_pass")
+    shutil.copytree(
+        FIXTURES / "corpus_20" / "inv_corpus_missing_05_fail", root / "inv_fail"
+    )
+    outcome = evaluate_corpus(root)
+    assert outcome.ok is True
+    assert outcome.summary is not None
+    assert outcome.summary.document_count == 2
+    assert 0.0 <= outcome.summary.overall_metrics.overall_document_pass_rate <= 1.0
 
 
 def test_missing_name_bucket_pass_rate(tmp_path: Path) -> None:
