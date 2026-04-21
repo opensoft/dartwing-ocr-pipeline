@@ -26,28 +26,42 @@ def _write_minimal_pdf(path: Path) -> None:
 def _make_folder(tmp_path: Path, name: str = "inv_001_easy") -> Path:
     folder = tmp_path / name
     folder.mkdir()
-    # Minimal expected.json so the folder has the required unconditional files.
+    # Schema-conforming expected.json so the folder has the required unconditional files.
     (folder / "expected.json").write_text(
-        """{
+        f"""{{
   "contract_set_version": "1.0.0",
-  "document_id": "inv_001_easy",
-  "difficulty": "easy",
+  "document_id": "{name}",
+  "difficulty": "{name.rsplit('_', 1)[-1]}",
   "challenge_tags": ["explicit_company_name"],
-  "expected_vendor_candidate": {
-    "company_name": {
+  "expected_review": {{
+    "manual_review_required": false,
+    "review_reason": null
+  }},
+  "expected_vendor_candidate": {{
+    "company_name": {{
       "value": "Acme Inc.",
       "present": true,
       "inferred": false
-    },
-    "address": null,
-    "contact": null,
-    "tax_ids": null
-  },
-  "expected_review": {
-    "manual_review_required": false,
-    "review_reason": null
-  }
-}
+    }},
+    "address": {{
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "postal_code": null,
+      "country": null
+    }},
+    "tax_ids": {{
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    }},
+    "website": null,
+    "phone": null,
+    "email": null
+  }}
+}}
 """,
         encoding="utf-8",
     )
