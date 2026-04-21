@@ -5,7 +5,7 @@ description: "Task list for 006-corpus-labeling"
 # Tasks: Corpus Scaffolding & Human Labeling (Stage 1 Vendor-Identity)
 
 **Input**: Design documents from `/specs/006-corpus-labeling/`
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md, checklists/
 
 **Tests**: Included where required by `contracts/validator-delta.md` (the module-API delta mandates ≥5 contract test cases for the new `FOLDER_SOURCE_PDF_UNREADABLE` code). Corpus content has no runtime tests — the validator CLI is the test.
 
@@ -80,7 +80,7 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 - [ ] T026 [P] [US1] Create `tests/stage1_vendor_identity/inv_017_missing_name/` and place `source.pdf`.
 - [ ] T027 [P] [US1] Create `tests/stage1_vendor_identity/inv_018_missing_name/` and place `source.pdf`.
 - [ ] T028 [P] [US1] Create `tests/stage1_vendor_identity/inv_019_missing_name/` and place `source.pdf`.
-- [ ] T029 [P] [US1] Create `tests/stage1_vendor_identity/inv_020_missing_name/` and place `source.pdf`. After T029, delete `specs/006-corpus-labeling/candidates.md` — its only job was to gate inclusion.
+- [ ] T029 [P] [US1] Create `tests/stage1_vendor_identity/inv_020_missing_name/` and place `source.pdf`.
 
 ### US1 structural validation
 
@@ -122,7 +122,7 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 ### US2 validation
 
 - [ ] T051 [US2] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm zero errors across schema, folder, and cross-artifact checks. Specifically confirm: every `expected.json` validates, every `document_id` matches its folder's `inv_NNN` prefix, every `difficulty` matches the folder-name suffix, no `MISSING_NAME_TRIAD_VIOLATION`, no `EXPECTED_HAS_PREDICTIONS`, no `CHALLENGE_TAG_UNKNOWN`. Depends on T031–T050.
-- [ ] T052 [US2] Manually audit `challenge_tags` coverage across the 20 labels against FR-015: `explicit_company_name` ≥15 non-missing, `missing_company_name` =5 missing, and at least one document each for `logo_only`, `remit_to_differs_from_vendor`, `low_quality_scan`, `ein_present`, and one of `{vat_id_present, state_tax_id_present, other_tax_id_present}`. If a critical tag is missing, return to the relevant T031–T050 task and re-label. Depends on T051.
+- [ ] T052 [US2] Manually audit `challenge_tags` coverage across the 20 labels against FR-015 AND FR-016. The validator already enforces the missing-name company_name triad (`MISSING_NAME_TRIAD_VIOLATION` in `src/ledgerlinc_ocr/validator/artifact.py`) and the closed-vocabulary check (`CHALLENGE_TAG_UNKNOWN`), but it does NOT enforce FR-016's tag pairing or FR-015's aggregate coverage; both are audit-only in this feature. Confirm: (FR-016) `explicit_company_name` appears on every non-missing doc and on no missing-name doc; `missing_company_name` appears on every missing-name doc and on no non-missing doc; (FR-015) at least one document each for `logo_only`, `remit_to_differs_from_vendor`, `low_quality_scan`, `ein_present`, and one of `{vat_id_present, state_tax_id_present, other_tax_id_present}`. If any tag pairing or critical tag is missing, return to the relevant T031–T050 task and re-label. Depends on T051.
 
 **Checkpoint**: US2 is complete — the minimum shippable corpus (US1 + US2) now exists. The evaluator has real labeled truth.
 
@@ -185,10 +185,11 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 - [ ] T069 Run the full validator: `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` — exit code MUST be 0, zero hard errors (SC-001). Soft `FOLDER_NOTES_MISSING_SOFT` warnings on `easy`/`medium` folders are acceptable.
 - [ ] T070 Run the full test suite: `.venv/bin/pytest tests/ -q` — all tests green, including the 5 new cases in `tests/contract_tests/test_folder_source_pdf_readability.py`.
-- [ ] T071 Audit Success Criteria SC-001 through SC-009 against the shipped corpus; for each SC, record PASS with the command/evidence in a brief note appended to `specs/006-corpus-labeling/plan.md` under a new "## Acceptance Evidence" section.
+- [ ] T071 Audit Success Criteria SC-001 through SC-009 against the shipped corpus; for each SC, record PASS with the command/evidence in a new file `specs/006-corpus-labeling/acceptance-evidence.md` (one section per SC). This keeps plan.md as a planning artifact rather than a running log.
 - [ ] T072 Sweep the corpus for any reserved generated filename (`preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, `final_structured_payload.json`, `evaluation_document.json`) or `votes/` subdirectory or `consensus_output.json` file; fail-closed (FR-013, FR-020). Confirm zero hits.
 - [ ] T073 [P] Verify the `CLAUDE.md` Key References section, `docs/stage1-vendor-identity/README.md`, and `tests/stage1_vendor_identity/README.md` all cross-link correctly to the labeling guide and render without broken relative links.
 - [ ] T074 [P] Tick the items in `specs/006-corpus-labeling/checklists/labeling-guide.md`, `governance.md`, `coverage.md`, and `invariants.md` whose underlying requirement was resolved by this feature's outputs; leave `[Gap]` items open only if intentionally deferred, with a one-line reason.
+- [ ] T075 Delete the working `specs/006-corpus-labeling/candidates.md` file created in T008 — its only job was to gate inclusion and it must not be shipped in the feature. Confirm via `git status` that it is gone.
 
 ---
 
@@ -216,7 +217,7 @@ Phase 6 (US4 — P3; depends only on research; can begin in parallel with Phase 
   T064 → T065,T066,T067 ([P]) → T068
 
 Phase 7 (Polish — after all stories)
-  T069 → T070 → T071 → T072 → T073,T074 ([P])
+  T069 → T070 → T071 → T072 → T073,T074 ([P]) → T075
 ```
 
 ### Parallel execution examples

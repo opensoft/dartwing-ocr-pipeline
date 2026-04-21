@@ -131,6 +131,15 @@ CLAUDE.md                               # Key References section gets labeling-g
 
 **Structure Decision**: This feature lives primarily under `tests/stage1_vendor_identity/` (content) and `docs/stage1-vendor-identity/` (guide). It adds one narrow validator change under `src/ledgerlinc_ocr/validator/` with matching tests under `tests/contract_tests/`. No new packages, no layout changes to the existing code tree. The corpus folders follow the frozen `folder.schema.json` contract (name pattern `^inv_\d{3}_(easy|medium|hard|missing_name)$`, unconditional files `source.pdf` + `expected.json`, conditional `notes.md`). Documents 001-005 are `easy`, 006-010 are `medium`, 011-015 are `hard`, 016-020 are `missing_name` (contiguous numeric prefixes `001`..`020`, 5/5/5/5 bucket distribution, per FR-001/FR-002).
 
+## Audit-only Enforcement
+
+Two requirements in this feature are audit-enforced rather than machine-enforced by the validator:
+
+- **FR-015** — aggregate critical `challenge_tags` coverage across the 20 documents. No validator check exists for "at least one document carries tag X"; this is verified manually in tasks.md T052.
+- **FR-016** — challenge-tag *pairing* (`explicit_company_name` on every non-missing doc, `missing_company_name` on every missing-name doc, and the exclusions). The validator already enforces (a) the missing-name company_name triad via `MISSING_NAME_TRIAD_VIOLATION` in `src/ledgerlinc_ocr/validator/artifact.py` (`_missing_name_triad_on_expected`) and (b) the closed challenge-tag vocabulary via `CHALLENGE_TAG_UNKNOWN`. It does NOT enforce that `explicit_company_name` / `missing_company_name` pair correctly with `difficulty`. That pairing rule is audit-enforced in T052 alongside FR-015 coverage.
+
+Adding a `CHALLENGE_TAG_PAIRING_VIOLATION` check to the validator is a reasonable follow-on amendment but is intentionally out of scope for this feature — the corpus is small enough (20 documents) that a human audit is cheaper and less risky than a module-API bump just to validate one pairing rule.
+
 ## Complexity Tracking
 
 *Not applicable — Constitution Check passed with no violations.*
