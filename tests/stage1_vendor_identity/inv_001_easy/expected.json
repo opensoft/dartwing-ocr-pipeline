@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_001_easy",
+  "difficulty": "easy",
+  "challenge_tags": ["explicit_company_name"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Desert Diecutting",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "5148 W Patrick Lane",
+      "street_2": null,
+      "city": "Las Vegas",
+      "state": "NV",
+      "postal_code": "89118-2829",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": null,
+    "phone": "702.895.9688",
+    "email": null
+  }
+}

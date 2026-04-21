@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_016_missing_name",
+  "difficulty": "missing_name",
+  "challenge_tags": ["missing_company_name"],
+  "expected_review": {
+    "manual_review_required": true,
+    "review_reason": "company_name_inferred"
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": null,
+      "present": false,
+      "inferred": true
+    },
+    "address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "postal_code": null,
+      "country": null
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": null,
+    "phone": null,
+    "email": null
+  }
+}

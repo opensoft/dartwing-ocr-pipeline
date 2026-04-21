@@ -5,6 +5,8 @@
 **Feature**: [spec.md](../spec.md)
 **Depth**: Deep (every invariant-bearing FR, SC, edge case, and schema coupling cross-checked).
 
+**T074 post-ship tick-through (2026-04-21)**: The labeling guide resolves some items (e.g., header-vs-footer name handling in §8). Remaining open items are spec-level edge-case gaps — combined-edge-cases (explicit name + logo + remit differ), multi-language invoices, whitespace/control-character name handling — that are outside the current corpus (all 20 docs are English and single-form). Deferred to a future spec clarification round when such fixtures are added.
+
 ## Requirement Completeness
 
 - [x] CHK001 Are all three components of the missing-name triad (`company_name.present`, `company_name.inferred`, `expected_review.manual_review_required`) stated together in one place, or scattered across FRs? [Completeness, Spec §FR-008]

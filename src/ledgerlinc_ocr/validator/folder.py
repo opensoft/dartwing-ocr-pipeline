@@ -77,6 +77,61 @@ def _load_expected(path: Path) -> dict[str, Any] | None:
         return None
 
 
+def _check_source_pdf_readable(path: Path, *, target: str) -> list[Violation]:
+    """Enforce FR-003 readable source.pdf at the structural-parse level.
+
+    Emits one Severity.ERROR with FOLDER_SOURCE_PDF_UNREADABLE if the file is
+    zero bytes or fails to parse with pypdf. Caller ensures the file exists —
+    when source.pdf is absent, FOLDER_MISSING_REQUIRED_FILE already fires and
+    this check is skipped to avoid a duplicate finding for the same issue.
+    """
+    try:
+        size = path.stat().st_size
+    except OSError as exc:
+        return [
+            Violation(
+                severity=Severity.ERROR,
+                target=target,
+                field_path="/source.pdf",
+                violation_code=ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE,
+                reason=f"source.pdf could not be stat'd: {exc}",
+                expected="FR-003 readable source.pdf",
+                source_file=str(path),
+            )
+        ]
+    if size == 0:
+        return [
+            Violation(
+                severity=Severity.ERROR,
+                target=target,
+                field_path="/source.pdf",
+                violation_code=ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE,
+                reason="source.pdf is empty (0 bytes).",
+                expected="FR-003 readable source.pdf",
+                source_file=str(path),
+            )
+        ]
+    try:
+        from pypdf import PdfReader
+
+        reader = PdfReader(str(path), strict=False)
+        _ = len(reader.pages)
+    except Exception as exc:  # noqa: BLE001 — pypdf raises a variety of exception types
+        summary = f"{type(exc).__name__}: {exc}"
+        return [
+            Violation(
+                severity=Severity.ERROR,
+                target=target,
+                field_path="/source.pdf",
+                violation_code=ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE,
+                reason=f"source.pdf failed structural parse: {summary}.",
+                expected="FR-003 readable source.pdf",
+                source_file=str(path),
+            )
+        ]
+    return []
+
+
 def _looks_pipeline_generated(doc: dict[str, Any] | None) -> bool:
     """A file is considered pipeline-generated if it carries both pipeline_version
     and contract_set_version, suggesting it was written by the pipeline rather
@@ -144,6 +199,10 @@ def validate_folder(
                     expected="FR-029 unconditional required files",
                 )
             )
+
+    source_pdf = folder / "source.pdf"
+    if source_pdf.is_file():
+        findings.extend(_check_source_pdf_readable(source_pdf, target=target))
 
     # Expected.json governs difficulty for conditional rules
     expected_doc = _load_expected(folder / "expected.json")

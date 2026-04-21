@@ -102,6 +102,7 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `docs/stage1-vendor-identity/schemas.md` — authoritative JSON shapes; now cross-linked to the machine layer
 - `docs/stage1-vendor-identity/scoring.md` — evaluation rubric and pass criteria
 - `docs/stage1-vendor-identity/dataset-layout.md` — per-document folder structure and the closed `challenge_tags` vocabulary
+- `docs/stage1-vendor-identity/labeling-guide.md` — conventions for `expected.json` and `notes.md`, PII/license screening checklist
 - `docs/stage1-vendor-identity/ollama-runtime.md` — host vs. container Ollama, WSL caveats
 - `contracts/stage1_vendor_identity/v1.0.0/` — executable contract set
 - `contracts/stage1_vendor_identity/AMENDMENTS.md` — amendment checklist + changelog

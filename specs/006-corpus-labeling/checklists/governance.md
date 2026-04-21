@@ -5,6 +5,8 @@
 **Feature**: [spec.md](../spec.md)
 **Depth**: Deep (every governance-adjacent FR, SC, and clarification cross-checked).
 
+**T074 post-ship tick-through (2026-04-21)**: Remaining open items are spec-level PII/licensing-policy gaps (license-family quantification, last-4 masking interpretation, post-commit PII discovery process, foreign-language screening, etc.) that are outside the scope of this labeling feature. They were surfaced by the checklist's "unit-tests-for-English" analysis at spec-authoring time and are deferred to a future governance clarification round. The shipped corpus passed the checklist as written (no PII, licensed sources).
+
 ## Requirement Completeness
 
 - [x] CHK001 Are all categories of sensitive information that disqualify a document enumerated in the spec, or only in research.md? [Completeness, Spec §FR-019, Research §5]

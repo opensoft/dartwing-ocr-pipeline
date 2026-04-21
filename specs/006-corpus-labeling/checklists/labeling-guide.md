@@ -5,6 +5,8 @@
 **Feature**: [spec.md](../spec.md)
 **Depth**: Deep (every FR/SC/clarification that touches the guide is cross-checked).
 
+**T074 post-ship tick-through (2026-04-21)**: Items CHK017, CHK020, CHK024, CHK037, CHK040 resolved by `docs/stage1-vendor-identity/labeling-guide.md` and ticked. Remaining open items (CHK018, CHK030, CHK033, CHK034) are spec-level gaps outside this feature's scope — deferred to a future spec clarification round rather than shipped as a labeling-guide change.
+
 ## Requirement Completeness
 
 - [x] CHK001 Does the spec enumerate every section the labeling guide MUST contain, or does it only list examples? [Completeness, Spec §FR-017]
@@ -26,17 +28,17 @@
 - [x] CHK014 Is the exact file path `docs/stage1-vendor-identity/labeling-guide.md` locked in, or is the location still negotiable? [Ambiguity, Spec §Clarifications Q1, §FR-017]
 - [x] CHK015 Is the expected guide length, format, or structure (prose, Q&A, decision trees) specified? [Gap, Spec §FR-017]
 - [x] CHK016 Are the terms "conventions", "decision tree", and "invariants" used consistently between FR-017, research.md §4, and the clarifications? [Consistency, Spec §Clarifications Q1]
-- [ ] CHK017 Is "legibility normalization" defined precisely enough for a labeler to distinguish it from scoring-time normalization? [Clarity, Spec §FR-018]
+- [x] CHK017 Is "legibility normalization" defined precisely enough for a labeler to distinguish it from scoring-time normalization? [Clarity, Spec §FR-018]
 - [ ] CHK018 Does the spec state what "verbatim" means for on-page strings that span multiple lines or include OCR-ambiguous glyphs? [Ambiguity, Spec §FR-018]
 - [x] CHK019 Is "newcomer to the project" (US4) operationalized with any prerequisites (e.g., must have read the constitution)? [Clarity, Spec §US4]
-- [ ] CHK020 Is "on-page string" ambiguous when the same name appears in multiple forms (header + footer + logo)? [Ambiguity, Spec §FR-018]
+- [x] CHK020 Is "on-page string" ambiguous when the same name appears in multiple forms (header + footer + logo)? [Ambiguity, Spec §FR-018]
 
 ## Requirement Consistency
 
 - [x] CHK021 Does FR-017's list of topics ("difficulty, challenge_tags, null-vs-empty, provenance, remit-to, DBA, missing-name") match the 12-section outline in research.md §4 without gaps? [Consistency, Spec §FR-017, Research §4]
 - [x] CHK022 Do the `logo_only` edge-case rule (Edge Cases) and the company-name provenance decision tree (Research §4 step 6) resolve the same way? [Consistency, Spec §Edge Cases, Research §4]
 - [x] CHK023 Does the spec treat the PII checklist as a guide section (FR-017) AND as its own FR (FR-019) without contradiction about *where* it lives? [Consistency, Spec §FR-017, §FR-019]
-- [ ] CHK024 Does the "labels recorded verbatim" rule (FR-018) contradict the guide's allowance for "legibility normalization" without specifying the allowed normalizations? [Conflict, Spec §FR-018]
+- [x] CHK024 Does the "labels recorded verbatim" rule (FR-018) contradict the guide's allowance for "legibility normalization" without specifying the allowed normalizations? [Conflict, Spec §FR-018]
 - [x] CHK025 Are the guide's "difficulty bucket definitions" consistent with the folder-contract enum `["easy","medium","hard","missing_name"]` across the spec, data-model.md, and dataset-layout.md? [Consistency, Spec §FR-005, Data-Model §2]
 - [x] CHK026 Is the company-name decision tree in research.md §4 consistent with FR-007 (non-missing) + FR-008 (missing) without leaving an undefined branch? [Consistency, Spec §FR-007, §FR-008, Research §4 step 6]
 
@@ -58,13 +60,13 @@
 ## Dependencies & Assumptions
 
 - [x] CHK036 Is the guide's dependency on `dataset-layout.md` (for `challenge_tags` vocabulary) explicitly declared, or is duplication expected? [Dependency, Spec §FR-017]
-- [ ] CHK037 Is the guide's relationship to `schemas.md` specified (reference vs. reproduce)? [Dependency, Gap]
+- [x] CHK037 Is the guide's relationship to `schemas.md` specified (reference vs. reproduce)? [Dependency, Gap]
 - [x] CHK038 Does the spec assume the guide will be updated when contracts are amended, or does it leave that to the amendments workflow? [Assumption, Spec §FR-017]
 
 ## Ambiguities & Conflicts
 
 - [x] CHK039 Is "labeler" defined consistently (single author in Assumptions, "reviewer" in some scenarios)? [Ambiguity, Spec §Assumptions, §US1]
-- [ ] CHK040 Does the spec resolve whether the guide is a "living" document or frozen at ship? [Gap]
+- [x] CHK040 Does the spec resolve whether the guide is a "living" document or frozen at ship? [Gap]
 - [x] CHK041 Is the guide's cross-link requirement to `CLAUDE.md` Key References enforceable via a concrete check? [Measurability, Spec §FR-017]
 
 ## Notes

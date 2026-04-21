@@ -27,9 +27,9 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 **Purpose**: Confirm the dev environment and existing validator behave as expected before adding the narrow extension.
 
-- [ ] T001 Verify editable dev install works: `python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"` in repo root; confirm `pypdf` and `jsonschema` resolve.
-- [ ] T002 Run the existing validator contract tests to establish a green baseline: `.venv/bin/pytest tests/contract_tests/ -q` — must pass before the Phase 2 code change.
-- [ ] T003 Verify the validator CLI loads and shows the frozen contract set: `python -m ledgerlinc_ocr.validator show contract-set` — must print `contract_set_version = "1.0.0"` with all 7 artifact schemas plus the folder contract.
+- [X] T001 Verify editable dev install works: `python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"` in repo root; confirm `pypdf` and `jsonschema` resolve.
+- [X] T002 Run the existing validator contract tests to establish a green baseline: `.venv/bin/pytest tests/contract_tests/ -q` — must pass before the Phase 2 code change.
+- [X] T003 Verify the validator CLI loads and shows the frozen contract set: `python -m ledgerlinc_ocr.validator show contract-set` — must print `contract_set_version = "1.0.0"` with all 7 artifact schemas plus the folder contract.
 
 ---
 
@@ -39,10 +39,10 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 **⚠️ CRITICAL**: US1 folder-scaffolding acceptance cannot be validated until Phase 2 is complete.
 
-- [ ] T004 Add `FOLDER_SOURCE_PDF_UNREADABLE = "FOLDER_SOURCE_PDF_UNREADABLE"` to the `ViolationCode` class in `src/ledgerlinc_ocr/validator/report.py`, placed alongside the existing folder codes. Do not reorder or rename any other constants.
-- [ ] T005 Extend `validate_folder()` in `src/ledgerlinc_ocr/validator/folder.py` to, for each existing `source.pdf`, (a) assert non-zero file size and (b) attempt `pypdf.PdfReader(path, strict=False)` plus `len(reader.pages)` inside a try/except; on any failure emit one `Violation` with `severity=Severity.ERROR`, `violation_code="FOLDER_SOURCE_PDF_UNREADABLE"`, `field_path="/source.pdf"`, `expected="FR-003 readable source.pdf"`, and `source_file=str(path)`. Skip the check when `source.pdf` is absent (avoid duplicate findings with `FOLDER_MISSING_REQUIRED_FILE`). Depends on T004.
-- [ ] T006 [P] Author contract test `tests/contract_tests/test_folder_source_pdf_readability.py` with 5 cases per `contracts/validator-delta.md`: (1) valid minimal PDF passes, (2) missing file emits `FOLDER_MISSING_REQUIRED_FILE` only, (3) zero-byte `source.pdf` emits `FOLDER_SOURCE_PDF_UNREADABLE`, (4) text-file renamed `.pdf` emits `FOLDER_SOURCE_PDF_UNREADABLE`, (5) truncated valid PDF emits `FOLDER_SOURCE_PDF_UNREADABLE`. Each test asserts `violation_code`, `severity`, and `field_path`. Depends on T004.
-- [ ] T007 Run `.venv/bin/pytest tests/contract_tests/ -q` — all new cases and all existing tests must pass. Depends on T005, T006.
+- [X] T004 Add `FOLDER_SOURCE_PDF_UNREADABLE = "FOLDER_SOURCE_PDF_UNREADABLE"` to the `ViolationCode` class in `src/ledgerlinc_ocr/validator/report.py`, placed alongside the existing folder codes. Do not reorder or rename any other constants.
+- [X] T005 Extend `validate_folder()` in `src/ledgerlinc_ocr/validator/folder.py` to, for each existing `source.pdf`, (a) assert non-zero file size and (b) attempt `pypdf.PdfReader(path, strict=False)` plus `len(reader.pages)` inside a try/except; on any failure emit one `Violation` with `severity=Severity.ERROR`, `violation_code="FOLDER_SOURCE_PDF_UNREADABLE"`, `field_path="/source.pdf"`, `expected="FR-003 readable source.pdf"`, and `source_file=str(path)`. Skip the check when `source.pdf` is absent (avoid duplicate findings with `FOLDER_MISSING_REQUIRED_FILE`). Depends on T004.
+- [X] T006 [P] Author contract test `tests/contract_tests/test_folder_source_pdf_readability.py` with 5 cases per `contracts/validator-delta.md`: (1) valid minimal PDF passes, (2) missing file emits `FOLDER_MISSING_REQUIRED_FILE` only, (3) zero-byte `source.pdf` emits `FOLDER_SOURCE_PDF_UNREADABLE`, (4) text-file renamed `.pdf` emits `FOLDER_SOURCE_PDF_UNREADABLE`, (5) truncated valid PDF emits `FOLDER_SOURCE_PDF_UNREADABLE`. Each test asserts `violation_code`, `severity`, and `field_path`. Depends on T004.
+- [X] T007 Run `.venv/bin/pytest tests/contract_tests/ -q` — all new cases and all existing tests must pass. Depends on T005, T006.
 
 **Checkpoint**: Validator now enforces PDF structural readability. User story phases can begin.
 
@@ -56,35 +56,35 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 ### US1 planning
 
-- [ ] T008 [US1] Draft candidate-document shortlist in `specs/006-corpus-labeling/candidates.md` (new file, this feature dir only — not committed to the corpus): at least 25 candidate PDFs (team-held + public samples) with provenance, license note, and intended difficulty bucket per research.md §2. This is a working doc that survives only until T029.
-- [ ] T009 [US1] Apply the PII/license screening checklist (research.md §5) to each candidate in `specs/006-corpus-labeling/candidates.md`; mark each as INCLUDE or EXCLUDE with reason. Final include list must be at least 20 passing candidates distributed 5/5/5/5. Depends on T008.
+- [X] T008 [US1] Draft candidate-document shortlist in `specs/006-corpus-labeling/candidates.md` (new file, this feature dir only — not committed to the corpus): at least 25 candidate PDFs (team-held + public samples) with provenance, license note, and intended difficulty bucket per research.md §2. This is a working doc that survives only until T029.
+- [X] T009 [US1] Apply the PII/license screening checklist (research.md §5) to each candidate in `specs/006-corpus-labeling/candidates.md`; mark each as INCLUDE or EXCLUDE with reason. Final include list must be at least 20 passing candidates distributed 5/5/5/5. Depends on T008.
 
 ### US1 folder creation (20 parallel placements — different folders)
 
-- [ ] T010 [P] [US1] Create `tests/stage1_vendor_identity/inv_001_easy/` and place `source.pdf` from the approved-easy list.
-- [ ] T011 [P] [US1] Create `tests/stage1_vendor_identity/inv_002_easy/` and place `source.pdf`.
-- [ ] T012 [P] [US1] Create `tests/stage1_vendor_identity/inv_003_easy/` and place `source.pdf`.
-- [ ] T013 [P] [US1] Create `tests/stage1_vendor_identity/inv_004_easy/` and place `source.pdf`.
-- [ ] T014 [P] [US1] Create `tests/stage1_vendor_identity/inv_005_easy/` and place `source.pdf`.
-- [ ] T015 [P] [US1] Create `tests/stage1_vendor_identity/inv_006_medium/` and place `source.pdf`.
-- [ ] T016 [P] [US1] Create `tests/stage1_vendor_identity/inv_007_medium/` and place `source.pdf`.
-- [ ] T017 [P] [US1] Create `tests/stage1_vendor_identity/inv_008_medium/` and place `source.pdf`.
-- [ ] T018 [P] [US1] Create `tests/stage1_vendor_identity/inv_009_medium/` and place `source.pdf`.
-- [ ] T019 [P] [US1] Create `tests/stage1_vendor_identity/inv_010_medium/` and place `source.pdf`.
-- [ ] T020 [P] [US1] Create `tests/stage1_vendor_identity/inv_011_hard/` and place `source.pdf` (target at least one of: remit_to_differs_from_vendor, low_quality_scan, faint_text, rotated_scan per research.md §3).
-- [ ] T021 [P] [US1] Create `tests/stage1_vendor_identity/inv_012_hard/` and place `source.pdf`.
-- [ ] T022 [P] [US1] Create `tests/stage1_vendor_identity/inv_013_hard/` and place `source.pdf`.
-- [ ] T023 [P] [US1] Create `tests/stage1_vendor_identity/inv_014_hard/` and place `source.pdf`.
-- [ ] T024 [P] [US1] Create `tests/stage1_vendor_identity/inv_015_hard/` and place `source.pdf`.
-- [ ] T025 [P] [US1] Create `tests/stage1_vendor_identity/inv_016_missing_name/` and place `source.pdf` (no explicit company name string anywhere on the document — faint-but-present is `hard`, not `missing_name`).
-- [ ] T026 [P] [US1] Create `tests/stage1_vendor_identity/inv_017_missing_name/` and place `source.pdf`.
-- [ ] T027 [P] [US1] Create `tests/stage1_vendor_identity/inv_018_missing_name/` and place `source.pdf`.
-- [ ] T028 [P] [US1] Create `tests/stage1_vendor_identity/inv_019_missing_name/` and place `source.pdf`.
-- [ ] T029 [P] [US1] Create `tests/stage1_vendor_identity/inv_020_missing_name/` and place `source.pdf`.
+- [X] T010 [P] [US1] Create `tests/stage1_vendor_identity/inv_001_easy/` and place `source.pdf` from the approved-easy list.
+- [X] T011 [P] [US1] Create `tests/stage1_vendor_identity/inv_002_easy/` and place `source.pdf`.
+- [X] T012 [P] [US1] Create `tests/stage1_vendor_identity/inv_003_easy/` and place `source.pdf`.
+- [X] T013 [P] [US1] Create `tests/stage1_vendor_identity/inv_004_easy/` and place `source.pdf`.
+- [X] T014 [P] [US1] Create `tests/stage1_vendor_identity/inv_005_easy/` and place `source.pdf`.
+- [X] T015 [P] [US1] Create `tests/stage1_vendor_identity/inv_006_medium/` and place `source.pdf`.
+- [X] T016 [P] [US1] Create `tests/stage1_vendor_identity/inv_007_medium/` and place `source.pdf`.
+- [X] T017 [P] [US1] Create `tests/stage1_vendor_identity/inv_008_medium/` and place `source.pdf`.
+- [X] T018 [P] [US1] Create `tests/stage1_vendor_identity/inv_009_medium/` and place `source.pdf`.
+- [X] T019 [P] [US1] Create `tests/stage1_vendor_identity/inv_010_medium/` and place `source.pdf`.
+- [X] T020 [P] [US1] Create `tests/stage1_vendor_identity/inv_011_hard/` and place `source.pdf` (target at least one of: remit_to_differs_from_vendor, low_quality_scan, faint_text, rotated_scan per research.md §3).
+- [X] T021 [P] [US1] Create `tests/stage1_vendor_identity/inv_012_hard/` and place `source.pdf`.
+- [X] T022 [P] [US1] Create `tests/stage1_vendor_identity/inv_013_hard/` and place `source.pdf`.
+- [X] T023 [P] [US1] Create `tests/stage1_vendor_identity/inv_014_hard/` and place `source.pdf`.
+- [X] T024 [P] [US1] Create `tests/stage1_vendor_identity/inv_015_hard/` and place `source.pdf`.
+- [X] T025 [P] [US1] Create `tests/stage1_vendor_identity/inv_016_missing_name/` and place `source.pdf` (no explicit company name string anywhere on the document — faint-but-present is `hard`, not `missing_name`).
+- [X] T026 [P] [US1] Create `tests/stage1_vendor_identity/inv_017_missing_name/` and place `source.pdf`.
+- [X] T027 [P] [US1] Create `tests/stage1_vendor_identity/inv_018_missing_name/` and place `source.pdf`.
+- [X] T028 [P] [US1] Create `tests/stage1_vendor_identity/inv_019_missing_name/` and place `source.pdf`.
+- [X] T029 [P] [US1] Create `tests/stage1_vendor_identity/inv_020_missing_name/` and place `source.pdf`.
 
 ### US1 structural validation
 
-- [ ] T030 [US1] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm: 20 folders discovered, 5/5/5/5 distribution, contiguous `inv_001..inv_020`, zero `FOLDER_NAME_INVALID`, zero `FOLDER_SOURCE_PDF_UNREADABLE`, zero `FOLDER_RESERVED_FILENAME_COLLISION`. (Expected failures: `FOLDER_MISSING_REQUIRED_FILE` for absent `expected.json` — deferred to US2.) Depends on T010–T029.
+- [X] T030 [US1] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm: 20 folders discovered, 5/5/5/5 distribution, contiguous `inv_001..inv_020`, zero `FOLDER_NAME_INVALID`, zero `FOLDER_SOURCE_PDF_UNREADABLE`, zero `FOLDER_RESERVED_FILENAME_COLLISION`. (Expected failures: `FOLDER_MISSING_REQUIRED_FILE` for absent `expected.json` — deferred to US2.) Depends on T010–T029.
 
 **Checkpoint**: US1 is complete — the corpus exists structurally. US2 labeling can now begin.
 
@@ -98,31 +98,31 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 ### US2 labeling (20 parallel files — different paths)
 
-- [ ] T031 [P] [US2] Author `tests/stage1_vendor_identity/inv_001_easy/expected.json` — non-missing invariants (`company_name.present=true`, `inferred=false`, verbatim `value`). Include `explicit_company_name` in `challenge_tags`.
-- [ ] T032 [P] [US2] Author `tests/stage1_vendor_identity/inv_002_easy/expected.json`.
-- [ ] T033 [P] [US2] Author `tests/stage1_vendor_identity/inv_003_easy/expected.json`.
-- [ ] T034 [P] [US2] Author `tests/stage1_vendor_identity/inv_004_easy/expected.json`.
-- [ ] T035 [P] [US2] Author `tests/stage1_vendor_identity/inv_005_easy/expected.json`.
-- [ ] T036 [P] [US2] Author `tests/stage1_vendor_identity/inv_006_medium/expected.json` — at least one doc in 006–010 must include `ein_present` (FR-015).
-- [ ] T037 [P] [US2] Author `tests/stage1_vendor_identity/inv_007_medium/expected.json`.
-- [ ] T038 [P] [US2] Author `tests/stage1_vendor_identity/inv_008_medium/expected.json`.
-- [ ] T039 [P] [US2] Author `tests/stage1_vendor_identity/inv_009_medium/expected.json`.
-- [ ] T040 [P] [US2] Author `tests/stage1_vendor_identity/inv_010_medium/expected.json` — at least one doc in 006–015 must include one of `vat_id_present` / `state_tax_id_present` / `other_tax_id_present` (FR-015).
-- [ ] T041 [P] [US2] Author `tests/stage1_vendor_identity/inv_011_hard/expected.json` — at least one of 011–015 must include `remit_to_differs_from_vendor` + `low_quality_scan` + `logo_only` across the bucket (FR-015 critical tag coverage).
-- [ ] T042 [P] [US2] Author `tests/stage1_vendor_identity/inv_012_hard/expected.json`.
-- [ ] T043 [P] [US2] Author `tests/stage1_vendor_identity/inv_013_hard/expected.json`.
-- [ ] T044 [P] [US2] Author `tests/stage1_vendor_identity/inv_014_hard/expected.json`.
-- [ ] T045 [P] [US2] Author `tests/stage1_vendor_identity/inv_015_hard/expected.json`.
-- [ ] T046 [P] [US2] Author `tests/stage1_vendor_identity/inv_016_missing_name/expected.json` — missing-name invariants: `company_name.present=false`, `inferred=true`, `manual_review_required=true`, `review_reason="company_name_inferred"`, `challenge_tags` includes `missing_company_name` and EXCLUDES `explicit_company_name` (FR-016).
-- [ ] T047 [P] [US2] Author `tests/stage1_vendor_identity/inv_017_missing_name/expected.json`.
-- [ ] T048 [P] [US2] Author `tests/stage1_vendor_identity/inv_018_missing_name/expected.json`.
-- [ ] T049 [P] [US2] Author `tests/stage1_vendor_identity/inv_019_missing_name/expected.json`.
-- [ ] T050 [P] [US2] Author `tests/stage1_vendor_identity/inv_020_missing_name/expected.json`.
+- [X] T031 [P] [US2] Author `tests/stage1_vendor_identity/inv_001_easy/expected.json` — non-missing invariants (`company_name.present=true`, `inferred=false`, verbatim `value`). Include `explicit_company_name` in `challenge_tags`.
+- [X] T032 [P] [US2] Author `tests/stage1_vendor_identity/inv_002_easy/expected.json`.
+- [X] T033 [P] [US2] Author `tests/stage1_vendor_identity/inv_003_easy/expected.json`.
+- [X] T034 [P] [US2] Author `tests/stage1_vendor_identity/inv_004_easy/expected.json`.
+- [X] T035 [P] [US2] Author `tests/stage1_vendor_identity/inv_005_easy/expected.json`.
+- [X] T036 [P] [US2] Author `tests/stage1_vendor_identity/inv_006_medium/expected.json` — at least one doc in 006–010 must include `ein_present` (FR-015).
+- [X] T037 [P] [US2] Author `tests/stage1_vendor_identity/inv_007_medium/expected.json`.
+- [X] T038 [P] [US2] Author `tests/stage1_vendor_identity/inv_008_medium/expected.json`.
+- [X] T039 [P] [US2] Author `tests/stage1_vendor_identity/inv_009_medium/expected.json`.
+- [X] T040 [P] [US2] Author `tests/stage1_vendor_identity/inv_010_medium/expected.json` — at least one doc in 006–015 must include one of `vat_id_present` / `state_tax_id_present` / `other_tax_id_present` (FR-015).
+- [X] T041 [P] [US2] Author `tests/stage1_vendor_identity/inv_011_hard/expected.json` — at least one of 011–015 must include `remit_to_differs_from_vendor` + `low_quality_scan` + `logo_only` across the bucket (FR-015 critical tag coverage).
+- [X] T042 [P] [US2] Author `tests/stage1_vendor_identity/inv_012_hard/expected.json`.
+- [X] T043 [P] [US2] Author `tests/stage1_vendor_identity/inv_013_hard/expected.json`.
+- [X] T044 [P] [US2] Author `tests/stage1_vendor_identity/inv_014_hard/expected.json`.
+- [X] T045 [P] [US2] Author `tests/stage1_vendor_identity/inv_015_hard/expected.json`.
+- [X] T046 [P] [US2] Author `tests/stage1_vendor_identity/inv_016_missing_name/expected.json` — missing-name invariants: `company_name.present=false`, `inferred=true`, `manual_review_required=true`, `review_reason="company_name_inferred"`, `challenge_tags` includes `missing_company_name` and EXCLUDES `explicit_company_name` (FR-016).
+- [X] T047 [P] [US2] Author `tests/stage1_vendor_identity/inv_017_missing_name/expected.json`.
+- [X] T048 [P] [US2] Author `tests/stage1_vendor_identity/inv_018_missing_name/expected.json`.
+- [X] T049 [P] [US2] Author `tests/stage1_vendor_identity/inv_019_missing_name/expected.json`.
+- [X] T050 [P] [US2] Author `tests/stage1_vendor_identity/inv_020_missing_name/expected.json`.
 
 ### US2 validation
 
-- [ ] T051 [US2] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm zero errors across schema, folder, and cross-artifact checks. Specifically confirm: every `expected.json` validates, every `document_id` matches its folder's `inv_NNN` prefix, every `difficulty` matches the folder-name suffix, no `MISSING_NAME_TRIAD_VIOLATION`, no `EXPECTED_HAS_PREDICTIONS`, no `CHALLENGE_TAG_UNKNOWN`. Depends on T031–T050.
-- [ ] T052 [US2] Manually audit `challenge_tags` coverage across the 20 labels against FR-015 AND FR-016. The validator already enforces the missing-name company_name triad (`MISSING_NAME_TRIAD_VIOLATION` in `src/ledgerlinc_ocr/validator/artifact.py`) and the closed-vocabulary check (`CHALLENGE_TAG_UNKNOWN`), but it does NOT enforce FR-016's tag pairing or FR-015's aggregate coverage; both are audit-only in this feature. Confirm: (FR-016) `explicit_company_name` appears on every non-missing doc and on no missing-name doc; `missing_company_name` appears on every missing-name doc and on no non-missing doc; (FR-015) at least one document each for `logo_only`, `remit_to_differs_from_vendor`, `low_quality_scan`, `ein_present`, and one of `{vat_id_present, state_tax_id_present, other_tax_id_present}`. If any tag pairing or critical tag is missing, return to the relevant T031–T050 task and re-label. Depends on T051.
+- [X] T051 [US2] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm zero errors across schema, folder, and cross-artifact checks. Specifically confirm: every `expected.json` validates, every `document_id` matches its folder's `inv_NNN` prefix, every `difficulty` matches the folder-name suffix, no `MISSING_NAME_TRIAD_VIOLATION`, no `EXPECTED_HAS_PREDICTIONS`, no `CHALLENGE_TAG_UNKNOWN`. Depends on T031–T050.
+- [X] T052 [US2] Manually audit `challenge_tags` coverage across the 20 labels against FR-015 AND FR-016. The validator already enforces the missing-name company_name triad (`MISSING_NAME_TRIAD_VIOLATION` in `src/ledgerlinc_ocr/validator/artifact.py`) and the closed-vocabulary check (`CHALLENGE_TAG_UNKNOWN`), but it does NOT enforce FR-016's tag pairing or FR-015's aggregate coverage; both are audit-only in this feature. Confirm: (FR-016) `explicit_company_name` appears on every non-missing doc and on no missing-name doc; `missing_company_name` appears on every missing-name doc and on no non-missing doc; (FR-015) at least one document each for `logo_only`, `remit_to_differs_from_vendor`, `low_quality_scan`, `ein_present`, and one of `{vat_id_present, state_tax_id_present, other_tax_id_present}`. If any tag pairing or critical tag is missing, return to the relevant T031–T050 task and re-label. Depends on T051.
 
 **Checkpoint**: US2 is complete — the minimum shippable corpus (US1 + US2) now exists. The evaluator has real labeled truth.
 
@@ -136,23 +136,23 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 ### US3 hard-required notes (5 hard docs)
 
-- [ ] T053 [P] [US3] Write `tests/stage1_vendor_identity/inv_011_hard/notes.md` — cover (a) why the document is `hard`, (b) at least one concrete trap tied to its `challenge_tags`, and (c) any labeler decision a reviewer would otherwise have to guess.
-- [ ] T054 [P] [US3] Write `tests/stage1_vendor_identity/inv_012_hard/notes.md`.
-- [ ] T055 [P] [US3] Write `tests/stage1_vendor_identity/inv_013_hard/notes.md`.
-- [ ] T056 [P] [US3] Write `tests/stage1_vendor_identity/inv_014_hard/notes.md`.
-- [ ] T057 [P] [US3] Write `tests/stage1_vendor_identity/inv_015_hard/notes.md`.
+- [X] T053 [P] [US3] Write `tests/stage1_vendor_identity/inv_011_hard/notes.md` — cover (a) why the document is `hard`, (b) at least one concrete trap tied to its `challenge_tags`, and (c) any labeler decision a reviewer would otherwise have to guess.
+- [X] T054 [P] [US3] Write `tests/stage1_vendor_identity/inv_012_hard/notes.md`.
+- [X] T055 [P] [US3] Write `tests/stage1_vendor_identity/inv_013_hard/notes.md`.
+- [X] T056 [P] [US3] Write `tests/stage1_vendor_identity/inv_014_hard/notes.md`.
+- [X] T057 [P] [US3] Write `tests/stage1_vendor_identity/inv_015_hard/notes.md`.
 
 ### US3 missing-name notes (5 missing_name docs)
 
-- [ ] T058 [P] [US3] Write `tests/stage1_vendor_identity/inv_016_missing_name/notes.md` — cover (a) why no explicit company name was findable, (b) what was inferred as a best-guess vendor (if any), and (c) which alternative entities on the page (remit-to, parent co., billing-to) were rejected.
-- [ ] T059 [P] [US3] Write `tests/stage1_vendor_identity/inv_017_missing_name/notes.md`.
-- [ ] T060 [P] [US3] Write `tests/stage1_vendor_identity/inv_018_missing_name/notes.md`.
-- [ ] T061 [P] [US3] Write `tests/stage1_vendor_identity/inv_019_missing_name/notes.md`.
-- [ ] T062 [P] [US3] Write `tests/stage1_vendor_identity/inv_020_missing_name/notes.md`.
+- [X] T058 [P] [US3] Write `tests/stage1_vendor_identity/inv_016_missing_name/notes.md` — cover (a) why no explicit company name was findable, (b) what was inferred as a best-guess vendor (if any), and (c) which alternative entities on the page (remit-to, parent co., billing-to) were rejected.
+- [X] T059 [P] [US3] Write `tests/stage1_vendor_identity/inv_017_missing_name/notes.md`.
+- [X] T060 [P] [US3] Write `tests/stage1_vendor_identity/inv_018_missing_name/notes.md`.
+- [X] T061 [P] [US3] Write `tests/stage1_vendor_identity/inv_019_missing_name/notes.md`.
+- [X] T062 [P] [US3] Write `tests/stage1_vendor_identity/inv_020_missing_name/notes.md`.
 
 ### US3 validation
 
-- [ ] T063 [US3] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` — confirm zero `FOLDER_MISSING_REQUIRED_FILE` for `notes.md` on any `hard` or `missing_name` folder. Soft `FOLDER_NOTES_MISSING_SOFT` warnings on `easy`/`medium` folders are acceptable. Depends on T053–T062.
+- [X] T063 [US3] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` — confirm zero `FOLDER_MISSING_REQUIRED_FILE` for `notes.md` on any `hard` or `missing_name` folder. Soft `FOLDER_NOTES_MISSING_SOFT` warnings on `easy`/`medium` folders are acceptable. Depends on T053–T062.
 
 **Checkpoint**: US3 is complete — the corpus is now a curated diagnostic instrument, not just a pile of PDFs.
 
@@ -166,14 +166,14 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 ### US4 authoring
 
-- [ ] T064 [US4] Author `docs/stage1-vendor-identity/labeling-guide.md` following the 12-section outline in research.md §4: (1) purpose, (2) PII/license screening checklist (from research.md §5), (3) folder layout and naming, (4) difficulty bucket definitions, (5) `expected.json` field-by-field walk-through, (6) company-name provenance decision tree, (7) remit-to vs vendor selection, (8) DBA vs legal name selection, (9) null-vs-empty-string handling, (10) labeling workflow, (11) dispute resolution, (12) amendment process.
-- [ ] T065 [P] [US4] Add a cross-link to `docs/stage1-vendor-identity/README.md` pointing at `labeling-guide.md` with a one-line description. Depends on T064.
-- [ ] T066 [P] [US4] Add `docs/stage1-vendor-identity/labeling-guide.md — conventions for `expected.json` and `notes.md`, PII/license screening checklist` to the Key References list in `CLAUDE.md`. Depends on T064.
-- [ ] T067 [P] [US4] Update `tests/stage1_vendor_identity/README.md`'s "Labeling" section to cite `docs/stage1-vendor-identity/labeling-guide.md` as the authoritative reference (in addition to the existing `dataset-layout.md` and `schemas.md` entries). Depends on T064.
+- [X] T064 [US4] Author `docs/stage1-vendor-identity/labeling-guide.md` following the 12-section outline in research.md §4: (1) purpose, (2) PII/license screening checklist (from research.md §5), (3) folder layout and naming, (4) difficulty bucket definitions, (5) `expected.json` field-by-field walk-through, (6) company-name provenance decision tree, (7) remit-to vs vendor selection, (8) DBA vs legal name selection, (9) null-vs-empty-string handling, (10) labeling workflow, (11) dispute resolution, (12) amendment process.
+- [X] T065 [P] [US4] Add a cross-link to `docs/stage1-vendor-identity/README.md` pointing at `labeling-guide.md` with a one-line description. Depends on T064.
+- [X] T066 [P] [US4] Add `docs/stage1-vendor-identity/labeling-guide.md — conventions for `expected.json` and `notes.md`, PII/license screening checklist` to the Key References list in `CLAUDE.md`. Depends on T064.
+- [X] T067 [P] [US4] Update `tests/stage1_vendor_identity/README.md`'s "Labeling" section to cite `docs/stage1-vendor-identity/labeling-guide.md` as the authoritative reference (in addition to the existing `dataset-layout.md` and `schemas.md` entries). Depends on T064.
 
 ### US4 validation
 
-- [ ] T068 [US4] Self-review against SC-007 guide-completeness criteria: confirm every required key in `expected.schema.json` has at least one explicit rule in the guide; every difficulty bucket is defined; every missing-name invariant is stated verbatim; the PII checklist matches research.md §5 exactly. Document the review result inline at the top of `docs/stage1-vendor-identity/labeling-guide.md` or in a short comment in this task. Depends on T064–T067.
+- [X] T068 [US4] Self-review against SC-007 guide-completeness criteria: confirm every required key in `expected.schema.json` has at least one explicit rule in the guide; every difficulty bucket is defined; every missing-name invariant is stated verbatim; the PII checklist matches research.md §5 exactly. Document the review result inline at the top of `docs/stage1-vendor-identity/labeling-guide.md` or in a short comment in this task. Depends on T064–T067.
 
 **Checkpoint**: US4 is complete — future labelers have a single point of reference.
 
@@ -183,13 +183,13 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 **Purpose**: Final corpus-wide validation, success-criteria audit, and documentation closure.
 
-- [ ] T069 Run the full validator: `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` — exit code MUST be 0, zero hard errors (SC-001). Soft `FOLDER_NOTES_MISSING_SOFT` warnings on `easy`/`medium` folders are acceptable.
-- [ ] T070 Run the full test suite: `.venv/bin/pytest tests/ -q` — all tests green, including the 5 new cases in `tests/contract_tests/test_folder_source_pdf_readability.py`.
-- [ ] T071 Audit Success Criteria SC-001 through SC-009 against the shipped corpus; for each SC, record PASS with the command/evidence in a new file `specs/006-corpus-labeling/acceptance-evidence.md` (one section per SC). This keeps plan.md as a planning artifact rather than a running log.
-- [ ] T072 Sweep the corpus for any reserved generated filename (`preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, `final_structured_payload.json`, `evaluation_document.json`) or `votes/` subdirectory or `consensus_output.json` file; fail-closed (FR-013, FR-020). Confirm zero hits.
-- [ ] T073 [P] Verify the `CLAUDE.md` Key References section, `docs/stage1-vendor-identity/README.md`, and `tests/stage1_vendor_identity/README.md` all cross-link correctly to the labeling guide and render without broken relative links.
-- [ ] T074 [P] Tick the items in `specs/006-corpus-labeling/checklists/labeling-guide.md`, `governance.md`, `coverage.md`, and `invariants.md` whose underlying requirement was resolved by this feature's outputs; leave `[Gap]` items open only if intentionally deferred, with a one-line reason.
-- [ ] T075 Delete the working `specs/006-corpus-labeling/candidates.md` file created in T008 — its only job was to gate inclusion and it must not be shipped in the feature. Confirm via `git status` that it is gone.
+- [X] T069 Run the full validator: `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` — exit code MUST be 0, zero hard errors (SC-001). Soft `FOLDER_NOTES_MISSING_SOFT` warnings on `easy`/`medium` folders are acceptable.
+- [X] T070 Run the full test suite: `.venv/bin/pytest tests/ -q` — all tests green, including the 5 new cases in `tests/contract_tests/test_folder_source_pdf_readability.py`.
+- [X] T071 Audit Success Criteria SC-001 through SC-009 against the shipped corpus; for each SC, record PASS with the command/evidence in a new file `specs/006-corpus-labeling/acceptance-evidence.md` (one section per SC). This keeps plan.md as a planning artifact rather than a running log.
+- [X] T072 Sweep the corpus for any reserved generated filename (`preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, `final_structured_payload.json`, `evaluation_document.json`) or `votes/` subdirectory or `consensus_output.json` file; fail-closed (FR-013, FR-020). Confirm zero hits.
+- [X] T073 [P] Verify the `CLAUDE.md` Key References section, `docs/stage1-vendor-identity/README.md`, and `tests/stage1_vendor_identity/README.md` all cross-link correctly to the labeling guide and render without broken relative links.
+- [X] T074 [P] Tick the items in `specs/006-corpus-labeling/checklists/labeling-guide.md`, `governance.md`, `coverage.md`, and `invariants.md` whose underlying requirement was resolved by this feature's outputs; leave `[Gap]` items open only if intentionally deferred, with a one-line reason.
+- [X] T075 Delete the working `specs/006-corpus-labeling/candidates.md` file created in T008 — its only job was to gate inclusion and it must not be shipped in the feature. Confirm via `git status` that it is gone.
 
 ---
 

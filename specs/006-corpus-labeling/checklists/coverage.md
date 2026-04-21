@@ -5,6 +5,8 @@
 **Feature**: [spec.md](../spec.md)
 **Depth**: Deep (every coverage-related FR/SC cross-checked for clarity and measurability).
 
+**T074 post-ship tick-through (2026-04-21)**: Remaining open items are spec-level gaps on concurrency/growth edge cases (simultaneous-PR numbering, `inv_NNN` re-use after retirement, future corpus growth beyond 20, `.DS_Store` handling) that are outside the scope of this feature's 20-document minimum shippable corpus. Deferred to a future spec clarification round when multi-author or corpus-growth requirements emerge.
+
 ## Requirement Completeness
 
 - [x] CHK001 Is every critical tag in FR-015 explicitly enumerated (not just "at minimum the following")? [Completeness, Spec §FR-015]

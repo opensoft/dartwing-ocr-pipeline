@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_015_hard",
+  "difficulty": "hard",
+  "challenge_tags": ["explicit_company_name", "logo_only", "website_present", "ein_present"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Northwind Forge",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "4521 N Commerce Parkway",
+      "street_2": null,
+      "city": "North Las Vegas",
+      "state": "NV",
+      "postal_code": "89030",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "91-2208417",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "ledgerbox.io",
+    "phone": "(702) 555-0148",
+    "email": "ar-dept@zoho.com"
+  }
+}
