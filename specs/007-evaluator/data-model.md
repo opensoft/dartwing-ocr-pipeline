@@ -3,7 +3,7 @@
 **Feature**: 007-evaluator
 **Date**: 2026-04-21
 
-This document specifies the runtime data model for the evaluator — the in-memory dataclasses that move between modules. The persisted JSON artifacts (`evaluation_document.json`, `evaluation_run_summary.json`) are governed by the frozen schemas under `contracts/stage1_vendor_identity/v1.0.0/`; this file describes the Python surface that produces those artifacts.
+This document specifies the runtime data model for the evaluator — the in-memory dataclasses that move between modules. The persisted JSON artifacts (`evaluation_document.json`, `evaluation_run_summary.json`) are governed by the frozen schemas under `contracts/stage1_vendor_identity/v1.1.0/` (older MINORs within the same major are accepted at ingress per FR-013); this file describes the Python surface that produces those artifacts.
 
 All dataclasses live under `src/ledgerlinc_ocr/evaluator/` and are `@dataclass(frozen=True, slots=True)` unless noted. All enums are Python `enum.Enum` subclasses. Every type is pickle-free and JSON-serializable via `io.to_dict`.
 
@@ -146,7 +146,7 @@ class DocumentEvaluation:
 ```
 
 **Invariants**:
-- `contract_set_version == CONTRACT_SET_VERSION`.
+- `contract_set_version == CONTRACT_SET_VERSION` for the persisted `DocumentEvaluation` — the evaluator always stamps the pinned version into its own output. Input artifacts (`expected.json`, `final_structured_payload.json`) are pre-validated under the FR-013 MINOR-forward compat rule (same major, artifact minor ≤ pinned minor) and are NOT required to match this equality.
 - `len(field_results) == len(SCORED_FIELDS)` and `tuple(f.field_name for f in field_results) == SCORED_FIELDS`.
 - `document_id`, `difficulty`, `challenge_tags` propagated verbatim from `expected.json` (FR-003).
 - `notes` is always an empty tuple in stage 1. Any future advisory/warning content flows through `DocumentEvaluationOutcome.warnings` (data-model §11), not through the persisted `notes` array, so that the machine artifact's content stays purely a function of the inputs (FR-018 determinism).

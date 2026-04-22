@@ -1,7 +1,7 @@
 # Python Module API: `ledgerlinc_ocr.evaluator`
 
 **Feature**: 007-evaluator
-**Contract-set version this API consumes**: `1.0.0`
+**Contract-set version this API consumes**: `1.1.0` (older MINORs within the same major are accepted per FR-013 MINOR-forward compatibility)
 **Stability**: public — names below are part of the stage 1 harness surface. Changes require an entry in `contracts/stage1_vendor_identity/AMENDMENTS.md` or a superseding feature.
 
 This file is the authoritative list of the evaluator's public Python API. The module layout is internal and may change without notice, but every name in this document MUST remain importable from `ledgerlinc_ocr.evaluator` with the signature and return shape shown.
@@ -112,7 +112,7 @@ Entry point: `python -m ledgerlinc_ocr.evaluator` (per clarification Q5).
 
 ```
 python -m ledgerlinc_ocr.evaluator evaluate document <folder> \
-    [--contract-set-version 1.0.0] \
+    [--contract-set-version 1.1.0] \
     [--json | --text]
 ```
 
@@ -127,7 +127,7 @@ python -m ledgerlinc_ocr.evaluator evaluate document <folder> \
 
 ```
 python -m ledgerlinc_ocr.evaluator evaluate corpus <root> \
-    [--contract-set-version 1.0.0] \
+    [--contract-set-version 1.1.0] \
     [--no-lazy]
 ```
 

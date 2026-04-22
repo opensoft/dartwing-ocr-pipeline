@@ -24,7 +24,7 @@ Technical approach: a pure-Python, offline, deterministic library + argparse CLI
 - No invocation of extraction pipeline, model, or external process (FR-025).
 - Must not modify inputs (FR-019).
 - Must produce no partial output on hard error (FR-020).
-- Contract-set pinned to `1.0.0`; any drift hard-fails (FR-013).
+- Contract-set pinned to `1.1.0` (MINOR-forward compat per FR-013 — same major, artifact minor ≤ pinned minor); any non-compatible drift hard-fails.
 
 **Scale/Scope**: 20-document stage-1 corpus; 18 scored fields per document; 5 difficulty/bucket keys (`easy`, `medium`, `hard`, `missing_name`); one run per invocation. Code footprint target: < 1 kLOC across `src/ledgerlinc_ocr/evaluator/`.
 
