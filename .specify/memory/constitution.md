@@ -100,6 +100,7 @@ The following gates apply to work in this repository:
 4. Pipeline code changes must be verifiable through at least one concrete local execution path.
 5. Runtime/container changes must verify both container health and model reachability, and must distinguish local WSL behavior from native Linux production assumptions.
 6. Evaluation changes must preserve comparison against human-labeled `expected.json` truth files.
+7. Every `/speckit.specify` and `/speckit.plan` artifact must be consistent with `docs/stage1-vendor-identity/architecture.md`. Deviations are permitted but must be declared in the artifact with a one-line reason, and must not block the long-term target architecture described there.
 
 ## Development Workflow
 
@@ -138,4 +139,9 @@ Supporting project documents:
 - `docs/stage1-vendor-identity/scoring.md`
 - `docs/stage1-vendor-identity/ollama-runtime.md`
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-12 | **Last Amended**: 2026-04-12
+## Amendment History
+
+- **1.1.0 (2026-04-22)** — Added Quality Gate #7 requiring `/speckit.specify` and `/speckit.plan` artifacts to be consistent with `architecture.md`, with declared justification for any deviation. Reason: keep spec and plan work anchored to the long-term target architecture so narrow stage 1 slices do not drift from it.
+- **1.0.0 (2026-04-12)** — Initial ratification.
+
+**Version**: 1.1.0 | **Ratified**: 2026-04-12 | **Last Amended**: 2026-04-22
