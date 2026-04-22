@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
+from ledgerlinc_ocr.assembler.errors import InternalError
 from ledgerlinc_ocr.assembler.flatten import flatten_vendor_candidate
 from ledgerlinc_ocr.assembler.io import validate_output
 from ledgerlinc_ocr.assembler.quality import build_quality_summary
@@ -53,6 +54,22 @@ def run(invocation: Invocation) -> Path:
     """Read, validate, assemble, validate, write. Return the path of the written file."""
     folder = Path(invocation.document_folder)
 
+    # H5: capture processed_at FIRST, before any invariants. FR-007 says it
+    # "reflects when the assembly ran" — run-start is a more honest reading
+    # than "some moment mid-assembly after 6 invariants passed." A single
+    # clock call up front also removes the ambiguity the prior layout had:
+    # a post-invariant clock failure would leak through the CLI's generic
+    # Exception arm as exit 1 "unexpected" even though the invariants had
+    # already passed. Clock failures are environmental (not input-shape),
+    # so route them to InternalError (exit 3) — the honest taxonomy.
+    now_fn = invocation.now_utc or (lambda: datetime.now(timezone.utc))
+    try:
+        processed_at = _format_processed_at(now_fn())
+    except Exception as exc:
+        raise InternalError(f"clock failure capturing processed_at: {exc}") from exc
+
+    pipeline_version = invocation.pipeline_version or build_pipeline_version()
+
     # Invariants 1–2: existence + JSON-parseable
     extractor, routing = check_inputs_readable(folder)
     # Invariant 3: each input schema-valid
@@ -64,16 +81,12 @@ def run(invocation: Invocation) -> Path:
     # Invariant 6: routing internal consistency (FR-016)
     check_routing_internal_consistency(routing)
 
-    # Clock + version
-    now_fn = invocation.now_utc or (lambda: datetime.now(timezone.utc))
-    pipeline_version = invocation.pipeline_version or build_pipeline_version()
-
     # Assemble — insertion order matches FINAL_KEY_ORDER.
     payload: dict = {
         "contract_set_version": CONTRACT_SET_VERSION,
         "pipeline_version": pipeline_version,
         "document_id": document_id,
-        "processed_at": _format_processed_at(now_fn()),
+        "processed_at": processed_at,
         "document_type": DOCUMENT_TYPE,
         "vendor_candidate": flatten_vendor_candidate(extractor),
         "review_status": _copy_review_status(routing),

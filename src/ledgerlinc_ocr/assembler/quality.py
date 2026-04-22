@@ -1,13 +1,26 @@
 """Deterministic `quality_summary` derivation (research Decisions 6, 8; US4).
 
 Stage 1 policy `0.1.0`:
-    overall = round(clip(0.5 * company_name.confidence
-                         + 0.5 * mean(secondary_confidences, default 0.0),
+    overall = round(clip(POLICY_WEIGHT_COMPANY_NAME * company_name.confidence
+                         + POLICY_WEIGHT_SECONDARY_MEAN * mean(
+                             secondary_confidences, default 0.0),
                          0.0, 1.0),
                     4)
+
+The two weights are named constants so the policy lock test in
+``tests/unit/test_assembler_policy_lock.py`` can compare them against the
+``SEMVER_WEIGHT_LOCK`` registry in ``version.py``. Any change to either
+weight requires a matching SEMVER bump + new lock entry; see T3.
 """
 
 from __future__ import annotations
+
+# Policy 0.1.0 formula weights (T3 bidirectional lock).
+# Change these only as part of a SEMVER bump — otherwise the policy lock
+# test will fail because no lock entry exists for the new weights under
+# the existing SEMVER.
+POLICY_WEIGHT_COMPANY_NAME: float = 0.5
+POLICY_WEIGHT_SECONDARY_MEAN: float = 0.5
 
 SECONDARY_ENUM_ORDER = [
     "address",
@@ -70,7 +83,10 @@ def compute_overall_vendor_confidence(extractor: dict, secondary_ids: list[str])
     secondary_mean = (
         sum(secondary_confs) / len(secondary_confs) if secondary_confs else 0.0
     )
-    raw = 0.5 * cn_conf + 0.5 * secondary_mean
+    raw = (
+        POLICY_WEIGHT_COMPANY_NAME * cn_conf
+        + POLICY_WEIGHT_SECONDARY_MEAN * secondary_mean
+    )
     clipped = max(0.0, min(1.0, raw))
     return round(clipped, 4)
 
