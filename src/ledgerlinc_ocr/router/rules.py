@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 
 from ledgerlinc_ocr.router import reasons as R
 from ledgerlinc_ocr.router.checks import phone_is_grounded
+from ledgerlinc_ocr.router.errors import ContractAssertionError
 
 
 @dataclass(frozen=True)
@@ -105,8 +106,11 @@ def apply_rules(checks: dict, scores: dict, input_dict: dict) -> RuleResult:
     # reorder ever decouples them, FR-007 forbids emitting
     # decision="edge_review_required" with review_reason=None, so refuse
     # rather than silently produce a schema-contradictory artifact.
+    # Raised as ContractAssertionError so the CLI maps it to exit 3
+    # ("internal error — code and frozen contract have drifted"), matching
+    # the class the schema-validator path uses in ``artifact.py``.
     if contract_violation and not forcing:
-        raise AssertionError(
+        raise ContractAssertionError(
             "invariant broken: contract violation without any forcing rule "
             "would produce decision='edge_review_required' with "
             "review_reason=None, violating FR-007"

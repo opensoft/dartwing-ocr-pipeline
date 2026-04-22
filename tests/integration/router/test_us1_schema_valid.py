@@ -73,6 +73,20 @@ def test_checks_and_scores_key_order_matches_schema(
     # together (e.g., both reorder to alphabetical), the derived-from-schema
     # assertion below would still pass. This literal is the reviewer-visible
     # source of truth; changing it requires a POLICY_VERSION bump per FR-005.
+    LITERAL_TOP_LEVEL_ORDER = [
+        "contract_set_version",
+        "pipeline_version",
+        "policy_version",
+        "document_id",
+        "processed_at",
+        "status",
+        "decision",
+        "consensus_summary",
+        "scores",
+        "checks",
+        "review_status",
+        "reasons",
+    ]
     LITERAL_CHECKS_ORDER = [
         "company_name_present",
         "company_name_inferred",
@@ -90,16 +104,22 @@ def test_checks_and_scores_key_order_matches_schema(
     ]
 
     schema = json.loads(SCHEMA_PATH.read_text())
+    expected_top_level_order = schema["required"]
     expected_checks_order = schema["properties"]["checks"]["required"]
     expected_scores_order = schema["properties"]["scores"]["required"]
 
     # object_pairs_hook=list preserves insertion order as list[tuple] at
     # every nesting level, so we can compare emitted key order directly
     # against the schema's required arrays.
-    top_level = dict(json.loads(raw, object_pairs_hook=list))
+    top_level_pairs = json.loads(raw, object_pairs_hook=list)
+    top_level = dict(top_level_pairs)
+    top_level_keys = [k for k, _ in top_level_pairs]
     checks_keys = [k for k, _ in top_level["checks"]]
     scores_keys = [k for k, _ in top_level["scores"]]
 
+    assert top_level_keys == LITERAL_TOP_LEVEL_ORDER, (
+        f"top-level key order drifted from pinned literal: got {top_level_keys}"
+    )
     assert checks_keys == LITERAL_CHECKS_ORDER, (
         f"checks key order drifted from pinned literal: got {checks_keys}"
     )
@@ -107,6 +127,9 @@ def test_checks_and_scores_key_order_matches_schema(
         f"scores key order drifted from pinned literal: got {scores_keys}"
     )
     # And the schema itself must also stay aligned with the literal pin.
+    assert expected_top_level_order == LITERAL_TOP_LEVEL_ORDER, (
+        "routing_decision.schema.json top-level required drifted from literal"
+    )
     assert expected_checks_order == LITERAL_CHECKS_ORDER, (
         "routing_decision.schema.json checks.required drifted from literal"
     )

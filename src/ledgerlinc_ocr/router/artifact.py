@@ -21,7 +21,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from ledgerlinc_ocr.router.errors import ContractAssertionError
+from ledgerlinc_ocr.router.errors import ContractAssertionError, MissingInputError
 from ledgerlinc_ocr.validator import validate_artifact
 
 _OUTPUT_ARTIFACT_NAME = "routing_decision"
@@ -48,9 +48,11 @@ def assemble_and_write(folder: str | Path, artifact: dict) -> Path:
     # FR-022: routing writes only inside the target folder; do NOT silently
     # create a missing folder — that would let a wrong-path caller silently
     # succeed outside the per-document contract. The CLI gates on existence
-    # earlier; library callers get an explicit FileNotFoundError.
+    # earlier; library callers get a typed ``MissingInputError`` (exit 2 at
+    # the CLI surface) rather than a bare stdlib ``FileNotFoundError`` that
+    # the CLI would otherwise misclassify as "unexpected exception" (exit 1).
     if not folder.is_dir():
-        raise FileNotFoundError(
+        raise MissingInputError(
             f"target folder does not exist or is not a directory: {folder}"
         )
     final_path = folder / _OUTPUT_FILE_NAME

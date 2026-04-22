@@ -23,7 +23,14 @@ def test_edge_accept_reasons_contains_affirmative(
     run_cli(green_fixture)
     art = read_artifact(green_fixture)
     assert art["decision"] == "edge_accept"
-    assert AFFIRMATIVES.intersection(art["reasons"])
+    # FR-016 / AC#5: the green fixture passes every rule, so every affirmative
+    # must appear. An ``intersection`` check would silently pass if the router
+    # regressed to emitting only one affirmative; ``issubset`` locks the full
+    # set so dropping any affirmative surfaces loudly.
+    reasons = set(art["reasons"])
+    assert AFFIRMATIVES.issubset(reasons), (
+        f"green fixture missing affirmatives: {AFFIRMATIVES - reasons}"
+    )
 
 
 def test_review_reason_is_first_forcing_entry(

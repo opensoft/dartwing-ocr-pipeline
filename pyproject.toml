@@ -37,4 +37,4 @@ testpaths = ["tests/contract_tests", "tests/pipeline_tests", "tests/unit", "test
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-ra"
+addopts = "-ra --import-mode=importlib"
