@@ -27,6 +27,7 @@ dev = [
 [project.scripts]
 ledgerlinc-preprocess = "ledgerlinc_ocr.preprocessing.cli:main"
 ledgerlinc-pipeline = "ledgerlinc_ocr.pipeline.cli:main"
+ledgerlinc-evidence-packet = "ledgerlinc_ocr.evidence_packet.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_013_hard",
+  "difficulty": "hard",
+  "challenge_tags": ["explicit_company_name", "website_present"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Zions Credit Corp",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "P.O. Box 26536",
+      "street_2": null,
+      "city": "Salt Lake City",
+      "state": "UT",
+      "postal_code": "84126-0536",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "zionsbank.com",
+    "phone": "(801) 524-2230",
+    "email": null
+  }
+}

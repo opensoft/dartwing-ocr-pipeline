@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_014_hard",
+  "difficulty": "hard",
+  "challenge_tags": ["explicit_company_name", "website_present", "email_domain_present"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Montroy Supply Company",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "2674 Raymond Ave",
+      "street_2": null,
+      "city": "Signal Hill",
+      "state": "CA",
+      "postal_code": "90755",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "montroy.com",
+    "phone": "(800) 666-8769",
+    "email": "gandres@montroy.com"
+  }
+}

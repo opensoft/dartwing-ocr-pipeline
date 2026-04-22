@@ -26,6 +26,7 @@ class ArtifactName(str, Enum):
     EXPECTED = "expected"
     EVALUATION_DOCUMENT = "evaluation_document"
     EVALUATION_RUN_SUMMARY = "evaluation_run_summary"
+    EVIDENCE_PACKET = "evidence_packet"
 
 
 class ViolationCode:
@@ -69,6 +70,7 @@ class ViolationCode:
     FOLDER_NOTES_MISSING_SOFT = "FOLDER_NOTES_MISSING_SOFT"
     FOLDER_NAME_INVALID = "FOLDER_NAME_INVALID"
     FOLDER_RESERVED_FILENAME_COLLISION = "FOLDER_RESERVED_FILENAME_COLLISION"
+    FOLDER_SOURCE_PDF_UNREADABLE = "FOLDER_SOURCE_PDF_UNREADABLE"
 
 
 _ALL_VIOLATION_CODES: frozenset[str] = frozenset(

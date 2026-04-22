@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_004_easy",
+  "difficulty": "easy",
+  "challenge_tags": ["explicit_company_name", "email_domain_present"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Pamarco Global Graphics",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "150 Marr Ave",
+      "street_2": null,
+      "city": "Marietta",
+      "state": "GA",
+      "postal_code": "30060",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": null,
+    "phone": null,
+    "email": "michael.thompson@pamarco.com"
+  }
+}

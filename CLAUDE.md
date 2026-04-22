@@ -102,6 +102,7 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `docs/stage1-vendor-identity/schemas.md` — authoritative JSON shapes; now cross-linked to the machine layer
 - `docs/stage1-vendor-identity/scoring.md` — evaluation rubric and pass criteria
 - `docs/stage1-vendor-identity/dataset-layout.md` — per-document folder structure and the closed `challenge_tags` vocabulary
+- `docs/stage1-vendor-identity/labeling-guide.md` — conventions for `expected.json` and `notes.md`, PII/license screening checklist
 - `docs/stage1-vendor-identity/ollama-runtime.md` — host vs. container Ollama, WSL caveats
 - `contracts/stage1_vendor_identity/v1.0.0/` — executable contract set
 - `contracts/stage1_vendor_identity/AMENDMENTS.md` — amendment checklist + changelog
@@ -111,6 +112,8 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `specs/003-pdf-preprocessing/research.md` — PDF preprocessing decisions (DPI, determinism, version string, quality thresholds, document_text join)
 - `specs/003-pdf-preprocessing/quickstart.md` — end-to-end preprocessing walk-through for devcontainer
 - `specs/003-pdf-preprocessing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `scope.md` — release-gate checklists for the preprocessing slice
+- `specs/004-evidence-packet-assembly/spec.md` — evidence-packet slice requirements and user stories
+- `specs/004-evidence-packet-assembly/plan.md` — evidence-packet technical plan, structure, and milestones
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 
 ## Active Technologies
@@ -120,6 +123,10 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - Filesystem only — JSON artifacts on disk, no database (002-cli-contract)
 - Python 3.12 (devcontainer base image) (003-pdf-preprocessing)
 - Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network. (003-pdf-preprocessing)
+- Python 3.12 (devcontainer base image, matches 001/002/003). (004-evidence-packet-assembly)
+- Filesystem only. Reads one `preprocess_output.json` per invocation from `tests/stage1_vendor_identity/inv_XXX_<difficulty>/`. At default logger level, writes nothing. At `DEBUG` (or lower), writes exactly one `evidence_packet.json` into the same folder. No DB. No network. No model weights. (004-evidence-packet-assembly)
+- Python 3.12 (devcontainer base image, already established) + `pypdf >= 5.0, < 7` (already installed; used for PDF structural-integrity check in the validator); `jsonschema >= 4.22`, `pydantic >= 2.7` (already installed; used by existing validator — no new schemas in this feature) (006-corpus-labeling)
+- Filesystem only. 20 `source.pdf` + 20 `expected.json` + ≥10 `notes.md` under `tests/stage1_vendor_identity/`. One new Markdown doc at `docs/stage1-vendor-identity/labeling-guide.md`. No database, no network. (006-corpus-labeling)
 - Python 3.12 (matches devcontainer base and existing `pyproject.toml`). + `jsonschema>=4.22,<5` (Draft 2020-12, already declared), `pydantic>=2.7,<3` (already declared; typed result models to match the validator style). Python stdlib only for everything else: `argparse`, `json`, `pathlib`, `dataclasses`, `re`, `hashlib`, `datetime`, `uuid`. (007-evaluator)
 - Filesystem only. Reads `expected.json` and `final_structured_payload.json` inside per-document folders under `tests/stage1_vendor_identity/inv_XXX_<difficulty>/` (or a user-supplied corpus root). Writes `evaluation_document.json` into the same folder and `evaluation_run_summary.json` + `evaluation_run_summary.md` at the corpus root. (007-evaluator)
 

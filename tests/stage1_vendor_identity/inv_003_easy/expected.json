@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_003_easy",
+  "difficulty": "easy",
+  "challenge_tags": ["explicit_company_name", "website_present", "ein_present"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Uline",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "PO Box 88741",
+      "street_2": null,
+      "city": "Chicago",
+      "state": "IL",
+      "postal_code": "60680-1741",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "36-3684738",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "uline.com",
+    "phone": "(800) 295-5510",
+    "email": null
+  }
+}
