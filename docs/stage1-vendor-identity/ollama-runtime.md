@@ -128,3 +128,15 @@ For stage 1 development:
 - use host Ollama as the working GPU path
 - keep the optional local container for API wiring and service topology
 - validate the production Ollama container on a native Linux ROCm host, not Docker Desktop on Windows
+
+## Extractor timeout + no-retry convention
+
+The stage 1 extractor calls host Ollama via a single `httpx` request per
+invocation and never retries. Retries are considered an orchestrator concern
+and live outside this pipeline.
+
+- **Transport**: `httpx` only. `requests` is forbidden under `src/ledgerlinc_ocr/extract/` (enforced structurally — see `tests/unit/extract/test_no_downstream_imports.py`).
+- **Timeout**: pinned per voter config (`ollama.timeout_seconds`, `ollama.connect_timeout_seconds`). Default profile for `gemma-edge.yaml` lives in `src/ledgerlinc_ocr/extract/voters/configs/gemma-edge.yaml`.
+- **No retries**: any `ConnectError`, `ConnectTimeout`, `ReadTimeout`, or other `TransportError` surfaces as `OllamaUnreachable` → exit code 3. `model not found` payloads surface as `OllamaModelUnavailable` → exit code 4. See `specs/005-single-voter-extraction/research.md §R-001` (httpx, no retries) and `§R-002` (timeout).
+
+Rationale: deterministic failure shape is more valuable than opportunistic retry masking. Downstream orchestration (or a human operator) is free to rerun the extractor; the pipeline itself never papers over transport instability.

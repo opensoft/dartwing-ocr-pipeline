@@ -1,0 +1,64 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "0.0.0-fixture+us3_missing_name",
+  "document_id": "inv_us3_missing_name",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 1700,
+      "height": 2200,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "text",
+          "bbox": [100, 200, 900, 320],
+          "reading_order": 1,
+          "text": "742 Evergreen Terrace\nSpringfield, IL 62701\nUSA",
+          "confidence": 0.95
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "text",
+          "bbox": [100, 360, 900, 420],
+          "reading_order": 2,
+          "text": "EIN: 98-7654321",
+          "confidence": 0.93
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "text",
+          "bbox": [100, 460, 900, 560],
+          "reading_order": 3,
+          "text": "Invoice #: INV-2026-0777\nInvoice Date: 2026-04-15\nTotal Due: $850.00 USD",
+          "confidence": 0.97
+        }
+      ],
+      "raw_ocr_lines": [
+        { "line_id": "p1_l1", "bbox": [100, 200, 900, 230], "text": "742 Evergreen Terrace", "confidence": 0.95 },
+        { "line_id": "p1_l2", "bbox": [100, 240, 900, 270], "text": "Springfield, IL 62701", "confidence": 0.95 },
+        { "line_id": "p1_l3", "bbox": [100, 280, 900, 310], "text": "USA", "confidence": 0.95 },
+        { "line_id": "p1_l4", "bbox": [100, 360, 900, 390], "text": "EIN: 98-7654321", "confidence": 0.93 },
+        { "line_id": "p1_l5", "bbox": [100, 460, 900, 490], "text": "Invoice #: INV-2026-0777", "confidence": 0.97 },
+        { "line_id": "p1_l6", "bbox": [100, 500, 900, 530], "text": "Invoice Date: 2026-04-15", "confidence": 0.97 },
+        { "line_id": "p1_l7", "bbox": [100, 540, 900, 570], "text": "Total Due: $850.00 USD", "confidence": 0.97 }
+      ]
+    }
+  ],
+  "document_text": "742 Evergreen Terrace Springfield, IL 62701 USA EIN: 98-7654321 Invoice #: INV-2026-0777 Invoice Date: 2026-04-15 Total Due: $850.00 USD",
+  "tables": [],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": { "enabled": true, "status": "success" },
+    "falcon_ocr": { "enabled": false, "status": "not_implemented" },
+    "falcon_perception": { "enabled": false, "status": "not_implemented" }
+  },
+  "warnings": []
+}
