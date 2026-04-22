@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_002_medium",
+  "difficulty": "medium",
+  "challenge_tags": ["explicit_company_name", "ein_present"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Acme Widgets Inc.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "500 Elm St",
+      "street_2": null,
+      "city": "Boston",
+      "state": "MA",
+      "postal_code": "02110",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "98-7654321",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": null,
+    "phone": "+1 617-555-0200",
+    "email": "billing@acme.example.com"
+  }
+}

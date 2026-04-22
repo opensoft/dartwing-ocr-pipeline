@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_005_easy",
+  "difficulty": "easy",
+  "challenge_tags": ["explicit_company_name"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Vegas Graphic Equipment Services LLC",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "PO Box 91955",
+      "street_2": null,
+      "city": "Henderson",
+      "state": "NV",
+      "postal_code": "89009",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": null,
+    "phone": "(702) 778-7646",
+    "email": "vges.dan@gmail.com"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_009_medium",
+  "difficulty": "medium",
+  "challenge_tags": ["explicit_company_name", "website_present", "ein_present"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Payne & Fears",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "4 Park Plaza",
+      "street_2": "Suite 1100",
+      "city": "Irvine",
+      "state": "CA",
+      "postal_code": "92614",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "33-0507930",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "paynefears.com",
+    "phone": "(949) 851-1100",
+    "email": null
+  }
+}

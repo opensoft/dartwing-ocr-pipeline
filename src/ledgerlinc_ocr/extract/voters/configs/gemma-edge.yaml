@@ -1,0 +1,28 @@
+voter_id: "gemma-4-e4b-edge@2026-04"
+voter_role: "primary_extractor"
+consensus_mode: "single_voter_baseline"
+
+model_runtime:
+  provider: "host_ollama"
+  model_name: "gemma-4-e4b"
+  model_version: "2026-04-14-rocm"
+  runtime: "ollama-rocm-linux-host"
+
+ollama:
+  model_tag: "gemma4:e4b"
+  timeout_seconds: 180.0
+  connect_timeout_seconds: 10.0
+
+sampling:
+  temperature: 0.0
+  seed: 42
+  top_p: null
+  top_k: null
+
+prompt:
+  template_path: "prompts/gemma_edge_extractor.md"
+  max_output_tokens: 2048
+  format: "json"
+
+reconciliation:
+  ungrounded_confidence_cap: 0.30

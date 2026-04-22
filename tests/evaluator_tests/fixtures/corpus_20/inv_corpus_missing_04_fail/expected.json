@@ -1,0 +1,38 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_missing_04_fail",
+  "difficulty": "missing_name",
+  "challenge_tags": [
+    "missing_company_name",
+    "logo_only",
+    "ein_present"
+  ],
+  "expected_review": {
+    "manual_review_required": true,
+    "review_reason": "company_name_inferred"
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Sequoia Mills Inc.",
+      "present": false,
+      "inferred": true
+    },
+    "address": {
+      "street_1": "24 Forest Rd",
+      "street_2": null,
+      "city": "Fresno",
+      "state": "CA",
+      "postal_code": "93701",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "44-4444444",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://sequoia.example.com",
+    "phone": "+1 559-555-0340",
+    "email": "ap@sequoia.example.com"
+  }
+}

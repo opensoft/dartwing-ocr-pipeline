@@ -1,0 +1,139 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "0.0.0-fixture+us1_happy",
+  "document_id": "inv_us1_happy",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 1700,
+      "height": 2200,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "title",
+          "bbox": [100, 100, 900, 180],
+          "reading_order": 1,
+          "text": "Acme Widget Co.",
+          "confidence": 0.98
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "text",
+          "bbox": [100, 200, 900, 320],
+          "reading_order": 2,
+          "text": "123 Market Street\nSpringfield, IL 62701\nUSA",
+          "confidence": 0.95
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "text",
+          "bbox": [100, 360, 900, 420],
+          "reading_order": 3,
+          "text": "EIN: 12-3456789",
+          "confidence": 0.93
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "text",
+          "bbox": [100, 460, 900, 560],
+          "reading_order": 4,
+          "text": "Invoice #: INV-2026-0420\nInvoice Date: 2026-04-20\nTotal Due: $1,250.00 USD",
+          "confidence": 0.97
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "text",
+          "bbox": [100, 600, 900, 680],
+          "reading_order": 5,
+          "text": "Phone: (555) 123-4567\nEmail: ar@acmewidget.example\nWeb: https://acmewidget.example",
+          "confidence": 0.9
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [100, 100, 900, 140],
+          "text": "Acme Widget Co.",
+          "confidence": 0.98
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [100, 200, 900, 230],
+          "text": "123 Market Street",
+          "confidence": 0.95
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [100, 240, 900, 270],
+          "text": "Springfield, IL 62701",
+          "confidence": 0.95
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [100, 280, 900, 310],
+          "text": "USA",
+          "confidence": 0.95
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [100, 360, 900, 390],
+          "text": "EIN: 12-3456789",
+          "confidence": 0.93
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [100, 460, 900, 490],
+          "text": "Invoice #: INV-2026-0420",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [100, 500, 900, 530],
+          "text": "Invoice Date: 2026-04-20",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [100, 540, 900, 570],
+          "text": "Total Due: $1,250.00 USD",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [100, 600, 900, 630],
+          "text": "Phone: (555) 123-4567",
+          "confidence": 0.9
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [100, 640, 900, 670],
+          "text": "Email: ar@acmewidget.example",
+          "confidence": 0.9
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [100, 680, 900, 710],
+          "text": "Web: https://acmewidget.example",
+          "confidence": 0.9
+        }
+      ]
+    }
+  ],
+  "document_text": "Acme Widget Co. 123 Market Street Springfield, IL 62701 USA EIN: 12-3456789 Invoice #: INV-2026-0420 Invoice Date: 2026-04-20 Total Due: $1,250.00 USD Phone: (555) 123-4567 Email: ar@acmewidget.example Web: https://acmewidget.example",
+  "tables": [],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": { "enabled": true, "status": "success" },
+    "falcon_ocr": { "enabled": false, "status": "not_implemented" },
+    "falcon_perception": { "enabled": false, "status": "not_implemented" }
+  },
+  "warnings": []
+}

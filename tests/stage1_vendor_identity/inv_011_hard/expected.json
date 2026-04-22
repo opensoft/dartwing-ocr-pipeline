@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_011_hard",
+  "difficulty": "hard",
+  "challenge_tags": ["explicit_company_name", "website_present", "email_domain_present", "low_quality_scan"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "L.A. Grinding Company",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "305 N. Victory Blvd",
+      "street_2": null,
+      "city": "Burbank",
+      "state": "CA",
+      "postal_code": "91502",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "lagrinding.com",
+    "phone": "(818) 846-9134",
+    "email": "ACH@LAGrinding.com"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_hard_04_fail",
+  "difficulty": "hard",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Navigator Fleet Inc.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "14 Pier Ave",
+      "street_2": null,
+      "city": "Norfolk",
+      "state": "VA",
+      "postal_code": "23501",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "44-5566778",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://navfleet.example.com",
+    "phone": "+1 757-555-0230",
+    "email": "ap@navfleet.example.com"
+  }
+}

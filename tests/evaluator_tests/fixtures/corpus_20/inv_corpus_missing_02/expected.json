@@ -1,0 +1,38 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_missing_02",
+  "difficulty": "missing_name",
+  "challenge_tags": [
+    "missing_company_name",
+    "logo_only",
+    "ein_present"
+  ],
+  "expected_review": {
+    "manual_review_required": true,
+    "review_reason": "company_name_inferred"
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Quantum Holdings LLC",
+      "present": false,
+      "inferred": true
+    },
+    "address": {
+      "street_1": "22 Logo Ln",
+      "street_2": null,
+      "city": "Charlotte",
+      "state": "NC",
+      "postal_code": "28201",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "22-2222222",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://quantum.example.com",
+    "phone": "+1 704-555-0320",
+    "email": "ap@quantum.example.com"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_006_medium",
+  "difficulty": "medium",
+  "challenge_tags": ["explicit_company_name", "website_present", "email_domain_present"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Kaeser Compressors, Inc.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "P.O. Box 946",
+      "street_2": null,
+      "city": "Fredericksburg",
+      "state": "VA",
+      "postal_code": "22404",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "kaeser.com",
+    "phone": "(540) 898-5500",
+    "email": "accountsreceivable.us@kaeser.com"
+  }
+}
