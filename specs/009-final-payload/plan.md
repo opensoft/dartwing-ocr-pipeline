@@ -12,10 +12,11 @@ A deterministic, artifact-to-artifact assembler that reads one per-document fold
 payload), copies `review_status` verbatim from routing, computes a pinned `quality_summary`
 roll-up (stage 1 policy `0.1.0`: `clip(0.5 * company_name.confidence + 0.5 * mean(secondary
 identifier confidences, default 0.0), 0.0, 1.0)` with `secondary_identifiers_found` emitted in
-schema-enum order), and populates a relative-path `trace` block. Five cross-input invariants
-(contract drift, `document_id` mismatch, missing input, schema-invalid input, routing
-`decision` vs. `review_status` contradiction) are hard failures — exit non-zero, no output
-written. No model calls, no network, no mutation of inputs. CLI is `python -m
+schema-enum order), and populates a relative-path `trace` block. Six cross-input invariants
+(missing input, unreadable input, schema-invalid input, contract drift, `document_id`
+mismatch, routing `decision` vs. `review_status` contradiction) are hard failures — exit
+non-zero, no output written. A seventh invariant validates the assembled output against the
+frozen v1.0.0 schema before writing; see `data-model.md` §Cross-input invariant table. No model calls, no network, no mutation of inputs. CLI is `python -m
 ledgerlinc_ocr.assembler`, paralleling the existing `validator` and `preprocessing` slices.
 
 ## Technical Context
