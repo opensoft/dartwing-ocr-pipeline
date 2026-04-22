@@ -1,10 +1,10 @@
-"""T020: StubVoter reads fixture body; missing fixture raises MalformedResponse."""
+"""T020: StubVoter reads fixture body; missing fixture is a config error."""
 
 from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.extract.errors import MalformedResponse
+from ledgerlinc_ocr.extract.errors import VoterConfigInvalid
 from ledgerlinc_ocr.extract.voters.stub import StubVoter
 
 
@@ -21,11 +21,11 @@ def test_reads_fixture_body(tmp_path) -> None:
     assert response.model_echo is None
 
 
-def test_missing_fixture_raises_malformed(tmp_path) -> None:
+def test_missing_fixture_raises_voter_config_invalid(tmp_path) -> None:
     missing = tmp_path / "nope.json"
     voter = StubVoter(fixture_path=missing)
 
-    with pytest.raises(MalformedResponse) as exc_info:
+    with pytest.raises(VoterConfigInvalid) as exc_info:
         voter.call("ignored", config=None)
 
     assert str(missing) in exc_info.value.detail["path"]
@@ -40,5 +40,5 @@ def test_extensions_carry_fixture_path(tmp_path) -> None:
 
 
 def test_missing_extension_key_errors() -> None:
-    with pytest.raises(MalformedResponse):
+    with pytest.raises(VoterConfigInvalid):
         StubVoter(extensions={})

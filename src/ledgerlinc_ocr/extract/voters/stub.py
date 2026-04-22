@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ..errors import MalformedResponse
+from ..errors import VoterConfigInvalid
 from .base import RawModelResponse, VoterAdapter
 
 
@@ -32,7 +32,7 @@ class StubVoter(VoterAdapter):
         if resolved is None and extensions is not None:
             resolved = extensions.get("x_fixture_path")
         if resolved is None:
-            raise MalformedResponse(
+            raise VoterConfigInvalid(
                 "stub voter requires x_fixture_path in the voter config",
                 detail={"hint": "set x_fixture_path: <relative-or-absolute path>"},
             )
@@ -46,12 +46,12 @@ class StubVoter(VoterAdapter):
         try:
             body = self._path.read_text(encoding="utf-8")
         except FileNotFoundError as exc:
-            raise MalformedResponse(
+            raise VoterConfigInvalid(
                 f"stub fixture not found: {self._path}",
                 detail={"path": str(self._path)},
             ) from exc
         except OSError as exc:
-            raise MalformedResponse(
+            raise VoterConfigInvalid(
                 f"stub fixture could not be read: {self._path}",
                 detail={"path": str(self._path), "os_error": str(exc)},
             ) from exc

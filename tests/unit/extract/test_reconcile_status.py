@@ -109,3 +109,35 @@ def test_all_null_and_empty_evidence_yields_failure() -> None:
     )
     assert out["status"] == "failure"
     assert out["warnings"], "failure status must carry at least one explanatory warning"
+
+
+def test_packet_warnings_alone_yield_partial() -> None:
+    """FR-023: any input-side partiality (including packet.warnings) must cap
+    output at status='partial' even when all ingestion_sources are green."""
+    packet, parsed, config = _load()
+    packet = copy.deepcopy(packet)
+    packet["warnings"] = ["some input warning"]
+    # Sanity: ensure every ingestion_source is currently green (not failure).
+    for src in (packet.get("ingestion_sources") or {}).values():
+        assert src.get("status") != "failure"
+
+    out = reconcile(
+        packet=packet, parsed=parsed, config=config, now=_NOW, pipeline_version=_PV, repair_trail=[]
+    )
+    assert out["status"] == "partial"
+    assert any("input preprocessing was partial" in n for n in out["extraction_notes"])
+
+
+def test_document_type_coercion_yields_partial() -> None:
+    """Coercing a non-invoice document_type to 'invoice' is a silent rewrite;
+    it must flip the partiality bit so status drops from success to partial."""
+    packet, parsed, config = _load()
+    parsed = copy.deepcopy(parsed)
+    parsed["document_type"] = {"value": "receipt", "confidence": 0.9}
+
+    out = reconcile(
+        packet=packet, parsed=parsed, config=config, now=_NOW, pipeline_version=_PV, repair_trail=[]
+    )
+    assert out["status"] == "partial"
+    assert out["document_type"]["value"] == "invoice"
+    assert any("document_type coerced" in n for n in out["extraction_notes"])

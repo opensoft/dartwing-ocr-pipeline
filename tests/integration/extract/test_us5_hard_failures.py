@@ -111,6 +111,40 @@ def test_empty_response(us5_failure_folder) -> None:
     _no_artifact(folder)
 
 
+def test_unknown_provider_rejected(us1_happy_folder: Path) -> None:
+    """Unknown voter provider → exit 6, no artifact (no silent fallthrough)."""
+
+    cfg_path = us1_happy_folder / "voter_config.yaml"
+    raw = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    raw["model_runtime"]["provider"] = "gemini"
+    # Keep x_fixture_path so the config still loads, but the provider dispatch
+    # must fail before any voter is constructed.
+    cfg_path.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
+
+    rc = extract_main(
+        ["--folder", str(us1_happy_folder), "--voter", "stub",
+         "--voter-config", str(cfg_path)]
+    )
+    assert rc == 6
+    _no_artifact(us1_happy_folder)
+
+
+def test_stub_missing_fixture_is_voter_config_invalid(us1_happy_folder: Path) -> None:
+    """Stub voter pointed at a non-existent fixture → exit 6, no artifact."""
+
+    cfg_path = us1_happy_folder / "voter_config.yaml"
+    raw = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    raw["x_fixture_path"] = "does_not_exist_" + "x" * 12 + ".json"
+    cfg_path.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
+
+    rc = extract_main(
+        ["--folder", str(us1_happy_folder), "--voter", "stub",
+         "--voter-config", str(cfg_path)]
+    )
+    assert rc == 6
+    _no_artifact(us1_happy_folder)
+
+
 def test_ac1_model_unavailable(
     us1_happy_folder: Path, monkeypatch, caplog
 ) -> None:

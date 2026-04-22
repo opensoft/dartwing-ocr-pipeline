@@ -399,6 +399,7 @@ def reconcile(
             f"document_type coerced to 'invoice' (model claimed {doctype_value_raw!r})"
         )
         doctype_confidence = min(doctype_confidence, 0.5)
+        soft["defaulted"] = True
     document_type = {"value": "invoice", "confidence": doctype_confidence}
 
     # Assemble pre-status artifact shape.
@@ -423,6 +424,7 @@ def reconcile(
         extraction_notes.append(
             f"input preprocessing was partial: {len(input_warnings)} warnings"
         )
+        soft["defaulted"] = True  # partial input → at most partial output
     ingestion = packet.get("ingestion_sources") or {}
     for name, src in ingestion.items():
         if isinstance(src, dict) and src.get("status") == "failure":

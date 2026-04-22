@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import pipeline as pipeline_mod
 from .config import VoterConfig, load_voter_config
-from .errors import ExtractionError
+from .errors import ExtractionError, VoterConfigInvalid
 from .exit_codes import EXIT_OK, EXIT_UNEXPECTED, for_error
 from .voters.base import VoterAdapter
 from .voters.ollama import OllamaVoter
@@ -59,7 +59,13 @@ def _select_voter(
             extensions=extensions,
             config_dir=config_path.parent,
         )
-    return OllamaVoter()
+    if provider in ("ollama", "host_ollama"):
+        return OllamaVoter()
+    raise VoterConfigInvalid(
+        f"unknown voter provider {provider!r}; "
+        f"expected 'stub', 'ollama', or 'host_ollama'",
+        detail={"provider": provider, "config_path": str(config_path)},
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

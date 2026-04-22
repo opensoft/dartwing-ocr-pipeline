@@ -56,6 +56,8 @@ def assemble_and_write(artifact_dict: dict[str, Any], folder_path: Path) -> Path
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(serialized)
             fh.write("\n")
+            fh.flush()
+            os.fsync(fh.fileno())
     except OSError as exc:
         tmp_path.unlink(missing_ok=True)
         raise FolderWriteError(
@@ -91,5 +93,23 @@ def assemble_and_write(artifact_dict: dict[str, Any], folder_path: Path) -> Path
             f"failed to rename artifact into place: {final_path}",
             detail={"path": str(final_path), "error": str(exc)},
         ) from exc
+
+    # Durability: fsync the parent directory so the rename is persisted to
+    # disk (metadata), not just the file bytes. Guards against torn/zero-length
+    # artifacts after a power loss between os.replace and disk flush.
+    dir_fd = None
+    try:
+        dir_fd = os.open(str(folder), os.O_RDONLY)
+        os.fsync(dir_fd)
+    except OSError:
+        # fsync on a directory is best-effort (not all platforms/filesystems
+        # support it). Do not fail the write if the durability hint failed.
+        pass
+    finally:
+        if dir_fd is not None:
+            try:
+                os.close(dir_fd)
+            except OSError:
+                pass
 
     return final_path
