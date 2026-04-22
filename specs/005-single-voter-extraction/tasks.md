@@ -235,6 +235,18 @@ description: "Task list for 005-single-voter-extraction"
 
 ---
 
+## Phase 9: Post-`/speckit.analyze` Remediations (2026-04-22)
+
+**Purpose**: Close the three non-blocking findings from the post-implementation `/speckit.analyze` report (I1 wording, L1 doc drift, C1 implicit-behavior test). These are spec clarity + one test; no production-code changes.
+
+- [X] T094 [P] Address finding I1 (US5 AC#4 ambiguity) in `specs/005-single-voter-extraction/spec.md`: edit the US5 AC#4 body (currently: "either (a) ... OR (b) ...") to append a one-sentence pointer into the Edge Cases "Hard-failure vs. status=failure split" subsection that already disambiguates the two paths. Do not change the actual behavior description — the Edge Cases entry is already authoritative; this only makes the AC self-contained for readers who stop at AC#4.
+- [X] T095 [P] Address finding L1 (FR-025 drift) in `specs/005-single-voter-extraction/spec.md`: edit FR-025 to acknowledge the optional `--voter-config <path>` override flag introduced in `contracts/cli-contract.md` and Clarifications Q3/Q4. Keep `--folder` and `--voter` as the required surface; add one clause stating `--voter-config` MAY override the packaged voter config resolution. Do not change CLI behavior — it already supports the flag (T035).
+- [X] T096 [P] Address finding C1 (Edge Case L125 not explicitly tested): add a unit test `tests/unit/extract/test_reconcile_extra_keys.py::test_extra_model_keys_dropped`. Feed reconcile.py a parsed model response that includes `vendor_candidate.foo = "bar"` and an unknown top-level `extra_field`. Assert the returned artifact dict contains neither `foo` nor `extra_field`, and that no `warnings` entry mentions the dropped keys (per spec: silent drop, schema contract is authoritative). Uses the US1 happy fixture as the packet base; no new fixtures required.
+
+**Checkpoint**: Phase 9 green — analyze report has zero outstanding findings; spec is self-contained and Edge Case L125 is explicitly regressed.
+
+---
+
 ## Dependencies & Execution Order
 
 > **Task-ID convention**: Task IDs reflect creation order, not strict in-phase execution order. IDs T089–T093 are post-`/speckit.analyze` gap-close additions appended at the end of the list and folded back into the earlier phases (T091 into Phase 3, T089/T090 into Phase 7, T092/T093 into Phase 8). Phases and the `[P]` markers are authoritative for execution sequencing — do not try to execute by numeric ID order.
