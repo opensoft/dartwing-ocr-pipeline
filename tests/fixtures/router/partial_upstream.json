@@ -1,0 +1,55 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-extraction-v0.1.0",
+  "document_id": "inv_401_partial_upstream",
+  "processed_at": "2026-04-21T12:00:00Z",
+  "model_runtime": {
+    "provider": "ollama",
+    "model_name": "qwen3-vl",
+    "model_version": "0.1.0",
+    "runtime": "host-ollama"
+  },
+  "vote_metadata": {
+    "voter_id": "primary",
+    "voter_role": "primary_extractor",
+    "consensus_mode": "single_voter_baseline"
+  },
+  "document_type": {
+    "value": "invoice",
+    "confidence": 0.9
+  },
+  "vendor_candidate": {
+    "company_name": {
+      "value": "Acme Widget Supply LLC",
+      "present": true,
+      "inferred": false,
+      "confidence": 0.9,
+      "evidence": ["p0_b1"]
+    },
+    "address": {
+      "street_1": {"value": "123 Main Street", "confidence": 0.9, "evidence": ["p0_b2"]},
+      "street_2": {"value": null, "confidence": 0.0, "evidence": []},
+      "city": {"value": "Portland", "confidence": 0.9, "evidence": ["p0_b3"]},
+      "state": {"value": "OR", "confidence": 0.9, "evidence": ["p0_b3"]},
+      "postal_code": {"value": "97201", "confidence": 0.9, "evidence": ["p0_b3"]},
+      "country": {"value": "US", "confidence": 0.9, "evidence": ["p0_b3"]}
+    },
+    "tax_ids": {
+      "ein": {"value": "12-3456789", "confidence": 0.9, "evidence": ["p0_b4"]},
+      "state_tax_id": {"value": null, "confidence": 0.0, "evidence": []},
+      "vat_id": {"value": null, "confidence": 0.0, "evidence": []},
+      "other_tax_id": {"value": null, "confidence": 0.0, "evidence": []}
+    },
+    "website": {"value": "acme.example.com", "confidence": 0.9, "evidence": ["p0_b5"]},
+    "phone": {"value": null, "confidence": 0.0, "evidence": []},
+    "email": {"value": "billing@acme.example.com", "confidence": 0.9, "evidence": ["p0_b5"]}
+  },
+  "invoice_header_fields": {
+    "invoice_number": {"value": "INV-0401", "confidence": 0.9, "evidence": ["p0_b7"]},
+    "invoice_date": {"value": "2026-04-01", "confidence": 0.9, "evidence": ["p0_b7"]},
+    "total_amount": {"value": 500.0, "currency": "USD", "confidence": 0.9, "evidence": ["p0_b7"]}
+  },
+  "extraction_notes": ["page 2 skipped (low quality)"],
+  "warnings": ["preprocess_output reported ingestion_sources.falcon_perception.status == 'degraded'"],
+  "status": "partial"
+}

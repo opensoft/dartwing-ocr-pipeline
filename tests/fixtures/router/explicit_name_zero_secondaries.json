@@ -1,0 +1,55 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-extraction-v0.1.0",
+  "document_id": "inv_201_name_only",
+  "processed_at": "2026-04-21T12:00:00Z",
+  "model_runtime": {
+    "provider": "ollama",
+    "model_name": "qwen3-vl",
+    "model_version": "0.1.0",
+    "runtime": "host-ollama"
+  },
+  "vote_metadata": {
+    "voter_id": "primary",
+    "voter_role": "primary_extractor",
+    "consensus_mode": "single_voter_baseline"
+  },
+  "document_type": {
+    "value": "invoice",
+    "confidence": 0.9
+  },
+  "vendor_candidate": {
+    "company_name": {
+      "value": "Acme Widget Supply LLC",
+      "present": true,
+      "inferred": false,
+      "confidence": 0.98,
+      "evidence": ["p0_b1"]
+    },
+    "address": {
+      "street_1": {"value": null, "confidence": 0.0, "evidence": []},
+      "street_2": {"value": null, "confidence": 0.0, "evidence": []},
+      "city": {"value": null, "confidence": 0.0, "evidence": []},
+      "state": {"value": null, "confidence": 0.0, "evidence": []},
+      "postal_code": {"value": null, "confidence": 0.0, "evidence": []},
+      "country": {"value": null, "confidence": 0.0, "evidence": []}
+    },
+    "tax_ids": {
+      "ein": {"value": null, "confidence": 0.0, "evidence": []},
+      "state_tax_id": {"value": null, "confidence": 0.0, "evidence": []},
+      "vat_id": {"value": null, "confidence": 0.0, "evidence": []},
+      "other_tax_id": {"value": null, "confidence": 0.0, "evidence": []}
+    },
+    "website": {"value": null, "confidence": 0.0, "evidence": []},
+    "phone": {"value": null, "confidence": 0.0, "evidence": []},
+    "email": {"value": null, "confidence": 0.0, "evidence": []}
+  },
+  "invoice_header_fields": {
+    "invoice_number": {"value": "INV-0201", "confidence": 0.9, "evidence": ["p0_b2"]},
+    "invoice_date": {"value": "2026-04-17", "confidence": 0.9, "evidence": ["p0_b2"]},
+    "total_amount": {"value": 99.00, "currency": "USD", "confidence": 0.9, "evidence": ["p0_b2"]}
+  },
+  "extraction_notes": [],
+  "warnings": [],
+  "status": "success"
+}
