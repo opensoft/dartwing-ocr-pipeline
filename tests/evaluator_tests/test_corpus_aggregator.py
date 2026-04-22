@@ -256,6 +256,69 @@ def test_missing_name_bucket_pass_rate(tmp_path: Path) -> None:
     assert violating.overall_passed is False
 
 
+def test_refresh_forces_reevaluation_even_with_valid_cache(tmp_path: Path) -> None:
+    """Fix §2 regression guard: evaluate_corpus(..., refresh=True) must ignore
+    any on-disk evaluation_document.json and regenerate it, while the default
+    (refresh=False) keeps trusting the cache as-is.
+
+    Strategy:
+      1. Populate the per-document cache by running in lazy mode.
+      2. Mutate the cached artifact by flipping overall_passed false -> true
+         (the fixture's all_match corpus scores as passing).
+      3. refresh=False must preserve the mutation (stale cache reused).
+      4. refresh=True must overwrite the mutation with freshly-computed values.
+    """
+    root = tmp_path / "corpus_refresh"
+    root.mkdir()
+    shutil.copytree(FIXTURES / "all_match", root / "inv_only")
+    doc_folder = root / "inv_only"
+    cache_path = doc_folder / "evaluation_document.json"
+
+    # (1) Populate the cache.
+    first = evaluate_corpus(root, lazy=True)
+    assert first.ok is True
+    assert cache_path.is_file()
+    with cache_path.open("r", encoding="utf-8") as fh:
+        cached = json.load(fh)
+    assert cached["document_pass_fail"]["overall_passed"] is True
+
+    # (2) Mutate the cache — flip overall_passed to false. The artifact stays
+    # schema-valid because overall_passed is a plain boolean.
+    cached["document_pass_fail"]["overall_passed"] = False
+    with cache_path.open("w", encoding="utf-8") as fh:
+        json.dump(cached, fh, indent=2)
+    # Remove the run summary so we can uniquely observe each run's effect.
+    (root / "evaluation_run_summary.json").unlink(missing_ok=True)
+    (root / "evaluation_run_summary.md").unlink(missing_ok=True)
+
+    # (3) refresh=False — the aggregator must reuse the mutated cache.
+    stale = evaluate_corpus(root, lazy=True, refresh=False)
+    assert stale.summary is not None
+    stale_entry = next(
+        d for d in stale.summary.documents if d.document_id == cached["document_id"]
+    )
+    assert stale_entry.overall_passed is False, (
+        "refresh=False must reuse the on-disk (mutated) cache"
+    )
+    # The mutated cache file itself is untouched when reused.
+    with cache_path.open("r", encoding="utf-8") as fh:
+        after_stale = json.load(fh)
+    assert after_stale["document_pass_fail"]["overall_passed"] is False
+
+    # (4) refresh=True — the aggregator must recompute and overwrite.
+    refreshed = evaluate_corpus(root, lazy=True, refresh=True)
+    assert refreshed.summary is not None
+    refreshed_entry = next(
+        d for d in refreshed.summary.documents if d.document_id == cached["document_id"]
+    )
+    assert refreshed_entry.overall_passed is True, (
+        "refresh=True must ignore the on-disk cache and recompute"
+    )
+    with cache_path.open("r", encoding="utf-8") as fh:
+        after_refresh = json.load(fh)
+    assert after_refresh["document_pass_fail"]["overall_passed"] is True
+
+
 def test_evaluate_corpus_writes_only_inside_root(tmp_path: Path) -> None:
     """FR-025 writable-file scope: a successful `evaluate_corpus` call writes
     only `evaluation_run_summary.{json,md}` at the root and per-folder

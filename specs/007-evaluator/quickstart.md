@@ -122,6 +122,13 @@ To enforce strict aggregation (every folder must already have `evaluation_docume
     tests/stage1_vendor_identity --no-lazy
 ```
 
+To force full re-evaluation and ignore any cached `evaluation_document.json` (e.g., after evaluator code or scoring weights change without a contract-set-version bump):
+
+```bash
+.venv/bin/python -m ledgerlinc_ocr.evaluator evaluate corpus \
+    tests/stage1_vendor_identity --refresh
+```
+
 ---
 
 ## 4. Read the run summary

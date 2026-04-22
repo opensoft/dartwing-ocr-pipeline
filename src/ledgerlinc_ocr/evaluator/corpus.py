@@ -203,12 +203,22 @@ def _ensure_document_evaluation(
     *,
     lazy: bool,
     contract_set_version: str,
+    refresh: bool = False,
 ) -> DocumentEvaluation:
     """Return the DocumentEvaluation for `folder`. If an existing
     `evaluation_document.json` validates, read-and-reuse it (no re-eval);
     otherwise fall back to `evaluate_document` in lazy mode, or raise
-    FileNotFoundError in strict mode."""
+    FileNotFoundError in strict mode.
+
+    When `refresh=True`, any existing `evaluation_document.json` is ignored
+    and the document is always re-evaluated from scratch. This bypasses the
+    lazy-mode cache and forces regeneration regardless of whether the
+    on-disk artifact is schema-valid."""
     eval_path = folder / "evaluation_document.json"
+    if refresh:
+        outcome = evaluate_document(folder, contract_set_version=contract_set_version)
+        assert outcome.evaluation is not None
+        return outcome.evaluation
     if eval_path.is_file():
         try:
             instance = read_json(eval_path)
@@ -366,6 +376,7 @@ def evaluate_corpus(
     *,
     contract_set_version: str | None = None,
     lazy: bool = True,
+    refresh: bool = False,
 ) -> "RunSummaryOutcome":  # type: ignore[name-defined]  # noqa: F821
     """Evaluate every per-document folder under `root` and write
     `evaluation_run_summary.json` (FR-015–FR-017).
@@ -374,6 +385,12 @@ def evaluate_corpus(
     a valid `evaluation_document.json`. Strict mode (`lazy=False`) requires
     every folder to carry a pre-built evaluation_document.json and raises
     FileNotFoundError on the first missing one.
+
+    When `refresh=True`, any existing `evaluation_document.json` on disk is
+    ignored and every document is re-evaluated from scratch. Use this after
+    evaluator code or scoring weights change without a contract-version bump,
+    so operators do not silently trust stale cached results. `refresh` wins
+    over the lazy/strict cache-hit path regardless of `lazy`.
 
     Any hard error aborts the run without writing the summary (FR-020).
     """
@@ -391,7 +408,7 @@ def evaluate_corpus(
     per_document_outcomes: list[DocumentEvaluationOutcome] = []
     for folder in folders:
         ev = _ensure_document_evaluation(
-            folder, lazy=lazy, contract_set_version=pinned
+            folder, lazy=lazy, contract_set_version=pinned, refresh=refresh
         )
         evaluations.append(ev)
         per_document_outcomes.append(

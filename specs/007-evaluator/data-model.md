@@ -146,7 +146,7 @@ class DocumentEvaluation:
 ```
 
 **Invariants**:
-- `contract_set_version == CONTRACT_SET_VERSION` for the persisted `DocumentEvaluation` — the evaluator always stamps the pinned version into its own output. Input artifacts (`expected.json`, `final_structured_payload.json`) are pre-validated under the FR-013 MINOR-forward compat rule (same major, artifact minor ≤ pinned minor) and are NOT required to match this equality.
+- `contract_set_version` on the persisted `DocumentEvaluation` equals the **effective pinned version** — that is, `CONTRACT_SET_VERSION` by default, or whatever value the caller passes via the CLI `--contract-set-version` flag or the Python API `contract_set_version=` kwarg. The evaluator stamps this effective pinned version (not strictly `CONTRACT_SET_VERSION`) into its own output. Input artifacts (`expected.json`, `final_structured_payload.json`) are pre-validated under the FR-013 MINOR-forward compat rule (same major, artifact minor ≤ pinned minor) and are NOT required to match the persisted value.
 - `len(field_results) == len(SCORED_FIELDS)` and `tuple(f.field_name for f in field_results) == SCORED_FIELDS`.
 - `document_id`, `difficulty`, `challenge_tags` propagated verbatim from `expected.json` (FR-003).
 - `notes` is always an empty tuple in stage 1. Any future advisory/warning content flows through `DocumentEvaluationOutcome.warnings` (data-model §11), not through the persisted `notes` array, so that the machine artifact's content stays purely a function of the inputs (FR-018 determinism).

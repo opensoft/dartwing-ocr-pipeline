@@ -48,6 +48,7 @@ def evaluate_corpus(
     *,
     contract_set_version: str | None = None,
     lazy: bool = True,
+    refresh: bool = False,
 ) -> RunSummaryOutcome: ...
 ```
 
@@ -57,6 +58,7 @@ def evaluate_corpus(
 - `root`: path to the corpus root (a directory of per-document folders).
 - `contract_set_version`: optional pin (see above).
 - `lazy`: if `False`, the function hard-fails when any folder lacks `evaluation_document.json`; if `True`, it calls `evaluate_document` on those folders before aggregating.
+- `refresh`: if `True`, any existing `evaluation_document.json` on disk is ignored and every document is re-evaluated from scratch. `refresh` wins over the `lazy`/strict cache-hit path regardless of `lazy`. Use this after evaluator code or scoring weights change.
 
 **Returns**: `RunSummaryOutcome` (see data-model.md §11).
 
@@ -128,13 +130,17 @@ python -m ledgerlinc_ocr.evaluator evaluate document <folder> \
 ```
 python -m ledgerlinc_ocr.evaluator evaluate corpus <root> \
     [--contract-set-version 1.1.0] \
-    [--no-lazy]
+    [--no-lazy] \
+    [--refresh]
 ```
 
 - Writes `evaluation_run_summary.json` and `evaluation_run_summary.md` at `<root>`.
 - Prints the Markdown report to stdout (always; byte-identical to the `.md` file per FR-021). Corpus mode does NOT accept `--json`/`--text`: stdout is always Markdown; the machine-readable `evaluation_run_summary.json` is already written to disk at a known path (`<root>/evaluation_run_summary.json`) and is the machine-consumable surface.
 - With `--no-lazy`, folders lacking (or with an unreadable/schema-invalid) `evaluation_document.json` cause exit code `3`.
+- With `--refresh`, any existing `evaluation_document.json` is ignored and the document is re-evaluated from scratch. `--refresh` takes precedence over the lazy/strict cache-hit path regardless of `--no-lazy`.
 - Exit codes same as `evaluate document` (`0`, `2`, `3`).
+
+**Stale cache caveat**: without `--refresh`, the aggregator trusts any schema-valid `evaluation_document.json` on disk as-is. Because scoring weights, comparators, and gate logic can evolve without a contract-set-version bump, operators MUST run with `--refresh` after upgrading evaluator code, otherwise last run's cached results are silently reused.
 
 ### Examples (normative)
 

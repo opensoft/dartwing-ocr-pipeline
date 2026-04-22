@@ -80,7 +80,19 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "Strict mode: require every per-document folder to already contain a "
-            "valid evaluation_document.json; hard-fail otherwise."
+            "valid evaluation_document.json; hard-fail otherwise. Note: without "
+            "--refresh, any schema-valid evaluation_document.json on disk is "
+            "trusted as-is, even if evaluator code or weights have changed since "
+            "it was produced."
+        ),
+    )
+    corpus.add_argument(
+        "--refresh",
+        action="store_true",
+        help=(
+            "Re-evaluate every document from scratch; ignore any existing "
+            "evaluation_document.json. Use this after evaluator code or weights "
+            "change, otherwise stale cached results are silently reused."
         ),
     )
     corpus.set_defaults(handler=_handle_corpus)
@@ -163,6 +175,7 @@ def _handle_corpus(args: argparse.Namespace) -> int:
         args.root,
         contract_set_version=args.contract_set_version,
         lazy=not args.no_lazy,
+        refresh=args.refresh,
     )
     assert outcome.md_output_path is not None
     # The rendered Markdown already ends with a single trailing newline;
