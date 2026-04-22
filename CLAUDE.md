@@ -111,6 +111,12 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `specs/003-pdf-preprocessing/research.md` — PDF preprocessing decisions (DPI, determinism, version string, quality thresholds, document_text join)
 - `specs/003-pdf-preprocessing/quickstart.md` — end-to-end preprocessing walk-through for devcontainer
 - `specs/003-pdf-preprocessing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `scope.md` — release-gate checklists for the preprocessing slice
+- `specs/005-single-voter-extraction/spec.md` — stage 1 single-voter extractor requirements, user stories, success criteria
+- `specs/005-single-voter-extraction/plan.md` — stage 1 extractor architecture, module layout, milestones
+- `specs/005-single-voter-extraction/research.md` — stage 1 extractor decisions (R-001 httpx/no-retry, R-002 timeout, R-003 ungrounded-confidence cap, R-007 JSON repair, R-008 status truth table, R-009 pipeline_version, R-011 exit-code table, R-012 blank-packet failure path, R-013 reconcile determinism)
+- `specs/005-single-voter-extraction/contracts/cli-contract.md` — `ledgerlinc-extract` CLI surface + exit codes
+- `specs/005-single-voter-extraction/contracts/voter-config.md` — voter config schema, extension-key escape hatch, stub-voter contract
+- `specs/005-single-voter-extraction/quickstart.md` — end-to-end extractor walk-through and hard-failure smoke tests
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 
 ## Active Technologies
@@ -120,6 +126,9 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - Filesystem only — JSON artifacts on disk, no database (002-cli-contract)
 - Python 3.12 (devcontainer base image) (003-pdf-preprocessing)
 - Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network. (003-pdf-preprocessing)
+- Python 3.12 (devcontainer base image, matches existing package). (005-single-voter-extraction)
+- Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/preprocess_output.json`; writes `edge_extraction_output.json` into the same folder. No database. No cloud. The only network call is the host-Ollama HTTP request to `OLLAMA_BASE_URL`. (005-single-voter-extraction)
 
 ## Recent Changes
+- 005-single-voter-extraction: Stage 1 single-voter edge extractor landed under `src/ledgerlinc_ocr/extract/`. CLI: `ledgerlinc-extract`. Host-Ollama HTTP (httpx, no retries) + pluggable `VoterAdapter` Protocol + deterministic 8-step reconciliation → schema-valid `edge_extraction_output.json`. See `specs/005-single-voter-extraction/quickstart.md`.
 - 001-freeze-schemas-folder-contracts: Added Python 3.12 (matches `.devcontainer/Dockerfile` base image) + `jsonschema >= 4.22` (Draft 2020-12 validator); `pydantic >= 2.7` for the structured-report model and typed CLI results; Python stdlib (`argparse`, `json`, `pathlib`, `dataclasses`). No PyTorch, no PaddleOCR, no network dependencies for this slice.

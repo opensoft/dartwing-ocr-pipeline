@@ -1,0 +1,40 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "0.0.0-fixture+us1_happy",
+  "document_id": "inv_us5_blank",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 1700,
+      "height": 2200,
+      "rotation_detected": 0,
+      "blocks": [],
+      "raw_ocr_lines": []
+    }
+  ],
+  "document_text": " ",
+  "tables": [],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": []
+}
