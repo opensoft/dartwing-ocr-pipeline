@@ -102,6 +102,7 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `docs/stage1-vendor-identity/schemas.md` — authoritative JSON shapes; now cross-linked to the machine layer
 - `docs/stage1-vendor-identity/scoring.md` — evaluation rubric and pass criteria
 - `docs/stage1-vendor-identity/dataset-layout.md` — per-document folder structure and the closed `challenge_tags` vocabulary
+- `docs/stage1-vendor-identity/labeling-guide.md` — conventions for `expected.json` and `notes.md`, PII/license screening checklist
 - `docs/stage1-vendor-identity/ollama-runtime.md` — host vs. container Ollama, WSL caveats
 - `contracts/stage1_vendor_identity/v1.0.0/` — executable contract set
 - `contracts/stage1_vendor_identity/AMENDMENTS.md` — amendment checklist + changelog
@@ -111,6 +112,14 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `specs/003-pdf-preprocessing/research.md` — PDF preprocessing decisions (DPI, determinism, version string, quality thresholds, document_text join)
 - `specs/003-pdf-preprocessing/quickstart.md` — end-to-end preprocessing walk-through for devcontainer
 - `specs/003-pdf-preprocessing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `scope.md` — release-gate checklists for the preprocessing slice
+- `specs/004-evidence-packet-assembly/spec.md` — evidence-packet slice requirements and user stories
+- `specs/004-evidence-packet-assembly/plan.md` — evidence-packet technical plan, structure, and milestones
+- `specs/005-single-voter-extraction/spec.md` — stage 1 single-voter extractor requirements, user stories, success criteria
+- `specs/005-single-voter-extraction/plan.md` — stage 1 extractor architecture, module layout, milestones
+- `specs/005-single-voter-extraction/research.md` — stage 1 extractor decisions (R-001 httpx/no-retry, R-002 timeout, R-003 ungrounded-confidence cap, R-007 JSON repair, R-008 status truth table, R-009 pipeline_version, R-011 exit-code table, R-012 blank-packet failure path, R-013 reconcile determinism)
+- `specs/005-single-voter-extraction/contracts/cli-contract.md` — `ledgerlinc-extract` CLI surface + exit codes
+- `specs/005-single-voter-extraction/contracts/voter-config.md` — voter config schema, extension-key escape hatch, stub-voter contract
+- `specs/005-single-voter-extraction/quickstart.md` — end-to-end extractor walk-through and hard-failure smoke tests
 - `specs/008-routing/spec.md` — deterministic routing slice requirements (edge_accept vs. edge_review_required; priority-ordered forcing rules)
 - `specs/008-routing/plan.md` — routing technical plan; module layout under `src/ledgerlinc_ocr/router/`
 - `specs/008-routing/research.md` — routing decisions (exact-vs-major version check, score formulas, status mapping, atomic write, reason vocabulary, `policy_version` lifecycle)
@@ -127,8 +136,17 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - Filesystem only — JSON artifacts on disk, no database (002-cli-contract)
 - Python 3.12 (devcontainer base image) (003-pdf-preprocessing)
 - Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network. (003-pdf-preprocessing)
+- Python 3.12 (devcontainer base image, matches 001/002/003). (004-evidence-packet-assembly)
+- Filesystem only. Reads one `preprocess_output.json` per invocation from `tests/stage1_vendor_identity/inv_XXX_<difficulty>/`. At default logger level, writes nothing. At `DEBUG` (or lower), writes exactly one `evidence_packet.json` into the same folder. No DB. No network. No model weights. (004-evidence-packet-assembly)
+- Python 3.12 (devcontainer base image, matches existing package). (005-single-voter-extraction)
+- Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/preprocess_output.json`; writes `edge_extraction_output.json` into the same folder. No database. No cloud. The only network call is the host-Ollama HTTP request to `OLLAMA_BASE_URL`. (005-single-voter-extraction)
+- Python 3.12 (devcontainer base image, already established) + `pypdf >= 5.0, < 7` (already installed; used for PDF structural-integrity check in the validator); `jsonschema >= 4.22`, `pydantic >= 2.7` (already installed; used by existing validator — no new schemas in this feature) (006-corpus-labeling)
+- Filesystem only. 20 `source.pdf` + 20 `expected.json` + ≥10 `notes.md` under `tests/stage1_vendor_identity/`. One new Markdown doc at `docs/stage1-vendor-identity/labeling-guide.md`. No database, no network. (006-corpus-labeling)
+- Python 3.12 (matches devcontainer base and existing `pyproject.toml`). + `jsonschema>=4.22,<5` (Draft 2020-12, already declared), `pydantic>=2.7,<3` (already declared; typed result models to match the validator style). Python stdlib only for everything else: `argparse`, `json`, `pathlib`, `dataclasses`, `re`, `hashlib`, `datetime`, `uuid`. (007-evaluator)
+- Filesystem only. Reads `expected.json` and `final_structured_payload.json` inside per-document folders under `tests/stage1_vendor_identity/inv_XXX_<difficulty>/` (or a user-supplied corpus root). Writes `evaluation_document.json` into the same folder and `evaluation_run_summary.json` + `evaluation_run_summary.md` at the corpus root. (007-evaluator)
 - Python 3.12 (matches devcontainer; matches 001/002/003 slices); reuses `ledgerlinc_ocr.validator` for dual-schema validation; no new third-party dependency. (008-routing)
 - Filesystem only. Reads `<per-document-folder>/edge_extraction_output.json`, writes `routing_decision.json` atomically into the same folder. No network, no model calls. (008-routing)
 
 ## Recent Changes
+- 005-single-voter-extraction: Stage 1 single-voter edge extractor landed under `src/ledgerlinc_ocr/extract/`. CLI: `ledgerlinc-extract`. Host-Ollama HTTP (httpx, no retries) + pluggable `VoterAdapter` Protocol + deterministic 8-step reconciliation → schema-valid `edge_extraction_output.json`. See `specs/005-single-voter-extraction/quickstart.md`.
 - 001-freeze-schemas-folder-contracts: Added Python 3.12 (matches `.devcontainer/Dockerfile` base image) + `jsonschema >= 4.22` (Draft 2020-12 validator); `pydantic >= 2.7` for the structured-report model and typed CLI results; Python stdlib (`argparse`, `json`, `pathlib`, `dataclasses`). No PyTorch, no PaddleOCR, no network dependencies for this slice.

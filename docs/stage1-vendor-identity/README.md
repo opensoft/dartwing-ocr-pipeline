@@ -27,6 +27,8 @@ Stage 1 is intentionally narrow:
   - first draft JSON contracts for all stage 1 artifacts
 - `dataset-layout.md`
   - test corpus structure and labeling rules
+- `labeling-guide.md`
+  - authoritative conventions for `expected.json` and `notes.md`, plus the PII/license screening checklist applied before any document enters the corpus
 - `scoring.md`
   - evaluation rubric, weighting, and pass criteria
 

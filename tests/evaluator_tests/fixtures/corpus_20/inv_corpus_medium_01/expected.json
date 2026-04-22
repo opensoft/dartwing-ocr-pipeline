@@ -1,0 +1,37 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_medium_01",
+  "difficulty": "medium",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Falcon Logistics Ltd.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "60 Maple Dr",
+      "street_2": null,
+      "city": "Portland",
+      "state": "OR",
+      "postal_code": "97201",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "67-8901234",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://falconlog.example.com",
+    "phone": "+1 503-555-0150",
+    "email": "ap@falconlog.example.com"
+  }
+}

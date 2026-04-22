@@ -1,0 +1,100 @@
+{
+  "document_type": {
+    "value": null,
+    "confidence": 0.0
+  },
+  "vendor_candidate": {
+    "company_name": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "address": {
+      "street_1": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "street_2": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "city": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "state": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "postal_code": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "country": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      }
+    },
+    "tax_ids": {
+      "ein": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "state_tax_id": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "vat_id": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "other_tax_id": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      }
+    },
+    "website": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "phone": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "email": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    }
+  },
+  "invoice_header_fields": {
+    "invoice_number": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "invoice_date": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "total_amount": {
+      "value": null,
+      "currency": null,
+      "confidence": 0.0,
+      "evidence": []
+    }
+  }
+}

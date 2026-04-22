@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_007_medium",
+  "difficulty": "medium",
+  "challenge_tags": ["explicit_company_name", "website_present", "remit_to_differs_from_vendor"],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Republic Services",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "770 E. Sahara Ave",
+      "street_2": null,
+      "city": "Las Vegas",
+      "state": "NV",
+      "postal_code": "89104-2943",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "republicservices.com",
+    "phone": "(702) 735-5151",
+    "email": null
+  }
+}

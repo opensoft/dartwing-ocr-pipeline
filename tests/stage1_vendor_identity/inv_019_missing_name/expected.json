@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_019_missing_name",
+  "difficulty": "missing_name",
+  "challenge_tags": ["missing_company_name", "email_domain_present", "ein_present", "state_tax_id_present", "remit_to_differs_from_vendor"],
+  "expected_review": {
+    "manual_review_required": true,
+    "review_reason": "company_name_inferred"
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Truckfleet Distributors",
+      "present": false,
+      "inferred": true
+    },
+    "address": {
+      "street_1": "880 Commerce Ct",
+      "street_2": "Warehouse 3 - Bay 12",
+      "city": "Ontario",
+      "state": "CA",
+      "postal_code": "91761",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "47-2209118",
+      "state_tax_id": "SR-AS 102-884721",
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": null,
+    "phone": "(909) 555-0177",
+    "email": "parts@truckfleet-distributors.example.com"
+  }
+}

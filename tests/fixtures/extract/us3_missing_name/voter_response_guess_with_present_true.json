@@ -1,0 +1,42 @@
+{
+  "document_type": {
+    "value": "invoice",
+    "confidence": 0.85
+  },
+  "vendor_candidate": {
+    "company_name": {
+      "value": "Acme Co",
+      "present": true,
+      "inferred": false,
+      "confidence": 0.55,
+      "evidence": []
+    },
+    "address": {
+      "street_1": { "value": "742 Evergreen Terrace", "confidence": 0.9, "evidence": ["p1_l1"] },
+      "street_2": { "value": null, "confidence": 0.0, "evidence": [] },
+      "city": { "value": "Springfield", "confidence": 0.9, "evidence": ["p1_l2"] },
+      "state": { "value": "IL", "confidence": 0.9, "evidence": ["p1_l2"] },
+      "postal_code": { "value": "62701", "confidence": 0.9, "evidence": ["p1_l2"] },
+      "country": { "value": "USA", "confidence": 0.9, "evidence": ["p1_l3"] }
+    },
+    "tax_ids": {
+      "ein": { "value": "98-7654321", "confidence": 0.92, "evidence": ["p1_l4"] },
+      "state_tax_id": { "value": null, "confidence": 0.0, "evidence": [] },
+      "vat_id": { "value": null, "confidence": 0.0, "evidence": [] },
+      "other_tax_id": { "value": null, "confidence": 0.0, "evidence": [] }
+    },
+    "website": { "value": null, "confidence": 0.0, "evidence": [] },
+    "phone": { "value": null, "confidence": 0.0, "evidence": [] },
+    "email": { "value": null, "confidence": 0.0, "evidence": [] }
+  },
+  "invoice_header_fields": {
+    "invoice_number": { "value": "INV-2026-0777", "confidence": 0.95, "evidence": ["p1_l5"] },
+    "invoice_date": { "value": "2026-04-15", "confidence": 0.95, "evidence": ["p1_l6"] },
+    "total_amount": {
+      "value": 850.00,
+      "currency": "USD",
+      "confidence": 0.95,
+      "evidence": ["p1_l7"]
+    }
+  }
+}

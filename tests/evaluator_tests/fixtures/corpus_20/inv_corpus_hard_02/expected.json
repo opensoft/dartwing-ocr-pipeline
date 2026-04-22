@@ -1,0 +1,37 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_hard_02",
+  "difficulty": "hard",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Lantern Systems Co.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "12 Light St",
+      "street_2": null,
+      "city": "Atlanta",
+      "state": "GA",
+      "postal_code": "30301",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "22-3344556",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://lanternsys.example.com",
+    "phone": "+1 404-555-0210",
+    "email": "ap@lanternsys.example.com"
+  }
+}

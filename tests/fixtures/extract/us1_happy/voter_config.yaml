@@ -1,0 +1,30 @@
+voter_id: "stub@us1_happy"
+voter_role: "primary_extractor"
+consensus_mode: "single_voter_baseline"
+
+model_runtime:
+  provider: "stub"
+  model_name: "stub-voter"
+  model_version: "0"
+  runtime: "in-process-fixture"
+
+ollama:
+  model_tag: "unused"
+  timeout_seconds: 1.0
+  connect_timeout_seconds: 1.0
+
+sampling:
+  temperature: 0.0
+  seed: 0
+  top_p: null
+  top_k: null
+
+prompt:
+  template_path: "stub_noop.md"
+  max_output_tokens: 1
+  format: null
+
+reconciliation:
+  ungrounded_confidence_cap: 0.30
+
+x_fixture_path: "voter_response_clean.json"

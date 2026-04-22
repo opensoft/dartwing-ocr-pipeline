@@ -1,0 +1,40 @@
+{
+  "document_type": {
+    "value": "invoice",
+    "confidence": 0.9
+  },
+  "vendor_candidate": {
+    "company_name": {
+      "value": "Acme Widget Co.",
+      "confidence": 0.97,
+      "evidence": ["p1_b1", "p1_b1", "p1_l1"]
+    },
+    "address": {
+      "street_1": { "value": "123 Market Street", "confidence": 0.93, "evidence": ["p1_l2"] },
+      "street_2": { "value": null, "confidence": 0.0, "evidence": [] },
+      "city": { "value": "Springfield", "confidence": 0.9, "evidence": ["p1_l99"] },
+      "state": { "value": "IL", "confidence": 0.9, "evidence": ["p2_b1"] },
+      "postal_code": { "value": "62701", "confidence": 0.9, "evidence": ["p1_x5"] },
+      "country": { "value": "USA", "confidence": 0.9, "evidence": ["b0"] }
+    },
+    "tax_ids": {
+      "ein": { "value": "12-3456789", "confidence": 0.92, "evidence": ["p1_b3", "p1_l5"] },
+      "state_tax_id": { "value": null, "confidence": 0.0, "evidence": [] },
+      "vat_id": { "value": null, "confidence": 0.0, "evidence": [] },
+      "other_tax_id": { "value": null, "confidence": 0.0, "evidence": [] }
+    },
+    "website": { "value": "https://acmewidget.example", "confidence": 0.88, "evidence": ["p1_l11"] },
+    "phone": { "value": "(555) 123-4567", "confidence": 0.88, "evidence": ["page1_line9"] },
+    "email": { "value": "ar@acmewidget.example", "confidence": 0.88, "evidence": ["p1_l10"] }
+  },
+  "invoice_header_fields": {
+    "invoice_number": { "value": "INV-2026-0420", "confidence": 0.95, "evidence": ["p1_b99"] },
+    "invoice_date": { "value": "2026-04-20", "confidence": 0.95, "evidence": ["p1_l7"] },
+    "total_amount": {
+      "value": 1250.00,
+      "currency": "USD",
+      "confidence": 0.95,
+      "evidence": ["p1_l8"]
+    }
+  }
+}
