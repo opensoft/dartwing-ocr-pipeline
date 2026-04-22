@@ -111,6 +111,10 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `specs/003-pdf-preprocessing/research.md` — PDF preprocessing decisions (DPI, determinism, version string, quality thresholds, document_text join)
 - `specs/003-pdf-preprocessing/quickstart.md` — end-to-end preprocessing walk-through for devcontainer
 - `specs/003-pdf-preprocessing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `scope.md` — release-gate checklists for the preprocessing slice
+- `specs/009-final-payload/spec.md` — final-payload assembler slice requirements, user stories, and hard-fail invariants (FR-003 through FR-025)
+- `specs/009-final-payload/plan.md` — assembler technical plan, invariant check order, FINAL_KEY_ORDER, error kinds
+- `specs/009-final-payload/research.md` — assembler decisions (pipeline_version format, secondary enum ordering, `overall_vendor_confidence` formula pinning, processed_at format, JSON serialization)
+- `specs/009-final-payload/quickstart.md` — end-to-end walkthrough for running `python -m ledgerlinc_ocr.assembler`
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 
 ## Active Technologies
@@ -120,6 +124,8 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - Filesystem only — JSON artifacts on disk, no database (002-cli-contract)
 - Python 3.12 (devcontainer base image) (003-pdf-preprocessing)
 - Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network. (003-pdf-preprocessing)
+- Python 3.12 (matches devcontainer base image and existing `ledgerlinc-ocr` package) + `jsonschema >= 4.22` (already installed; used for schema validation via the existing `ledgerlinc_ocr.validator.artifact` loader), `pydantic >= 2.7` (already installed; used for typed internal result objects), Python stdlib (`argparse`, `json`, `pathlib`, `datetime`, `dataclasses`). No new runtime dependencies. (009-final-payload)
+- Filesystem only. Reads `<per-doc-folder>/edge_extraction_output.json` and `<per-doc-folder>/routing_decision.json`. Writes `<per-doc-folder>/final_structured_payload.json`. Trace block references `source.pdf` and `preprocess_output.json` by relative path but does not read them. (009-final-payload)
 
 ## Recent Changes
 - 001-freeze-schemas-folder-contracts: Added Python 3.12 (matches `.devcontainer/Dockerfile` base image) + `jsonschema >= 4.22` (Draft 2020-12 validator); `pydantic >= 2.7` for the structured-report model and typed CLI results; Python stdlib (`argparse`, `json`, `pathlib`, `dataclasses`). No PyTorch, no PaddleOCR, no network dependencies for this slice.
