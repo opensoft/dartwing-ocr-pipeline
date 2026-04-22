@@ -62,6 +62,15 @@ def test_as1_as6_required_keys_and_constants(happy_folder: Path):
 
 
 def test_two_runs_differ_only_by_processed_at(tmp_path: Path):
+    """SC-004: byte-identical output across runs on identical inputs, except
+    for `processed_at`.
+
+    FIX 6 / T5: strengthened from dict-compare to byte-diff. The original
+    `json.loads(...) == json.loads(...)` check silently accepted drift in
+    key order, whitespace, trailing newline, and UTF-8 normalization — any
+    of which would violate SC-004. We now redact the one legitimately-varying
+    line and compare the raw bytes.
+    """
     folder = _stage(tmp_path, "happy_grounded")
 
     # Inject a fixed clock on the first run, advanced clock on the second.
@@ -69,16 +78,29 @@ def test_two_runs_differ_only_by_processed_at(tmp_path: Path):
     t2 = datetime(2026, 4, 22, 12, 0, 1, tzinfo=timezone.utc)
 
     out_path = run(Invocation(document_folder=folder, now_utc=lambda: t1))
-    first = out_path.read_text(encoding="utf-8")
+    first_bytes = out_path.read_bytes()
 
     run(Invocation(document_folder=folder, now_utc=lambda: t2))
-    second = out_path.read_text(encoding="utf-8")
+    second_bytes = out_path.read_bytes()
 
-    # They differ only by the `processed_at` line.
-    first_payload = json.loads(first)
-    second_payload = json.loads(second)
+    # The dict-level assertions remain valuable — they catch per-field
+    # regressions that a naive byte-diff would also catch but would report
+    # less helpfully.
+    first_payload = json.loads(first_bytes.decode("utf-8"))
+    second_payload = json.loads(second_bytes.decode("utf-8"))
     assert first_payload["processed_at"] == "2026-04-22T12:00:00Z"
     assert second_payload["processed_at"] == "2026-04-22T12:00:01Z"
-    del first_payload["processed_at"]
-    del second_payload["processed_at"]
-    assert first_payload == second_payload
+    first_dict_no_ts = {k: v for k, v in first_payload.items() if k != "processed_at"}
+    second_dict_no_ts = {k: v for k, v in second_payload.items() if k != "processed_at"}
+    assert first_dict_no_ts == second_dict_no_ts
+
+    # Byte-level determinism: redact only the `processed_at` line, then
+    # assert the remaining bytes are identical. Catches key-order drift,
+    # indent drift, whitespace drift, and trailing-newline drift that the
+    # dict compare cannot see.
+    redact_re = re.compile(rb'"processed_at": "[^"]+"')
+    first_redacted = redact_re.sub(b'"processed_at": "REDACTED"', first_bytes)
+    second_redacted = redact_re.sub(b'"processed_at": "REDACTED"', second_bytes)
+    assert first_redacted == second_redacted, (
+        "byte-level drift detected between two runs after redacting processed_at"
+    )

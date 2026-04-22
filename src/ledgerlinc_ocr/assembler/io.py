@@ -47,11 +47,21 @@ def _format_errors(errors) -> str:
 
 
 def load_json(path: Path, *, input_name: str) -> dict:
-    """Read `path` and parse JSON. Raises `InputUnreadableError` on any failure."""
+    """Read `path` and parse JSON. Raises `InputUnreadableError` on any failure.
+
+    Non-UTF-8 bytes, truncated JSON, non-object roots, and OS read errors all
+    classify as `unreadable_input` — FR-003b distinguishes this from
+    `missing_input` (file absent) and `schema_invalid_input` (parses OK but
+    violates its schema).
+    """
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise InputUnreadableError(f"{input_name} at {path.name}: {exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise InputUnreadableError(
+            f"{input_name} at {path.name}: not valid UTF-8 ({exc.reason} at byte {exc.start})"
+        ) from exc
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:

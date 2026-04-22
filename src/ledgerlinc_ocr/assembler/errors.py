@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 EXIT_OK = 0
 EXIT_UNEXPECTED = 1
 EXIT_INPUT_REJECTED = 2
@@ -11,61 +13,80 @@ EXIT_INTERNAL_ERROR = 3
 class AssemblerError(Exception):
     """Base class for all assembler failures."""
 
-    exit_code: int = EXIT_INTERNAL_ERROR
-    kind: str = "unexpected"
+    exit_code: ClassVar[int] = EXIT_INTERNAL_ERROR
+    kind: ClassVar[str] = "unexpected"
 
 
 class InputRejectedError(AssemblerError):
-    """One of the six cross-input invariants failed; no output written. Exit 2."""
+    """One of the cross-input invariants failed; no output written. Exit 2.
 
-    exit_code = EXIT_INPUT_REJECTED
-    kind = "unexpected"
+    Concrete subclasses MUST set a non-empty `kind` string — the base class
+    deliberately has no default so a forgotten override fails loudly rather
+    than leaking the wrong taxonomy to stderr.
+    """
+
+    exit_code: ClassVar[int] = EXIT_INPUT_REJECTED
+    # No class-level `kind` default. Enforced in __init__ below.
+    kind: ClassVar[str | None] = None  # type: ignore[assignment]
+
+    def __init__(self, *args: object) -> None:
+        cls_kind = type(self).__dict__.get("kind", None)
+        # Walk MRO to accept inherited non-None kinds from concrete subclasses,
+        # but reject the base-class None sentinel.
+        resolved = getattr(type(self), "kind", None)
+        if resolved is None or not isinstance(resolved, str) or not resolved:
+            raise NotImplementedError(
+                f"{type(self).__name__} must set a non-empty `kind` class attribute"
+            )
+        super().__init__(*args)
+        # Silence unused-var warning
+        del cls_kind
 
 
 class InputMissingError(InputRejectedError):
     """`edge_extraction_output.json` or `routing_decision.json` is absent."""
 
-    kind = "missing_input"
+    kind: ClassVar[str] = "missing_input"
 
 
 class InputUnreadableError(InputRejectedError):
     """An input file exists but cannot be read or JSON-parsed."""
 
-    kind = "unreadable_input"
+    kind: ClassVar[str] = "unreadable_input"
 
 
 class InputSchemaInvalidError(InputRejectedError):
     """An input file parses but fails its own v1.0.0 schema."""
 
-    kind = "schema_invalid_input"
+    kind: ClassVar[str] = "schema_invalid_input"
 
 
 class ContractDriftError(InputRejectedError):
     """One input reports `contract_set_version != "1.0.0"`."""
 
-    kind = "contract_drift"
+    kind: ClassVar[str] = "contract_drift"
 
 
 class DocumentIdMismatchError(InputRejectedError):
     """Inputs disagree on `document_id`."""
 
-    kind = "document_id_mismatch"
+    kind: ClassVar[str] = "document_id_mismatch"
 
 
 class RoutingContradictionError(InputRejectedError):
     """Routing's `decision` and `review_status` are internally inconsistent (FR-016)."""
 
-    kind = "routing_contradiction"
+    kind: ClassVar[str] = "routing_contradiction"
 
 
 class InternalError(AssemblerError):
     """Indicates a code/contract mismatch; no output written. Exit 3."""
 
-    exit_code = EXIT_INTERNAL_ERROR
-    kind = "unexpected"
+    exit_code: ClassVar[int] = EXIT_INTERNAL_ERROR
+    kind: ClassVar[str] = "unexpected"
 
 
 class OutputSchemaInvalidError(InternalError):
     """Assembled payload failed output-side schema validation."""
 
-    kind = "output_schema_invalid"
+    kind: ClassVar[str] = "output_schema_invalid"
