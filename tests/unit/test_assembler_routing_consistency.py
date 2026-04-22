@@ -17,7 +17,10 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.assembler.errors import RoutingContradictionError
+from ledgerlinc_ocr.assembler.errors import (
+    InputSchemaInvalidError,
+    RoutingContradictionError,
+)
 from ledgerlinc_ocr.assembler.validation import check_routing_internal_consistency
 
 
@@ -58,6 +61,43 @@ def test_forbidden_combinations_raise(decision: str, mrr: bool, reason: str | No
 ])
 def test_valid_combinations_pass(decision: str, mrr: bool, reason: str | None):
     check_routing_internal_consistency(_routing(decision, mrr, reason))
+
+
+# --------------------------------------------------------------------------
+# H4 — empty or whitespace-only `review_reason` under `edge_review_required`
+# must be rejected as a contradiction. The schema permits `["string","null"]`
+# with no minLength, so the code must enforce the semantic "reason present"
+# invariant itself.
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("empty_reason", ["", " ", "   ", "\t", "\n", " \t \n "])
+def test_empty_or_whitespace_reason_under_review_required_contradicts(empty_reason):
+    with pytest.raises(RoutingContradictionError) as excinfo:
+        check_routing_internal_consistency(
+            _routing("edge_review_required", True, empty_reason)
+        )
+    assert "absent" in str(excinfo.value)
+
+
+# --------------------------------------------------------------------------
+# H3 — calling the public invariant function out of order (i.e., without
+# prior schema validation) must surface as `InputSchemaInvalidError`, not
+# leak as a bare KeyError that the CLI would route to exit 1 "unexpected".
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("broken_routing", [
+    {},  # nothing at all
+    {"decision": "edge_accept"},  # missing review_status
+    {"decision": "edge_accept", "review_status": {}},  # missing mrr + reason
+    {"decision": "edge_accept", "review_status": {"manual_review_required": False}},
+    # missing review_reason
+    {"decision": "edge_accept", "review_status": None},  # review_status wrong type
+    {"review_status": {"manual_review_required": False, "review_reason": None}},
+    # missing decision
+])
+def test_missing_keys_raise_schema_invalid_not_keyerror(broken_routing):
+    with pytest.raises(InputSchemaInvalidError):
+        check_routing_internal_consistency(broken_routing)
 
 
 # --------------------------------------------------------------------------

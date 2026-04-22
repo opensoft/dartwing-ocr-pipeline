@@ -12,6 +12,7 @@ from ledgerlinc_ocr.assembler.errors import (
     ContractDriftError,
     DocumentIdMismatchError,
     InputMissingError,
+    InputSchemaInvalidError,
     RoutingContradictionError,
 )
 from ledgerlinc_ocr.assembler.io import load_json, validate_input
@@ -68,12 +69,36 @@ def check_document_ids_match(extractor: dict, routing: dict) -> str:
     return ext_id
 
 
+def _reason_absent(reason: object) -> bool:
+    # H4: routing must explicitly spell out *why* a review is required. Empty
+    # or whitespace-only strings carry no policy information and would defeat
+    # downstream reason-based routing.
+    if reason is None:
+        return True
+    if isinstance(reason, str) and not reason.strip():
+        return True
+    return False
+
+
 def check_routing_internal_consistency(routing: dict) -> None:
-    """FR-016 / research Decision 9 — four forbidden combinations."""
-    decision = routing["decision"]
-    review = routing["review_status"]
-    mrr = review["manual_review_required"]
-    reason = review["review_reason"]
+    """FR-016 / research Decision 9 — forbidden `decision` × `review_status` combinations.
+
+    Preconditions: `routing` has already been validated against
+    `routing_decision.schema.json`. If this function is called out of order
+    with an un-validated dict, missing required keys surface as
+    ``InputSchemaInvalidError`` (exit 2, kind ``schema_invalid_input``) rather
+    than leaking ``KeyError`` to the CLI's ``Exception`` arm as an
+    ``unexpected`` / exit 1 failure.
+    """
+    try:
+        decision = routing["decision"]
+        review = routing["review_status"]
+        mrr = review["manual_review_required"]
+        reason = review["review_reason"]
+    except (KeyError, TypeError) as exc:
+        raise InputSchemaInvalidError(
+            f"routing_decision missing required key for consistency check: {exc}"
+        ) from exc
 
     if decision == "edge_accept" and mrr is True:
         raise RoutingContradictionError(
@@ -87,7 +112,8 @@ def check_routing_internal_consistency(routing: dict) -> None:
         raise RoutingContradictionError(
             "routing contradiction: decision=edge_review_required but review_status.manual_review_required=false"
         )
-    if decision == "edge_review_required" and reason is None:
+    if decision == "edge_review_required" and _reason_absent(reason):
         raise RoutingContradictionError(
-            "routing contradiction: decision=edge_review_required but review_status.review_reason=null"
+            f"routing contradiction: decision=edge_review_required but "
+            f"review_status.review_reason is absent (got {reason!r})"
         )

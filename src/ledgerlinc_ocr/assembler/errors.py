@@ -30,17 +30,12 @@ class InputRejectedError(AssemblerError):
     kind: ClassVar[str | None] = None  # type: ignore[assignment]
 
     def __init__(self, *args: object) -> None:
-        cls_kind = type(self).__dict__.get("kind", None)
-        # Walk MRO to accept inherited non-None kinds from concrete subclasses,
-        # but reject the base-class None sentinel.
         resolved = getattr(type(self), "kind", None)
-        if resolved is None or not isinstance(resolved, str) or not resolved:
+        if not isinstance(resolved, str) or not resolved:
             raise NotImplementedError(
                 f"{type(self).__name__} must set a non-empty `kind` class attribute"
             )
         super().__init__(*args)
-        # Silence unused-var warning
-        del cls_kind
 
 
 class InputMissingError(InputRejectedError):
