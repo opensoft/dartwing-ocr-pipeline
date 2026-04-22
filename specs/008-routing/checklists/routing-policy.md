@@ -72,3 +72,14 @@ validates the **requirements**, not the implementation.
 - [x] CHK035 Does the spec state that `checks.company_name_present` and `checks.company_name_inferred` are direct copies from the input, not re-derived? [Clarity, Spec §FR-009]
 - [x] CHK036 Does the spec state that routing does NOT re-verify evidence against `preprocess_output.json` and trusts the extractor's reconciliation (FR-010, FR-011 in the extractor)? [Clarity, Spec §Edge Cases]
 - [x] CHK037 Does the spec state that realistic-value selection (e.g., a company name that looks like "INVOICE") is not routing's job? [Clarity, Spec §Edge Cases]
+
+## `POLICY_VERSION` Bump Gate (PR-review, not runtime)
+
+This section is the process home for FR-005 / SC-010. The gate is enforced by
+reviewers, not by a runtime check or a CI lint — see spec FR-005 for the
+authoritative language ("PR-review gate, not a runtime check"). Adding a CI
+rule later would require a separate spec or amendment.
+
+- [x] CHK038 Is the rule-layer module list that triggers a required bump enumerated: `src/ledgerlinc_ocr/router/rules.py`, `src/ledgerlinc_ocr/router/checks.py`, `src/ledgerlinc_ocr/router/reasons.py`, `src/ledgerlinc_ocr/router/version.py`, and any canonical reason-string constants? [Completeness, Spec §FR-005]
+- [x] CHK039 Is the reviewer's responsibility stated: any PR touching those modules without a corresponding `version.POLICY_VERSION` edit MUST be rejected at review as a quality-gate failure, not a style nit? [Clarity, Spec §FR-005 §SC-010]
+- [x] CHK040 Does the spec explicitly label SC-010 as a PR-review gate rather than a runtime check, so reviewers know the enforcement point? [Traceability, Spec §FR-005 §SC-010]

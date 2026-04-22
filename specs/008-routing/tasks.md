@@ -167,7 +167,7 @@
 - [X] T052 [P] [US5] Create `tests/integration/router/test_us5_schema_valid_on_bad_input.py` (AC#5 clarification): run against T045 and T046; assert each emitted `routing_decision.json` still passes `routing_decision.schema.json` validation (status `"partial"` / `"failure"` is a value, not a schema violation)
 - [X] T053 [P] [US5] Create `tests/integration/router/test_us5_reconstruction.py` (AC#6, SC-005, SC-009): for each of {T009, T026, T034, T040, T045, T046}, load only the written `routing_decision.json` and the documented rule set; assert the `decision` can be reconstructed from `checks` + `scores` + `reasons` + `policy_version` alone (no access to the input)
 - [X] T054 [P] [US5] Create `tests/integration/router/test_extractor_invariant_violation.py` (FR-024): run against T048; assert output `status == "partial"`, `decision == "edge_review_required"`, `reasons` contains `INFORMATIONAL_CONTRACT_VIOLATION_PRESENT_INFERRED_BOTH_TRUE` (per research.md Decision 11), and the router did NOT silently "correct" the violation
-- [X] T055 [P] [US5] Create `tests/integration/router/test_no_model_no_cloud.py` (FR-019): assert the router module tree contains no imports of `requests`, `httpx`, `ollama`, `paddleocr`, `falcon`, or any model/network library (scan via `grep` on the `router/` package); assert the router performs zero network calls when invoked (patch `socket.socket` to raise; run against T009; assert success)
+- [X] T055 [P] [US5] Create `tests/integration/router/test_no_model_no_cloud.py` (FR-019): assert the router module tree contains no imports of `requests`, `httpx`, `ollama`, `paddleocr`, `falcon`, or any model/network library (scan via `grep` on the `router/` package); assert the router performs zero network calls when invoked (run the CLI via subprocess with a `sitecustomize.py` on `PYTHONPATH` that patches `socket.socket.connect` and `socket.create_connection` to raise — NOT the `socket.socket` class itself, since `ssl.py` subclasses it at import time; run against T009; assert success)
 
 ### Implementation for User Story 5
 
@@ -286,6 +286,21 @@ With multiple developers after US1 ships:
 3. Developer C: US4 (spam-gate) — independent fixtures and tests
 4. Merge order on `rules.py`: US2 → US3 → US4 → US5 (priority order; each appends to the same table)
 5. Checklists in Phase 8 can be walked in parallel by any reviewer
+
+---
+
+## Phase 9: Post-Analyze Remediation
+
+**Purpose**: Close the three MEDIUM findings and one LOW finding raised by `/speckit.analyze` against the delivered implementation. All 65 prior tasks are complete; this phase adds coverage that the audit identified as missing. No spec or plan changes — these tasks tighten enforcement of requirements that are already written.
+
+**Dependencies**: Phases 1–8 complete. No phase ordering inside Phase 9; all four tasks touch disjoint files and can run in parallel.
+
+- [X] T066 [P] Finding C1 (SC-001 timing budget): Add a timing assertion in `tests/integration/router/test_us1_schema_valid.py` (or a new `tests/integration/router/test_sc001_timing_budget.py` if isolation is cleaner) that stages the T009 fixture, runs the CLI via `subprocess`, measures wall-clock from `subprocess.run` entry to exit, and asserts the single-document route completes within a 1500 ms CI-tolerant budget (spec SC-001 pins 200 ms on a developer workstation; CI machines are noisier, so the runtime bound is widened but the intent is preserved). Add an inline comment referencing SC-001 and noting the CI-tolerance rationale so a future tightening is straightforward.
+- [X] T067 [P] Finding C2 (FR-002 key-order): Extend `tests/integration/router/test_us1_schema_valid.py` with a new test `test_checks_and_scores_key_order_matches_schema` that reads the raw bytes of the written `routing_decision.json`, loads it via `json.loads(..., object_pairs_hook=list)` or `json.JSONDecoder().raw_decode` to preserve insertion order, and asserts the `checks` and `scores` blocks emit their keys in exactly the order declared by the `required` arrays in `contracts/stage1_vendor_identity/v1.0.0/routing_decision.schema.json`. This enforces the FR-002 clause "implementation-dependent key ordering is forbidden".
+- [X] T068 [P] Finding C3 (SC-010 PR-review gate): Add a new section `## POLICY_VERSION Bump Gate (PR-review, not runtime)` to `specs/008-routing/checklists/routing-policy.md` with bullets naming (a) the rule-layer modules that trigger a required bump — `src/ledgerlinc_ocr/router/rules.py`, `checks.py`, `reasons.py`, `version.py`, and the canonical reason-string constants; (b) the reviewer's responsibility to reject any such PR missing a `POLICY_VERSION` edit; (c) a pointer to FR-005 and SC-010 as the authoritative language. The checklist is the process home for a non-runtime gate; do NOT add CI automation in this task (that would require a separate spec/amendment).
+- [X] T069 [P] Finding C5 (symmetric FR-024 case): Create `tests/fixtures/router/forbidden_present_false_inferred_false.json` — schema-valid `edge_extraction_output.json` identical to `forbidden_present_true_inferred_true.json` except `vendor_candidate.company_name.present == false` AND `.inferred == false`. Parametrize `tests/integration/router/test_extractor_invariant_violation.py` to exercise both forbidden combinations; assert each produces `status == "partial"`, `decision == "edge_review_required"`, and a contract-violation reason entry.
+
+**Checkpoint**: All four findings closed. Re-run `pytest tests/unit/router tests/integration/router tests/contract_tests` and confirm zero failures. Re-run `/speckit.analyze` to confirm C1/C2/C3/C5 no longer appear (or have moved to "Resolved").
 
 ---
 
