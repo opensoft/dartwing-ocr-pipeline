@@ -18,7 +18,9 @@ def test_failure_input_is_reviewed_and_named(
     result = run_cli(folder)
     assert result.returncode == 0, result.stderr
     art = read_artifact(folder)
-    assert art["status"] in {"partial", "failure"}
+    # Research Decision 11 pins failure→partial mapping; regression here
+    # would misrepresent router-run status, not just widen the schema enum.
+    assert art["status"] == "partial"
     assert art["decision"] == "edge_review_required"
     # Missing-name and spam-gate both also fire on this fixture, but
     # upstream-failure must appear in reasons per FR-015 traceability.

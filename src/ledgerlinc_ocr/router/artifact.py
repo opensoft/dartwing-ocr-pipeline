@@ -45,13 +45,20 @@ def assemble_and_write(folder: str | Path, artifact: dict) -> Path:
     touched when this happens.
     """
     folder = Path(folder)
+    # FR-022: routing writes only inside the target folder; do NOT silently
+    # create a missing folder — that would let a wrong-path caller silently
+    # succeed outside the per-document contract. The CLI gates on existence
+    # earlier; library callers get an explicit FileNotFoundError.
+    if not folder.is_dir():
+        raise FileNotFoundError(
+            f"target folder does not exist or is not a directory: {folder}"
+        )
     final_path = folder / _OUTPUT_FILE_NAME
 
-    # 1. Validate BEFORE touching the filesystem. The validator only accepts
-    # a file path, so we round-trip through a temp file that we delete before
-    # raising / before the atomic write. The temp file is created inside
-    # ``folder`` so the later ``os.replace`` is guaranteed atomic on POSIX.
-    folder.mkdir(parents=True, exist_ok=True)
+    # Validate AFTER writing to a sibling temp file inside ``folder`` so the
+    # later ``os.replace`` is guaranteed atomic on POSIX. On validation
+    # failure we unlink the temp file before raising so the filesystem
+    # never holds a routing_decision.json that doesn't match the schema.
     payload = _serialize(artifact)
 
     fd, tmp_name = tempfile.mkstemp(

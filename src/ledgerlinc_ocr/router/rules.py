@@ -99,17 +99,23 @@ def apply_rules(checks: dict, scores: dict, input_dict: dict) -> RuleResult:
 
     reasons: list[str] = list(forcing)
 
+    # Contract violations (both FR-024 forbidden combos: present==inferred)
+    # always trip the missing-name rule above — `_has_contract_violation`
+    # and `_fires_missing_name` overlap completely. If a future rule
+    # reorder ever decouples them, FR-007 forbids emitting
+    # decision="edge_review_required" with review_reason=None, so refuse
+    # rather than silently produce a schema-contradictory artifact.
+    if contract_violation and not forcing:
+        raise AssertionError(
+            "invariant broken: contract violation without any forcing rule "
+            "would produce decision='edge_review_required' with "
+            "review_reason=None, violating FR-007"
+        )
+
     if forcing:
         review_reason = forcing[0]
         decision = "edge_review_required"
         manual_review_required = True
-    elif contract_violation:
-        review_reason = None
-        decision = "edge_review_required"
-        manual_review_required = True
-        # Contract violation alone (no forcing rule) still routes to review.
-        # Review_reason stays None because no canonical forcing string fired;
-        # the reason is surfaced via the INFORMATIONAL entry below.
     else:
         review_reason = None
         decision = "edge_accept"

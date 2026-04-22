@@ -69,6 +69,26 @@ def test_checks_and_scores_key_order_matches_schema(
     run_cli(green_fixture)
     raw = (green_fixture / "routing_decision.json").read_text()
 
+    # Pinned literal expected order — if the schema and the code drift
+    # together (e.g., both reorder to alphabetical), the derived-from-schema
+    # assertion below would still pass. This literal is the reviewer-visible
+    # source of truth; changing it requires a POLICY_VERSION bump per FR-005.
+    LITERAL_CHECKS_ORDER = [
+        "company_name_present",
+        "company_name_inferred",
+        "address_has_minimum_components",
+        "at_least_one_tax_id_present",
+        "website_or_email_present",
+        "post_extraction_spam_gate_passed",
+    ]
+    LITERAL_SCORES_ORDER = [
+        "company_name_score",
+        "address_score",
+        "tax_id_score",
+        "contact_score",
+        "overall_vendor_identity_score",
+    ]
+
     schema = json.loads(SCHEMA_PATH.read_text())
     expected_checks_order = schema["properties"]["checks"]["required"]
     expected_scores_order = schema["properties"]["scores"]["required"]
@@ -80,11 +100,16 @@ def test_checks_and_scores_key_order_matches_schema(
     checks_keys = [k for k, _ in top_level["checks"]]
     scores_keys = [k for k, _ in top_level["scores"]]
 
-    assert checks_keys == expected_checks_order, (
-        f"checks key order drifted: got {checks_keys}, "
-        f"expected {expected_checks_order}"
+    assert checks_keys == LITERAL_CHECKS_ORDER, (
+        f"checks key order drifted from pinned literal: got {checks_keys}"
     )
-    assert scores_keys == expected_scores_order, (
-        f"scores key order drifted: got {scores_keys}, "
-        f"expected {expected_scores_order}"
+    assert scores_keys == LITERAL_SCORES_ORDER, (
+        f"scores key order drifted from pinned literal: got {scores_keys}"
+    )
+    # And the schema itself must also stay aligned with the literal pin.
+    assert expected_checks_order == LITERAL_CHECKS_ORDER, (
+        "routing_decision.schema.json checks.required drifted from literal"
+    )
+    assert expected_scores_order == LITERAL_SCORES_ORDER, (
+        "routing_decision.schema.json scores.required drifted from literal"
     )
