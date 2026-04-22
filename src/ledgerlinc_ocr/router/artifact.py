@@ -92,6 +92,19 @@ def assemble_and_write(folder: str | Path, artifact: dict) -> Path:
             )
 
         os.replace(tmp_path, final_path)
+
+        # ``os.replace`` only updates the in-memory directory entry; on a
+        # host crash between the rename and the kernel's next directory
+        # flush, POSIX permits the rename to be lost OR the file to surface
+        # with zero bytes. Fsync the containing directory's fd so the
+        # "no partial/invalid routing_decision.json visible to readers"
+        # guarantee in this module's docstring holds across crashes, not
+        # only across clean shutdowns.
+        dir_fd = os.open(folder, os.O_RDONLY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
     except Exception:
         if tmp_path.exists():
             try:

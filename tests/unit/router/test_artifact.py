@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from ledgerlinc_ocr.router.artifact import assemble_and_write
-from ledgerlinc_ocr.router.errors import ContractAssertionError
+from ledgerlinc_ocr.router.errors import ContractAssertionError, MissingInputError
 
 
 def _valid_artifact(document_id="inv_001_easy"):
@@ -92,3 +92,27 @@ def test_no_partial_temp_file_on_success(tmp_path: Path):
         p for p in tmp_path.iterdir() if p.name.startswith(".routing_decision.")
     ]
     assert leftovers == []
+
+
+def test_ghost_folder_raises_typed_missing_input_error(tmp_path: Path):
+    """FR-022 gate: library callers that bypass the CLI pre-check must get a
+    typed ``MissingInputError`` (CLI exit 2) — not a bare ``FileNotFoundError``
+    that the CLI surface would misclassify as an unexpected exception (exit 1).
+    """
+    ghost = tmp_path / "does_not_exist"
+    with pytest.raises(MissingInputError) as exc_info:
+        assemble_and_write(ghost, _valid_artifact())
+    # Confirm the typed error carries the human_message attribute the CLI
+    # relies on for its one-line stderr diagnostic.
+    assert "does not exist" in exc_info.value.human_message
+
+
+def test_ghost_folder_raises_before_any_filesystem_write(tmp_path: Path):
+    """Pre-write gate must fire before we create any sibling/temp files."""
+    ghost = tmp_path / "does_not_exist"
+    with pytest.raises(MissingInputError):
+        assemble_and_write(ghost, _valid_artifact())
+    # The ghost path is still absent — we didn't accidentally mkdir it.
+    assert not ghost.exists()
+    # And tmp_path itself has no stray files.
+    assert list(tmp_path.iterdir()) == []

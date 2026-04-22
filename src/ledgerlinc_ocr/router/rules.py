@@ -74,6 +74,26 @@ def _map_input_status_to_output(input_status: str) -> str:
 def apply_rules(checks: dict, scores: dict, input_dict: dict) -> RuleResult:
     """Compute the decision, status, review_status, and ordered reasons."""
     input_status = input_dict.get("status", "success")
+
+    # Research Decision 11 + FR-020: on ``input_status == "failure"``, the
+    # upstream extractor's structural booleans (present/inferred/evidence)
+    # are not trustworthy — the spec is explicit that **no other rules are
+    # evaluated**. Emit a defensive review-required with
+    # ``upstream_extraction_failed`` as the SOLE forcing reason. Without
+    # this short-circuit, a failure input whose extractor emitted null
+    # values would trip spam-gate (priority 2) and that reason would
+    # preempt upstream-failure (priority 4) in ``review_reason``, directly
+    # violating FR-020's mandate that review_reason == "upstream_extraction_failed"
+    # on failure inputs.
+    if input_status == "failure":
+        return RuleResult(
+            decision="edge_review_required",
+            status="partial",
+            review_reason=R.REASON_UPSTREAM_FAILURE,
+            manual_review_required=True,
+            reasons=[R.REASON_UPSTREAM_FAILURE],
+        )
+
     output_status = _map_input_status_to_output(input_status)
     forcing: list[str] = []
 
