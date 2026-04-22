@@ -1,0 +1,38 @@
+# GitHub repository policy — documented as code.
+#
+# This file describes the repo's intended GitHub settings. When the Probot
+# "Settings" app (https://github.com/apps/settings) is installed on the org,
+# this file becomes enforcing. Without the app it is documentation that
+# survives GitHub UI drift, so future contributors can see the policy
+# without clicking through settings.
+#
+# Runtime truth lives in GitHub repo settings. Change this file AND the
+# GitHub settings together — e.g. via:
+#   gh api --method PATCH /repos/opensoft/ledgerlinc-model-ocr-pipeline \
+#     -F allow_squash_merge=false \
+#     -F allow_merge_commit=true \
+#     -F allow_rebase_merge=true \
+#     -F delete_branch_on_merge=true
+
+repository:
+  # --- Merge strategy -------------------------------------------------------
+  # Squash is disabled because it collapses per-commit review history into
+  # one opaque diff on main. We want the review-round narrative visible in
+  # `git log` (see PR #7 / 008-routing for the pattern we preserve, vs. PR
+  # #8 / 009-final-payload which landed as a squash before this policy and
+  # is the one commit on main with no review-trail history).
+  #
+  # Merge commit is the default (keeps first-parent history one-entry-per-PR,
+  # preserves branch topology). Rebase remains available for contributors
+  # who prefer linear history; both strategies preserve the individual
+  # feature-branch commits.
+  allow_merge_commit: true
+  allow_squash_merge: false
+  allow_rebase_merge: true
+
+  # --- Branch hygiene -------------------------------------------------------
+  # Auto-delete the remote feature branch on merge. Combined with the
+  # worktree-per-feature flow used by speckit, this keeps `git branch -r`
+  # and the worktree list clean. Contributors still need a local
+  # `git fetch --prune` and `git worktree remove` for their local copies.
+  delete_branch_on_merge: true
