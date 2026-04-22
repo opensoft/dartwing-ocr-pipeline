@@ -7,7 +7,7 @@
 
 ## `contract_set_version` Pinning — Clarity
 
-- [x] CHK001 Does the spec pin `contract_set_version = "1.0.0"` as the only accepted value for stage 1, in every artifact it produces? [Clarity, Spec §FR-002 / §FR-013 / §FR-014]
+- [x] CHK001 Does the spec pin the evaluator's default `contract_set_version` and define the MINOR-forward-compat input rule (same major, artifact minor ≤ pin minor)? Default is `"1.1.0"` since the 2026-04-22 amendment; outputs stamp the pin. [Clarity, Spec §FR-002 / §FR-013 / §FR-014]
 - [x] CHK002 Is the rejection behavior on version drift stated consistently between `expected.json` and `final_structured_payload.json`? [Consistency, Spec §Edge Cases / §FR-013]
 - [x] CHK003 Does the spec require `contract_set_version` to be set on both `evaluation_document.json` and `evaluation_run_summary.json` outputs? [Completeness, Spec §FR-002 / §FR-014]
 - [x] CHK004 Is the pinned version anchored to the contract set (`contract_set.json`) rather than re-stated as a magic string? [Traceability, Spec §Assumptions]

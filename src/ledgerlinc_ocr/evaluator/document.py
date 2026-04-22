@@ -37,6 +37,7 @@ from ledgerlinc_ocr.evaluator.scoring import (
     SCORED_FIELDS,
     build_comparison_summary,
     compute_document_score,
+    is_compatible_version,
 )
 
 Difficulty = Literal["easy", "medium", "hard", "missing_name"]
@@ -58,9 +59,10 @@ class DocumentEvaluation:
     folder_path: Path
 
     def __post_init__(self) -> None:
-        if self.contract_set_version != CONTRACT_SET_VERSION:
+        if not is_compatible_version(self.contract_set_version, CONTRACT_SET_VERSION):
             raise ValueError(
-                f"contract_set_version must be {CONTRACT_SET_VERSION!r}, "
+                f"contract_set_version must be compatible with "
+                f"{CONTRACT_SET_VERSION!r} (same major, minor ≤ pinned); "
                 f"got {self.contract_set_version!r}"
             )
         names = tuple(f.field_name for f in self.field_results)
@@ -142,15 +144,15 @@ def evaluate_document(
 
     exp_version = expected.get("contract_set_version")
     pay_version = payload.get("contract_set_version")
-    if exp_version != pinned_version:
+    if not is_compatible_version(exp_version, pinned_version):
         raise ContractSetVersionMismatchError(
-            f"{expected_path}: contract_set_version {exp_version!r} does not match "
-            f"pinned {pinned_version!r}"
+            f"{expected_path}: contract_set_version {exp_version!r} is not compatible "
+            f"with pinned {pinned_version!r} (same major, minor ≤ pinned)"
         )
-    if pay_version != pinned_version:
+    if not is_compatible_version(pay_version, pinned_version):
         raise ContractSetVersionMismatchError(
-            f"{payload_path}: contract_set_version {pay_version!r} does not match "
-            f"pinned {pinned_version!r}"
+            f"{payload_path}: contract_set_version {pay_version!r} is not compatible "
+            f"with pinned {pinned_version!r} (same major, minor ≤ pinned)"
         )
 
     exp_id = expected["document_id"]

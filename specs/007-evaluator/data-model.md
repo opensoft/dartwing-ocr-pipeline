@@ -48,7 +48,7 @@ FIELD_WEIGHTS: dict[str, int] = {
     "manual_review_required": 8, "review_reason": 4,
 }  # Sum = 100. Address sub-sum = 20. Tax-ID sub-sum = 16.
 
-CONTRACT_SET_VERSION: str = "1.0.0"
+CONTRACT_SET_VERSION: str = "1.1.0"  # pinned; MINOR-forward compat per FR-013
 GATE_THRESHOLD: float = 0.85
 GATE_EPSILON: float = 1e-9
 ```
@@ -132,7 +132,7 @@ Full in-memory representation of one document's evaluation, serialized into `eva
 ```python
 @dataclass(frozen=True, slots=True)
 class DocumentEvaluation:
-    contract_set_version: str         # Always "1.0.0"
+    contract_set_version: str         # Pinned version; default "1.1.0" (FR-002)
     document_id: str
     difficulty: Literal["easy", "medium", "hard", "missing_name"]
     challenge_tags: tuple[str, ...]

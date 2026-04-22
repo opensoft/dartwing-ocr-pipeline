@@ -24,13 +24,13 @@ def evaluate_document(
 
 **Parameters**:
 - `folder`: path to a per-document folder.
-- `contract_set_version`: optional pin; defaults to the version declared in the inputs. MUST match `"1.0.0"` for stage 1.
+- `contract_set_version`: optional pin; defaults to `CONTRACT_SET_VERSION` from `scoring.py` (currently `"1.1.0"`). Any known version under `contracts/stage1_vendor_identity/` is accepted; input artifacts evaluated under the MINOR-forward compat rule in spec FR-013.
 
 **Returns**: `DocumentEvaluationOutcome` (see data-model.md §11).
 
 **Raises**:
 - `FileNotFoundError` — `expected.json` or `final_structured_payload.json` missing.
-- `ContractSetVersionMismatchError` — either input reports a `contract_set_version` other than `"1.0.0"`, or they disagree.
+- `ContractSetVersionMismatchError` — either input reports a `contract_set_version` not compatible with the pinned version (different MAJOR or MINOR greater than the pin), or the two inputs disagree.
 - `DocumentIdMismatchError` — inputs disagree on `document_id`.
 - `SchemaValidationError` — either input fails its frozen schema.
 

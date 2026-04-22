@@ -122,6 +122,23 @@ def test_contract_set_drift_raises_and_writes_nothing(tmp_path: Path) -> None:
     assert _sha(folder / "final_structured_payload.json") == final_hash
 
 
+def test_older_minor_inputs_accepted_under_newer_pin(tmp_path: Path) -> None:
+    """FR-013 MINOR-forward compatibility: artifacts stamped at an older minor
+    (here `1.0.0`) MUST evaluate cleanly under a newer pinned contract set
+    (here the default `1.1.0`), because MINOR bumps are additive and the
+    older artifact is a valid subset of the newer schema."""
+    folder = _copy_fixture(FIXTURES / "all_match", tmp_path)
+    import json
+
+    for name in ("expected.json", "final_structured_payload.json"):
+        path = folder / name
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        assert doc["contract_set_version"] == "1.0.0"
+    outcome = evaluate_document(folder)
+    assert outcome.ok is True
+    assert outcome.evaluation is not None
+
+
 def test_document_id_mismatch_raises_and_writes_nothing(tmp_path: Path) -> None:
     folder = _copy_fixture(FIXTURES / "hard_errors/document_id_mismatch", tmp_path)
     expected_hash = _sha(folder / "expected.json")

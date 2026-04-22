@@ -65,12 +65,22 @@ FIELD_WEIGHTS: dict[str, int] = {
     "review_reason": 4,
 }
 
-CONTRACT_SET_VERSION: str = "1.0.0"
+CONTRACT_SET_VERSION: str = "1.1.0"
 GATE_THRESHOLD: float = 0.85
 # Edge case "Weighted document_score = 0.849999…" in spec.md: compare with
 # inclusive `>=` + small epsilon so float rounding can't falsely fail a doc
 # whose weighted math lands a few ulps below 0.85.
 GATE_EPSILON: float = 1e-9
+
+
+def is_compatible_version(artifact_version: str, pinned_version: str) -> bool:
+    """Accept an artifact if its major matches the pinned major and its minor
+    is ≤ the pinned minor. Additive (MINOR) contract bumps only add fields;
+    older artifacts therefore remain valid under the newer pinned schema.
+    Newer MINOR or any MAJOR mismatch is a hard error."""
+    a_major, a_minor, _ = (int(p) for p in artifact_version.split("."))
+    p_major, p_minor, _ = (int(p) for p in pinned_version.split("."))
+    return a_major == p_major and a_minor <= p_minor
 
 assert set(FIELD_WEIGHTS) == set(SCORED_FIELDS), (
     "FIELD_WEIGHTS keys must match SCORED_FIELDS"

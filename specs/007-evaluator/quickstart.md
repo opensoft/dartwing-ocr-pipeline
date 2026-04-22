@@ -60,11 +60,11 @@ To get the machine-readable outcome instead of the text summary, pass `--json`:
 jq . tests/stage1_vendor_identity/inv_001_easy/evaluation_document.json
 ```
 
-Notable structure (full schema: `contracts/stage1_vendor_identity/v1.0.0/evaluation_document.schema.json`):
+Notable structure (full schema: `contracts/stage1_vendor_identity/v1.1.0/evaluation_document.schema.json`):
 
 ```json
 {
-  "contract_set_version": "1.0.0",
+  "contract_set_version": "1.1.0",
   "document_id": "inv_001_easy",
   "difficulty": "easy",
   "challenge_tags": [...],
@@ -179,7 +179,7 @@ The `diff` should produce no output. Per-document `evaluation_document.json` fil
 
 ## 6. Common gotchas
 
-- **`contract_set_version` drift** — if either input reports a version other than `"1.0.0"`, the evaluator refuses to run (exit `3`). Fix the upstream producer, then re-run.
+- **`contract_set_version` drift** — if either input reports a version not compatible with the pin (different MAJOR, or MINOR greater than the pin; default pin `"1.1.0"`), the evaluator refuses to run (exit `3`). Older MINORs within the same major (e.g. a `"1.0.0"` artifact under a `"1.1.0"` pin) are accepted automatically under FR-013. Fix the upstream producer if the version is truly incompatible.
 - **`document_id` mismatch** — `expected.json` and `final_structured_payload.json` must agree on `document_id`. If they don't, the wrong `final_structured_payload.json` is in the folder.
 - **Missing `expected.json`** — this feature does not scaffold labels; bring them from feature 006 (Corpus Scaffolding & Human Labeling).
 - **`final_structured_payload.json` with extra fields** — blocked by the schema (`additionalProperties: false`) and rejected before evaluation starts. Fix the pipeline.
