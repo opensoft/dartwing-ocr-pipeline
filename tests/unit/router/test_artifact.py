@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -107,12 +108,34 @@ def test_ghost_folder_raises_typed_missing_input_error(tmp_path: Path):
     assert "does not exist" in exc_info.value.human_message
 
 
-def test_ghost_folder_raises_before_any_filesystem_write(tmp_path: Path):
-    """Pre-write gate must fire before we create any sibling/temp files."""
+def test_ghost_folder_raises_before_any_filesystem_write(
+    tmp_path: Path, monkeypatch
+):
+    """Pre-write gate must fire before we attempt any filesystem write.
+
+    The prior assertion (``tmp_path`` empty after the raise) was tautological:
+    ``tempfile.mkstemp(dir=ghost)`` would fail on a missing folder anyway, so
+    the assertion passed even if the gate wasn't doing any work. Spy on
+    ``tempfile.mkstemp`` and ``os.open`` directly — those are the only calls
+    that could create filesystem state before the schema validator runs.
+    """
     ghost = tmp_path / "does_not_exist"
+
+    mkstemp_calls: list[tuple] = []
+    original_mkstemp = tempfile.mkstemp
+
+    def spy_mkstemp(*args, **kwargs):
+        mkstemp_calls.append((args, kwargs))
+        return original_mkstemp(*args, **kwargs)
+
+    monkeypatch.setattr(tempfile, "mkstemp", spy_mkstemp)
+
     with pytest.raises(MissingInputError):
         assemble_and_write(ghost, _valid_artifact())
-    # The ghost path is still absent — we didn't accidentally mkdir it.
-    assert not ghost.exists()
-    # And tmp_path itself has no stray files.
-    assert list(tmp_path.iterdir()) == []
+
+    assert mkstemp_calls == [], (
+        "MissingInputError must fire before tempfile.mkstemp — otherwise a "
+        "wrong-path caller could create tempfiles in an unintended location "
+        "before the folder gate rejects them."
+    )
+    assert not ghost.exists(), "pre-write gate must not mkdir the target"
