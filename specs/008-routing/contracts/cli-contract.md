@@ -62,7 +62,12 @@ is a structural input problem. This lets callers distinguish "bad input" from
    read — in particular, `preprocess_output.json` is NOT re-read by the router
    (FR-019).
 2. **Write set on success**: `<PATH>/routing_decision.json` is written
-   atomically (via temp-file + rename).
+   atomically (via temp-file + `os.replace`). The containing directory's
+   file descriptor is `fsync`'d after the rename so that a host crash between
+   the rename and the kernel's next directory flush cannot surface a partial
+   or zero-byte `routing_decision.json` to readers — the FR-002 "no partial
+   or dangling artifact" guarantee holds across crashes, not only across
+   clean shutdowns.
 3. **Write set on failure**: nothing is written. In particular, no partial
    `routing_decision.json` is persisted (FR-003).
 4. **Overwrite**: an existing `routing_decision.json` is replaced on success.

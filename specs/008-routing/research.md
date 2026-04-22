@@ -191,8 +191,8 @@ secondary-identifier slots the floor counts are:
 3. `checks.website_or_email_present` (one slot — website and email together
    count as one, per the aggregate boolean name and the edge case at
    `spec.md:113`)
-4. `phone` grounded (one slot — computed inline from the input, since there is
-   no `checks.phone_present` boolean in the schema)
+4. `phone`-grounded (one slot — computed inline from the input, since there
+   is no `checks.phone_present` boolean in the schema)
 
 The floor requires `true_count(1..4) >= 2` for `edge_accept`. Strictly fewer
 than 2 forces `edge_review_required` with canonical reason
@@ -355,9 +355,15 @@ Both strings are part of `policy_version`.
 - Input `status == "failure"` → output `status = "partial"` (not `"failure"`,
   because the router succeeded at producing a schema-valid artifact);
   `decision = "edge_review_required"` defensively with canonical reason
-  `"upstream_extraction_failed"`; `reasons` includes that canonical string.
-  No other rules are evaluated because a failed extraction's structural
-  booleans are untrustworthy.
+  `"upstream_extraction_failed"`; `reasons` is exactly
+  `["upstream_extraction_failed"]`. No other rules are evaluated because a
+  failed extraction's structural booleans are untrustworthy. In particular,
+  this short-circuit **subsumes FR-024**: even if the failed input also
+  exhibits a forbidden `company_name` combo (`present == inferred`), the
+  contract-violation informational entry is NOT emitted, because the
+  `vendor_candidate` booleans the FR-024 check reads are exactly the ones
+  this decision treats as untrustworthy. Affirmatives and
+  `"upstream_status_partial"` are likewise suppressed.
 
 **Rationale**:
 - The schema allows `status ∈ {"success","partial","failure"}`. `"failure"` is
