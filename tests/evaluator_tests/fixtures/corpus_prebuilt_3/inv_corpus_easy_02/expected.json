@@ -1,0 +1,38 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_easy_02",
+  "difficulty": "easy",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present",
+    "website_present"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Bluebird Supply Co.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "22 Oak Ave",
+      "street_2": null,
+      "city": "Seattle",
+      "state": "WA",
+      "postal_code": "98101",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "23-4567890",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://bluebird.example.com",
+    "phone": "+1 206-555-0110",
+    "email": "billing@bluebird.example.com"
+  }
+}

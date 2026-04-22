@@ -1,0 +1,38 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_missing_01",
+  "difficulty": "missing_name",
+  "challenge_tags": [
+    "missing_company_name",
+    "logo_only",
+    "ein_present"
+  ],
+  "expected_review": {
+    "manual_review_required": true,
+    "review_reason": "company_name_inferred"
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Probable Parts Co.",
+      "present": false,
+      "inferred": true
+    },
+    "address": {
+      "street_1": "21 Inferred Way",
+      "street_2": null,
+      "city": "Reno",
+      "state": "NV",
+      "postal_code": "89501",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "11-1111111",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://probable.example.com",
+    "phone": "+1 775-555-0310",
+    "email": "ap@probable.example.com"
+  }
+}

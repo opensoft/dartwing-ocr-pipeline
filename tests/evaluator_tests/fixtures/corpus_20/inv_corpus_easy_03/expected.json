@@ -1,0 +1,38 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_easy_03",
+  "difficulty": "easy",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present",
+    "website_present"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Cedar Freight LLC",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "300 Pine Rd",
+      "street_2": null,
+      "city": "Denver",
+      "state": "CO",
+      "postal_code": "80202",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "34-5678901",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://cedarfreight.example.com",
+    "phone": "+1 303-555-0120",
+    "email": "ops@cedarfreight.example.com"
+  }
+}
