@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.1.0/evidence_packet.schema.json",
+  "title": "evidence_packet",
+  "description": "Deterministic, voter-ready, Trijunction-shaped evidence packet assembled from preprocess_output.json. Introduced in contract-set v1.1.0 (MINOR, additive).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_set_version",
+    "document_id",
+    "source_file",
+    "page_count",
+    "pages",
+    "reading_order",
+    "document_text",
+    "tables",
+    "ingestion_sources",
+    "perceptual_observations",
+    "candidate_vendor_signals"
+  ],
+  "properties": {
+    "contract_set_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "document_id": { "type": "string", "minLength": 1 },
+    "source_file": { "type": "string", "minLength": 1 },
+    "page_count": { "type": "integer", "minimum": 0 },
+    "pages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/page" }
+    },
+    "reading_order": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^p\\d+_b\\d+$" }
+    },
+    "document_text": { "type": "string" },
+    "tables": { "type": "array", "items": { "type": "object" } },
+    "ingestion_sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paddleocr_vl", "falcon_ocr", "falcon_perception"],
+      "properties": {
+        "paddleocr_vl": { "$ref": "#/$defs/ingestion_source" },
+        "falcon_ocr": { "$ref": "#/$defs/ingestion_source" },
+        "falcon_perception": { "$ref": "#/$defs/ingestion_source" }
+      }
+    },
+    "perceptual_observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "logos", "stamps", "header_candidates", "footer_candidates"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "failure", "not_implemented"]
+        },
+        "logos": { "type": "array", "items": { "type": "object" } },
+        "stamps": { "type": "array", "items": { "type": "object" } },
+        "header_candidates": { "type": "array", "items": { "type": "object" } },
+        "footer_candidates": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "candidate_vendor_signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["company_name", "addresses", "emails", "websites", "phones", "tax_ids"],
+      "properties": {
+        "company_name": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "object" }
+          ]
+        },
+        "addresses": { "type": "array", "items": { "type": "object" } },
+        "emails": { "type": "array", "items": { "$ref": "#/$defs/hint" } },
+        "websites": { "type": "array", "items": { "$ref": "#/$defs/hint" } },
+        "phones": { "type": "array", "items": { "$ref": "#/$defs/hint" } },
+        "tax_ids": { "type": "array", "items": { "$ref": "#/$defs/hint" } }
+      }
+    }
+  },
+  "$defs": {
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "page_number",
+        "width",
+        "height",
+        "rotation_detected",
+        "blocks",
+        "raw_ocr_lines"
+      ],
+      "properties": {
+        "page_number": { "type": "integer", "minimum": 1 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "rotation_detected": { "type": "integer", "enum": [0, 90, 180, 270] },
+        "blocks": { "type": "array", "items": { "$ref": "#/$defs/block" } },
+        "raw_ocr_lines": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ocr_line" }
+        }
+      }
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "block_id",
+        "block_type",
+        "bbox",
+        "reading_order",
+        "text",
+        "confidence"
+      ],
+      "properties": {
+        "block_id": { "type": "string", "pattern": "^p\\d+_b\\d+$" },
+        "block_type": {
+          "type": "string",
+          "enum": ["text", "title", "table", "figure", "header", "footer"]
+        },
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "reading_order": { "type": "integer", "minimum": 1 },
+        "text": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+    "ocr_line": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line_id", "bbox", "text", "confidence"],
+      "properties": {
+        "line_id": { "type": "string", "pattern": "^p\\d+_l\\d+$" },
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "text": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+    "bbox": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "type": "integer", "minimum": 0 }
+    },
+    "ingestion_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "status", "payload"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "status": {
+          "type": "string",
+          "enum": ["success", "failure", "not_implemented"]
+        },
+        "payload": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["kind"],
+              "properties": {
+                "kind": { "type": "string", "minLength": 1 }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "hint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "document_text_offset",
+        "document_text_length",
+        "page_index",
+        "block_index",
+        "line_index",
+        "provenance"
+      ],
+      "properties": {
+        "value": { "type": "string", "minLength": 1 },
+        "document_text_offset": { "type": "integer", "minimum": 0 },
+        "document_text_length": { "type": "integer", "minimum": 1 },
+        "page_index": { "type": "integer", "minimum": 0 },
+        "block_index": { "type": "integer", "minimum": 0 },
+        "line_index": { "type": "integer", "minimum": 0 },
+        "provenance": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

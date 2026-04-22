@@ -1,0 +1,37 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_medium_05_fail",
+  "difficulty": "medium",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Juniper Tools LLC",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "100 Hammer St",
+      "street_2": null,
+      "city": "Nashville",
+      "state": "TN",
+      "postal_code": "37201",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "01-2345678",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://junipertools.example.com",
+    "phone": "+1 615-555-0190",
+    "email": "ap@junipertools.example.com"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_hard_01",
+  "difficulty": "hard",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Kestrel Engineering, Inc.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "11 Hawk Blvd",
+      "street_2": null,
+      "city": "Phoenix",
+      "state": "AZ",
+      "postal_code": "85001",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "11-2233445",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://kestrel.example.com",
+    "phone": "+1 602-555-0200",
+    "email": "ap@kestrel.example.com"
+  }
+}

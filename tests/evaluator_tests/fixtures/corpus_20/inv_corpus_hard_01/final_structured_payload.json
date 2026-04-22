@@ -1,0 +1,87 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-mvp-0.1.0",
+  "document_id": "inv_corpus_hard_01",
+  "processed_at": "2026-04-21T12:00:00.000000Z",
+  "document_type": "invoice",
+  "vendor_candidate": {
+    "company_name": {
+      "value": "kestrel engineering inc",
+      "present": true,
+      "inferred": false,
+      "confidence": 0.95
+    },
+    "address": {
+      "street_1": {
+        "value": "11 Hawk Blvd",
+        "confidence": 0.95
+      },
+      "street_2": {
+        "value": null,
+        "confidence": 1.0
+      },
+      "city": {
+        "value": "Phoenix",
+        "confidence": 0.95
+      },
+      "state": {
+        "value": "AZ",
+        "confidence": 0.95
+      },
+      "postal_code": {
+        "value": "85001",
+        "confidence": 0.95
+      },
+      "country": {
+        "value": "US",
+        "confidence": 0.95
+      }
+    },
+    "tax_ids": {
+      "ein": {
+        "value": "11-2233445",
+        "confidence": 0.95
+      },
+      "state_tax_id": {
+        "value": null,
+        "confidence": 1.0
+      },
+      "vat_id": {
+        "value": null,
+        "confidence": 1.0
+      },
+      "other_tax_id": {
+        "value": null,
+        "confidence": 1.0
+      }
+    },
+    "website": {
+      "value": "https://kestrel.example.com",
+      "confidence": 0.95
+    },
+    "phone": {
+      "value": "+1 602-555-0200",
+      "confidence": 0.95
+    },
+    "email": {
+      "value": "ap@kestrel.example.com",
+      "confidence": 0.95
+    }
+  },
+  "review_status": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "quality_summary": {
+    "overall_vendor_confidence": 0.9,
+    "explicit_name_found": true,
+    "consensus_level": "single_voter_baseline",
+    "secondary_identifiers_found": []
+  },
+  "trace": {
+    "source_file": "source.pdf",
+    "preprocess_output_file": "preprocess_output.json",
+    "edge_extraction_output_file": "edge_extraction_output.json",
+    "routing_decision_file": "routing_decision.json"
+  }
+}

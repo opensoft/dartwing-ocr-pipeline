@@ -1,0 +1,37 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_corpus_medium_03",
+  "difficulty": "medium",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present"
+  ],
+  "expected_review": {
+    "manual_review_required": false,
+    "review_reason": null
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "Harbor Metals Inc.",
+      "present": true,
+      "inferred": false
+    },
+    "address": {
+      "street_1": "80 Dock Way",
+      "street_2": null,
+      "city": "Baltimore",
+      "state": "MD",
+      "postal_code": "21201",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": "89-0123456",
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "https://harbormetals.example.com",
+    "phone": "+1 410-555-0170",
+    "email": "ap@harbormetals.example.com"
+  }
+}

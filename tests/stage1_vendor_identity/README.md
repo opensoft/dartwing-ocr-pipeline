@@ -9,6 +9,7 @@ Each document lives in its own folder named `inv_<NNN>_<difficulty>/` where
 
 See the authoritative documentation:
 
+- `docs/stage1-vendor-identity/labeling-guide.md` — authoritative labeler-facing conventions for `expected.json` and `notes.md`, plus the PII/license screening checklist applied before any document enters the corpus.
 - `docs/stage1-vendor-identity/dataset-layout.md` — folder contract, difficulty, challenge-tag vocabulary.
 - `docs/stage1-vendor-identity/schemas.md` — `expected.json` shape.
 - `contracts/stage1_vendor_identity/v1.0.0/expected.schema.json` — machine-readable contract the validator enforces.

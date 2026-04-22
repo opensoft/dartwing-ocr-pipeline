@@ -29,6 +29,7 @@ dev = [
 [project.scripts]
 ledgerlinc-preprocess = "ledgerlinc_ocr.preprocessing.cli:main"
 ledgerlinc-pipeline = "ledgerlinc_ocr.pipeline.cli:main"
+ledgerlinc-evidence-packet = "ledgerlinc_ocr.evidence_packet.cli:main"
 ledgerlinc-extract = "ledgerlinc_ocr.extract.cli:main"
 
 [tool.setuptools.packages.find]
@@ -39,7 +40,7 @@ include = ["ledgerlinc_ocr*"]
 "ledgerlinc_ocr.extract.voters" = ["configs/*.yaml", "configs/prompts/*.md"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/contract_tests", "tests/pipeline_tests", "tests/unit", "tests/integration"]
+testpaths = ["tests/contract_tests", "tests/pipeline_tests", "tests/unit", "tests/integration", "tests/evaluator_tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

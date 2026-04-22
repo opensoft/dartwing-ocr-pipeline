@@ -1,0 +1,47 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-edge-v0.1",
+  "document_id": "inv_001",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3300,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "text",
+          "bbox": [100, 100, 500, 200],
+          "reading_order": 1,
+          "text": "",
+          "confidence": 0.9
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [100, 100, 500, 200],
+          "text": "",
+          "confidence": 0.9
+        }
+      ]
+    }
+  ],
+  "document_text": "",
+  "tables": [],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": { "enabled": true, "status": "success" },
+    "falcon_ocr": { "enabled": false, "status": "not_implemented" },
+    "falcon_perception": { "enabled": false, "status": "not_implemented" }
+  },
+  "warnings": []
+}

@@ -1,0 +1,34 @@
+{
+  "contract_set_version": "1.0.0",
+  "document_id": "inv_020_missing_name",
+  "difficulty": "missing_name",
+  "challenge_tags": ["missing_company_name", "email_domain_present", "website_present"],
+  "expected_review": {
+    "manual_review_required": true,
+    "review_reason": "company_name_inferred"
+  },
+  "expected_vendor_candidate": {
+    "company_name": {
+      "value": "High Desert Power",
+      "present": false,
+      "inferred": true
+    },
+    "address": {
+      "street_1": "PO Box 30150",
+      "street_2": null,
+      "city": "Reno",
+      "state": "NV",
+      "postal_code": "89520-3150",
+      "country": "US"
+    },
+    "tax_ids": {
+      "ein": null,
+      "state_tax_id": null,
+      "vat_id": null,
+      "other_tax_id": null
+    },
+    "website": "highdesert-power.example.com",
+    "phone": "(888) 555-0142",
+    "email": "outages@highdesert-power.example.com"
+  }
+}
