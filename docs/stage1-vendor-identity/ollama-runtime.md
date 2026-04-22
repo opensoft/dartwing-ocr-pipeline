@@ -15,9 +15,23 @@ The host path remains the default because it is the only path that has been veri
 
 The pipeline container defaults to:
 
-- `OLLAMA_BASE_URL=http://host.docker.internal:11434`
+- `OLLAMA_BASE_URL=http://${WSL_HOST_IP}:11434` when `WSL_HOST_IP` is resolved at start time (the normal path)
+- `OLLAMA_BASE_URL=http://host.docker.internal:11434` as a fallback when `WSL_HOST_IP` is unset
 
 That allows the lightweight pipeline container to call a host-level Ollama service without bundling model serving into the dev container.
+
+### Why The WSL IP Path, Not `host.docker.internal`
+
+`host.docker.internal` is a Docker Desktop alias pointing at Docker Desktop's private host-gateway network (typically `192.168.65.254`). WSL 2 Ubuntu's eth0 lives on a different virtual network (typically `172.25.x.y`). On this workstation the Docker Desktop host-gateway path does not reliably reach host Ollama, while routing from the devcontainer to the WSL distro's own IP does. Using the WSL IP directly avoids the fragile path.
+
+### How `WSL_HOST_IP` Gets Populated
+
+Two entry points resolve the current WSL distro IP before the compose stack starts:
+
+- **VS Code Dev Containers.** `.devcontainer/devcontainer.json` declares an `initializeCommand` that writes `.devcontainer/.env` with `WSL_HOST_IP=$(hostname -I | awk '{print $1}')`. Docker Compose auto-loads that env file.
+- **Manual `docker compose up`.** `scripts/devcontainer-up.sh` does the same thing, then invokes `docker compose`. Use this when starting the stack outside VS Code.
+
+`.devcontainer/.env` is gitignored (machine-specific value). WSL eth0 addresses can drift across WSL reboots; re-running either entry point picks up the new IP automatically.
 
 ## Local WSL Container Path
 
