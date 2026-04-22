@@ -120,6 +120,10 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - `specs/005-single-voter-extraction/contracts/cli-contract.md` — `ledgerlinc-extract` CLI surface + exit codes
 - `specs/005-single-voter-extraction/contracts/voter-config.md` — voter config schema, extension-key escape hatch, stub-voter contract
 - `specs/005-single-voter-extraction/quickstart.md` — end-to-end extractor walk-through and hard-failure smoke tests
+- `specs/009-final-payload/spec.md` — final-payload assembler slice requirements, user stories, and hard-fail invariants (FR-003 through FR-025)
+- `specs/009-final-payload/plan.md` — assembler technical plan, invariant check order, FINAL_KEY_ORDER, error kinds
+- `specs/009-final-payload/research.md` — assembler decisions (pipeline_version format, secondary enum ordering, `overall_vendor_confidence` formula pinning, processed_at format, JSON serialization)
+- `specs/009-final-payload/quickstart.md` — end-to-end walkthrough for running `python -m ledgerlinc_ocr.assembler`
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 
 ## Active Technologies
@@ -137,6 +141,8 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - Filesystem only. 20 `source.pdf` + 20 `expected.json` + ≥10 `notes.md` under `tests/stage1_vendor_identity/`. One new Markdown doc at `docs/stage1-vendor-identity/labeling-guide.md`. No database, no network. (006-corpus-labeling)
 - Python 3.12 (matches devcontainer base and existing `pyproject.toml`). + `jsonschema>=4.22,<5` (Draft 2020-12, already declared), `pydantic>=2.7,<3` (already declared; typed result models to match the validator style). Python stdlib only for everything else: `argparse`, `json`, `pathlib`, `dataclasses`, `re`, `hashlib`, `datetime`, `uuid`. (007-evaluator)
 - Filesystem only. Reads `expected.json` and `final_structured_payload.json` inside per-document folders under `tests/stage1_vendor_identity/inv_XXX_<difficulty>/` (or a user-supplied corpus root). Writes `evaluation_document.json` into the same folder and `evaluation_run_summary.json` + `evaluation_run_summary.md` at the corpus root. (007-evaluator)
+- Python 3.12 (matches devcontainer base image and existing `ledgerlinc-ocr` package) + `jsonschema >= 4.22` (already installed; used for schema validation via the existing `ledgerlinc_ocr.validator.artifact` loader), `pydantic >= 2.7` (already installed; used for typed internal result objects), Python stdlib (`argparse`, `json`, `pathlib`, `datetime`, `dataclasses`). No new runtime dependencies. (009-final-payload)
+- Filesystem only. Reads `<per-doc-folder>/edge_extraction_output.json` and `<per-doc-folder>/routing_decision.json`. Writes `<per-doc-folder>/final_structured_payload.json`. Trace block references `source.pdf` and `preprocess_output.json` by relative path but does not read them. (009-final-payload)
 
 ## Recent Changes
 - 005-single-voter-extraction: Stage 1 single-voter edge extractor landed under `src/ledgerlinc_ocr/extract/`. CLI: `ledgerlinc-extract`. Host-Ollama HTTP (httpx, no retries) + pluggable `VoterAdapter` Protocol + deterministic 8-step reconciliation → schema-valid `edge_extraction_output.json`. See `specs/005-single-voter-extraction/quickstart.md`.
