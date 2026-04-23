@@ -65,11 +65,18 @@ def test_ac3_tables_have_only_pinned_keys(us4_with_table_artifact):
         assert isinstance(t["columns"], int) and t["columns"] >= 0
         assert isinstance(t["bbox"], list) and len(t["bbox"]) == 4
         if "cells" in t:
+            # Structural delta: V3 emits nested cell records instead of the
+            # V2-era flat `cell_bbox` tuples.
             for cell in t["cells"]:
                 cell_keys = set(cell.keys())
                 assert cell_keys.issubset(cell_allowed), (
                     f"unexpected keys in cell: {cell_keys - cell_allowed}"
                 )
+            first_cell = t["cells"][0]
+            assert isinstance(first_cell["row"], int) and first_cell["row"] >= 0
+            assert isinstance(first_cell["column"], int) and first_cell["column"] >= 0
+            assert isinstance(first_cell["bbox"], list) and len(first_cell["bbox"]) == 4
+            assert isinstance(first_cell["text"], str)
 
 
 def test_ac3_no_business_keys_anywhere(us4_with_table_artifact, us4_no_table_artifact):

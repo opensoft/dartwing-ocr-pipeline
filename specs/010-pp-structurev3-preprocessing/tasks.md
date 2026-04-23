@@ -31,8 +31,8 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 - [X] T001 Bump `paddleocr` pin from `>=2.8,<3` to `>=3.5,<4`, add `paddlex[ocr]>=3.5,<4`, keep `paddlepaddle>=3.0,<4` (do not comment-out old pins — remove per FR-009) in `pyproject.toml`
 - [X] T002 Pin exact engine versions (`paddleocr==3.5.0`, `paddlex[ocr]==3.5.1`, `paddlepaddle==3.3.1`) in `requirements.txt`; remove any 2.10-era pins per FR-009
-- [ ] T003 Reinstall the dev extras in the devcontainer venv: `.venv/bin/pip install -e ".[dev]"` (run from repo root)
-- [ ] T004 Warm the ~500 MB model-weight cache by running `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy` once (first invocation; downloads PP-DocBlockLayout, PP-DocLayout_plus-L, PP-OCRv5 det/rec, SLANeXt_wired, SLANet_plus, RT-DETR-L into `~/.paddlex/official_models/` per FR-015)
+- [X] T003 Reinstall the dev extras in the devcontainer venv: `.venv/bin/pip install -e ".[dev]"` (run from repo root)
+- [X] T004 Warm the ~500 MB model-weight cache by running `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy` once (first invocation; downloads PP-DocBlockLayout, PP-DocLayout_plus-L, PP-OCRv5 det/rec, SLANeXt_wired, SLANet_plus, RT-DETR-L into `~/.paddlex/official_models/` per FR-015)
 
 ---
 
@@ -71,10 +71,10 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 ### Integration-test updates for OCR-text shifts (US1)
 
-- [ ] T018 [US1] [P] Update expected OCR tokens in `tests/integration/preprocessing/test_us1_schema_valid.py` for PP-OCRv5 text shifts; add an FR-013 free-form comment next to each changed assertion identifying the OCR-text delta
+- [X] T018 [US1] [P] Update expected OCR tokens in `tests/integration/preprocessing/test_us1_schema_valid.py` for PP-OCRv5 text shifts; add an FR-013 free-form comment next to each changed assertion identifying the OCR-text delta
 - [ ] T019 [US1] [P] Update expected OCR tokens in `tests/integration/preprocessing/test_us2_multi_page.py` for PP-OCRv5 text shifts; add FR-013 delta comments
-- [ ] T020 [US1] [P] Update `tests/integration/preprocessing/test_us4_tables.py` for V3 `table_res_list` cell extraction shape differences vs. V2's `res.cell_bbox`; add FR-013 delta comments
-- [ ] T021 [US1] [P] Spot-review `tests/integration/preprocessing/test_us1_determinism.py`, `test_us1_ingestion_sources.py`, `test_us1_quality_and_text.py` for any inline OCR-text expectations; apply FR-013 comment + update if deltas arise, leave untouched otherwise
+- [X] T020 [US1] [P] Update `tests/integration/preprocessing/test_us4_tables.py` for V3 `table_res_list` cell extraction shape differences vs. V2's `res.cell_bbox`; add FR-013 delta comments
+- [X] T021 [US1] [P] Spot-review `tests/integration/preprocessing/test_us1_determinism.py`, `test_us1_ingestion_sources.py`, `test_us1_quality_and_text.py` for any inline OCR-text expectations; apply FR-013 comment + update if deltas arise, leave untouched otherwise
 
 **Checkpoint**: User Story 1 complete — `inv_001_easy` yields ≥ 3 blocks + non-empty `document_text`; engine-init failures hard-fail cleanly.
 

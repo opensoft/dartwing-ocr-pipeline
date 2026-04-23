@@ -19,6 +19,16 @@ def test_ac1_schema_valid_single_page(us1_artifact):
     assert page["rotation_detected"] in (0, 90, 180, 270)
     assert isinstance(page["blocks"], list)
     assert isinstance(page["raw_ocr_lines"], list)
+    assert len(page["blocks"]) >= 3
+    assert all(isinstance(block["text"], str) and block["text"] for block in page["blocks"])
+
+    doc_text = a["document_text"].lower()
+    # OCR-text delta: PP-OCRv5 collapses the spaced vendor name into the
+    # deterministic header token "DESERTDIECUTTING" on inv_001_easy.
+    assert "desertdiecutting" in doc_text
+    # OCR-text delta: PP-OCRv5 also collapses "5148 W Patrick Lane" into
+    # "5148WPatrickLane" in the address line for this invoice.
+    assert "5148wpatricklane" in doc_text
 
 
 def test_ac1_artifact_passes_repo_validator(tmp_path, us1_workdir):

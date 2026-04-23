@@ -52,6 +52,32 @@ _ENGINE: Any = None
 _PADDLE_SEEDED = False
 
 
+def _present(value: Any) -> bool:
+    """Return True when `value` should be treated as populated.
+
+    Paddle/PaddleX frequently surfaces numpy arrays, and evaluating those
+    through Python truthiness raises `ValueError: truth value is ambiguous`.
+    The V3 wrapper must therefore test "missing" explicitly instead of using
+    `or` chains.
+    """
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return value != ""
+    try:
+        return len(value) > 0
+    except TypeError:
+        return True
+
+
+def _coalesce(*values: Any, default: Any = None) -> Any:
+    """Return the first populated value without relying on truthiness."""
+    for value in values:
+        if _present(value):
+            return value
+    return default
+
+
 def _seed_paddle_once() -> None:
     """FR-005: call `paddle.seed(0)` once before first engine construction."""
     global _PADDLE_SEEDED
@@ -189,13 +215,13 @@ def _extract_lines(
     width: int,
     height: int,
 ) -> list[dict[str, Any]]:
-    texts = _attr(overall_ocr_res, "rec_texts", []) or []
-    boxes = (
-        _attr(overall_ocr_res, "rec_boxes", None)
-        or _attr(overall_ocr_res, "rec_polys", None)
-        or []
+    texts = _coalesce(_attr(overall_ocr_res, "rec_texts", None), default=[])
+    boxes = _coalesce(
+        _attr(overall_ocr_res, "rec_boxes", None),
+        _attr(overall_ocr_res, "rec_polys", None),
+        default=[],
     )
-    scores = _attr(overall_ocr_res, "rec_scores", []) or []
+    scores = _coalesce(_attr(overall_ocr_res, "rec_scores", None), default=[])
     staged: list[dict[str, Any]] = []
     for det_idx, text in enumerate(texts):
         if det_idx >= len(boxes):
@@ -237,8 +263,8 @@ def _extract_blocks_and_tables(
     height: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
     warnings_out: list[str] = []
-    regions = _attr(layout_det_res, "boxes", []) or []
-    table_results = list(table_res_list or [])
+    regions = _coalesce(_attr(layout_det_res, "boxes", None), default=[])
+    table_results = list(_coalesce(table_res_list, default=[]))
     table_idx = 0
 
     staged: list[dict[str, Any]] = []
@@ -251,10 +277,10 @@ def _extract_blocks_and_tables(
             warnings_out.append(
                 build_warning(page_number, "unknown_layout_label", f"label={raw_label}")
             )
-        coord = (
-            _attr(region, "coordinate", None)
-            or _attr(region, "bbox", None)
-            or [0, 0, 0, 0]
+        coord = _coalesce(
+            _attr(region, "coordinate", None),
+            _attr(region, "bbox", None),
+            default=[0, 0, 0, 0],
         )
         try:
             bbox = _clip_bbox(_bbox_from_coord(coord), width, height)
@@ -281,10 +307,10 @@ def _extract_blocks_and_tables(
             if isinstance(html, str) and html:
                 text = html
                 table_rows, table_cols = _parse_table_dims(html)
-            cell_bboxes = (
-                _attr(tres, "cell_bbox", None)
-                or _attr(tres, "cell_boxes", None)
-                or []
+            cell_bboxes = _coalesce(
+                _attr(tres, "cell_bbox", None),
+                _attr(tres, "cell_boxes", None),
+                default=[],
             )
             for ci, cb in enumerate(cell_bboxes):
                 row_idx = (ci // table_cols) if table_cols > 0 else 0
@@ -415,7 +441,7 @@ def run_page(
 
     overall_ocr_res = _attr(result, "overall_ocr_res", None)
     layout_det_res = _attr(result, "layout_det_res", None)
-    table_res_list = _attr(result, "table_res_list", None) or []
+    table_res_list = _coalesce(_attr(result, "table_res_list", None), default=[])
 
     lines = (
         _extract_lines(overall_ocr_res, page_number, width, height)

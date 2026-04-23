@@ -109,3 +109,14 @@ def test_ac4_document_text_concat(us2_three_page_artifact):
         per_page_texts.append("\n".join(b["text"] for b in blocks))
     expected = "\n\n".join(per_page_texts)
     assert doc_text == expected, (doc_text, expected)
+
+    doc_text_lc = doc_text.lower()
+    # OCR-text delta audit: PP-OCRv5 preserves the synthetic page-1 vendor token
+    # verbatim on this high-contrast fixture.
+    assert "alpha vendor llc" in doc_text_lc
+    # OCR-text delta audit: PP-OCRv5 preserves the landscape-page marker too,
+    # so a page-orientation change does not scramble page-2 text.
+    assert "landscape page two" in doc_text_lc
+    # OCR-text delta audit: PP-OCRv5 preserves the page-3 marker on the return
+    # to portrait orientation.
+    assert "gamma page three" in doc_text_lc
