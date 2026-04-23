@@ -61,9 +61,10 @@ def run(invocation: Invocation) -> Path:
     document_id = _derive_document_id(invocation.document_folder.name)
     pipeline_version = invocation.pipeline_version or build_pipeline_version()
 
+    # rasterize.rasterize_pdf is a page-at-a-time generator (FR-005a / R-011).
+    # ZeroPagePdfError is raised inside open_pdf() on the first next() iteration,
+    # so no separate "not rasters" guard is needed.
     rasters = rasterize.rasterize_pdf(pdf_path, dpi=DPI)
-    if not rasters:
-        raise InputRejectedError("PDF produced zero rasterized pages")
 
     pages: list[dict[str, Any]] = []
     tables: list[dict[str, Any]] = []
@@ -169,6 +170,14 @@ def run(invocation: Invocation) -> Path:
         if invocation.write_page_images:
             img_path = invocation.document_folder / f"page_{pr.page_number}.png"
             pr.image.save(img_path)
+
+        # FR-005a / R-011: release the page image before the next page is
+        # rasterized. The page-owned `lines`, `blocks`, `page_tables`, and
+        # warnings have already been copied into document-level accumulators.
+        try:
+            pr.image.close()
+        except Exception:
+            pass
 
     quality = compute_quality(all_lines, max_skew_deg=max_skew)
     ingestion_sources = build_ingestion_sources(

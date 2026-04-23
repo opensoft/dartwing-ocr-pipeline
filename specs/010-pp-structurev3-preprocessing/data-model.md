@@ -98,7 +98,9 @@ Warnings remain flat strings in `preprocess_output.warnings[]`. Four new categor
 Ordering within `warnings[]` (FR-020):
 1. Page-ascending by page number (aggregate / non-page-scoped warnings sort after all page-scoped ones).
 2. Within a page, categorized warnings sort in **vocabulary lexical order** (`silent_empty_layout`, `silent_empty_ocr`, `suspicious_single_block`, `unknown_layout_label`).
-3. Non-categorized warnings (engine-runtime-error messages from existing `except` branches, rasterization-failed messages, rotation-normalization messages, and the aggregate `"ingestion_sources.paddleocr_vl: failure (all pages failed)"`) retain today's ordering (appended in emission order) and sort AFTER categorized warnings within their page scope.
+3. Non-categorized warnings retain today's ordering (appended in emission order) and sort AFTER the categorized ones. Two sub-cases per spec FR-020 rule 4:
+   - **Page-scoped non-categorized** (engine-runtime-error messages like `"page N: OCR failed: <ExceptionClass>: <message>"`, `"page N: layout extraction failed: ..."`, per-page rasterization-failed, rotation-normalization) — sort AFTER categorized warnings *within that page*, in emission order.
+   - **Aggregate / non-page-scoped** (e.g., `"ingestion_sources.paddleocr_vl: failure (all pages failed)"`) — sort LAST in the document, after every page-scoped warning (categorized or non-categorized), in emission order.
 
 ### `PipelineVersion` (string)
 

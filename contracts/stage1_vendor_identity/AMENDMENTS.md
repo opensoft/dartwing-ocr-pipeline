@@ -104,6 +104,74 @@ No packet key order, key set, or type changes are required — the shape
 locked in v1.1.0 is the forward-compat commitment (see US2 AC#2 and SC-005
 in `specs/004-evidence-packet-assembly/spec.md`).
 
+### v1.2.0 — 2026-04-23
+
+**Branch**: `010-pp-structurev3-preprocessing`
+
+**Tier**: MINOR — additive only. All v1.0.0 and v1.1.0 artifacts remain
+byte-identical and valid under v1.2.0 (every previously-accepted `confidence`
+value is still accepted; the change only widens what's permitted).
+
+Summary: permit `null` on `preprocess_output.block.confidence` and
+`preprocess_output.ocr_line.confidence`, so preprocessing can persist the
+engine-missing case verbatim instead of substituting `0.0`. Required to
+unblock feature 010's FR-004 / R-013 rule ("persist confidence verbatim;
+missing → `null`, never `0.0`, never empty"), which removes the V2-era
+`max(0.0, min(1.0, float(...)))` clamp in `src/ledgerlinc_ocr/preprocessing/ocr.py`
+and needs a schema that accepts `null` on the rare parallel-array mismatch
+case where `rec_texts` outruns `rec_scores`.
+
+What changed relative to v1.1.0:
+
+- `preprocess_output.schema.json`:
+  - `$defs.block.properties.confidence.type` widened from `"number"` to
+    `["number", "null"]`.
+  - `$defs.ocr_line.properties.confidence.type` widened the same way.
+  - `minimum: 0.0` and `maximum: 1.0` stay in place — they apply only
+    when the value is a number (JSON Schema ignores numeric bounds on
+    null), so engine-emitted numbers are still required to be in
+    `[0.0, 1.0]`. This keeps the widening strictly to the null case and
+    leaves out-of-range engine output as a separately-surfaceable concern
+    if it ever materializes.
+- `contract_set.json`:
+  - `contract_set_version` → `"1.2.0"`.
+  - `description` updated to name the amendment.
+  - No change to `artifact_names`, `artifact_schemas`, `folder_schema`,
+    `pipeline_versioned_artifacts`, `policy_versioned_artifacts`,
+    `challenge_tags`, or `cross_artifact_rules`.
+
+What did NOT change:
+
+- No other schema in `v1.2.0/` was edited. Every other schema file is
+  byte-identical to the corresponding file in `v1.1.0/`.
+- No validator rule code changed. `src/ledgerlinc_ocr/validator/` keeps
+  its existing Tier 2 rule set; jsonschema covers the widened type on
+  its own.
+- Preprocessing's emitted `contract_set_version` stays at `"1.0.0"`
+  (`src/ledgerlinc_ocr/preprocessing/version.py:CONTRACT_SET_VERSION`).
+  Artifacts stamped `"1.0.0"` validate against v1.2.0's preprocess_output
+  schema via major-equal compatibility (`is_compatible` in
+  `src/ledgerlinc_ocr/validator/version.py`). The router's strict
+  `_EXPECTED_CONTRACT_SET_VERSION = "1.0.0"` check and the assembler's
+  strict `CONTRACT_SET_VERSION = "1.0.0"` check both still pass. This is
+  the minimum-footprint option — widening the downstream stamps to
+  accept `"1.2.0"` was considered and rejected as out-of-scope for this
+  amendment.
+
+Preservation note: no v1.0.0 or v1.1.0 file was edited. Both remain the
+authoritative snapshots for consumers that haven't opted into v1.2.0.
+`v1.2.0/` is a strict superset.
+
+Test coverage for the new acceptance shape:
+
+- `tests/contract_tests/fixtures/preprocess_output/confidence_null.json` —
+  minimal v1.2.0-stamped fixture carrying one block and one OCR line with
+  `confidence: null`.
+- `tests/contract_tests/test_preprocess_output_confidence_null.py` —
+  validates the fixture against `ArtifactName.PREPROCESS_OUTPUT` using
+  the v1.2.0 contract set; a regression that silently reverts the schema
+  would fail this test.
+
 ## Deferred enhancements (not scheduled)
 
 Proposals captured here are honest signal that a concern is known and valid, but has been deferred from the feature that surfaced it. Each entry should state the motivation, a sketch of the change, and the bump it would require.

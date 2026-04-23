@@ -5,7 +5,7 @@
 
 ## Summary
 
-Swap the stage 1 preprocessing engine from PaddleOCR 2.10 (`PPStructure` + `PaddleOCR` + PP-OCRv4) to PaddleOCR 3.5 (`PPStructureV3` + built-in PP-OCRv5) so layout detection actually returns regions on invoice-style PDFs (today it silently returns zero blocks on `inv_001`). The migration is narrow and contract-preserving: `preprocess_output.schema.json` at `contract_set_version = "1.0.0"` is frozen; only which values populate `pages[*].blocks`, `document_text`, `ingestion_sources.paddleocr_vl`, `warnings`, and `pipeline_version` changes.
+Swap the stage 1 preprocessing engine from PaddleOCR 2.10 (`PPStructure` + `PaddleOCR` + PP-OCRv4) to PaddleOCR 3.5 (`PPStructureV3` + built-in PP-OCRv5) so layout detection actually returns regions on invoice-style PDFs (today it silently returns zero blocks on `inv_001`). The migration is narrow and mostly contract-preserving: the only schema change is the v1.2.0 AMENDMENTS entry (2026-04-23) widening `block.confidence` and `ocr_line.confidence` to accept `null` when the engine omits a score (FR-004 / R-013); otherwise only which values populate `pages[*].blocks`, `document_text`, `ingestion_sources.paddleocr_vl`, `warnings`, and `pipeline_version` changes. Preprocessing's emitted `contract_set_version` stamp stays at `"1.0.0"` for downstream-stamp compatibility.
 
 Alongside the engine swap, preprocessing gains four pinned defensive signals so silent failures can never return:
 
@@ -57,7 +57,7 @@ Ensemble-readiness, evidence-first design, CPU-only determinism, and single-writ
 
 **Constraints**:
 - **Determinism**: two runs on the same PDF with the same deps MUST produce byte-identical `preprocess_output.json` (FR-004, SC-003). Includes block/line ordering, `reading_order` values, identifiers, bbox values, `document_text`, block/line `confidence` values (verbatim from engine, FR-004), and `warnings` ordering (FR-020: page-ascending; within a page, vocabulary lexical order). Debug `page_*.png` output is explicitly outside this guarantee (FR-022).
-- **Frozen contract**: `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` does not change. Richer V3 content (e.g., `parsing_res_list` Markdown-style blocks, V3's per-cell HTML beyond the schema's cell shape) is discarded at the persistence boundary. `tables[]` is populated from V3's table recognizer projected into the v1.0.0 shape **as of 010's landing commit** (FR-021 strict-current-shape).
+- **Contract change (narrow)**: v1.2.0 AMENDMENTS (2026-04-23) widens `preprocess_output` `block.confidence` and `ocr_line.confidence` to accept `null` per FR-004 / R-013. The v1.0.0 and v1.1.0 directories are untouched; v1.2.0 is a strict superset. Every other schema in the stage 1 contract set is unchanged, and numeric confidence values remain bounded to `[0.0, 1.0]`. Richer V3 content (e.g., `parsing_res_list` Markdown-style blocks, V3's per-cell HTML beyond the schema's cell shape) is still discarded at the persistence boundary. `tables[]` is populated from V3's table recognizer projected into the v1.0.0-era shape **as of 010's landing commit** (FR-021 strict-current-shape).
 - **No new network deps** beyond first-run model weights (FR-015). After weights are cached, preprocessing runs network-free.
 - **CPU-only, single-threaded**. No GPU code path (FR-005).
 - **Orientation-classification, dewarping, textline-orientation, formula, seal, chart modules stay off** (FR-005).
@@ -88,7 +88,7 @@ Evaluated against `.specify/memory/constitution.md` **v1.1.0** (2026-04-22 amend
 | Principle | Gate | Status |
 |-----------|------|--------|
 | I. One Repo, Clear Runtime Boundaries | Preprocessing stays in the pipeline layer; does not embed extraction, routing, or harness concerns; does not bundle a model server. | **PASS** — `src/ledgerlinc_ocr/preprocessing/` remains pipeline-only. Writes `preprocess_output.json` only. PaddleOCR is a pipeline dependency run in-process, not a served model. Host Ollama is untouched by this slice. |
-| II. Evidence-First, Schema-First Design | Artifact MUST validate against the frozen `preprocess_output` contract; prompts/code adapt to the schema, not the reverse. | **PASS** — FR-001 pins validation against `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json`. `contract_set_version = "1.0.0"` is unchanged; no AMENDMENTS entry required. Richer V3 content that doesn't fit the contract is discarded. |
+| II. Evidence-First, Schema-First Design | Artifact MUST validate against the `preprocess_output` contract; prompts/code adapt to the schema, not the reverse. | **PASS** — FR-001 pins validation against the latest `preprocess_output.schema.json`. Contract set v1.2.0 is amended additively (2026-04-23) to permit `confidence: null`, per the FR-004 / R-013 verbatim-persistence rule — the widening is documented in `contracts/stage1_vendor_identity/AMENDMENTS.md` and is a strict superset of v1.0.0/v1.1.0. Preprocessing's emitted `contract_set_version` stamp stays `"1.0.0"`. Richer V3 content that doesn't fit the contract is discarded. |
 | III. Deterministic Control Over Model Output | Warnings, status downgrades, label-mapping fallback, block ordering, reading-order assignment are deterministic code — no model judgment. | **PASS** — FR-003, FR-006, FR-018, FR-019, FR-020 all specify code-level rules. Label mapping uses a closed dict with a deterministic `"text"` fallback. `ingestion_sources.paddleocr_vl.status` downgrade is rule-based, not model-inferred. Model confidence is a signal only, never a gate. |
 | IV. Provenance and Review Safety | Preserve explicit-vs-inferred provenance. | **N/A for this slice** — preprocessing does not produce `company_name` fields. FR-002 explicitly notes preprocessing quality is independent of vendor-identity label polarity (the missing-name subset gets the same quality guarantees). Provenance is the extractor's responsibility. |
 | V. Benchmarkable and Reproducible Delivery | One-document end-to-end execution; per-document folder layout preserved; byte-identical reruns. | **PASS** — CLI invocation shape, artifact location, and per-document folder contract are all unchanged. SC-003 pins rerun determinism; SC-004 pins corpus-level validator pass. SC-005 records baseline timing for future regression defense. |
@@ -102,7 +102,7 @@ Evaluated against `.specify/memory/constitution.md` **v1.1.0** (2026-04-22 amend
 
 **Quality Gates** (constitution §"Quality Gates"):
 1. Pipeline vs. harness boundary preserved — this slice is pipeline-only; harness is untouched.
-2. Output contracts — frozen; no schema edits. `docs/stage1-vendor-identity/schemas.md` does not need content changes (the values change, not the shape).
+2. Output contracts — one narrow AMENDMENTS entry (v1.2.0, 2026-04-23) widens `preprocess_output` `block.confidence` / `ocr_line.confidence` to accept `null` for engine-missing scores. `docs/stage1-vendor-identity/schemas.md` carries a matching null-allowance note. No other schema changes.
 3. Runtime behavior — FR-011 updates `docs/stage1-vendor-identity/architecture.md`, `docs/stage1-vendor-identity/ollama-runtime.md` (where it references PaddleOCR versions), `specs/003-pdf-preprocessing/research.md`, and the preprocessing quickstart.
 4. Verifiable through concrete local execution — `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy` against the real engine; quickstart walks this end-to-end.
 5. Runtime/container changes — dependency pin updates in `pyproject.toml` and `requirements.txt` only; no devcontainer image change, no new compose services. First-run warm-up is called out in docs.
@@ -126,7 +126,7 @@ specs/010-pp-structurev3-preprocessing/
 ├── quickstart.md        # Phase 1 output — devcontainer walk-through: dep bump → warm-up → single-doc → corpus sweep
 ├── contracts/
 │   └── cli-contract.md  # CLI surface delta (the artifact schema is inherited from frozen v1.0.0)
-├── checklists/          # Existing: requirements.md, failure-handling.md
+├── checklists/          # Existing: requirements.md, failure-handling.md, determinism.md
 └── tasks.md             # Phase 2 output (/speckit.tasks — NOT created here)
 ```
 

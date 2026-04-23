@@ -12,3 +12,7 @@ build/
 .coverage
 htmlcov/
 
+# 010 FR-022 / R-015: debug page images are an opt-in developer tool (enabled
+# only via `ledgerlinc-preprocess --write-page-images`); never committed.
+tests/stage1_vendor_identity/inv_*/page_*.png
+

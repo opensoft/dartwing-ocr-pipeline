@@ -197,6 +197,35 @@ def _parse_table_dims(html: str) -> tuple[int, int]:
     return len(row_spans), max_cols
 
 
+def _persist_confidence_value(value: Any) -> float | None:
+    """FR-004 / R-013: persist a single engine-emitted confidence verbatim.
+
+    No clamping to `[0.0, 1.0]`, no normalization. `None` / missing → `None`
+    (never `0.0`). Non-numeric values → `None`. The V2-era
+    `max(0.0, min(1.0, float(...)))` clamp is deliberately absent.
+    """
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _persist_confidence(scores: Any, idx: int) -> float | None:
+    """FR-004 / R-013: look up `scores[idx]` and persist verbatim.
+
+    Parallel-array length mismatches (e.g., `rec_texts` longer than
+    `rec_scores`) produce `None` for the missing-score lines rather than
+    dropping them. Non-indexable `scores` also produces `None`.
+    """
+    try:
+        value = scores[idx]
+    except (TypeError, KeyError, IndexError):
+        return None
+    return _persist_confidence_value(value)
+
+
 def _attr(obj: Any, name: str, default: Any = None) -> Any:
     """Read `obj.name` or `obj[name]`; return default if neither works."""
     if obj is None:
@@ -227,10 +256,8 @@ def _extract_lines(
         if det_idx >= len(boxes):
             break
         box = boxes[det_idx]
-        try:
-            conf = float(scores[det_idx]) if det_idx < len(scores) else 0.0
-        except (TypeError, ValueError):
-            conf = 0.0
+        # FR-004 / R-013: persist confidence verbatim; missing → None, never 0.0.
+        conf = _persist_confidence(scores, det_idx)
         try:
             bbox = _clip_bbox(_bbox_from_coord(box), width, height)
         except Exception:
@@ -240,7 +267,7 @@ def _extract_lines(
                 "_det_idx": det_idx,
                 "bbox": bbox,
                 "text": text if isinstance(text, str) else "",
-                "confidence": max(0.0, min(1.0, conf)),
+                "confidence": conf,
             }
         )
     staged.sort(key=lambda r: (r["bbox"][1], r["bbox"][0], r["_det_idx"]))
@@ -286,15 +313,15 @@ def _extract_blocks_and_tables(
             bbox = _clip_bbox(_bbox_from_coord(coord), width, height)
         except Exception:
             bbox = [0, 0, 0, 0]
-        score = _attr(region, "score", 0.0)
-        try:
-            confidence = max(0.0, min(1.0, float(score)))
-        except (TypeError, ValueError):
-            confidence = 0.0
+        # FR-004 / R-013: persist layout-region confidence verbatim; missing → None.
+        # No default of 0.0 when absent — `None` signals "engine did not emit".
+        confidence = _persist_confidence_value(_attr(region, "score", None))
 
         # Block text content is derived downstream from containing OCR lines
         # (see `_populate_block_text_from_lines`). V3's richer `parsing_res_list`
         # Markdown is discarded at the persistence boundary per research R-002.
+        # FR-021 / R-014: raw table HTML is NOT persisted in `block.text`; it is
+        # read only to derive `rows`/`columns` via `_parse_table_dims`.
         text = ""
         table_rows = 0
         table_cols = 0
@@ -305,7 +332,6 @@ def _extract_blocks_and_tables(
             table_idx += 1
             html = _attr(tres, "html", "") or ""
             if isinstance(html, str) and html:
-                text = html
                 table_rows, table_cols = _parse_table_dims(html)
             cell_bboxes = _coalesce(
                 _attr(tres, "cell_bbox", None),

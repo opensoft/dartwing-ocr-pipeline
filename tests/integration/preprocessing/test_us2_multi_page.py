@@ -98,6 +98,26 @@ def test_ac3_rotation_warning_format(tmp_path, monkeypatch):
     assert expected in art["warnings"], art["warnings"]
 
 
+def test_ac5_streaming_rasterize_lifecycle():
+    """FR-005a / R-011: `rasterize_pdf` streams pages one at a time instead of
+    returning a document-wide list. Verified structurally — a generator function
+    cannot materialize every PIL.Image in memory before OCR begins, which is
+    the memory-bound we need under PaddleOCR 3.5's larger CPU model bundle.
+
+    # OCR-text delta note (FR-013): this test exercises the streaming contract
+    # only; it does NOT assert against any OCR-text outputs, so PP-OCRv5 text
+    # shifts are not relevant here.
+    """
+    import inspect
+
+    from ledgerlinc_ocr.preprocessing import rasterize
+
+    assert inspect.isgeneratorfunction(rasterize.rasterize_pdf), (
+        "rasterize_pdf must be a generator function (FR-005a streaming lifecycle); "
+        "returning a list would materialize every page image before OCR begins"
+    )
+
+
 def test_ac4_document_text_concat(us2_three_page_artifact):
     art = us2_three_page_artifact
     doc_text = art["document_text"]

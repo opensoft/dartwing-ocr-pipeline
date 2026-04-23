@@ -91,6 +91,8 @@ Purpose:
 }
 ```
 
+**Confidence null allowance (v1.2.0 AMENDMENTS, 2026-04-23)**: `blocks[*].confidence` and `raw_ocr_lines[*].confidence` both accept `null` in addition to a number in `[0.0, 1.0]`. Preprocessing emits `null` (never `0.0`) when the upstream engine omits a score for a given block or line — most commonly on a rare parallel-array mismatch where PP-OCRv5 returns one fewer `rec_scores` than `rec_texts`. Numeric values remain bounded to `[0.0, 1.0]`; the widening applies only to the engine-missing case. See `contracts/stage1_vendor_identity/AMENDMENTS.md` v1.2.0 entry and `specs/010-pp-structurev3-preprocessing/spec.md` FR-004 / research R-013.
+
 ## `edge_extraction_output`
 
 Purpose:

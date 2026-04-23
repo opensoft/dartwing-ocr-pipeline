@@ -270,7 +270,7 @@ def warning_sort_key(w: str) -> tuple[int, int]:
     ...
 ```
 
-Aggregate warnings that don't fit the `page N: [<token>]` format (e.g., the existing `"ingestion_sources.paddleocr_vl: failure (all pages failed)"` line appended in `pipeline.py:145` and the `"page N: OCR failed: <ExceptionClass>: <message>"` / `"page N: layout extraction failed: ..."` per-page engine-runtime-error lines) are **not** rewritten into the bracketed vocabulary in this slice — they remain free-form and sort to the end (or after their page's categorized warnings). This keeps the vocabulary scoped to the four categories FR-020 names without requiring AMENDMENTS for adjacent existing warnings.
+Aggregate warnings that don't fit the `page N: [<token>]` format (e.g., the existing `"ingestion_sources.paddleocr_vl: failure (all pages failed)"` line appended in `pipeline.py:145` and the `"page N: OCR failed: <ExceptionClass>: <message>"` / `"page N: layout extraction failed: ..."` per-page engine-runtime-error lines) are **not** rewritten into the bracketed vocabulary in this slice — they remain free-form. Ordering per spec FR-020 rule 4: page-scoped non-categorized (e.g., `"page N: OCR failed: ..."`, `"page N: layout extraction failed: ..."`, rasterization-failed, rotation-normalization) sort AFTER categorized warnings *within that page* in emission order; aggregate / non-page-scoped (e.g., `"ingestion_sources.paddleocr_vl: failure (all pages failed)"`) sort LAST in the document. This keeps the vocabulary scoped to the four categories FR-020 names without requiring AMENDMENTS for adjacent existing warnings.
 
 **Rationale**:
 - Centralizing the vocabulary in one module prevents future contributors from inventing a `[foo]` token that isn't in the list.
@@ -329,7 +329,26 @@ No previous-page or next-page header/footer context is fed into OCR/layout. The 
 
 **Decision**: Use the PP-OCRv5 recognition model's default confidence threshold without override. No `text_rec_score_thresh` / `drop_score` parameter is passed to `PPStructureV3(...)`, and no post-filter is applied in `ocr._extract_lines()` beyond what the engine itself returns. Record the exact default value (as emitted by `paddleocr==3.5.0` under `enable_mkldnn=False`, `cpu_threads=1`) in this section during Phase 2 probe work.
 
-**Probe-derived default**: _to be filled during implementation_. Capture by inspecting `PPStructureV3`'s constructed pipeline object — typically `pipeline.text_rec_score_thresh` or equivalent `drop_score` attribute on the underlying `TextRecognizer`. Reference values from PP-OCRv5 release notes are often `0.0` (no threshold) or `0.5` (default cutoff); the actual pinned value is recorded here once the probe runs.
+**Probe-derived default**: _pending — environment-blocked as of 2026-04-23_. The probe below must run in a devcontainer with the pinned dep set installed (`paddleocr==3.5.0`, `paddlex[ocr]==3.5.1`, `paddlepaddle==3.3.1`, after `~/.paddlex/official_models/` is warm). Capture by inspecting `PPStructureV3`'s constructed pipeline object — typically `pipeline.text_rec_score_thresh` or equivalent `drop_score` attribute on the underlying `TextRecognizer`. Reference values from PP-OCRv5 release notes are often `0.0` (no threshold) or `0.5` (default cutoff); the actual pinned value is recorded here once the probe runs.
+
+**Probe procedure** (T050):
+
+```python
+# Run from the repo root with the venv active.
+from ledgerlinc_ocr.preprocessing.ocr import _get_engine
+engine = _get_engine()  # applies the 010 flags from ocr.py
+# Walk candidate attributes; record the first one that returns a float.
+for attr in ("text_rec_score_thresh", "drop_score", "rec_score_thresh"):
+    if hasattr(engine, attr):
+        print(attr, getattr(engine, attr)); break
+# Fall back to the underlying TextRecognizer if the top-level attribute is absent.
+rec = getattr(engine, "text_recognizer", None) or getattr(engine, "_text_recognizer", None)
+for attr in ("text_rec_score_thresh", "drop_score", "rec_score_thresh", "score_thresh"):
+    if rec is not None and hasattr(rec, attr):
+        print("recognizer.", attr, getattr(rec, attr)); break
+```
+
+Fill this section with: `paddleocr` version, `paddlex` version, resolved attribute name, the float value, and the probe date. A future engine bump that moves the default surfaces during FR-010 baseline regeneration review.
 
 **Rationale**:
 - **Evidence-first alignment**: tying the filter to engine defaults means `len(raw_ocr_lines)` — the trigger input for FR-003 (`lines>0 AND blocks==0`) and FR-019 (`blocks>0 AND lines==0` on text blocks) — reflects whatever PP-OCRv5 considers a confident recognition. Overriding the threshold would introduce a second axis of "what counts as a line" that has to be justified against the evidence-first rule and maintained across engine bumps.
