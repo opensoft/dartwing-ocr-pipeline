@@ -32,3 +32,39 @@ def test_invalid_inputs_raise():
         build_ingestion_sources(pages_total=2, pages_with_paddleocr_output=3)
     with pytest.raises(ValueError):
         build_ingestion_sources(pages_total=2, pages_with_paddleocr_output=-1)
+
+
+def test_silent_empty_page_detected_downgrades_even_with_healthy_pages():
+    """FR-003 / FR-019: a single silent-empty page flips the whole document
+    to status=failure even when other pages produced output."""
+    result = build_ingestion_sources(
+        pages_total=3,
+        pages_with_paddleocr_output=2,
+        silent_empty_page_detected=True,
+    )
+    assert result["paddleocr_vl"]["status"] == "failure"
+
+
+def test_silent_empty_page_default_is_false_status_success():
+    """Default value keeps existing callers at success when pages produced output."""
+    result = build_ingestion_sources(pages_total=2, pages_with_paddleocr_output=2)
+    assert result["paddleocr_vl"]["status"] == "success"
+
+
+def test_silent_empty_page_detected_false_preserves_success():
+    result = build_ingestion_sources(
+        pages_total=2,
+        pages_with_paddleocr_output=2,
+        silent_empty_page_detected=False,
+    )
+    assert result["paddleocr_vl"]["status"] == "success"
+
+
+def test_silent_empty_page_detected_true_with_all_pages_empty_still_failure():
+    """Composition: both downgrade conditions can hold simultaneously."""
+    result = build_ingestion_sources(
+        pages_total=2,
+        pages_with_paddleocr_output=0,
+        silent_empty_page_detected=True,
+    )
+    assert result["paddleocr_vl"]["status"] == "failure"

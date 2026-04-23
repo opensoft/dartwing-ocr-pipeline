@@ -299,7 +299,7 @@ Exit codes:
 | Unknown (from Technical Context) | Resolved by          |
 |----------------------------------|----------------------|
 | PDF raster library choice        | Decision 1           |
-| OCR + layout engine choice       | Decision 2           |
+| OCR + layout engine choice       | Decision 2 (superseded by Decision 10) |
 | DPI pinned value                 | Decision 3 (confirms clarification) |
 | `document_text` join rule        | Decision 4           |
 | Identifier minting scheme        | Decision 5           |
@@ -307,5 +307,24 @@ Exit codes:
 | Partial-failure boundary         | Decision 7           |
 | Pipeline version string          | Decision 8           |
 | CLI shape                        | Decision 9           |
+| OCR + layout engine migration    | Decision 10          |
 
 No NEEDS CLARIFICATION markers remain in the plan after this research pass.
+
+---
+
+## Decision 10 — Engine migration: PaddleOCR 2.10 → 3.5 (2026-04)
+
+**Decision**: Supersede Decision 2's `paddleocr>=2.8,<3` + `PP-StructureV2` pin with `paddleocr>=3.5,<4` + `PPStructureV3` + `paddlex[ocr]>=3.5,<4`. `paddlepaddle>=3.0,<4` is retained.
+
+**Rationale**:
+- Decision 2's PP-StructureV2 (PubLayNet-trained `picodet_lcnet_x1_0_fgd_layout_infer`) returns zero regions on invoice-style documents because PubLayNet's five academic-paper classes don't match invoice layouts. Running against `tests/stage1_vendor_identity/inv_001_easy/source.pdf` silently produced an empty `blocks` array and an empty `document_text` — breaking every downstream stage. See `docs/stage1-vendor-identity/prd-ppstructurev3-migration.md` for the root-cause analysis.
+- `PPStructureV3` with PP-DocBlockLayout + PP-DocLayout_plus-L detects invoice regions correctly and produces populated blocks on the same corpus.
+- `PP-OCRv5`, which runs as V3's built-in OCR pass, replaces the standalone PP-OCRv4 call — retiring the separate `run_ocr_lines` code path (FR-007).
+- `enable_mkldnn=False` is required on V3 construction both as a workaround for the paddle 3.3.1 PIR/oneDNN `ConvertPirAttribute2RuntimeAttribute` bug on `PP-DocBlockLayout` AND as a determinism axis.
+
+**Details + fallback pivot cost**: see `specs/010-pp-structurev3-preprocessing/research.md` — research R-001 through R-010. The PaddleOCR 2.10 + CDLA layout fallback remains a documented contingency only (FR-017); no 2.10 code path ships under 010.
+
+**Alternatives considered**:
+- Stay on Decision 2 and accept the silent-empty output — rejected; violates the constitution's evidence-first rule.
+- Switch V2 to the CDLA detector (`picodet_lcnet_x1_0_fgd_layout_cdla_infer`) via `layout_model_dir` + `layout_dict_path` — works, but bundles a Chinese OCR model. Kept as the documented fallback only.

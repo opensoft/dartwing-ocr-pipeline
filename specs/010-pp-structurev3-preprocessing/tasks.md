@@ -29,8 +29,8 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 **Purpose**: Bump dependency pins and warm the model cache so the subsequent engine swap has a clean surface to land on.
 
-- [ ] T001 Bump `paddleocr` pin from `>=2.8,<3` to `>=3.5,<4`, add `paddlex[ocr]>=3.5,<4`, keep `paddlepaddle>=3.0,<4` (do not comment-out old pins — remove per FR-009) in `pyproject.toml`
-- [ ] T002 Pin exact engine versions (`paddleocr==3.5.0`, `paddlex[ocr]==3.5.1`, `paddlepaddle==3.3.1`) in `requirements.txt`; remove any 2.10-era pins per FR-009
+- [X] T001 Bump `paddleocr` pin from `>=2.8,<3` to `>=3.5,<4`, add `paddlex[ocr]>=3.5,<4`, keep `paddlepaddle>=3.0,<4` (do not comment-out old pins — remove per FR-009) in `pyproject.toml`
+- [X] T002 Pin exact engine versions (`paddleocr==3.5.0`, `paddlex[ocr]==3.5.1`, `paddlepaddle==3.3.1`) in `requirements.txt`; remove any 2.10-era pins per FR-009
 - [ ] T003 Reinstall the dev extras in the devcontainer venv: `.venv/bin/pip install -e ".[dev]"` (run from repo root)
 - [ ] T004 Warm the ~500 MB model-weight cache by running `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy` once (first invocation; downloads PP-DocBlockLayout, PP-DocLayout_plus-L, PP-OCRv5 det/rec, SLANeXt_wired, SLANet_plus, RT-DETR-L into `~/.paddlex/official_models/` per FR-015)
 
@@ -42,10 +42,10 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete. These four tasks can run in parallel except where noted.
 
-- [ ] T005 [P] Bump `SEMVER = "v0.1.0"` to `SEMVER = "v0.2.0"` in `src/ledgerlinc_ocr/preprocessing/version.py` so `build_pipeline_version()` emits `stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300` per FR-008 and research R-007
-- [ ] T006 [P] Add `EngineInitError(PreprocessingError)` to `src/ledgerlinc_ocr/preprocessing/errors.py` with structured fields (`cause_class`, `cause_module`, `missing_weight`, `weight_hoster_url`) and `exit_code = EXIT_INTERNAL_ERROR`, per FR-016 and research R-008
-- [ ] T007 [P] Create `src/ledgerlinc_ocr/preprocessing/warnings.py` module with `WARNING_CATEGORIES` list, `STATUS_DOWNGRADING` set, `build_warning(page, token, detail) -> str`, and `warning_sort_key(s) -> tuple[int, int]` per FR-020 and research R-009
-- [ ] T008 Extend `build_ingestion_sources()` signature in `src/ledgerlinc_ocr/preprocessing/ingestion_sources.py` with a `silent_empty_page_detected: bool = False` keyword parameter; document that `status = "failure"` when `all_pages_empty OR silent_empty_page_detected` (per FR-003 + FR-019 + spec Assumptions and data-model §IngestionSource)
+- [X] T005 [P] Bump `SEMVER = "v0.1.0"` to `SEMVER = "v0.2.0"` in `src/ledgerlinc_ocr/preprocessing/version.py` so `build_pipeline_version()` emits `stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300` per FR-008 and research R-007
+- [X] T006 [P] Add `EngineInitError(PreprocessingError)` to `src/ledgerlinc_ocr/preprocessing/errors.py` with structured fields (`cause_class`, `cause_module`, `missing_weight`, `weight_hoster_url`) and `exit_code = EXIT_INTERNAL_ERROR`, per FR-016 and research R-008
+- [X] T007 [P] Create `src/ledgerlinc_ocr/preprocessing/warnings.py` module with `WARNING_CATEGORIES` list, `STATUS_DOWNGRADING` set, `build_warning(page, token, detail) -> str`, and `warning_sort_key(s) -> tuple[int, int]` per FR-020 and research R-009
+- [X] T008 Extend `build_ingestion_sources()` signature in `src/ledgerlinc_ocr/preprocessing/ingestion_sources.py` with a `silent_empty_page_detected: bool = False` keyword parameter; document that `status = "failure"` when `all_pages_empty OR silent_empty_page_detected` (per FR-003 + FR-019 + spec Assumptions and data-model §IngestionSource)
 
 **Checkpoint**: Foundation ready — T009+ can begin. T008 should land last in this phase because T025 (unit tests) in US2 will import its new signature; T005/T006/T007 are strictly parallel.
 
@@ -59,15 +59,15 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 ### Engine + pipeline rewrite (US1)
 
-- [ ] T009 [US1] Replace the two module-global engine caches (`_OCR_ENGINE`, `_STRUCTURE_ENGINE`) with a single `_ENGINE: PPStructureV3 | None` in `src/ledgerlinc_ocr/preprocessing/ocr.py` per research R-001
-- [ ] T010 [US1] Implement `_get_engine()` in `src/ledgerlinc_ocr/preprocessing/ocr.py` that constructs `PPStructureV3(use_doc_orientation_classify=False, use_doc_unwarping=False, use_textline_orientation=False, use_formula_recognition=False, use_seal_recognition=False, use_chart_recognition=False, cpu_threads=1, enable_mkldnn=False, device="cpu", lang="en")` per R-001; catch any exception during construction and re-raise as `EngineInitError` with cause classification (weight-download vs. generic) per R-008
-- [ ] T011 [US1] Extend `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE` in `src/ledgerlinc_ocr/preprocessing/ocr.py` with V3 labels (`paragraph_title → title`, `doc_title → title`, `abstract → text`, `content → text`, `figure_title → text`, `formula_number → text`, `chart_title → text`, `table_title → text`, `seal → text`) per research R-003 and data-model §LayoutBlock
-- [ ] T012 [US1] Implement `run_page(image, page_number, width, height)` in `src/ledgerlinc_ocr/preprocessing/ocr.py` that invokes `_get_engine()` once, extracts lines from `overall_ocr_res.rec_texts / rec_boxes / rec_scores`, extracts blocks from `layout_det_res.boxes`, and reuses `_parse_table_dims()` for `table_res_list`; returns `(lines, blocks, tables, warnings)` sorted by `(bbox.y0, bbox.x0, det_idx)` per research R-002 / R-004 / R-005
-- [ ] T013 [US1] Replace the per-page `[unknown_layout_label]` warning emission in `ocr.run_page()` (falling out of the label-mapping branch) with a call to `warnings.build_warning(page_number, "unknown_layout_label", f"label={raw_label}")` per FR-006 + FR-020
-- [ ] T014 [US1] Retire `ocr.run_ocr_lines()` and the paired `ocr.run_layout()` from `src/ledgerlinc_ocr/preprocessing/ocr.py` once `run_page()` is in place (FR-007) — delete, do not stub
-- [ ] T015 [US1] Rewire `src/ledgerlinc_ocr/preprocessing/pipeline.py` to call `ocr.run_page(...)` once per rasterized page instead of the `ocr.run_ocr_lines` + `ocr.run_layout` pair; collect returned `(lines, blocks, tables, warnings)` into the existing per-page accumulators
-- [ ] T016 [US1] Stop catching `EngineInitError` inside `src/ledgerlinc_ocr/preprocessing/pipeline.py`'s per-page loop — let it propagate to the caller so no artifact is ever written on init failure (FR-016)
-- [ ] T017 [US1] Add an `except EngineInitError` branch to `main()` in `src/ledgerlinc_ocr/preprocessing/cli.py` that emits the FR-016 JSON envelope on stderr (`{"status": "error", "kind": "engine_init_failed", "cause_class": ..., "cause_module": ..., "message": ..., "missing_weight": ..., "weight_hoster_url": ...}`) and returns `EXIT_INTERNAL_ERROR` (`3`) per contracts/cli-contract.md
+- [X] T009 [US1] Replace the two module-global engine caches (`_OCR_ENGINE`, `_STRUCTURE_ENGINE`) with a single `_ENGINE: PPStructureV3 | None` in `src/ledgerlinc_ocr/preprocessing/ocr.py` per research R-001
+- [X] T010 [US1] Implement `_get_engine()` in `src/ledgerlinc_ocr/preprocessing/ocr.py` that constructs `PPStructureV3(use_doc_orientation_classify=False, use_doc_unwarping=False, use_textline_orientation=False, use_formula_recognition=False, use_seal_recognition=False, use_chart_recognition=False, cpu_threads=1, enable_mkldnn=False, device="cpu", lang="en")` per R-001; catch any exception during construction and re-raise as `EngineInitError` with cause classification (weight-download vs. generic) per R-008
+- [X] T011 [US1] Extend `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE` in `src/ledgerlinc_ocr/preprocessing/ocr.py` with V3 labels (`paragraph_title → title`, `doc_title → title`, `abstract → text`, `content → text`, `figure_title → text`, `formula_number → text`, `chart_title → text`, `table_title → text`, `seal → text`) per research R-003 and data-model §LayoutBlock
+- [X] T012 [US1] Implement `run_page(image, page_number, width, height)` in `src/ledgerlinc_ocr/preprocessing/ocr.py` that invokes `_get_engine()` once, extracts lines from `overall_ocr_res.rec_texts / rec_boxes / rec_scores`, extracts blocks from `layout_det_res.boxes`, and reuses `_parse_table_dims()` for `table_res_list`; returns `(lines, blocks, tables, warnings)` sorted by `(bbox.y0, bbox.x0, det_idx)` per research R-002 / R-004 / R-005
+- [X] T013 [US1] Replace the per-page `[unknown_layout_label]` warning emission in `ocr.run_page()` (falling out of the label-mapping branch) with a call to `warnings.build_warning(page_number, "unknown_layout_label", f"label={raw_label}")` per FR-006 + FR-020
+- [X] T014 [US1] Retire `ocr.run_ocr_lines()` and the paired `ocr.run_layout()` from `src/ledgerlinc_ocr/preprocessing/ocr.py` once `run_page()` is in place (FR-007) — delete, do not stub
+- [X] T015 [US1] Rewire `src/ledgerlinc_ocr/preprocessing/pipeline.py` to call `ocr.run_page(...)` once per rasterized page instead of the `ocr.run_ocr_lines` + `ocr.run_layout` pair; collect returned `(lines, blocks, tables, warnings)` into the existing per-page accumulators
+- [X] T016 [US1] Stop catching `EngineInitError` inside `src/ledgerlinc_ocr/preprocessing/pipeline.py`'s per-page loop — let it propagate to the caller so no artifact is ever written on init failure (FR-016)
+- [X] T017 [US1] Add an `except EngineInitError` branch to `main()` in `src/ledgerlinc_ocr/preprocessing/cli.py` that emits the FR-016 JSON envelope on stderr (`{"status": "error", "kind": "engine_init_failed", "cause_class": ..., "cause_module": ..., "message": ..., "missing_weight": ..., "weight_hoster_url": ...}`) and returns `EXIT_INTERNAL_ERROR` (`3`) per contracts/cli-contract.md
 
 ### Integration-test updates for OCR-text shifts (US1)
 
@@ -88,25 +88,25 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 ### pipeline.py defensive-check wiring (US2)
 
-- [ ] T022 [US2] In `src/ledgerlinc_ocr/preprocessing/pipeline.py`, after `ocr.run_page()` returns for each page, emit the FR-003 warning via `warnings.build_warning(page, "silent_empty_layout", f"OCR produced {len(lines)} lines but layout returned zero blocks")` when `len(lines) > 0 and len(blocks) == 0`, and set a `silent_empty_page_detected = True` accumulator
-- [ ] T023 [US2] In `src/ledgerlinc_ocr/preprocessing/pipeline.py`, emit the FR-019 symmetric warning via `warnings.build_warning(page, "silent_empty_ocr", f"OCR returned zero lines despite {K} text-type blocks")` when `len(blocks) > 0 and len(lines) == 0 and any(b.block_type in {text,title,header,footer} for b in blocks)`, and set `silent_empty_page_detected = True`
-- [ ] T024 [US2] In `src/ledgerlinc_ocr/preprocessing/pipeline.py`, emit the FR-018 warning via `warnings.build_warning(page, "suspicious_single_block", f"single block covers {len(lines)} OCR lines")` when `len(lines) >= 2 and len(blocks) == 1`; do NOT set `silent_empty_page_detected`
-- [ ] T025 [US2] Before writing the artifact, sort `warnings_out` in `src/ledgerlinc_ocr/preprocessing/pipeline.py` using `warnings.warning_sort_key` so page-ascending (categorized first, non-categorized after) + vocabulary-lexical ordering holds per FR-020 and research R-009
-- [ ] T026 [US2] Pass `silent_empty_page_detected` from `pipeline.run()` into `ingestion_sources.build_ingestion_sources(...)` so `paddleocr_vl.status` downgrades to `"failure"` even when `pages_with_paddleocr_output > 0` (FR-003, FR-019 + data-model §IngestionSource)
+- [X] T022 [US2] In `src/ledgerlinc_ocr/preprocessing/pipeline.py`, after `ocr.run_page()` returns for each page, emit the FR-003 warning via `warnings.build_warning(page, "silent_empty_layout", f"OCR produced {len(lines)} lines but layout returned zero blocks")` when `len(lines) > 0 and len(blocks) == 0`, and set a `silent_empty_page_detected = True` accumulator
+- [X] T023 [US2] In `src/ledgerlinc_ocr/preprocessing/pipeline.py`, emit the FR-019 symmetric warning via `warnings.build_warning(page, "silent_empty_ocr", f"OCR returned zero lines despite {K} text-type blocks")` when `len(blocks) > 0 and len(lines) == 0 and any(b.block_type in {text,title,header,footer} for b in blocks)`, and set `silent_empty_page_detected = True`
+- [X] T024 [US2] In `src/ledgerlinc_ocr/preprocessing/pipeline.py`, emit the FR-018 warning via `warnings.build_warning(page, "suspicious_single_block", f"single block covers {len(lines)} OCR lines")` when `len(lines) >= 2 and len(blocks) == 1`; do NOT set `silent_empty_page_detected`
+- [X] T025 [US2] Before writing the artifact, sort `warnings_out` in `src/ledgerlinc_ocr/preprocessing/pipeline.py` using `warnings.warning_sort_key` so page-ascending (categorized first, non-categorized after) + vocabulary-lexical ordering holds per FR-020 and research R-009
+- [X] T026 [US2] Pass `silent_empty_page_detected` from `pipeline.run()` into `ingestion_sources.build_ingestion_sources(...)` so `paddleocr_vl.status` downgrades to `"failure"` even when `pages_with_paddleocr_output > 0` (FR-003, FR-019 + data-model §IngestionSource)
 
 ### Unit tests (US2)
 
-- [ ] T027 [US2] [P] Add `tests/unit/preprocessing/test_warnings.py` covering `build_warning()` string format, `WARNING_CATEGORIES` lexical ordering, `STATUS_DOWNGRADING` membership, `warning_sort_key()` on mixed categorized + non-categorized input
-- [ ] T028 [US2] [P] Update `tests/unit/preprocessing/test_ingestion_sources.py` with cases for `silent_empty_page_detected=True` (status must be `"failure"` even with `pages_with_paddleocr_output >= 1`) and `silent_empty_page_detected=False` (status unchanged)
-- [ ] T029 [US2] [P] Update `tests/unit/preprocessing/test_version.py` to expect the new `stage1-preprocess-v0.2.0+paddleocr3.5.0.*.dpi300` shape
+- [X] T027 [US2] [P] Add `tests/unit/preprocessing/test_warnings.py` covering `build_warning()` string format, `WARNING_CATEGORIES` lexical ordering, `STATUS_DOWNGRADING` membership, `warning_sort_key()` on mixed categorized + non-categorized input
+- [X] T028 [US2] [P] Update `tests/unit/preprocessing/test_ingestion_sources.py` with cases for `silent_empty_page_detected=True` (status must be `"failure"` even with `pages_with_paddleocr_output >= 1`) and `silent_empty_page_detected=False` (status unchanged)
+- [X] T029 [US2] [P] Update `tests/unit/preprocessing/test_version.py` to expect the new `stage1-preprocess-v0.2.0+paddleocr3.5.0.*.dpi300` shape
 
 ### Integration tests (US2)
 
-- [ ] T030 [US2] [P] Add `tests/integration/preprocessing/test_silent_empty_layout.py` — stub `ocr.run_page` to return lines with zero blocks on one page; assert `[silent_empty_layout]` warning present, `status == "failure"`, artifact still validates
-- [ ] T031 [US2] [P] Add `tests/integration/preprocessing/test_silent_empty_ocr.py` — stub `ocr.run_page` to return zero lines + one text-type block on one page; assert `[silent_empty_ocr]` warning present, `status == "failure"`, artifact still validates
-- [ ] T032 [US2] [P] Add `tests/integration/preprocessing/test_suspicious_single_block.py` — stub `ocr.run_page` to return `>=2` lines + exactly one block; assert `[suspicious_single_block]` warning present, `status == "success"` (no downgrade), artifact still validates
-- [ ] T033 [US2] [P] Add `tests/integration/preprocessing/test_unknown_layout_label.py` — stub V3 to emit a label not in `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE`; assert mapped to `"text"` and `[unknown_layout_label]` warning present, no status downgrade
-- [ ] T034 [US2] [P] Add `tests/integration/preprocessing/test_engine_init_hard_fail.py` — stub `PPStructureV3()` to raise during construction (weight-download subcase and generic subcase); assert CLI exits `3`, stderr carries the FR-016 JSON envelope with correct `cause_class` / `cause_module` / conditional `missing_weight`, no `preprocess_output.json` written
+- [X] T030 [US2] [P] Add `tests/integration/preprocessing/test_silent_empty_layout.py` — stub `ocr.run_page` to return lines with zero blocks on one page; assert `[silent_empty_layout]` warning present, `status == "failure"`, artifact still validates
+- [X] T031 [US2] [P] Add `tests/integration/preprocessing/test_silent_empty_ocr.py` — stub `ocr.run_page` to return zero lines + one text-type block on one page; assert `[silent_empty_ocr]` warning present, `status == "failure"`, artifact still validates
+- [X] T032 [US2] [P] Add `tests/integration/preprocessing/test_suspicious_single_block.py` — stub `ocr.run_page` to return `>=2` lines + exactly one block; assert `[suspicious_single_block]` warning present, `status == "success"` (no downgrade), artifact still validates
+- [X] T033 [US2] [P] Add `tests/integration/preprocessing/test_unknown_layout_label.py` — stub V3 to emit a label not in `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE`; assert mapped to `"text"` and `[unknown_layout_label]` warning present, no status downgrade
+- [X] T034 [US2] [P] Add `tests/integration/preprocessing/test_engine_init_hard_fail.py` — stub `PPStructureV3()` to raise during construction (weight-download subcase and generic subcase); assert CLI exits `3`, stderr carries the FR-016 JSON envelope with correct `cause_class` / `cause_module` / conditional `missing_weight`, no `preprocess_output.json` written
 
 **Checkpoint**: User Story 2 complete — silent failures can no longer happen on either axis; warnings are byte-stable; engine-init failure is structured and hard-failing.
 
@@ -131,10 +131,10 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 ### Documentation updates (US3 — parallel)
 
-- [ ] T040 [US3] [P] Update `docs/stage1-vendor-identity/architecture.md` processing-flow section to reference PPStructureV3 + PP-OCRv5 (replacing PPStructure + PP-OCRv4) (FR-011, SC-006)
-- [ ] T041 [US3] [P] Update `docs/stage1-vendor-identity/ollama-runtime.md` — replace all `paddleocr 2.10` references with `paddleocr 3.5` where applicable (FR-011, SC-006)
-- [ ] T042 [US3] [P] Add a V3 migration decision entry to `specs/003-pdf-preprocessing/research.md` citing this spec and `docs/stage1-vendor-identity/prd-ppstructurev3-migration.md` (FR-011)
-- [ ] T043 [US3] [P] Update `specs/003-pdf-preprocessing/quickstart.md` — revise PaddleOCR version references and first-run warm-up weight list (FR-011, SC-006)
+- [X] T040 [US3] [P] Update `docs/stage1-vendor-identity/architecture.md` processing-flow section to reference PPStructureV3 + PP-OCRv5 (replacing PPStructure + PP-OCRv4) (FR-011, SC-006)
+- [X] T041 [US3] [P] Update `docs/stage1-vendor-identity/ollama-runtime.md` — replace all `paddleocr 2.10` references with `paddleocr 3.5` where applicable (FR-011, SC-006)
+- [X] T042 [US3] [P] Add a V3 migration decision entry to `specs/003-pdf-preprocessing/research.md` citing this spec and `docs/stage1-vendor-identity/prd-ppstructurev3-migration.md` (FR-011)
+- [X] T043 [US3] [P] Update `specs/003-pdf-preprocessing/quickstart.md` — revise PaddleOCR version references and first-run warm-up weight list (FR-011, SC-006)
 
 ### Commit the regenerated baselines (US3)
 

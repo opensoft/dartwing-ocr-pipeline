@@ -87,9 +87,9 @@ def test_ac3_rotation_warning_format(tmp_path, monkeypatch):
         ),
     ]
 
+    # V3 migration (FR-007): run_ocr_lines / run_layout retired; stub run_page.
     monkeypatch.setattr(rasterize, "rasterize_pdf", lambda pdf_path, dpi: fake_pages)
-    monkeypatch.setattr(ocr, "run_ocr_lines", lambda img, page, w, h: ([], []))
-    monkeypatch.setattr(ocr, "run_layout", lambda img, page, w, h: ([], [], []))
+    monkeypatch.setattr(ocr, "run_page", lambda img, page, w, h: ([], [], [], []))
 
     out = pipeline.run(pipeline.Invocation(document_folder=folder))
     art = json.loads(out.read_text(encoding="utf-8"))

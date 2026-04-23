@@ -171,6 +171,16 @@ For stage 1, the recommended runtime split remains:
 5. The final structured payload is assembled.
 6. The evaluator compares the final payload against the human-labeled expected truth.
 
+### Stage 1 Preprocessing Engine
+
+Stage 1 preprocessing is implemented on top of `PaddleOCR 3.5`:
+
+- `PPStructureV3` — layout detection (PP-DocBlockLayout + PP-DocLayout_plus-L), table structure (SLANeXt_wired, SLANet_plus), cell detectors (RT-DETR-L)
+- `PP-OCRv5` — text recognition, invoked through V3's built-in OCR pass (no separate recognizer call)
+- CPU-only, single-threaded, `enable_mkldnn=False` for paddle 3.3.1 PIR/oneDNN bug avoidance and determinism (see spec `010-pp-structurev3-preprocessing`)
+
+This realizes the stage-1 subset of the `PaddleOCR-VL-1.5` Trijunction role above; Falcon OCR and Falcon Perception remain `not_implemented` at stage 1.
+
 ## Stage 1 Artifacts
 
 Each stage 1 run works with four core artifacts:

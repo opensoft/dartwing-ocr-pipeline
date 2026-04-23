@@ -18,8 +18,12 @@ schema-valid `preprocess_output.json` next to it.
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 # The preprocessing slice adds these runtime deps to pyproject.toml:
-#   pypdfium2, paddleocr, paddlepaddle (CPU), Pillow, numpy
+#   pypdfium2, paddleocr (3.5.x), paddlex[ocr] (3.5.x), paddlepaddle (3.x, CPU),
+#   Pillow, numpy
 # They install automatically via the editable install once the tasks land.
+# Note: Decision 2 (PaddleOCR 2.x + PP-StructureV2) has been superseded by
+# Decision 10 (PaddleOCR 3.5 + PPStructureV3 + PP-OCRv5). See research.md
+# Decision 10 and spec 010-pp-structurev3-preprocessing.
 ```
 
 ## Run preprocessing on one document
@@ -86,13 +90,19 @@ Each of these is covered by integration tests under
 ## Common troubleshooting
 
 - **PaddleOCR first-run model download**: on the first invocation, PaddleOCR
-  pulls its model weights. This is a one-time cost; subsequent runs use the
-  cached weights under `~/.paddlex/`.
+  pulls its model weights (~500 MB under 3.5: PP-DocBlockLayout,
+  PP-DocLayout_plus-L, PP-OCRv5 server det/rec, SLANeXt_wired, SLANet_plus,
+  RT-DETR-L cell detectors). This is a one-time cost; subsequent runs use the
+  cached weights under `~/.paddlex/official_models/`. Download-failure mode
+  under 3.5 is hard-fail per FR-016 (spec 010) — non-zero exit, no artifact
+  written, structured JSON envelope on stderr naming the missing weight.
 - **Schema-validation failure (exit 3)**: this means the assembled artifact
   did not match `preprocess_output.schema.json`. Do not edit the schema —
   that is frozen v1.0.0. Fix the pipeline code to match the contract. See
   `contracts/stage1_vendor_identity/AMENDMENTS.md` for the schema-change path,
   which is explicitly out of scope for this slice.
-- **Non-deterministic diffs on rerun**: check that `use_mp=False` and
-  `cpu_threads=1` are still set in the PaddleOCR wrapper (research.md
-  Decision 2). Multiprocessing reorders pages and breaks SC-002.
+- **Non-deterministic diffs on rerun**: check that `cpu_threads=1` and
+  `enable_mkldnn=False` are set on `PPStructureV3` construction, and that
+  `paddle.seed(0)` runs before first engine init (research.md Decision 10 +
+  spec 010 FR-005). Multi-threading, oneDNN scratch buffers, and missing seeds
+  are the common sources of byte-level drift between reruns.
