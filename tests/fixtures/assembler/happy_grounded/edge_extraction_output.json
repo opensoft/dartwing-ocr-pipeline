@@ -1,0 +1,120 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "005-edge-extraction@0.1.0",
+  "document_id": "inv_happy_grounded_001",
+  "processed_at": "2026-04-21T12:00:00Z",
+  "model_runtime": {
+    "provider": "ollama",
+    "model_name": "qwen3-vl",
+    "model_version": "0.1.0",
+    "runtime": "rocm"
+  },
+  "vote_metadata": {
+    "voter_id": "primary",
+    "voter_role": "primary_extractor",
+    "consensus_mode": "single_voter_baseline"
+  },
+  "document_type": {
+    "value": "invoice",
+    "confidence": 0.99
+  },
+  "vendor_candidate": {
+    "company_name": {
+      "value": "Acme Supplies, Inc.",
+      "present": true,
+      "inferred": false,
+      "confidence": 0.96,
+      "evidence": ["p1_b0"]
+    },
+    "address": {
+      "street_1": {
+        "value": "1234 Market St",
+        "confidence": 0.92,
+        "evidence": ["p1_b1"]
+      },
+      "street_2": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "city": {
+        "value": "San Francisco",
+        "confidence": 0.93,
+        "evidence": ["p1_b2"]
+      },
+      "state": {
+        "value": "CA",
+        "confidence": 0.94,
+        "evidence": ["p1_b2"]
+      },
+      "postal_code": {
+        "value": "94103",
+        "confidence": 0.95,
+        "evidence": ["p1_b2"]
+      },
+      "country": {
+        "value": "US",
+        "confidence": 0.88,
+        "evidence": ["p1_b3"]
+      }
+    },
+    "tax_ids": {
+      "ein": {
+        "value": "12-3456789",
+        "confidence": 0.9,
+        "evidence": ["p1_b5"]
+      },
+      "state_tax_id": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "vat_id": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "other_tax_id": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      }
+    },
+    "website": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "phone": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "email": {
+      "value": "billing@acme.test",
+      "confidence": 0.89,
+      "evidence": ["p1_b6"]
+    }
+  },
+  "invoice_header_fields": {
+    "invoice_number": {
+      "value": "INV-001",
+      "confidence": 0.9,
+      "evidence": ["p1_b7"]
+    },
+    "invoice_date": {
+      "value": "2026-04-01",
+      "confidence": 0.9,
+      "evidence": ["p1_b7"]
+    },
+    "total_amount": {
+      "value": 1234.56,
+      "currency": "USD",
+      "confidence": 0.9,
+      "evidence": ["p1_b8"]
+    }
+  },
+  "extraction_notes": [],
+  "warnings": [],
+  "status": "success"
+}

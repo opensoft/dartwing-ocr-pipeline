@@ -7,7 +7,14 @@ services:
     working_dir: /workspace
     command: sleep infinity
     environment:
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      # WSL_HOST_IP is populated by .devcontainer/devcontainer.json's
+      # initializeCommand (or scripts/devcontainer-up.sh for manual starts).
+      # When set, it points at the WSL distro's eth0 address, which is the
+      # reliable route to host Ollama on this workstation's networking.
+      # Falls back to host.docker.internal when unset — Docker Desktop's
+      # host-gateway address, works when Docker Desktop's routing reaches
+      # WSL host services. See docs/stage1-vendor-identity/ollama-runtime.md.
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://${WSL_HOST_IP:-host.docker.internal}:11434}
     volumes:
       - ..:/workspace:cached
     extra_hosts:

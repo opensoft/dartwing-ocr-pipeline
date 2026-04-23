@@ -32,6 +32,7 @@ ledgerlinc-preprocess = "ledgerlinc_ocr.preprocessing.cli:main"
 ledgerlinc-pipeline = "ledgerlinc_ocr.pipeline.cli:main"
 ledgerlinc-evidence-packet = "ledgerlinc_ocr.evidence_packet.cli:main"
 ledgerlinc-extract = "ledgerlinc_ocr.extract.cli:main"
+ledgerlinc-assemble = "ledgerlinc_ocr.assembler.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

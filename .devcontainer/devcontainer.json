@@ -1,6 +1,7 @@
 {
   "name": "LedgerLinc OCR Pipeline",
   "dockerComposeFile": "docker-compose.yml",
+  "initializeCommand": "echo \"WSL_HOST_IP=$(hostname -I | awk '{print $1}')\" > .devcontainer/.env",
   "service": "pipeline-dev",
   "runServices": ["pipeline-dev"],
   "workspaceFolder": "/workspace",

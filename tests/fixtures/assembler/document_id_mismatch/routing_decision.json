@@ -1,0 +1,21 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "006-routing@0.1.0",
+  "policy_version": "0.1.0",
+  "document_id": "inv_006",
+  "processed_at": "2026-04-21T12:00:05Z",
+  "status": "success",
+  "decision": "edge_accept",
+  "consensus_summary": {"mode": "single_voter_baseline", "agreement_level": "not_applicable"},
+  "scores": {
+    "company_name_score": 0.9, "address_score": 0.0, "tax_id_score": 0.0,
+    "contact_score": 0.0, "overall_vendor_identity_score": 0.5
+  },
+  "checks": {
+    "company_name_present": true, "company_name_inferred": false,
+    "address_has_minimum_components": false, "at_least_one_tax_id_present": false,
+    "website_or_email_present": false, "post_extraction_spam_gate_passed": true
+  },
+  "review_status": {"manual_review_required": false, "review_reason": null},
+  "reasons": []
+}

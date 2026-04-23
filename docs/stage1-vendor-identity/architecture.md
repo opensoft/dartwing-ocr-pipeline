@@ -65,6 +65,16 @@ Role:
 
 The three model outputs are compared by a deterministic consensus layer.
 
+> **Stage 1 implementation.** The stage 1 router is a model-free CLI
+> at `python -m ledgerlinc_ocr.router route <folder>`. It reads
+> `edge_extraction_output.json` and emits a schema-valid
+> `routing_decision.json` with `decision ∈ {edge_accept, edge_review_required}`
+> plus a priority-ordered `reasons[]` array. Canonical reason strings
+> and the four forcing rules (missing-name, spam-gate, secondary-floor,
+> upstream-failure) are pinned by `policy_version`. See
+> [`specs/008-routing/spec.md`](../../specs/008-routing/spec.md) and
+> [`specs/008-routing/contracts/cli-contract.md`](../../specs/008-routing/contracts/cli-contract.md).
+
 #### Consensus Gate
 
 The gate compares field-level JSON outputs across all three models.
