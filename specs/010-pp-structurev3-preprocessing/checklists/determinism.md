@@ -102,3 +102,48 @@ All 37 items closed after the `/speckit.analyze` remediation pass that landed th
 - **CHK035–CHK036** (determinism under partial failures + across process restarts): follow from FR-004's universal byte-identical guarantee; not called out separately.
 
 No residuals at any severity level.
+
+---
+
+## Session 2026-04-23 Append — Post-Clarify Round 2+3 (CHK038–CHK055)
+
+**Purpose**: Validate determinism-requirement quality after the seven clarifications that landed on 2026-04-22 Q16–Q19 (confidence verbatim, PP-OCRv5 default threshold, `tables[]` projection, debug PNG opt-in) and 2026-04-23 Q23–Q25 (FR-010 broad halt, FR-021 strict-current-shape, zero-overlap out-of-scope). Each item tests whether the determinism contract holds under the new rules — NOT whether the implementation does it right.
+
+### Confidence Verbatim (FR-004 / R-013)
+
+- [ ] CHK038 Is FR-004's "confidence verbatim" rule enumerated as a determinism axis alongside the existing bbox / text / ordering axes, or only as a value-sourcing rule? [Completeness, Spec §FR-004]
+- [ ] CHK039 Is the retirement of the V2-era `max(0.0, min(1.0, float(...)))` clamp explicit in the requirement text, or left as an implicit consequence of "verbatim"? [Clarity, Spec §FR-004]
+- [ ] CHK040 Is the out-of-range confidence case (engine emits `1.2` or `-0.1`) specified to persist as-is — no NaN substitution, no clamping, no drop — so two reruns produce identical out-of-range values? [Coverage, Spec §FR-004]
+- [ ] CHK041 Is the `confidence: null` persistence rule deterministic across reruns — same-engine, same-input → same null placement with no flip to `0.0`? [Consistency, Spec §FR-004]
+
+### FR-022 PNG-Outside-FR-004 Scope
+
+- [ ] CHK042 Does FR-004's byte-identical guarantee explicitly exclude `page_*.png` output per FR-022, or is the exclusion only implied by the "applies to `preprocess_output.json`" phrasing? [Clarity, Spec §FR-004 §FR-022]
+- [ ] CHK043 Does the spec require determinism of `preprocess_output.json` to hold regardless of whether `--write-page-images` was passed — i.e., JSON byte-identity does NOT depend on the PNG-flag state? [Coverage, Spec §FR-022 §FR-004]
+
+### FR-007 Engine-Default Threshold Stability
+
+- [ ] CHK044 Is the PP-OCRv5 engine-default recognition threshold (FR-007) stated to be stable across runs on a given dep-pin — i.e., introspection produces the same value each time? [Assumption, Spec §FR-007]
+- [ ] CHK045 Is the R-012 "probe-derived default" recording specified as a one-time commit-reviewer note, or a per-run verification that would introduce a CI-time read-back axis? [Clarity, Spec §FR-007, research §R-012]
+
+### FR-021 Strict-Current-Shape `tables[]`
+
+- [ ] CHK046 Does the spec require `tables[]` determinism to hold under the FR-021 strict-current-shape projection — i.e., schema widening via future AMENDMENTS does NOT silently change ordering or content of emitted fields? [Coverage, Spec §FR-021 §FR-004]
+- [ ] CHK047 Is the iteration order of `table_res_list[*]` → `tables[*]` entries specified (e.g., block-order-within-page), or left to V3's upstream list-order behavior? [Gap, Spec §FR-021]
+- [ ] CHK048 Is the discarded-content boundary (raw HTML, per-cell metadata, per-cell scores) enumerated with enough precision that two implementers would project identically? [Clarity, Spec §FR-021]
+- [ ] CHK049 Is the determinism impact of a future AMENDMENTS widening the `tables[]` schema documented — does preprocessing's strict-current-shape rule guarantee byte-identical output until the code opts in? [Coverage, Spec §FR-021 §FR-004]
+
+### Cross-Version / Cross-Regeneration Scope
+
+- [ ] CHK050 Is "byte-identical" determinism scoped explicitly to one `pipeline_version` string (`v0.2.0+paddleocr3.5.0.*`), with cross-version diff expected and signaled by the FR-008 bump — or is the scope ambiguous? [Clarity, Spec §FR-004 §FR-008]
+- [ ] CHK051 Is the interaction between a future R-012 engine-default threshold change (post-paddleocr-bump) and the FR-010 corpus regeneration sweep specified — does a moved default automatically trigger a new regeneration commit, or require a manual decision? [Coverage, Spec §FR-007 §FR-010] 
+- [ ] CHK052 Are determinism axes for lockfile pinning stated as exact versions (`paddleocr==3.5.0`, `paddlex[ocr]==3.5.1`, `paddlepaddle==3.3.1`) — single exact pins, not ranges — in the requirement text, or only in plan.md Technical Context? [Traceability, Spec §FR-009]
+
+### Zero-Overlap Edge Case (Session 2026-04-23 Q25)
+
+- [ ] CHK053 Is determinism required under the zero-overlap edge case (lines > 0, blocks > 0, no bbox overlap) — i.e., does the "empty-text-per-block" path produce byte-identical output across runs? [Coverage, Spec §Edge Cases §FR-004]
+- [ ] CHK054 Does the spec address whether the zero-overlap case's unwritten-text blocks (`block.text == ""`) affect `document_text` determinism — is the join-behavior stable? [Gap, Spec §Edge Cases §FR-004]
+
+### Session-Resolution Traceability
+
+- [ ] CHK055 Is the SC-003 sha256 verification method reiterated against the updated FR-004 (confidence verbatim + PNG-out-of-scope) language, or only against the original FR-004? [Traceability, Spec §SC-003 §FR-004]

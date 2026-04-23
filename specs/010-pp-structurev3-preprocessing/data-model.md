@@ -18,6 +18,8 @@ Artifact-level entities already documented in `contracts/stage1_vendor_identity/
 | `IngestionSource.paddleocr_vl` | artifact | yes | `status` may downgrade to `"failure"` based on silent-empty page detection — NEW trigger |
 | `Warning` (string in `warnings[]`) | artifact | yes | new category-tokenized prefix format for four categories |
 | `PipelineVersion` (string) | artifact | yes | bumped prefix + engine segment |
+| `DebugPageImage` (PNG on disk) | developer-only output | no (never committed) | opt-in via `--write-page-images`; outside FR-004 determinism (FR-022) |
+| `PageRasterFrame` | in-flight | no | NEW — single rasterized page yielded and released under the FR-005a streaming lifecycle |
 | `V3RawResult` | in-flight | no | NEW — container around `PPStructureV3` per-page output |
 | `WarningCategory` | in-flight | no | NEW — closed enum + downgrading semantics |
 | `EngineInitError` | in-flight | no | NEW — exception type for FR-016 hard-fail |
@@ -26,7 +28,7 @@ Artifact-level entities already documented in `contracts/stage1_vendor_identity/
 
 ### `LayoutBlock`
 
-No schema change. `block_type` is constrained to the frozen enum `{text, title, table, figure, header, footer}`. New V3 layout labels are mapped to existing values via `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE` per R-003:
+No schema change. `block_type` is constrained to the frozen enum `{text, title, table, figure, header, footer}`. `confidence` on each block is populated verbatim from `layout_det_res.boxes[*].score` (R-013 / FR-004) — no clamping, no normalization; missing → `null`. New V3 layout labels are mapped to existing values via `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE` per R-003:
 
 | V3 label (from `layout_det_res.boxes[*].label`) | Mapped `block_type` | Rationale |
 |------------------------------------------------|---------------------|-----------|
@@ -56,15 +58,19 @@ line_i = {
     "line_id":   f"p{page_number}_l{i+1}",            # after sort (see below)
     "bbox":      _clip_bbox(_bbox_from_points(overall_ocr_res.rec_boxes[det_i]), width, height),
     "text":      overall_ocr_res.rec_texts[det_i],
-    "confidence": max(0.0, min(1.0, float(overall_ocr_res.rec_scores[det_i]))),
+    "confidence": _persist_confidence(overall_ocr_res.rec_scores, det_i),  # verbatim float or null per FR-004 / R-013
 }
 ```
+
+`_persist_confidence(scores, i)` returns `float(scores[i])` when the index exists and the value is numeric, else `None`. **No clamping** to `[0.0, 1.0]` (V2's clamp is retired under 010 per Clarifications Q18 / FR-004). **No filter is applied in this function for low-confidence lines** — recognition-threshold filtering happens inside PP-OCRv5 using the engine's default (R-012 / FR-007), and `raw_ocr_lines[*]` is whatever the engine returns after that.
 
 `line_id` is minted AFTER the `(bbox.y0, bbox.x0, det_idx)` stable sort. Identifier scheme (`p{page}_l{n}`) is unchanged from 003.
 
 ### `Table`
 
 No schema change. V3 exposes per-table HTML fragments via `table_res_list`. `_parse_table_dims(html) → (rows, columns)` in `src/ledgerlinc_ocr/preprocessing/ocr.py:113-132` is reused verbatim — the regex logic treats the HTML as opaque and is engine-version-agnostic. `cells` list construction is retained; V3's cell_bbox shape is a superset of V2's for our purposes (length-4 lists per cell).
+
+Projection boundary (FR-021 / R-014): `tables[]` is populated from V3's `table_res_list`, projected into the v1.0.0 schema shape **as of 010's landing commit** (strict-current-shape, Session 2026-04-23 Q24). Richer V3 content beyond the schema (raw HTML string, per-cell metadata, per-cell scores) is discarded at the persistence boundary in `ocr._extract_blocks()` / `ocr._extract_tables()`. `_parse_table_dims()` reads the HTML only to derive `rows`/`columns`; the HTML string itself is NOT persisted. Future AMENDMENTS entries that widen the schema (e.g., add optional `cell_confidence`) require a matching preprocessing code change before the new field is emitted — silent auto-pickup of schema additions is prohibited. `tables[]` ordering follows block order within each page (same sort key as `blocks[]`), preserving FR-004 byte-identical reruns.
 
 ### `IngestionSource.paddleocr_vl`
 
@@ -106,6 +112,19 @@ Encoding (`src/ledgerlinc_ocr/preprocessing/version.py`):
 - `DPI = 300` (unchanged)
 
 ## In-flight entities (NEW)
+
+### `PageRasterFrame`
+
+Single rasterized PDF page yielded by `src/ledgerlinc_ocr/preprocessing/rasterize.py` into the `pipeline.py` per-page loop. Not persisted; lives only long enough for that page's OCR/layout work to complete.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `page_number` | `int` | 1-based page ordinal; preserves document order |
+| `width` / `height` | `int` | page dimensions after rasterization; copied into artifact-owned bbox clipping logic |
+| `image` | `PIL.Image.Image` | current page raster only; eligible for release after page-owned lines/blocks/tables/warnings have been copied |
+| `failure` | `PageRasterFailure \| None` | per-page rasterization failure sentinel; preserved under the streaming API exactly as under the list-based API |
+
+Lifecycle guarantee (FR-005a / R-011): only one `PageRasterFrame.image` needs to remain resident at a time. `pipeline.py` consumes the iterator in page order, copies page-owned artifact data out, and then allows the page image to be released before requesting the next raster. No previous-page or next-page header/footer context is threaded through this entity.
 
 ### `V3RawResult`
 
@@ -190,6 +209,10 @@ These rules are enforced by code (deterministic, not model-inferred) and map 1:1
 | Label-fallback warnings do NOT downgrade status | `ingestion_sources.build_ingestion_sources()` ignores `unknown_layout_label` / `suspicious_single_block` | FR-006, FR-018 |
 | Two runs on same PDF + deps ⇒ byte-identical output | covered by R-005 (threading, oneDNN, seed, post-sort, FR-020 warning ordering) | FR-004, SC-003 |
 | Every page with `len(raw_ocr_lines) > 0` has `≥1` block (or fires FR-003) | covered by FR-002 + FR-003 being formal inverses | FR-002 |
+| `confidence` on blocks and lines persisted verbatim from engine output; missing → `null` | `ocr._extract_lines()` + `ocr._extract_blocks()` | FR-004, R-013 |
+| OCR recognition threshold at PP-OCRv5 engine default; no project override | `ocr._get_engine()` (no `text_rec_score_thresh` / `drop_score` override) | FR-007, R-012 |
+| `tables[]` populated from V3 `table_res_list`, projected into v1.0.0 shape; richer content discarded | `ocr._extract_blocks()` / `ocr._extract_tables()` | FR-021, R-014 |
+| Debug `page_*.png` emission gated on `--write-page-images`; not covered by FR-004 | `cli.py` → `rasterize.py` / `pipeline.py` | FR-022, R-015 |
 
 ## State transitions
 

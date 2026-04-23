@@ -17,6 +17,11 @@
 - [R-008: FR-016 hard-fail error format](#r-008-fr-016-hard-fail-error-format)
 - [R-009: Warning category vocabulary + ordering](#r-009-warning-category-vocabulary--ordering)
 - [R-010: FR-017 fallback — PaddleOCR 2.10 + CDLA (doc-only)](#r-010-fr-017-fallback--paddleocr-210--cdla-doc-only)
+- [R-011: Page-at-a-time raster streaming](#r-011-page-at-a-time-raster-streaming)
+- [R-012: PP-OCRv5 default recognition threshold](#r-012-pp-ocrv5-default-recognition-threshold)
+- [R-013: Confidence value semantics under V3](#r-013-confidence-value-semantics-under-v3)
+- [R-014: `tables[]` projection boundary under V3](#r-014-tables-projection-boundary-under-v3)
+- [R-015: Debug PNG emission policy](#r-015-debug-png-emission-policy)
 - [Baseline timings](#baseline-timings)
 
 ---
@@ -46,7 +51,7 @@ _ENGINE = PPStructureV3(
 - All preview / auxiliary modules (orientation, dewarping, formula, seal, chart) stay off per FR-005 and the PRD scope line. Turning any of them on would drag in additional weights and non-deterministic behavior we don't need for vendor identity.
 - `enable_mkldnn=False` is the PRD-documented workaround for the paddle 3.3.1 PIR/oneDNN `ConvertPirAttribute2RuntimeAttribute` bug on `PP-DocBlockLayout`. Without it, layout inference crashes or silently miscomputes attention shapes on some invoices. Trade: slower inference on x86; acceptable at stage 1 CPU-only corpus-size workloads (SC-005 records the cost, does not gate on it).
 - `cpu_threads=1`, `device="cpu"` — matches 003's determinism discipline. Multi-threaded CPU kernels have produced non-byte-identical floats on reruns in the past.
-- Module-level `_ENGINE` caching mirrors current V2 `_OCR_ENGINE` / `_STRUCTURE_ENGINE` caching. One construction per process, not per call.
+- Module-level `_ENGINE` caching mirrors current V2 `_OCR_ENGINE` / `_STRUCTURE_ENGINE` caching. One construction per process, not per call. The engine stays resident while pages stream through it one by one.
 
 **Alternatives considered**:
 - GPU path via `device="gpu"` — out of scope (FR-005). WSL Docker Desktop can't see the AMD GPU; production-Linux ROCm is a future story.
@@ -152,7 +157,7 @@ def run_page(image, page_number, width, height):
 - **oneDNN**: `enable_mkldnn=False` — eliminates the PIR bug AND eliminates oneDNN's pool-sized-dependent scratch memory layouts that can perturb floats between runs.
 - **Paddle seed**: `paddle.seed(0)` called once at engine-lazy-init — carried over from V2's `_lazy_paddle()`.
 - **Sort after extraction**: the existing `(bbox.y0, bbox.x0, det_idx)` stable sort on both lines and blocks stays, because V3 does not guarantee list-order stability across reruns. `reading_order` is assigned `1..N` from the sorted sequence.
-- **Image preprocessing**: rasterization stays at 300 DPI via `pypdfium2`, deterministic. No change from 003.
+- **Image preprocessing**: rasterization stays at 300 DPI via `pypdfium2`, deterministic, but page images are streamed one at a time instead of being retained for the whole document lifetime.
 - **Output ordering**: `pages` is iterated in page-number order; `blocks` and `raw_ocr_lines` within each page follow the sort above; `warnings` follow FR-020 (page-ascending, vocabulary-lexical within a page). `tables` follow block order within their page.
 
 The Phase 2 implementation MUST add a determinism smoke as part of the integration test suite: run `inv_001_easy` twice, sha256 both `preprocess_output.json`, assert match.
@@ -165,7 +170,7 @@ The Phase 2 implementation MUST add a determinism smoke as part of the integrati
 
 ## R-006: Corpus regeneration sweep — halt-on-fail
 
-**Decision**: The FR-010 regeneration sweep is implemented as a **shell loop** around the existing `ledgerlinc-preprocess` CLI, not a new Python orchestrator. The loop halts immediately on the first non-zero exit code, so an FR-016 engine-init failure on document K of N leaves `inv_001..inv_{K-1}` regenerated and `inv_K..inv_N` un-touched — but the sweep will be re-run from the top after the env is fixed, and git will discard the partial progress (no commit happens until the sweep succeeds end-to-end).
+**Decision**: The FR-010 regeneration sweep is implemented as a **shell loop** around the existing `ledgerlinc-preprocess` CLI, not a new Python orchestrator. The loop halts immediately on ANY non-zero exit code — `1` (unexpected), `2` (input_rejected, includes encrypted / malformed PDFs), or `3` (internal_error, includes FR-016 engine-init). This broad halt scope was formalized in Session 2026-04-23 (spec clarification Q23): baseline integrity is the target, and any non-zero exit means a document's artifact failed to land. A failure on document K of N leaves `inv_001..inv_{K-1}` regenerated and `inv_K..inv_N` un-touched — but the sweep will be re-run from the top after the root cause is fixed, and git will discard the partial progress (no commit happens until the sweep succeeds end-to-end).
 
 Reference invocation (quickstart pins the exact form):
 
@@ -183,7 +188,8 @@ done
 
 **Alternatives considered**:
 - Python orchestrator that catches `EngineInitError` and stops — rejected; duplicates CLI exit-code logic for no extra signal.
-- Skip-and-continue on failure — explicitly rejected by Clarifications (mixed-engine baseline risk).
+- Skip-and-continue on failure — explicitly rejected by Clarifications (mixed-engine or mixed-completion baseline risk).
+- Halt only on FR-016 engine-init (`3`) and skip-and-continue on input-rejection (`2`) or unexpected (`1`) — rejected per Session 2026-04-23 Q23. Any non-zero means a document is missing from the baseline set; proceeding would commit a partial corpus that the downstream evaluator would score incorrectly.
 
 ## R-007: `pipeline_version` format and engine SHA
 
@@ -301,6 +307,113 @@ Aggregate warnings that don't fit the `page N: [<token>]` format (e.g., the exis
 **Alternatives considered**:
 - Keep a hidden `--engine=legacy` flag that runs 2.10 + CDLA — rejected; doubles the test matrix and violates FR-017's "no 2.10 code path ... in this slice."
 - Rely on git-revert of this feature as the fallback — rejected; too coarse, loses FR-003 / FR-018 / FR-019 / FR-020 defensive improvements that are engine-agnostic.
+
+## R-011: Page-at-a-time raster streaming
+
+**Decision**: Refactor preprocessing so rasterization and inference stream one page at a time through the existing page-local `ocr.run_page(...)` boundary. `rasterize.py` should expose a page iterator/generator instead of returning a fully materialized list of `PageRaster | PageRasterFailure`, and `pipeline.py` should consume that iterator directly. Once a page's `raw_ocr_lines`, `blocks`, `tables`, and warnings have been copied into artifact-owned Python data structures, the page image becomes eligible for release before the next page is rasterized.
+
+No previous-page or next-page header/footer context is fed into OCR/layout. The current V3 path already performs recognition per page, and the page image is the only model input needed for stage 1 preprocessing.
+
+**Rationale**:
+- The current `010` implementation keeps every rasterized `PIL.Image` in memory until the whole document finishes because `rasterize_pdf(...)` returns a list and `pipeline.run(...)` iterates it later. With PPStructureV3's larger CPU-only model bundle, that turns moderate multi-page fixtures into workstation-level OOMs under WSL.
+- Streaming page images removes the unnecessary `N-page raster list` memory multiplier without changing OCR semantics, because `ocr.run_page(...)` is already page-local.
+- Avoiding adjacent-page context keeps the preprocessing boundary clean. Cross-page normalization such as repeated-header suppression or multi-page table stitching belongs in a later post-processing layer, not in OCR/layout evidence capture.
+
+**Alternatives considered**:
+- Keep whole-document rasterization and rely on larger machines or swap — rejected; the three-page integration fixture already proves the current memory behavior is not robust enough for this slice.
+- Reduce raster DPI to cut memory — rejected; 300 DPI is already part of the deterministic preprocessing contract and changing it would confound the migration with an OCR-quality regression.
+- Feed previous/next page header/footer snippets into OCR/layout — rejected; that adds cross-page inference complexity without helping glyph recognition on the current page.
+- Solve this only with a future GPU lane — rejected; `010` is explicitly CPU-only and needs a fix that works on the current development/runtime path.
+
+## R-012: PP-OCRv5 default recognition threshold
+
+**Decision**: Use the PP-OCRv5 recognition model's default confidence threshold without override. No `text_rec_score_thresh` / `drop_score` parameter is passed to `PPStructureV3(...)`, and no post-filter is applied in `ocr._extract_lines()` beyond what the engine itself returns. Record the exact default value (as emitted by `paddleocr==3.5.0` under `enable_mkldnn=False`, `cpu_threads=1`) in this section during Phase 2 probe work.
+
+**Probe-derived default**: _to be filled during implementation_. Capture by inspecting `PPStructureV3`'s constructed pipeline object — typically `pipeline.text_rec_score_thresh` or equivalent `drop_score` attribute on the underlying `TextRecognizer`. Reference values from PP-OCRv5 release notes are often `0.0` (no threshold) or `0.5` (default cutoff); the actual pinned value is recorded here once the probe runs.
+
+**Rationale**:
+- **Evidence-first alignment**: tying the filter to engine defaults means `len(raw_ocr_lines)` — the trigger input for FR-003 (`lines>0 AND blocks==0`) and FR-019 (`blocks>0 AND lines==0` on text blocks) — reflects whatever PP-OCRv5 considers a confident recognition. Overriding the threshold would introduce a second axis of "what counts as a line" that has to be justified against the evidence-first rule and maintained across engine bumps.
+- **Determinism is preserved via engine pinning**: the lockfile pins `paddleocr==3.5.0` exactly (see Technical Context), so the default doesn't drift between runs on a given dev machine. FR-004 byte-identical reruns still hold.
+- **Future engine bumps surface automatically**: if a future `paddleocr` release changes the default, the FR-010 corpus regeneration sweep will produce diffs, and the review cadence catches the shift before it lands in a committed baseline.
+
+**Alternatives considered**:
+- Pin a project-specific threshold (e.g., `0.5`) to guarantee stability across engine bumps — rejected per Clarifications Q16. Adds a maintenance surface (where to document, who updates it, how to rationalize) without clear evidence that the engine default is wrong for invoice OCR.
+- No threshold at all (persist every detection including low-confidence noise) — rejected. Would bloat `raw_ocr_lines` with noise, potentially firing FR-003 less often than it should on pages where recognition is genuinely weak.
+- Defer recording the default until corpus regression surfaces a problem — rejected. The value is discoverable now and recording it upfront is the cheapest way to make FR-010 diffs interpretable later.
+
+**Implementation note**: extract the default at engine-lazy-init time (right after `_ENGINE = PPStructureV3(...)`). Do not hard-code the value; introspect it so that a dependency bump changes the recorded value naturally. If the default is not easily introspectable, print it via a one-off probe script and paste the output into this section alongside the probe date.
+
+## R-013: Confidence value semantics under V3
+
+**Decision**: Persist `confidence` values verbatim from PPStructureV3 output, as floats, on every block and every OCR line. No clamping to `[0.0, 1.0]`, no renormalization, no sigmoid/min-max remapping. When V3 emits no confidence for a given block or line (e.g., a layout region whose `score` is missing, a recognized line without a `rec_scores` entry), `confidence` is persisted as `null` — never `0.0`, never an empty value, consistent with the constitution's "missing fields use null, never zero / empty string" rule.
+
+Implementation points:
+
+- **Blocks**: `confidence = layout_det_res.boxes[i].score` if present and `isinstance(score, (int, float))`, else `None`. No float coercion beyond `float(score)` for JSON stability.
+- **OCR lines**: `confidence = overall_ocr_res.rec_scores[det_i]` if the index exists and the value is numeric, else `None`. Parallel-array length mismatch (e.g., `rec_texts` longer than `rec_scores`) MUST NOT silently drop the line; the line persists with `confidence = null` and a note is captured in research if it ever fires in practice.
+
+The current V2 path applied `max(0.0, min(1.0, float(...)))` clamping on OCR-line confidences (see `data-model.md:60` pre-010). That clamp is **removed** under 010 per Clarifications Q18. V2 confidences already fell inside `[0.0, 1.0]` in practice, so the observable diff on the `inv_001..inv_020` baselines from this change alone is zero; the rule matters mainly as a posture statement and as insurance against a future engine emitting out-of-range values that would otherwise be silently clamped.
+
+**Rationale**:
+- **Evidence-first discipline**: downstream consumers (evidence packet, extractor, evaluator) decide what to do with confidence signals. Preprocessing is the wrong layer to impose a canonicalization rule, since a clamp or remap would bake in an assumption about what confidence means under a specific engine version.
+- **FR-004 determinism preserved**: verbatim persistence with explicit `null` handling is deterministic. The only flake axis is the engine-native float emission, which is already pinned via `cpu_threads=1` + `enable_mkldnn=False` + `paddle.seed(0)` per R-005.
+- **Engine-bump visibility**: a future engine that changes confidence semantics (e.g., emitting `logit` scores instead of `[0, 1]` probabilities) will produce a visible diff during FR-010 baseline regeneration review, instead of being silently renormalized into the old range.
+
+**Alternatives considered**:
+- Clamp to `[0.0, 1.0]`; missing → `null` (Option B from Clarifications Q18) — rejected. Clamping hides out-of-range values without alerting to them; if a future engine emits logit-scale scores, we'd rather see the outlier and adjust than silently lose the signal.
+- Normalize to `[0.0, 1.0]` via documented mapping — rejected. Adds hidden semantics that downstream consumers would have to reverse-engineer.
+- Drop `confidence` entirely and write `null` on every block and line — rejected. Discards engine-side information that the extractor already consumes as a signal.
+
+**Schema compatibility note**: the frozen `preprocess_output.schema.json` at `contract_set_version = "1.0.0"` accepts both `number` and `null` for `confidence` fields on blocks and lines. No AMENDMENTS entry is required to persist `null`; spot-check the schema before implementation to confirm the `oneOf [number, null]` / `"type": ["number", "null"]` shape is in place, and add a contract-test fixture covering a block/line with `confidence = null` as part of Phase 2.
+
+## R-014: `tables[]` projection boundary under V3
+
+**Decision**: Populate the artifact's `tables[]` field from PPStructureV3's `table_res_list`, projected into the frozen v1.0.0 schema shape **as of 010's landing commit** (strict-current-shape, formalized in Session 2026-04-23 spec clarification Q24). Discard richer HTML / cell-level structure the engine emits beyond the schema at the persistence boundary. Future AMENDMENTS entries that widen the schema (e.g., adding an optional `cell_confidence` field) DO NOT auto-populate through this projection — a matching preprocessing code change is required before the new field begins to appear in emitted artifacts. This prevents a silent drift where the schema accepts more fields than preprocessing emits. The existing `_parse_table_dims(html) → (rows, columns)` regex logic in `src/ledgerlinc_ocr/preprocessing/ocr.py:113-132` is reused unchanged — the regex treats HTML as opaque and is engine-version-agnostic.
+
+Projection table:
+
+| V3 `table_res_list[i]` field | Artifact `tables[j]` field | Notes |
+|------------------------------|----------------------------|-------|
+| `html` (full `<table>…</table>` string) | used only via `_parse_table_dims()` to compute `rows` / `columns`; the raw HTML is NOT persisted | richer HTML discarded |
+| `cell_bbox` (list of per-cell 4-tuple or 4-point polys) | `cells[]` — each projected to the v1.0.0 cell shape (bbox + text fields defined by the schema) | cell ordering preserved as-emitted; if the schema does not carry per-cell text, text content is NOT persisted even though V3 provides it |
+| any V3-only per-cell metadata (e.g., spans, cell type) | **DISCARDED** | requires AMENDMENTS to widen the contract |
+| `table_score` / per-cell scores | `confidence` at table level iff the v1.0.0 schema carries it; verbatim per R-013; otherwise discarded | |
+
+Ordering: `tables[]` follows block order within each page (the same sort key as `blocks[]` per R-005). Two runs on the same PDF therefore produce byte-identical `tables[]` ordering.
+
+**Rationale**:
+- **Parity with V2 baseline shape**: V2's `PPStructure` table branch populated `tables[]` using the same regex + bbox projection. Leaving `tables[]` empty under V3 would be a silent regression on a schema-visible field that downstream consumers may read.
+- **Evidence-first alignment with Assumptions**: the existing spec Assumptions line — "Richer per-block content produced by the new engine (e.g., Markdown-style block content) is discarded at the persistence boundary until a future AMENDMENTS entry permits capturing it" — is extended in FR-021 to explicitly cover table-level richer content. Same rule, same reasoning, now pinned for the top-level `tables[]` array rather than just per-block content.
+- **Frozen contract preserved**: no schema edits, no AMENDMENTS entry. Richer V3 content remains available in-memory for future slices once the contract widens.
+
+**Alternatives considered**:
+- Leave `tables[]` empty in every artifact this slice produces (Option B from Clarifications Q17) — rejected. Creates a silent shape regression that downstream consumers (evidence packet especially) would have to special-case.
+- Populate only when V3 emits a non-empty HTML payload (Option C) — rejected. Adds a conditional branch without changing the end state in practice (V3 either emits a table or it doesn't); simpler to always project.
+- Project AND emit a warning when richer content is discarded (Option D) — rejected. Would produce warnings on every table on every document, which is noise rather than signal. A future AMENDMENTS entry is the right place to unlock the richer content, not a permanent warning.
+
+**Implementation note**: the projection logic lives in `ocr._extract_blocks()` (or a sibling helper such as `ocr._extract_tables()`). Do not leak V3-specific `TableRes` objects into `artifact.py`; convert at the `ocr` module boundary.
+
+## R-015: Debug PNG emission policy
+
+**Decision**: Debug `page_*.png` emission stays opt-in via the existing `--write-page-images` CLI flag inherited from 003. No new flag is introduced. When the flag is absent, preprocessing writes no PNGs. When the flag is present, each rasterized page produces `<document-folder>/page_{N}.png` alongside the artifact. PNGs are never committed to the corpus and are NOT subject to FR-004 byte-identical determinism — they are a developer investigation tool, not an artifact downstream consumers read.
+
+Project policy:
+
+- `.gitignore` already excludes `page_*.png` at the corpus root (inherited from 003); verify during Phase 2 and tighten if missing.
+- FR-004 language scopes determinism to `preprocess_output.json` explicitly. Do not assert sha256 equality on PNGs in the determinism smoke test (step 4 of the quickstart).
+- PNG rendering under PPStructureV3's page-at-a-time streaming (R-011) writes the PNG immediately after rasterization, before the image is released. No in-memory retention of the full document's PNG set.
+
+**Rationale**:
+- **Corpus commit hygiene**: committing PNGs under FR-010 regeneration would balloon the feature commit with ~20 MB of binary churn on every engine bump (PP-OCRv5 glyph shifts don't change rasterization, but a future DPI / rasterizer bump would). Keeping PNGs out of the corpus keeps the regeneration diff scoped to JSON.
+- **FR-004 scope clarity**: pinning determinism to the JSON artifact matches what downstream consumers actually read. PaddleOCR's rendering of internal annotations (if we ever wire up `--write-page-images` to include layout overlays) is not a contract surface.
+- **Zero implementation cost**: `--write-page-images` already exists in the 003 CLI contract (see `contracts/cli-contract.md`). Clarifications Q19 formalizes its semantics rather than introducing a new code path.
+
+**Alternatives considered**:
+- Always emit PNGs alongside the JSON, commit to corpus, subject to FR-004 determinism (Option B from Clarifications Q19) — rejected. Adds ~20 MB of binary corpus churn without a downstream consumer that reads the PNGs.
+- Opt-in flag but committed per developer discretion (Option C) — rejected. Creates inconsistent corpus state depending on who ran the regeneration; determinism story becomes "sometimes deterministic."
+- Remove the feature entirely in this slice (Option D) — rejected. The flag is useful for local debugging of layout-vs-OCR disagreements (e.g., diagnosing when FR-018 fires); no reason to kill it.
+
+**Implementation note**: nothing to change in `cli.py` for this clarification. Spot-check during Phase 2 that the flag is still wired to `rasterize.py` / `pipeline.py` and that `.gitignore` excludes `page_*.png`.
 
 ## Baseline timings
 

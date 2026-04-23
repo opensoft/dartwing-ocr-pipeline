@@ -16,7 +16,20 @@ Alongside the engine swap, preprocessing gains four pinned defensive signals so 
 
 All four categories share the pinned prefix format `"page N: [<category_token>] <human-readable detail>"` (FR-020) for grep-testability (SC-002). Engine-init failure (weight download / paddle exception / import error / `PPStructureV3()` construction raise) becomes a **hard-fail**: non-zero exit, no artifact written, error message names the underlying cause (FR-016).
 
-Corpus baselines (`inv_001..inv_020`) are regenerated in one sweep; if engine init fails mid-sweep, the sweep halts and restarts after the env is fixed — no mixed-engine baseline (FR-010). `pipeline_version` bumps on both axes: preprocessing `v0.1.0 → v0.2.0` (material behavior change) and engine portion `paddleocr2.10.0 → paddleocr3.5.0` (FR-008). The PaddleOCR 2.10 + CDLA fallback stays doc-only in `research.md` — no 2.10 code ships (FR-017).
+Corpus baselines (`inv_001..inv_020`) are regenerated in one sweep; if **any document exits non-zero** (`1` unexpected, `2` input_rejected including encrypted PDFs, or `3` internal_error / engine-init), the sweep halts and restarts after the root cause is fixed — no mixed or partial baseline (FR-010, clarified Session 2026-04-23). `pipeline_version` bumps on both axes: preprocessing `v0.1.0 → v0.2.0` (material behavior change) and engine portion `paddleocr2.10.0 → paddleocr3.5.0` (FR-008). The PaddleOCR 2.10 + CDLA fallback stays doc-only in `research.md` — no 2.10 code ships (FR-017).
+
+A second round of clarifications (Session 2026-04-22, Q16–Q19) pinned the value-sourcing and developer-ergonomics rules that were still ambiguous after the initial /speckit.tasks:
+
+1. **FR-007 OCR threshold**: PP-OCRv5 built-in OCR runs with the engine's default recognition confidence threshold — no project override. The exact default value (engine-emitted) is recorded in `research.md` R-012 so an engine bump that moves the default surfaces during FR-010 baseline regeneration review.
+2. **FR-004 confidence verbatim**: every block and every OCR line carries the engine-emitted `confidence` float verbatim — no clamping to `[0.0, 1.0]`, no sigmoid/min-max remapping. Missing → `null` (not `0.0`).
+3. **FR-021 `tables[]` projection**: the artifact's `tables[]` field is populated from PPStructureV3's table recognizer, projected into the frozen v1.0.0 schema shape; richer HTML / cell-level structure the engine emits beyond the schema is discarded at the persistence boundary.
+4. **FR-022 debug PNG opt-in**: debug `page_*.png` emission is opt-in only via the existing `--write-page-images` flag; PNGs are never committed to the corpus and are explicitly OUTSIDE FR-004's byte-identical determinism guarantee.
+
+A third round of clarifications (Session 2026-04-23, Q23–Q25) closed the spec-level MEDIUM findings from /speckit.analyze:
+
+5. **FR-010 halt scope (broad)**: the halt-on-fail rule applies to ANY non-zero exit code (`1` unexpected, `2` input_rejected, `3` internal_error), not just FR-016 engine-init failures. Matches the quickstart §5 `set -e` bash loop already prescribed; subsumes the encrypted-PDF edge case (exit `2` halts the sweep like any other failure).
+6. **FR-021 strict-current-shape**: `tables[]` projection is bound to the v1.0.0 schema **as of 010's landing commit**. Future AMENDMENTS entries that widen the schema (e.g., adding optional `cell_confidence`) require a matching preprocessing code change — no silent schema-widening auto-pickup.
+7. **Zero-overlap edge case**: a page with `len(lines) > 0 AND len(blocks) > 0` but no block-bbox/line-bbox overlap is declared out-of-scope for this slice. If it surfaces in corpus practice, a follow-up slice introduces a fifth warning category (e.g., `[orphan_ocr_lines]`).
 
 Ensemble-readiness, evidence-first design, CPU-only determinism, and single-writer runtime all carry over from the 003 slice unchanged.
 
@@ -43,24 +56,34 @@ Ensemble-readiness, evidence-first design, CPU-only determinism, and single-writ
 **Performance Goals**: No hard deadline imposed by this slice. SC-005 requires that the first-run wall-clock for a single invoice in the devcontainer is **recorded** in `specs/010-pp-structurev3-preprocessing/research.md` under a "Baseline timings" heading (with exact invoice, CPU model, RAM, OS). V3 with `enable_mkldnn=False` is known to be slower than V2 on the same hardware; that's accepted in exchange for correctness.
 
 **Constraints**:
-- **Determinism**: two runs on the same PDF with the same deps MUST produce byte-identical `preprocess_output.json` (FR-004, SC-003). Includes block/line ordering, `reading_order` values, identifiers, bbox values, `document_text`, and `warnings` ordering (FR-020: page-ascending; within a page, vocabulary lexical order).
-- **Frozen contract**: `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` does not change. Richer V3 content (e.g., `parsing_res_list` Markdown-style blocks) is discarded at the persistence boundary.
+- **Determinism**: two runs on the same PDF with the same deps MUST produce byte-identical `preprocess_output.json` (FR-004, SC-003). Includes block/line ordering, `reading_order` values, identifiers, bbox values, `document_text`, block/line `confidence` values (verbatim from engine, FR-004), and `warnings` ordering (FR-020: page-ascending; within a page, vocabulary lexical order). Debug `page_*.png` output is explicitly outside this guarantee (FR-022).
+- **Frozen contract**: `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` does not change. Richer V3 content (e.g., `parsing_res_list` Markdown-style blocks, V3's per-cell HTML beyond the schema's cell shape) is discarded at the persistence boundary. `tables[]` is populated from V3's table recognizer projected into the v1.0.0 shape **as of 010's landing commit** (FR-021 strict-current-shape).
 - **No new network deps** beyond first-run model weights (FR-015). After weights are cached, preprocessing runs network-free.
 - **CPU-only, single-threaded**. No GPU code path (FR-005).
 - **Orientation-classification, dewarping, textline-orientation, formula, seal, chart modules stay off** (FR-005).
+- **OCR recognition threshold stays at the engine default** (FR-007). No project-specific cutoff is imposed; `len(raw_ocr_lines)` reflects native PP-OCRv5 filtering only. The actual default value for `paddleocr==3.5.0` is captured in `research.md` R-012 so future bumps surface as a diff.
+- **Confidence values verbatim** (FR-004). No clamping, no normalization; missing confidences persist as `null`, never `0.0`.
+- **Debug PNG output is opt-in** via `--write-page-images` (FR-022). PNGs are never committed to the corpus and are not subject to FR-004 determinism.
 - **FR-016 hard-fail** on any engine-init failure — non-zero exit, no artifact, named cause.
+- **FR-010 halt-on-any-non-zero** (clarified Session 2026-04-23): the corpus-regeneration sweep halts on ANY non-zero exit (`1` / `2` / `3`), not only engine-init. Encrypted-PDF exits (`2`) halt the sweep like any other failure.
 
 **Scale/Scope**: 20-document stage 1 corpus (`inv_001..inv_020`, 5 easy / 5 medium / 5 hard / 5 missing_name). Typical invoice: 1–4 pages, US Letter / A4. One document per CLI invocation; the corpus regeneration sweep wraps the CLI in a bash loop with halt-on-nonzero.
 
 **Deferred plan-level decisions** (from /speckit.clarify):
 - **Block ordering within a page**: keep the existing `(bbox.y0, bbox.x0, det_idx)` stable sort from `src/ledgerlinc_ocr/preprocessing/ocr.py:269`. V3 output is not guaranteed deterministic in list order, so the sort is preserved; `reading_order` is assigned `1..N` from the sorted sequence. No change from 003.
 - ~~**FR-013 test-file comment format**~~: promoted into spec FR-013 after `/speckit.analyze` finding I1 (2026-04-22) — spec now pins free-form prose mirroring FR-010. No longer deferred.
+- ~~**OCR recognition threshold under PP-OCRv5**~~: resolved in spec FR-007 (Session 2026-04-22, Q16) — engine default, no override; default value recorded in `research.md` R-012. No longer deferred.
+- ~~**`tables[]` population under V3**~~: resolved in spec FR-021 (Session 2026-04-22 Q17 + Session 2026-04-23 Q24) — project into v1.0.0 shape as of 010's landing; richer content discarded; future AMENDMENTS require matching code changes. No longer deferred.
+- ~~**`confidence` source for blocks and lines**~~: resolved in spec FR-004 (Session 2026-04-22, Q18) — persist verbatim, missing → `null`. No longer deferred.
+- ~~**Debug `page_*.png` emission policy**~~: resolved in spec FR-022 (Session 2026-04-22, Q19) — opt-in via `--write-page-images`, never committed, outside FR-004. No longer deferred.
+- ~~**FR-010 halt scope**~~: resolved in spec FR-010 (Session 2026-04-23, Q23) — halt on any non-zero exit, not only engine-init. No longer deferred.
+- ~~**Zero-overlap edge case handling**~~: resolved as out-of-scope (Session 2026-04-23, Q25). No longer deferred; future slice will introduce `[orphan_ocr_lines]` if corpus surfaces the condition.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Evaluated against `.specify/memory/constitution.md` v1.0.0:
+Evaluated against `.specify/memory/constitution.md` **v1.1.0** (2026-04-22 amendment added Quality Gate 7):
 
 | Principle | Gate | Status |
 |-----------|------|--------|
@@ -84,8 +107,11 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 4. Verifiable through concrete local execution — `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy` against the real engine; quickstart walks this end-to-end.
 5. Runtime/container changes — dependency pin updates in `pyproject.toml` and `requirements.txt` only; no devcontainer image change, no new compose services. First-run warm-up is called out in docs.
 6. Evaluation comparison preserved — `expected.json` labels are untouched. Downstream evaluator still compares `final_structured_payload.json` to `expected.json` on the regenerated baselines.
+7. **Consistent with `docs/stage1-vendor-identity/architecture.md`** (constitution v1.1.0 amendment, 2026-04-22) — this spec and plan do not deviate from the target architecture. The trijunction-ingestion → triple-voter → deterministic-routing shape described in architecture.md is preserved; this slice narrows stage 1 to a single-engine (PaddleOCR-only) preprocessing lane, which architecture.md itself identifies as the "stage 1 slice" starting point. No deviation declaration required.
 
 **Result: PASS.** No constitution violations. Complexity Tracking section left empty.
+
+**Post-Phase-1 re-check (after Session 2026-04-22 Q16–Q19 + Session 2026-04-23 Q23–Q25 landed and Phase 1 artifacts were updated):** all five principles + all seven quality gates still PASS. FR-004 confidence-verbatim and FR-021 strict-current-shape `tables[]` projection both tighten Principle II (Evidence-First, Schema-First Design) — richer engine output stays in-memory but the persistence boundary remains the frozen v1.0.0 schema. FR-007 engine-default OCR threshold and FR-022 debug-PNG opt-in don't touch the constitution surface. FR-010's broadened halt-on-any-non-zero exit strengthens Principle V (Benchmarkable and Reproducible Delivery) by preventing mixed-completion baselines from landing. No new Complexity Tracking entries required.
 
 ## Project Structure
 
@@ -115,6 +141,10 @@ src/ledgerlinc_ocr/
 │   │                         # Extracts OCR lines from V3's built-in overall_ocr_res; extends
 │   │                         # PPSTRUCTURE_LABEL_TO_BLOCK_TYPE with V3 labels (paragraph_title,
 │   │                         # doc_title, etc.); raises on engine-init failure instead of silent-retrying.
+│   │                         # PP-OCRv5 default recognition threshold is kept (no override per FR-007);
+│   │                         # block/line confidence is persisted verbatim — no clamping (FR-004);
+│   │                         # tables[] projected into v1.0.0 shape AS OF 010's landing commit, richer
+│   │                         # V3 content discarded (FR-021 strict-current-shape).
 │   ├── pipeline.py           # MODIFIED — single ocr.run_page() call replaces paired ocr.run_ocr_lines +
 │   │                         # ocr.run_layout. Adds FR-003, FR-018, FR-019 warning emission and the
 │   │                         # silent-empty status-downgrade signal. Propagates engine-init exceptions
@@ -128,7 +158,9 @@ src/ledgerlinc_ocr/
 │   │                         # FR-020 ordering (page-ascending, then category lexical) is centralized.
 │   ├── cli.py                # MINOR — FR-016 error emission: when an engine-init exception escapes
 │   │                         # pipeline.run(), CLI prints a structured error naming the cause and
-│   │                         # exits non-zero; no artifact is ever created.
+│   │                         # exits non-zero; no artifact is ever created. The existing
+│   │                         # --write-page-images flag is the FR-022 opt-in for debug page_*.png
+│   │                         # emission; no new flag is introduced in this slice.
 │   ├── errors.py             # MINOR — adds EngineInitError(PreprocessingError) with exit_code =
 │   │                         # EXIT_INTERNAL_ERROR for weight-download / paddle-runtime / import
 │   │                         # failures during PPStructureV3() construction.

@@ -80,6 +80,18 @@ Other error kinds (`input_rejected`, `artifact_invalid`, `unexpected`) retain th
 
 Artifact is still written atomically to `<document-folder>/preprocess_output.json`. Optional debug page images (`--write-page-images`) still land at `<document-folder>/page_{N}.png` and are NOT part of the contract.
 
+FR-022 (new in 010) formalizes that behavior: `--write-page-images` is the opt-in for debug PNG emission, PNGs are never committed to the corpus, and PNG output is explicitly OUTSIDE FR-004 byte-identical determinism. The flag itself is unchanged from 003.
+
+## In-artifact behavior deltas that are NOT CLI-surface changes
+
+For clarity — these are persisted-artifact rules that clarified in 010 but don't show up as a CLI contract change:
+
+- **FR-004 / R-013 confidence verbatim**: every block and every OCR line in `preprocess_output.json` carries engine-emitted `confidence` verbatim (float or `null`). The V2-era `[0.0, 1.0]` clamp is retired.
+- **FR-007 / R-012 OCR recognition threshold**: PP-OCRv5's engine default is used with no project override; `len(raw_ocr_lines)` reflects native engine filtering only.
+- **FR-021 / R-014 `tables[]` projection**: `tables[]` is populated from V3's `table_res_list`, projected into the frozen v1.0.0 shape; richer V3 HTML / cell metadata is discarded at the persistence boundary.
+
+None of these change the CLI's invocation shape, exit codes, stdout, or stderr — they show up only in artifact content.
+
 ## First-run behavior (informational, not a contract change)
 
 The CLI will block on first invocation to download ~500 MB of model weights (PP-DocBlockLayout, PP-DocLayout_plus-L, PP-OCRv5 server det/rec, SLANeXt_wired, SLANet_plus, RT-DETR-L cell detectors) from the paddlex / paddle-model-ecology hosters into `~/.paddlex/official_models/`. This is not a CLI-surface change — it was already true for PaddleOCR-VL in 003 — but the total download size is larger. See `specs/010-pp-structurev3-preprocessing/quickstart.md` for the warm-up walk-through.

@@ -71,7 +71,9 @@ sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json > /tm
 diff /tmp/pp1.sha /tmp/pp2.sha && echo "DETERMINISTIC"
 ```
 
-If the digests differ, stop and audit per R-005 (threading, oneDNN, paddle seed, post-sort, warning ordering). Do NOT commit anything.
+Scope: the determinism assertion covers `preprocess_output.json` only. Debug `page_*.png` output (opt-in via `--write-page-images`, FR-022 / R-015) is explicitly outside FR-004 — do **not** sha256 the PNGs here.
+
+If the digests differ, stop and audit per R-005 (threading, oneDNN, paddle seed, post-sort, warning ordering) and R-013 (confidence persisted verbatim without clamping). Do NOT commit anything.
 
 ## 5. Regenerate the full corpus (FR-010, SC-002, SC-004)
 
@@ -112,6 +114,28 @@ python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity
 ```
 
 For any integration test that required an update, verify the FR-013 free-form comment identifying the OCR-text delta is present (e.g. `# OCR-text delta: PP-OCRv5 renders "&" as "and"`).
+
+## 6a. Record the PP-OCRv5 default recognition threshold (R-012)
+
+Before moving on, capture the recognition-threshold default for `paddleocr==3.5.0` so FR-007's "engine default, no override" rule has a concrete value backing it. Start a Python REPL inside the devcontainer, construct the engine with the same flags used in `src/ledgerlinc_ocr/preprocessing/ocr.py`, and introspect the recognizer:
+
+```python
+from paddleocr import PPStructureV3
+pipe = PPStructureV3(
+    use_doc_orientation_classify=False,
+    use_doc_unwarping=False,
+    use_textline_orientation=False,
+    use_formula_recognition=False,
+    use_seal_recognition=False,
+    use_chart_recognition=False,
+    cpu_threads=1, enable_mkldnn=False, device="cpu", lang="en",
+)
+# Typical attributes: inspect whichever of these exists on pipe / pipe.text_recognizer:
+#   text_rec_score_thresh, drop_score, rec_score_thresh
+print({k: v for k, v in vars(pipe).items() if "score" in k.lower() or "thresh" in k.lower()})
+```
+
+Paste the result into `specs/010-pp-structurev3-preprocessing/research.md` under R-012 "Probe-derived default" with the date and `paddleocr` / `paddlex` versions. A future engine bump that changes this value will surface as a diff during FR-010 corpus regeneration.
 
 ## 7. Record baseline timings (SC-005)
 
@@ -165,5 +189,6 @@ No separate regeneration-notes file; the commit body is the record.
 
 - **Engine init crashes with `ConvertPirAttribute2RuntimeAttribute` error** — the `enable_mkldnn=False` workaround is missing from `src/ledgerlinc_ocr/preprocessing/ocr.py`. See R-001.
 - **Determinism diff after rerun** — check that `cpu_threads=1`, `use_mp=False`, `enable_mkldnn=False`, and `paddle.seed(0)` are all set before the first engine construction. See R-005.
+- **Multi-page fixture OOMs during preprocessing** — verify `src/ledgerlinc_ocr/preprocessing/rasterize.py` is yielding one page at a time and `pipeline.py` is not retaining a document-wide raster list. V3 is too heavy for whole-document raster materialization on this workstation; see R-011.
 - **`document_text` is empty but blocks exist** — a page with text-type blocks but zero OCR lines; FR-019 fires. Verify the `[silent_empty_ocr]` warning is present and `ingestion_sources.paddleocr_vl.status` is `"failure"`.
 - **Unknown V3 label warnings dominate `warnings[]`** — new V3 labels have appeared that aren't in `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE`. Extend the map per R-003, confirm the mapping is defensible, and re-run the sweep.

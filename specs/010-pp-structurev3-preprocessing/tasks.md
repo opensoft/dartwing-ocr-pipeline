@@ -53,7 +53,7 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 ## Phase 3: User Story 1 — Preprocessing a Real Invoice Produces Usable Layout Evidence (Priority: P1) 🎯 MVP
 
-**Goal**: Replace the PaddleOCR 2.10 `PPStructure` + `PaddleOCR` pair with PaddleOCR 3.5 `PPStructureV3` so `tests/stage1_vendor_identity/inv_001_easy/source.pdf` yields `pages[0].blocks.length >= 3` and non-empty `document_text` containing a case-insensitive vendor-identity token (SC-001).
+**Goal**: Replace the PaddleOCR 2.10 `PPStructure` + `PaddleOCR` pair with PaddleOCR 3.5 `PPStructureV3` so `tests/stage1_vendor_identity/inv_001_easy/source.pdf` yields `pages[0].blocks.length >= 3` and non-empty `document_text` containing a case-insensitive vendor-identity token (SC-001), while multi-page PDFs process one page at a time instead of requiring whole-document raster materialization.
 
 **Independent Test**: Per spec §US1 Independent Test — run `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy`, open the generated `preprocess_output.json`, and confirm (a) ≥ 3 blocks, (b) non-empty `document_text`, (c) `ingestion_sources.paddleocr_vl.status == "success"`, (d) artifact validates against v1.0.0 schema. Quickstart §3 commands apply verbatim.
 
@@ -66,17 +66,51 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 - [X] T013 [US1] Replace the per-page `[unknown_layout_label]` warning emission in `ocr.run_page()` (falling out of the label-mapping branch) with a call to `warnings.build_warning(page_number, "unknown_layout_label", f"label={raw_label}")` per FR-006 + FR-020
 - [X] T014 [US1] Retire `ocr.run_ocr_lines()` and the paired `ocr.run_layout()` from `src/ledgerlinc_ocr/preprocessing/ocr.py` once `run_page()` is in place (FR-007) — delete, do not stub
 - [X] T015 [US1] Rewire `src/ledgerlinc_ocr/preprocessing/pipeline.py` to call `ocr.run_page(...)` once per rasterized page instead of the `ocr.run_ocr_lines` + `ocr.run_layout` pair; collect returned `(lines, blocks, tables, warnings)` into the existing per-page accumulators
+- [ ] T015a [US1] Refactor `src/ledgerlinc_ocr/preprocessing/rasterize.py` so PDF rasterization yields one page at a time (iterator/generator) instead of returning a fully materialized document-wide list; preserve page ordering, bbox dimensions, and per-page fallback behavior per FR-005a
+- [ ] T015b [US1] Update `src/ledgerlinc_ocr/preprocessing/pipeline.py` to consume the streaming raster API, finish OCR/layout + artifact-copy work for each page before requesting the next raster, and drop page-image references once the page-owned accumulators have been populated per FR-005a / research R-011
 - [X] T016 [US1] Stop catching `EngineInitError` inside `src/ledgerlinc_ocr/preprocessing/pipeline.py`'s per-page loop — let it propagate to the caller so no artifact is ever written on init failure (FR-016)
 - [X] T017 [US1] Add an `except EngineInitError` branch to `main()` in `src/ledgerlinc_ocr/preprocessing/cli.py` that emits the FR-016 JSON envelope on stderr (`{"status": "error", "kind": "engine_init_failed", "cause_class": ..., "cause_module": ..., "message": ..., "missing_weight": ..., "weight_hoster_url": ...}`) and returns `EXIT_INTERNAL_ERROR` (`3`) per contracts/cli-contract.md
 
 ### Integration-test updates for OCR-text shifts (US1)
 
 - [X] T018 [US1] [P] Update expected OCR tokens in `tests/integration/preprocessing/test_us1_schema_valid.py` for PP-OCRv5 text shifts; add an FR-013 free-form comment next to each changed assertion identifying the OCR-text delta
-- [ ] T019 [US1] [P] Update expected OCR tokens in `tests/integration/preprocessing/test_us2_multi_page.py` for PP-OCRv5 text shifts; add FR-013 delta comments
+- [ ] T019 [US1] [P] Update expected OCR tokens in `tests/integration/preprocessing/test_us2_multi_page.py` for PP-OCRv5 text shifts; add FR-013 delta comments; extend the test to assert the 3-page fixture completes under the streaming page lifecycle instead of whole-document raster materialization
 - [X] T020 [US1] [P] Update `tests/integration/preprocessing/test_us4_tables.py` for V3 `table_res_list` cell extraction shape differences vs. V2's `res.cell_bbox`; add FR-013 delta comments
 - [X] T021 [US1] [P] Spot-review `tests/integration/preprocessing/test_us1_determinism.py`, `test_us1_ingestion_sources.py`, `test_us1_quality_and_text.py` for any inline OCR-text expectations; apply FR-013 comment + update if deltas arise, leave untouched otherwise
 
-**Checkpoint**: User Story 1 complete — `inv_001_easy` yields ≥ 3 blocks + non-empty `document_text`; engine-init failures hard-fail cleanly.
+**Checkpoint**: User Story 1 complete — `inv_001_easy` yields ≥ 3 blocks + non-empty `document_text`; multi-page fixtures complete under the streaming page lifecycle; engine-init failures hard-fail cleanly.
+
+---
+
+## Phase 3a: Clarification Round 2 Addenda (FR-004 / FR-007 / FR-021 / FR-022)
+
+**Purpose**: Land the four decisions from the 2026-04-22 clarification batch that post-date the original T009–T021 implementation slice: FR-004 confidence verbatim (no clamp), FR-007 engine-default OCR threshold (recorded, not overridden), FR-021 `tables[]` projection into v1.0.0 shape (richer HTML/cell content discarded), FR-022 debug PNG opt-in (existing `--write-page-images` flag formalized). These tasks MUST complete before Phase 5 (T035 corpus sweep) so the committed baselines reflect the final rules and the R-012 probe value.
+
+**Story scope**: cross-cutting — touches US1 code surfaces (`ocr.py`, `cli.py`), but also adds net-new unit/contract/integration tests and a research.md entry. Not tagged to a single user story because the rules apply to US1/US2/US3 artifacts equally.
+
+**Independent Test**: re-run `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy`, open `preprocess_output.json`, and confirm (a) at least one block or line with `confidence` outside `[0, 1]` persists verbatim (no clamp) OR every such value is numerically indistinguishable from the engine's raw output, (b) `tables[]` ordering/content matches the FR-021 projection (no raw HTML strings in the artifact), and (c) no `page_*.png` exists unless `--write-page-images` was passed. Unit tests T054/T055 provide deterministic coverage independent of the live engine.
+
+### Research / code changes
+
+- [ ] T050 [P] R-012 probe: in a devcontainer REPL, construct `PPStructureV3` with the 010 flags from `src/ledgerlinc_ocr/preprocessing/ocr.py` and introspect the recognition threshold attribute (`text_rec_score_thresh` / `drop_score` / `rec_score_thresh` on the pipeline or its underlying `TextRecognizer`); record the resolved default value, the exact attribute name, `paddleocr` + `paddlex` versions, and the probe date in `specs/010-pp-structurev3-preprocessing/research.md` under **R-012 "Probe-derived default"** (FR-007, R-012)
+- [ ] T051 [P] [US1] In `src/ledgerlinc_ocr/preprocessing/ocr.py`, audit the line-extraction path: replace any `max(0.0, min(1.0, float(overall_ocr_res.rec_scores[det_i])))` clamp with a `_persist_confidence(scores, i)` helper that returns `float(scores[i])` when the value is numeric and `None` otherwise; apply the same verbatim rule to `layout_det_res.boxes[i].score` when building each block. No clamping, no normalization. If the clamp was never introduced in the T012 commit, add the helper anyway for consistency and to cover the out-of-range future-engine case (FR-004, R-013)
+- [ ] T052 [P] [US1] In `src/ledgerlinc_ocr/preprocessing/ocr.py` (`_extract_blocks()` or a sibling `_extract_tables()`), confirm V3 `table_res_list` projection: persist only the fields defined in `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` for `tables[]` (rows, columns, cells per v1.0.0 shape); do NOT persist the raw `html` string, V3-only per-cell metadata, or per-cell score. Reuse `_parse_table_dims(html) → (rows, columns)` verbatim. `tables[]` ordering follows block order within each page (FR-021, R-014)
+- [ ] T053 [US1] Verify `--write-page-images` in `src/ledgerlinc_ocr/preprocessing/cli.py` remains opt-in (default-off), is still wired to `rasterize.py` / `pipeline.py` after the streaming refactor (T015a/T015b), and that repo-root `.gitignore` excludes `tests/stage1_vendor_identity/inv_*/page_*.png` — add the exclusion pattern if missing. No new CLI flag; this task formalizes the existing flag as FR-022's opt-in (FR-022, R-015)
+
+### Unit tests
+
+- [ ] T054 [P] Add `tests/unit/preprocessing/test_confidence_persistence.py` covering the confidence-extraction helper: numeric input (including out-of-range floats like `1.2` and `-0.1`) → float round-trip with NO clamping; `None` / missing index / non-numeric values → `None`; parallel-array length mismatches produce `None` for the missing-score lines rather than dropping them (FR-004, R-013)
+- [ ] T055 [P] Add `tests/unit/preprocessing/test_tables_projection.py` covering the `ocr._extract_tables()` (or equivalent) path: given a stubbed V3 `table_res_list` entry carrying `html`, `cell_bbox`, and synthetic extra fields, assert the persisted table dict (a) does NOT contain the raw `html` string, (b) carries `rows` / `columns` derived via `_parse_table_dims`, (c) carries `cells[]` projected into the v1.0.0 schema shape, (d) drops any V3-only per-cell metadata (FR-021, R-014)
+
+### Contract tests
+
+- [ ] T056 [P] Add a contract-test fixture under `tests/contract_tests/` (e.g., `fixtures/preprocess_output/confidence_null.json`) covering an artifact with at least one block AND at least one line where `confidence: null`; assert it validates against `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json`. If the schema rejects `null` (i.e., `confidence` is typed as `number` only, not `["number", "null"]`), surface as a blocker requiring an AMENDMENTS entry before this slice merges — do NOT work around it by persisting `0.0` (FR-004, R-013)
+
+### Integration tests
+
+- [ ] T057 [P] Add `tests/integration/preprocessing/test_debug_images_opt_in.py`: run preprocessing on `inv_001_easy` WITHOUT `--write-page-images`, assert zero `page_*.png` files exist in the document folder after completion; rerun WITH `--write-page-images`, assert `page_*.png` files exist per page of the source PDF; clean up generated PNGs at test teardown so repeated local runs stay idempotent (FR-022, R-015)
+
+**Checkpoint**: Phase 3a complete — FR-004 confidence verbatim rule is in code + tested; R-012 probe value is recorded in research.md; FR-021 `tables[]` projection is verified to discard richer V3 content; FR-022 debug PNG policy is pinned. Phase 5 (corpus sweep T035) can now produce final baselines.
 
 ---
 
@@ -163,10 +197,11 @@ User-story completion order (hard prerequisites):
 
 - **Phase 1 (Setup, T001–T004)** must land first. Every subsequent phase depends on the new deps being installed and the model weights being cached.
 - **Phase 2 (Foundational, T005–T008)** must complete before any US1/US2/US3 task.
-- **US1 (Phase 3, T009–T021)** unblocks US2 — US2's warning-emission tasks layer onto US1's new `ocr.run_page()` + `pipeline.py` call sites.
-- **US1 + US2 (Phases 3 + 4)** must both be green before US3's corpus sweep (T035) — otherwise the committed baselines would be mixed-engine or mixed-feature-set.
+- **US1 (Phase 3, T009–T021 plus T015a/T015b)** unblocks US2 and Phase 3a — US2's warning-emission tasks layer onto US1's new `ocr.run_page()` + streaming `pipeline.py` call sites, and Phase 3a's audit tasks (T051, T052) touch the same `ocr.py` surfaces.
+- **Phase 3a (T050–T057)** must complete before Phase 5 (T035 corpus sweep). R-012's probe value must land in `research.md`, the FR-004 confidence-clamp audit must finish, and FR-021's projection must be verified in code before baselines are committed — otherwise regenerated artifacts would reflect pre-clarification rules. Phase 3a is parallelizable with Phase 4 (US2) because they touch disjoint warning-path / value-path surfaces.
+- **US1 + US2 + Phase 3a (Phases 3 + 4 + 3a)** must all be green before US3's corpus sweep (T035) — otherwise the committed baselines would be mixed-engine, mixed-feature-set, or pre-clarification.
 - **US3 (Phase 5)** is the last feature phase. T035 is the gating task; T040–T043 (docs) can parallelize with T036–T039 (verification).
-- **Polish (Phase 6, T045–T049)** is the final gate before merge.
+- **Polish (Phase 6, T045–T049a)** is the final gate before merge.
 
 Story independence summary:
 
@@ -178,7 +213,9 @@ Story independence summary:
 
 Within Phase 2 (Foundational), T005, T006, T007 are fully parallel (three separate files with no cross-deps); T008 serializes after them because pipeline.py and tests in US1/US2 import its new signature.
 
-Within Phase 3 (US1), the integration-test updates T018, T019, T020, T021 are fully parallel (four separate test files). The code tasks T009–T017 are sequential within `ocr.py` / `pipeline.py` / `cli.py` — the same files are edited in close succession.
+Within Phase 3 (US1), the integration-test updates T018, T019, T020, T021 are fully parallel (four separate test files). The code tasks T009–T017 plus T015a/T015b are sequential within `ocr.py` / `rasterize.py` / `pipeline.py` / `cli.py` — the same files are edited in close succession.
+
+Within Phase 3a (Clarification round 2), T050 (research.md probe), T054 (`test_confidence_persistence.py`), T055 (`test_tables_projection.py`), T056 (contract-test fixture), and T057 (`test_debug_images_opt_in.py`) are fully parallel (five separate files). T051 and T052 both touch `src/ledgerlinc_ocr/preprocessing/ocr.py` and must serialize against each other (marked `[P]` only relative to the other Phase-3a tasks, not between themselves). T053 is standalone (`cli.py` + `.gitignore`) and can run in parallel with everything else in the phase.
 
 Within Phase 4 (US2), the unit tests (T027, T028, T029) and integration tests (T030, T031, T032, T033, T034) are fully parallel (nine separate test files). The code tasks T022–T026 are sequential within `pipeline.py` / `ingestion_sources.py`.
 
@@ -191,14 +228,15 @@ Within Phase 6 (Polish), T047 and T048 are parallel (separate reviewers / separa
 **Recommended MVP merge sequence:**
 
 1. Land Phase 1 + Phase 2 in a single preparatory PR (4 + 4 = 8 tasks). Low-risk dependency/version bumps and shared scaffolding.
-2. Land Phase 3 (US1, 13 tasks) as the engine-swap PR. `inv_001_easy` produces ≥ 3 blocks; MVP achieved.
-3. Land Phase 4 (US2, 13 tasks) as the defensive-warnings PR. Silent failures are gone; warnings are grep-stable.
-4. Land Phase 5 (US3, 10 tasks) as the corpus-regeneration PR — the commit body here is the FR-010 per-document shift summary; this is the largest diff (20 `preprocess_output.json` files).
-5. Land Phase 6 (Polish, 5 tasks) as the merge-gate PR.
+2. Land Phase 3 (US1, 15 tasks) as the engine-swap PR. `inv_001_easy` produces ≥ 3 blocks and the streaming page lifecycle is in place; MVP achieved.
+3. Land Phase 3a (Clarification round 2, 8 tasks) as the follow-up PR — or fold into the Phase 3 / Phase 4 PR if the reviewer prefers. Contains the FR-004 clamp audit, FR-021 tables-projection verification, FR-022 debug-PNG confirmation, and the R-012 probe.
+4. Land Phase 4 (US2, 13 tasks) as the defensive-warnings PR. Silent failures are gone; warnings are grep-stable.
+5. Land Phase 5 (US3, 10 tasks) as the corpus-regeneration PR — the commit body here is the FR-010 per-document shift summary; this is the largest diff (20 `preprocess_output.json` files). **Prerequisite**: Phase 3a must be committed so baselines reflect the final confidence/tables rules.
+6. Land Phase 6 (Polish, 6 tasks) as the merge-gate PR.
 
-**Alternative**: combine Phases 3 + 4 into one PR if the reviewer prefers a single "migrate + defend" change. Phase 5 should stay on its own PR because the regenerated baselines are a distinct reviewable unit from the code change.
+**Alternative**: combine Phases 3 + 3a + 4 into one PR if the reviewer prefers a single "migrate + clarify + defend" change. Phase 5 should stay on its own PR because the regenerated baselines are a distinct reviewable unit from the code change.
 
-**Incremental-delivery safety net**: If a blocker surfaces in Phase 3 or Phase 4, revert-order is Phase 5 → Phase 4 → Phase 3 → Phase 2 → Phase 1. Each phase touches a disjoint enough set of files that a single-phase revert stays tractable.
+**Incremental-delivery safety net**: If a blocker surfaces in Phase 3, 3a, or Phase 4, revert-order is Phase 5 → Phase 4 → Phase 3a → Phase 3 → Phase 2 → Phase 1. Each phase touches a disjoint enough set of files that a single-phase revert stays tractable.
 
 ## Task count summary
 
@@ -206,10 +244,15 @@ Within Phase 6 (Polish), T047 and T048 are parallel (separate reviewers / separa
 |-------|-----------|-------|
 | Phase 1 (Setup) | T001–T004 | 4 |
 | Phase 2 (Foundational) | T005–T008 | 4 |
-| Phase 3 (US1) | T009–T021 | 13 |
+| Phase 3 (US1) | T009–T021 + T015a–T015b | 15 |
+| Phase 3a (Clarification round 2) | T050–T057 | 8 |
 | Phase 4 (US2) | T022–T034 | 13 |
 | Phase 5 (US3) | T035–T044 | 10 |
 | Phase 6 (Polish) | T045–T049a | 6 |
-| **Total** | **T001–T049a** | **50** |
+| **Total** | **T001–T057 + T015a–T015b (excluding the T049/T049a overlap)** | **60** |
 
-Parallel-eligible tasks: T005, T006, T007, T018, T019, T020, T021, T027, T028, T029, T030, T031, T032, T033, T034, T040, T041, T042, T043, T047, T048 — **21 of 50** can parallelize against siblings in the same phase.
+Parallel-eligible tasks: T005, T006, T007, T018, T019, T020, T021, T027, T028, T029, T030, T031, T032, T033, T034, T040, T041, T042, T043, T047, T048, T050, T051, T052, T054, T055, T056, T057 — **28 of 60** can parallelize against siblings in the same phase.
+
+**Completion state (as of 2026-04-23 after /speckit.clarify round 2 and /speckit.plan re-run)**:
+- Completed ([X]): T001–T018, T020–T022 (spot-check), T023–T034, T040–T043 — roughly 32 tasks from Phases 1–4.
+- Outstanding ([ ]): T015a/T015b streaming refactor, T019 multi-page test update, **all of Phase 3a (T050–T057)**, T035–T039 and T044 (US3 sweep + commit), T045–T049a (Polish). Roughly 28 tasks.
