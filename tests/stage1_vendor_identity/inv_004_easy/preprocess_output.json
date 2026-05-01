@@ -1,0 +1,936 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_004",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "header",
+          "bbox": [
+            1601,
+            114,
+            2398,
+            257
+          ],
+          "reading_order": 1,
+          "text": "pamarco",
+          "confidence": 0.6000828742980957
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "title",
+          "bbox": [
+            292,
+            139,
+            895,
+            217
+          ],
+          "reading_order": 2,
+          "text": "SALES I INVOICE",
+          "confidence": 0.35674017667770386
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "table",
+          "bbox": [
+            154,
+            311,
+            2399,
+            1052
+          ],
+          "reading_order": 3,
+          "text": "",
+          "confidence": 0.5257101655006409
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "title",
+          "bbox": [
+            1581,
+            1036,
+            2090,
+            1083
+          ],
+          "reading_order": 4,
+          "text": "Payment is due by 1/3/2021",
+          "confidence": 0.31536194682121277
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "text",
+          "bbox": [
+            166,
+            1101,
+            2386,
+            1292
+          ],
+          "reading_order": 5,
+          "text": "ATTeNTioN: To help us credit your account for payments you are making in a correct and timely manner, please take a  moment to ensure that Pamarco's remit to name & address shown on this invoice match the remit to name & address listed in your system. We have several remit to names & addresses for Pamarco Global Graphics based on our various product lines and to help you choose the correct account we've distinguished those by differentiating the remit to names.",
+          "confidence": 0.5802489519119263
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "table",
+          "bbox": [
+            153,
+            1308,
+            2395,
+            1485
+          ],
+          "reading_order": 6,
+          "text": "",
+          "confidence": 0.6260302066802979
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "table",
+          "bbox": [
+            155,
+            2721,
+            1182,
+            3021
+          ],
+          "reading_order": 7,
+          "text": "",
+          "confidence": 0.5140958428382874
+        },
+        {
+          "block_id": "p1_b8",
+          "block_type": "table",
+          "bbox": [
+            1564,
+            2722,
+            2394,
+            3015
+          ],
+          "reading_order": 8,
+          "text": "",
+          "confidence": 0.635958194732666
+        },
+        {
+          "block_id": "p1_b9",
+          "block_type": "text",
+          "bbox": [
+            167,
+            2801,
+            945,
+            2991
+          ],
+          "reading_order": 9,
+          "text": "The order was delivered to Dot Graphics 4133 W. PATRICK LANE, LAS VEGAS, NV 89118, USA Method of delivery UPS Next Day UPS tracking number",
+          "confidence": 0.40488529205322266
+        },
+        {
+          "block_id": "p1_b10",
+          "block_type": "footer",
+          "bbox": [
+            147,
+            3153,
+            1130,
+            3188
+          ],
+          "reading_order": 10,
+          "text": "All orders are subject to Pamarco's Terms & Conditions of Sale",
+          "confidence": 0.9018973708152771
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            1756,
+            121,
+            2413,
+            260
+          ],
+          "text": "pamarco",
+          "confidence": 0.9988417625427246
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            293,
+            143,
+            591,
+            221
+          ],
+          "text": "SALES I",
+          "confidence": 0.9389899373054504
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            550,
+            143,
+            898,
+            219
+          ],
+          "text": "INVOICE",
+          "confidence": 0.9919180274009705
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            966,
+            333,
+            1152,
+            370
+          ],
+          "text": "YOUR PO #",
+          "confidence": 0.8771277070045471
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            1294,
+            333,
+            2036,
+            373
+          ],
+          "text": "Your Pamarco order contact is Michael Thompson",
+          "confidence": 0.9843626618385315
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            252,
+            335,
+            420,
+            369
+          ],
+          "text": "INVOICE #",
+          "confidence": 0.9827801585197449
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            644,
+            335,
+            738,
+            372
+          ],
+          "text": "DATE",
+          "confidence": 0.9988276362419128
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            1728,
+            393,
+            2238,
+            435
+          ],
+          "text": "michael.thompson@pamarco.com",
+          "confidence": 0.9997652769088745
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            937,
+            400,
+            1177,
+            433
+          ],
+          "text": "DTG-PO040301",
+          "confidence": 0.989621639251709
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            246,
+            402,
+            427,
+            433
+          ],
+          "text": "DAL237389",
+          "confidence": 0.9989031553268433
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            593,
+            402,
+            787,
+            433
+          ],
+          "text": "Dec 04 2020",
+          "confidence": 0.991856038570404
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            1589,
+            524,
+            1839,
+            555
+          ],
+          "text": "PAYMENT INFO",
+          "confidence": 0.9759175181388855
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            174,
+            526,
+            453,
+            557
+          ],
+          "text": "INVOICE DETAILS",
+          "confidence": 0.989449679851532
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            1584,
+            594,
+            2133,
+            636
+          ],
+          "text": "Your payment terms are Net 30 Days",
+          "confidence": 0.9772701263427734
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            173,
+            598,
+            572,
+            630
+          ],
+          "text": "Your invoice will be sent to",
+          "confidence": 0.9833788871765137
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            233,
+            656,
+            451,
+            692
+          ],
+          "text": "DOT Graphics",
+          "confidence": 0.9875335097312927
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            1587,
+            658,
+            2021,
+            689
+          ],
+          "text": "Your account number is 2870",
+          "confidence": 0.9933328032493591
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            234,
+            703,
+            567,
+            730
+          ],
+          "text": "7582LASVEGASBLVD",
+          "confidence": 0.9902275204658508
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            1587,
+            735,
+            1835,
+            772
+          ],
+          "text": "REMIT USD TO:",
+          "confidence": 0.9352852702140808
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            232,
+            746,
+            354,
+            778
+          ],
+          "text": "STE 487",
+          "confidence": 0.9480968713760376
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            1657,
+            796,
+            2009,
+            827
+          ],
+          "text": "REMIT US DOLLARS TO:",
+          "confidence": 0.9662564396858215
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            234,
+            834,
+            560,
+            865
+          ],
+          "text": "LAS VEGAS, NV 89123",
+          "confidence": 0.9570545554161072
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            230,
+            876,
+            304,
+            913
+          ],
+          "text": "USA",
+          "confidence": 0.9991869926452637
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            1656,
+            885,
+            2026,
+            919
+          ],
+          "text": "Pamarco Global Graphics",
+          "confidence": 0.9973770380020142
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            1656,
+            929,
+            2241,
+            962
+          ],
+          "text": "150 Marr Ave, Marietta, GA, USA, 30060",
+          "confidence": 0.9648312926292419
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            174,
+            954,
+            545,
+            984
+          ],
+          "text": "Sales order is SO-224372",
+          "confidence": 0.9705150723457336
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            1574,
+            1037,
+            2089,
+            1084
+          ],
+          "text": "Payment is due by 1/3/2021",
+          "confidence": 0.9793784022331238
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            224,
+            1100,
+            2337,
+            1147
+          ],
+          "text": "ATTeNTioN: To help us credit your account for payments you are making in a correct and timely manner, please take a",
+          "confidence": 0.9705166816711426
+        },
+        {
+          "line_id": "p1_l29",
+          "bbox": [
+            187,
+            1151,
+            2373,
+            1192
+          ],
+          "text": " moment to ensure that Pamarco's remit to name & address shown on this invoice match the remit to name & address listed",
+          "confidence": 0.9795823097229004
+        },
+        {
+          "line_id": "p1_l30",
+          "bbox": [
+            169,
+            1195,
+            2391,
+            1248
+          ],
+          "text": "in your system. We have several remit to names & addresses for Pamarco Global Graphics based on our various product lines",
+          "confidence": 0.9798256754875183
+        },
+        {
+          "line_id": "p1_l31",
+          "bbox": [
+            329,
+            1249,
+            2243,
+            1296
+          ],
+          "text": "and to help you choose the correct account we've distinguished those by differentiating the remit to names.",
+          "confidence": 0.9890344142913818
+        },
+        {
+          "line_id": "p1_l32",
+          "bbox": [
+            2184,
+            1323,
+            2378,
+            1360
+          ],
+          "text": "LINE TOTAL",
+          "confidence": 0.9770113229751587
+        },
+        {
+          "line_id": "p1_l33",
+          "bbox": [
+            1632,
+            1325,
+            1706,
+            1363
+          ],
+          "text": "QTY",
+          "confidence": 0.9908769726753235
+        },
+        {
+          "line_id": "p1_l34",
+          "bbox": [
+            1753,
+            1325,
+            1940,
+            1359
+          ],
+          "text": "UNIT PRICE",
+          "confidence": 0.9426471590995789
+        },
+        {
+          "line_id": "p1_l35",
+          "bbox": [
+            1999,
+            1325,
+            2118,
+            1360
+          ],
+          "text": "DISC %",
+          "confidence": 0.9833951592445374
+        },
+        {
+          "line_id": "p1_l36",
+          "bbox": [
+            460,
+            1329,
+            675,
+            1357
+          ],
+          "text": "DESCRIPTION",
+          "confidence": 0.9984999299049377
+        },
+        {
+          "line_id": "p1_l37",
+          "bbox": [
+            175,
+            1330,
+            410,
+            1360
+          ],
+          "text": "ITEM NUMBER",
+          "confidence": 0.9515399932861328
+        },
+        {
+          "line_id": "p1_l38",
+          "bbox": [
+            1635,
+            1394,
+            1706,
+            1432
+          ],
+          "text": "1.00",
+          "confidence": 0.9943653345108032
+        },
+        {
+          "line_id": "p1_l39",
+          "bbox": [
+            1837,
+            1394,
+            1940,
+            1429
+          ],
+          "text": "154.07",
+          "confidence": 0.9997661113739014
+        },
+        {
+          "line_id": "p1_l40",
+          "bbox": [
+            2048,
+            1394,
+            2119,
+            1432
+          ],
+          "text": "0.00",
+          "confidence": 0.9996727705001831
+        },
+        {
+          "line_id": "p1_l41",
+          "bbox": [
+            2273,
+            1395,
+            2379,
+            1431
+          ],
+          "text": "154.07",
+          "confidence": 0.9998264908790588
+        },
+        {
+          "line_id": "p1_l42",
+          "bbox": [
+            458,
+            1397,
+            856,
+            1429
+          ],
+          "text": "BELT, KOMORI LS40 (51.7\")",
+          "confidence": 0.9470134973526001
+        },
+        {
+          "line_id": "p1_l43",
+          "bbox": [
+            173,
+            1398,
+            340,
+            1429
+          ],
+          "text": "XSA-45662",
+          "confidence": 0.9990651607513428
+        },
+        {
+          "line_id": "p1_l44",
+          "bbox": [
+            459,
+            1443,
+            856,
+            1474
+          ],
+          "text": "BELT, KOMORI LS40 (51.7\")",
+          "confidence": 0.9563677906990051
+        },
+        {
+          "line_id": "p1_l45",
+          "bbox": [
+            744,
+            1576,
+            900,
+            1610
+          ],
+          "text": "AMOUNT",
+          "confidence": 0.9992634654045105
+        },
+        {
+          "line_id": "p1_l46",
+          "bbox": [
+            176,
+            1577,
+            419,
+            1608
+          ],
+          "text": "MISC CHARGES",
+          "confidence": 0.9521295428276062
+        },
+        {
+          "line_id": "p1_l47",
+          "bbox": [
+            810,
+            1641,
+            903,
+            1683
+          ],
+          "text": "72.90",
+          "confidence": 0.9996188282966614
+        },
+        {
+          "line_id": "p1_l48",
+          "bbox": [
+            170,
+            1642,
+            351,
+            1685
+          ],
+          "text": "Freight Out",
+          "confidence": 0.9592006802558899
+        },
+        {
+          "line_id": "p1_l49",
+          "bbox": [
+            172,
+            2734,
+            423,
+            2770
+          ],
+          "text": "SHIPPING INFO",
+          "confidence": 0.9836679697036743
+        },
+        {
+          "line_id": "p1_l50",
+          "bbox": [
+            1843,
+            2739,
+            2006,
+            2773
+          ],
+          "text": "SUBTOTAL",
+          "confidence": 0.999659538269043
+        },
+        {
+          "line_id": "p1_l51",
+          "bbox": [
+            2165,
+            2739,
+            2269,
+            2775
+          ],
+          "text": "154.07",
+          "confidence": 0.9998092651367188
+        },
+        {
+          "line_id": "p1_l52",
+          "bbox": [
+            2178,
+            2788,
+            2270,
+            2831
+          ],
+          "text": "72.90",
+          "confidence": 0.9996253848075867
+        },
+        {
+          "line_id": "p1_l53",
+          "bbox": [
+            1665,
+            2794,
+            2004,
+            2825
+          ],
+          "text": "TOTAL MISC CHARGES",
+          "confidence": 0.960092306137085
+        },
+        {
+          "line_id": "p1_l54",
+          "bbox": [
+            172,
+            2803,
+            782,
+            2840
+          ],
+          "text": "The order was delivered to Dot Graphics",
+          "confidence": 0.9823390245437622
+        },
+        {
+          "line_id": "p1_l55",
+          "bbox": [
+            2195,
+            2840,
+            2270,
+            2882
+          ],
+          "text": "0.00",
+          "confidence": 0.9972758293151855
+        },
+        {
+          "line_id": "p1_l56",
+          "bbox": [
+            1842,
+            2846,
+            2007,
+            2880
+          ],
+          "text": "SALES TAX",
+          "confidence": 0.9778723120689392
+        },
+        {
+          "line_id": "p1_l57",
+          "bbox": [
+            173,
+            2853,
+            940,
+            2887
+          ],
+          "text": "4133 W. PATRICK LANE, LAS VEGAS, NV 89118, USA",
+          "confidence": 0.9695777893066406
+        },
+        {
+          "line_id": "p1_l58",
+          "bbox": [
+            173,
+            2902,
+            669,
+            2944
+          ],
+          "text": "Method of delivery UPS Next Day",
+          "confidence": 0.9685302972793579
+        },
+        {
+          "line_id": "p1_l59",
+          "bbox": [
+            2307,
+            2908,
+            2386,
+            2949
+          ],
+          "text": "USD",
+          "confidence": 0.9927349090576172
+        },
+        {
+          "line_id": "p1_l60",
+          "bbox": [
+            2155,
+            2910,
+            2268,
+            2946
+          ],
+          "text": "226.97",
+          "confidence": 0.9998412728309631
+        },
+        {
+          "line_id": "p1_l61",
+          "bbox": [
+            1776,
+            2913,
+            2005,
+            2944
+          ],
+          "text": "ORDER TOTAL",
+          "confidence": 0.9614543318748474
+        },
+        {
+          "line_id": "p1_l62",
+          "bbox": [
+            173,
+            2953,
+            491,
+            2991
+          ],
+          "text": "UPS tracking number",
+          "confidence": 0.9990257620811462
+        },
+        {
+          "line_id": "p1_l63",
+          "bbox": [
+            1587,
+            2976,
+            1790,
+            3010
+          ],
+          "text": "PREPAID 0.00",
+          "confidence": 0.9967961311340332
+        },
+        {
+          "line_id": "p1_l64",
+          "bbox": [
+            1938,
+            2978,
+            2315,
+            3008
+          ],
+          "text": "STILL TO PAY 226.97 USD",
+          "confidence": 0.9656359553337097
+        },
+        {
+          "line_id": "p1_l65",
+          "bbox": [
+            148,
+            3151,
+            1137,
+            3193
+          ],
+          "text": "All orders are subject to Pamarco's Terms & Conditions of Sale",
+          "confidence": 0.9461332559585571
+        }
+      ]
+    }
+  ],
+  "document_text": "pamarco\nSALES I INVOICE\n\nPayment is due by 1/3/2021\nATTeNTioN: To help us credit your account for payments you are making in a correct and timely manner, please take a  moment to ensure that Pamarco's remit to name & address shown on this invoice match the remit to name & address listed in your system. We have several remit to names & addresses for Pamarco Global Graphics based on our various product lines and to help you choose the correct account we've distinguished those by differentiating the remit to names.\n\n\n\nThe order was delivered to Dot Graphics 4133 W. PATRICK LANE, LAS VEGAS, NV 89118, USA Method of delivery UPS Next Day UPS tracking number\nAll orders are subject to Pamarco's Terms & Conditions of Sale",
+  "tables": [
+    {
+      "page_number": 1,
+      "block_id": "p1_b3",
+      "bbox": [
+        154,
+        311,
+        2399,
+        1052
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 1,
+      "block_id": "p1_b6",
+      "bbox": [
+        153,
+        1308,
+        2395,
+        1485
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 1,
+      "block_id": "p1_b7",
+      "bbox": [
+        155,
+        2721,
+        1182,
+        3021
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 1,
+      "block_id": "p1_b8",
+      "bbox": [
+        1564,
+        2722,
+        2394,
+        3015
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": []
+}

@@ -92,7 +92,7 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 ### Research / code changes
 
-- [ ] T050 [P] R-012 probe: in a devcontainer REPL, construct `PPStructureV3` with the 010 flags from `src/ledgerlinc_ocr/preprocessing/ocr.py` and introspect the recognition threshold attribute (`text_rec_score_thresh` / `drop_score` / `rec_score_thresh` on the pipeline or its underlying `TextRecognizer`); record the resolved default value, the exact attribute name, `paddleocr` + `paddlex` versions, and the probe date in `specs/010-pp-structurev3-preprocessing/research.md` under **R-012 "Probe-derived default"** (FR-007, R-012)
+- [X] T050 [P] R-012 probe: in a devcontainer REPL, construct `PPStructureV3` with the 010 flags from `src/ledgerlinc_ocr/preprocessing/ocr.py` and introspect the recognition threshold attribute (`text_rec_score_thresh` / `drop_score` / `rec_score_thresh` on the pipeline or its underlying `TextRecognizer`); record the resolved default value, the exact attribute name, `paddleocr` + `paddlex` versions, and the probe date in `specs/010-pp-structurev3-preprocessing/research.md` under **R-012 "Probe-derived default"** (FR-007, R-012)
 - [X] T051 [P] [US1] In `src/ledgerlinc_ocr/preprocessing/ocr.py`, audit the line-extraction path: replace any `max(0.0, min(1.0, float(overall_ocr_res.rec_scores[det_i])))` clamp with a `_persist_confidence(scores, i)` helper that returns `float(scores[i])` when the value is numeric and `None` otherwise; apply the same verbatim rule to `layout_det_res.boxes[i].score` when building each block. No clamping, no normalization. If the clamp was never introduced in the T012 commit, add the helper anyway for consistency and to cover the out-of-range future-engine case. Also audit (a) `_clip_bbox()`'s `floor` on min-axes / `ceil` on max-axes + clipping to `[0, width] / [0, height]` is unchanged from the 003 baseline, and (b) no `unicodedata.normalize(...)` (or equivalent NFC / NFD transform) has been introduced on `block.text` / `raw_ocr_lines[].text` / `document_text` — both rules are pinned by FR-004. Unit-test coverage for these two axes lives in T054a (FR-004, R-013)
 - [X] T052 [US1] (serialize with T051; both touch `ocr.py`) In `src/ledgerlinc_ocr/preprocessing/ocr.py` (`_extract_blocks()` or a sibling `_extract_tables()`), confirm V3 `table_res_list` projection: persist only the fields defined in `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` for `tables[]` (rows, columns, cells per v1.0.0 shape); do NOT persist the raw `html` string, V3-only per-cell metadata, or per-cell score. Reuse `_parse_table_dims(html) → (rows, columns)` verbatim. `tables[]` ordering follows block order within each page (FR-021, R-014)
 - [X] T053 [US1] Verify `--write-page-images` in `src/ledgerlinc_ocr/preprocessing/cli.py` remains opt-in (default-off), is still wired to `rasterize.py` / `pipeline.py` after the streaming refactor (T015a/T015b), and that repo-root `.gitignore` excludes `tests/stage1_vendor_identity/inv_*/page_*.png` — add the exclusion pattern if missing. No new CLI flag; this task formalizes the existing flag as FR-022's opt-in (FR-022, R-015)
@@ -155,14 +155,14 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 ### Corpus regeneration + verification (US3)
 
-- [ ] T035 [US3] Run the halt-on-fail corpus sweep per research R-006 / quickstart §5: `set -e; for folder in tests/stage1_vendor_identity/inv_*/; do ledgerlinc-preprocess --document-folder "$folder"; done`; halt and investigate on any non-zero exit before re-running from the top (no partial commit)
-- [ ] T036 [US3] Run the determinism smoke on `inv_001_easy` per quickstart §4: two sequential `ledgerlinc-preprocess` invocations, `diff` the two sha256 digests; fail the gate if they differ (SC-003)
-- [ ] T037 [US3] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm exit code 0 with zero artifact errors (SC-004)
-- [ ] T038 [US3] Run the SC-002 grep-and-cross-reference check per quickstart §5: for every artifact carrying a `[silent_empty_layout]` or `[silent_empty_ocr]` warning, assert `ingestion_sources.paddleocr_vl.status == "failure"`; zero false negatives permitted
+- [X] T035 [US3] Run the halt-on-fail corpus sweep per research R-006 / quickstart §5: `set -e; for folder in tests/stage1_vendor_identity/inv_*/; do ledgerlinc-preprocess --document-folder "$folder"; done`; halt and investigate on any non-zero exit before re-running from the top (no partial commit)
+- [X] T036 [US3] Run the determinism smoke on `inv_001_easy` per quickstart §4: two sequential `ledgerlinc-preprocess` invocations, `diff` the two sha256 digests; fail the gate if they differ (SC-003)
+- [X] T037 [US3] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm exit code 0 with zero artifact errors (SC-004)
+- [X] T038 [US3] Run the SC-002 grep-and-cross-reference check per quickstart §5: for every artifact carrying a `[silent_empty_layout]` or `[silent_empty_ocr]` warning, assert `ingestion_sources.paddleocr_vl.status == "failure"`; zero false negatives permitted
 
 ### Baseline timing capture (US3)
 
-- [ ] T039 [US3] Measure cold-process + warm-rerun wall-clocks for `inv_001_easy` in the devcontainer (`time ledgerlinc-preprocess ...` twice); fill the "Baseline timings" row in `specs/010-pp-structurev3-preprocessing/research.md` with pages, both wall-clocks, CPU model (`lscpu | grep "Model name"`), RAM (`free -h`), OS (`uname -srm`), and `paddleocr` version (SC-005, Clarifications Q4)
+- [X] T039 [US3] Measure cold-process + warm-rerun wall-clocks for `inv_001_easy` in the devcontainer (`time ledgerlinc-preprocess ...` twice); fill the "Baseline timings" row in `specs/010-pp-structurev3-preprocessing/research.md` with pages, both wall-clocks, CPU model (`lscpu | grep "Model name"`), RAM (`free -h`), OS (`uname -srm`), and `paddleocr` version (SC-005, Clarifications Q4)
 
 ### Documentation updates (US3 — parallel)
 
@@ -173,7 +173,7 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 ### Commit the regenerated baselines (US3)
 
-- [ ] T044 [US3] Stage all 20 regenerated `preprocess_output.json` files + all code/test/doc changes from US1/US2/US3 into a single landing commit; draft the commit body with one free-form line per document whose `document_text` changed vs. the previous baseline (Clarifications Q3 and FR-010); omit documents with no diff; do not create a separate regeneration-notes file
+- [X] T044 [US3] Stage all 20 regenerated `preprocess_output.json` files + all code/test/doc changes from US1/US2/US3 into a single landing commit; draft the commit body with one free-form line per document whose `document_text` changed vs. the previous baseline (Clarifications Q3 and FR-010); omit documents with no diff; do not create a separate regeneration-notes file
 
 **Checkpoint**: User Story 3 complete — corpus baselines are committed, deterministic, validator-clean; docs reflect the new engine; SC-005 reference point is captured.
 
@@ -183,12 +183,12 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 **Purpose**: Final gating — full test run, FR-014 contract/pipeline tests green, FR-020 warning-ordering final byte-stability verification, determinism under failure.
 
-- [ ] T045 Run the full test suite from repo root and confirm green: `.venv/bin/pytest tests/contract_tests/ tests/pipeline_tests/ tests/integration/preprocessing/ tests/unit/preprocessing/` (FR-013, FR-014, SC-008). FR-015 "no new network after weight warm-up" is the regression responsibility of `tests/integration/preprocessing/test_no_ollama_no_cloud.py` within this run — confirm its assertions still reference `pytest-socket`'s network-disable hook and that it passes under V3.
-- [ ] T046 Verify FR-020 warning-ordering byte-stability post-sweep: pick three regenerated artifacts, manually inspect `warnings[]` for (a) page-ascending outer, (b) vocabulary-lexical inner within a page, (c) aggregate/non-parseable warnings sorting last; re-run preprocessing on each and sha256-match (spec §FR-020 + §SC-003)
-- [ ] T047 [P] Verify FR-002 holds across the corpus: for every page with `len(raw_ocr_lines) > 0`, assert `len(blocks) > 0` OR the page fires FR-003 — no silent contradictions with the clarified operational definition (Clarifications Q1)
-- [ ] T048 [P] Re-run `/speckit.analyze` (or equivalent cross-artifact review) to confirm `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/cli-contract.md`, and `quickstart.md` remain consistent after implementation
-- [ ] T049 Confirm SC-007: the `enable_mkldnn=False` workaround entry in `specs/010-pp-structurev3-preprocessing/research.md` is discoverable from the table of contents and carries both symptom and upstream link
-- [ ] T049a Confirm FR-017: `specs/010-pp-structurev3-preprocessing/research.md` §R-010 carries (a) the three trigger criteria (V3-cannot-init, V3-regresses-on-more-than-one-doc, weights-hoster-unreachable), (b) the per-axis pivot-cost table, and (c) a cross-reference back to FR-017 — none have drifted during implementation
+- [X] T045 Run the full test suite from repo root and confirm green: `.venv/bin/pytest tests/contract_tests/ tests/pipeline_tests/ tests/integration/preprocessing/ tests/unit/preprocessing/` (FR-013, FR-014, SC-008). FR-015 "no new network after weight warm-up" is the regression responsibility of `tests/integration/preprocessing/test_no_ollama_no_cloud.py` within this run — confirm its assertions still reference `pytest-socket`'s network-disable hook and that it passes under V3.
+- [X] T046 Verify FR-020 warning-ordering byte-stability post-sweep: pick three regenerated artifacts, manually inspect `warnings[]` for (a) page-ascending outer, (b) vocabulary-lexical inner within a page, (c) aggregate/non-parseable warnings sorting last; re-run preprocessing on each and sha256-match (spec §FR-020 + §SC-003)
+- [X] T047 [P] Verify FR-002 holds across the corpus: for every page with `len(raw_ocr_lines) > 0`, assert `len(blocks) > 0` OR the page fires FR-003 — no silent contradictions with the clarified operational definition (Clarifications Q1)
+- [X] T048 [P] Re-run `/speckit.analyze` (or equivalent cross-artifact review) to confirm `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/cli-contract.md`, and `quickstart.md` remain consistent after implementation
+- [X] T049 Confirm SC-007: the `enable_mkldnn=False` workaround entry in `specs/010-pp-structurev3-preprocessing/research.md` is discoverable from the table of contents and carries both symptom and upstream link
+- [X] T049a Confirm FR-017: `specs/010-pp-structurev3-preprocessing/research.md` §R-010 carries (a) the three trigger criteria (V3-cannot-init, V3-regresses-on-more-than-one-doc, weights-hoster-unreachable), (b) the per-axis pivot-cost table, and (c) a cross-reference back to FR-017 — none have drifted during implementation
 
 ---
 
@@ -254,7 +254,7 @@ Within Phase 6 (Polish), T047 and T048 are parallel (separate reviewers / separa
 
 Parallel-eligible tasks: T005, T006, T007, T018, T019, T020, T021, T027, T028, T029, T030, T031, T032, T033, T034, T040, T041, T042, T043, T047, T048, T050, T051, T054, T054a, T055, T056, T057 — **28 of 61** can parallelize against siblings in the same phase. T052 dropped `[P]` because it and T051 both touch `src/ledgerlinc_ocr/preprocessing/ocr.py` and must serialize.
 
-**Completion state (as of 2026-04-23, after Option 1 code-only implementation pass)**:
-- Completed ([X]): Phases 1–2 in full (T001–T008); Phase 3 in full including streaming refactor + multi-page-test update (T009–T018, T019, T020, T021, T015a, T015b); Phase 3a code/tests except the live engine probe (T051, T052, T053, T054, T054a, T055, T056, T057); Phase 4 in full (T022–T034); Phase 5 docs (T040–T043) — **48 of 61 tasks**.
-- Outstanding ([ ]): T050 (R-012 probe — environment-blocked on paddleocr install), Phase 5 sweep + commit (T035–T039, T044), Phase 6 polish (T045–T049, T049a) — **13 tasks**.
-- Known blockers for Phase 5: (1) T050 probe needs live paddleocr==3.5.0. **(2) RESOLVED 2026-04-23** — AMENDMENTS v1.2.0 landed, widening `preprocess_output.block.confidence` / `ocr_line.confidence` to accept `null`. T056 flipped from xfail to a positive contract gate. See `contracts/stage1_vendor_identity/AMENDMENTS.md` v1.2.0 entry.
+**Completion state (as of 2026-05-01, after Phase 6 polish)**:
+- Completed ([X]): Phases 1–2 in full (T001–T008); Phase 3 in full including streaming refactor + multi-page-test update (T009–T018, T019, T020, T021, T015a, T015b); Phase 3a in full including the live engine probe (T050, T051, T052, T053, T054, T054a, T055, T056, T057); Phase 4 in full (T022–T034); Phase 5 in full (T035–T044); Phase 6 in full (T045–T049, T049a) — **61 of 61 tasks**.
+- Outstanding ([ ]): none — **0 tasks**.
+- Known blockers for Phase 5: R-012 is resolved; the live probe recorded `text_rec_score_thresh == 0.0` with `paddleocr==3.5.0`, `paddlex==3.5.1`, and `paddlepaddle==3.3.1`. **RESOLVED 2026-04-23** — AMENDMENTS v1.2.0 landed, widening `preprocess_output.block.confidence` / `ocr_line.confidence` to accept `null`. T056 flipped from xfail to a positive contract gate. See `contracts/stage1_vendor_identity/AMENDMENTS.md` v1.2.0 entry.

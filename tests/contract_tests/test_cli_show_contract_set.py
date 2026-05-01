@@ -23,7 +23,7 @@ def test_show_contract_set_json_has_required_keys() -> None:
     proc = _run("show", "contract-set", "--json")
     assert proc.returncode == 0, proc.stdout + proc.stderr
     payload = json.loads(proc.stdout)
-    assert payload["contract_set_version"] == "1.1.0"
+    assert payload["contract_set_version"] == "1.2.0"
     for name in [
         "preprocess_output",
         "edge_extraction_output",
@@ -42,6 +42,6 @@ def test_show_contract_set_json_has_required_keys() -> None:
 def test_show_contract_set_text_is_human_readable() -> None:
     proc = _run("show", "contract-set", "--text")
     assert proc.returncode == 0
-    assert "Contract set: 1.1.0" in proc.stdout
+    assert "Contract set: 1.2.0" in proc.stdout
     assert "Challenge tags" in proc.stdout
     assert "Cross-artifact rules" in proc.stdout

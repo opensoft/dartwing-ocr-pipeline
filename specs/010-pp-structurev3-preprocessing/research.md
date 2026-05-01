@@ -58,7 +58,7 @@ _ENGINE = PPStructureV3(
 - Leaving `enable_mkldnn=True` and hoping the bug doesn't fire — rejected; the probe on `inv_001_easy` reproduced the crash deterministically on paddle 3.3.1.
 - Pinning paddle < 3.3.1 to avoid the bug entirely — rejected; older paddle drops V3 features the probe validated.
 
-**Upstream tracking**: PaddlePaddle issue describing the `ConvertPirAttribute2RuntimeAttribute` crash on `PP-DocBlockLayout`. Workaround removal is gated on an upstream fix; `enable_mkldnn=True` will be restored once the fix is released and we bump the paddle lockfile pin. Captured here for SC-007.
+**Upstream tracking**: PaddleX issue [PaddlePaddle/PaddleX#4970](https://github.com/PaddlePaddle/PaddleX/issues/4970) tracks the `ConvertPirAttribute2RuntimeAttribute` crash on oneDNN-backed Paddle inference; our reproduced symptom fired while loading/running `PP-DocBlockLayout`. Workaround removal is gated on an upstream fix; `enable_mkldnn=True` will be restored once the fix is released and we bump the paddle lockfile pin. Captured here for SC-007.
 
 ## R-002: V3 output shape + line extraction
 
@@ -329,7 +329,7 @@ No previous-page or next-page header/footer context is fed into OCR/layout. The 
 
 **Decision**: Use the PP-OCRv5 recognition model's default confidence threshold without override. No `text_rec_score_thresh` / `drop_score` parameter is passed to `PPStructureV3(...)`, and no post-filter is applied in `ocr._extract_lines()` beyond what the engine itself returns. Record the exact default value (as emitted by `paddleocr==3.5.0` under `enable_mkldnn=False`, `cpu_threads=1`) in this section during Phase 2 probe work.
 
-**Probe-derived default**: _pending — environment-blocked as of 2026-04-23_. The probe below must run in a devcontainer with the pinned dep set installed (`paddleocr==3.5.0`, `paddlex[ocr]==3.5.1`, `paddlepaddle==3.3.1`, after `~/.paddlex/official_models/` is warm). Capture by inspecting `PPStructureV3`'s constructed pipeline object — typically `pipeline.text_rec_score_thresh` or equivalent `drop_score` attribute on the underlying `TextRecognizer`. Reference values from PP-OCRv5 release notes are often `0.0` (no threshold) or `0.5` (default cutoff); the actual pinned value is recorded here once the probe runs.
+**Probe-derived default**: `0.0`, probed on 2026-04-30 in a devcontainer-derived probe container mounted against this `010` worktree with `paddleocr==3.5.0`, `paddlex==3.5.1`, and `paddlepaddle==3.3.1`. Constructing `_get_engine()` with the exact 010 flags produced `paddleocr._pipelines.pp_structurev3.PPStructureV3`. The top-level wrapper does not expose `text_rec_score_thresh`, `drop_score`, or `rec_score_thresh` directly, but the nested PaddleX OCR pipeline exposes the resolved default at `engine.paddlex_pipeline._pipeline.general_ocr_pipeline.text_rec_score_thresh == 0.0` and `engine.paddlex_pipeline._pipeline.general_ocr_pipeline._pipeline.text_rec_score_thresh == 0.0`. Source audit matched the live object: `paddlex/inference/pipelines/ocr/pipeline.py` initializes `self.text_rec_score_thresh = text_rec_config.get("score_thresh", 0)`, while `paddleocr/_pipelines/pp_structurev3.py` forwards `text_rec_score_thresh` into `SubPipelines.GeneralOCR.SubModules.TextRecognition.score_thresh`. The probe used the warmed `/root/.paddlex/official_models` cache and initialized all required PPStructureV3 models without an OOM.
 
 **Probe procedure** (T050):
 
@@ -440,8 +440,8 @@ Project policy:
 
 | Invoice | Pages | First-run wall-clock | Second-run wall-clock | CPU | RAM | OS | paddleocr version | notes |
 |---------|-------|---------------------|-----------------------|-----|-----|----|-|-|
-| `inv_001_easy` | 1 | _tbd_ | _tbd_ | _tbd_ | _tbd_ | _tbd_ | 3.5.0 | baseline single-invoice reference (SC-005) |
+| `inv_001_easy` | 1 | 270.452s (4m30.452s) | 254.790s (4m14.790s) | AMD RYZEN AI MAX+ 395 w/ Radeon 8060S | 54Gi | Linux 6.6.87.2-microsoft-standard-WSL2 x86_64 | 3.5.0 | captured 2026-04-30 in `ledgerlinc-t035-sweep` devcontainer; weights cached; digest `8cc744360fc611bbf3eed67ed2d4e24075668b684c539b02ee33cd14e1a30a55` both runs |
 
-"First-run" means first CLI invocation after model-weight warm-up has completed (so weights are on disk but the engine is fresh). "Second-run" means the same invocation repeated, with the engine already lazy-initialized — useful as a rough determinism + warm-cache sanity.
+"First-run" means first CLI invocation after model-weight warm-up has completed (so weights are on disk but the process and engine are fresh). "Second-run" means the same CLI invocation repeated immediately with filesystem/page caches warm; each CLI process constructs a fresh engine.
 
 The table MUST stay in this file (not in `quickstart.md`, not in the landing commit body) per Clarifications Q4.

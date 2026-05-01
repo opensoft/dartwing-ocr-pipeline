@@ -65,7 +65,7 @@ def test_run_page_accepts_numpy_backed_v3_results(monkeypatch):
             "block_type": "table",
             "bbox": [10, 40, 90, 80],
             "reading_order": 1,
-            "text": "<table><tr><td>A</td></tr></table>",
+            "text": "",
             "confidence": 0.88,
         }
     ]
