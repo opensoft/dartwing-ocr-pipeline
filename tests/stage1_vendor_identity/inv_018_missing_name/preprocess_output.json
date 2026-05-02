@@ -1,5 +1,5 @@
 {
-  "contract_set_version": "1.0.0",
+  "contract_set_version": "1.2.0",
   "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
   "document_id": "inv_018",
   "source_type": "pdf",
