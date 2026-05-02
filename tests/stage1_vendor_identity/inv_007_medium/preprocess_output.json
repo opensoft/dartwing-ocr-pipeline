@@ -1,0 +1,2161 @@
+{
+  "contract_set_version": "1.0.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_007",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "header",
+          "bbox": [
+            75,
+            189,
+            542,
+            351
+          ],
+          "reading_order": 1,
+          "text": "REPUBLIC SERVICES",
+          "confidence": 0.9468250870704651
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "text",
+          "bbox": [
+            1641,
+            252,
+            2464,
+            512
+          ],
+          "reading_order": 2,
+          "text": "Account Number 3-0620-0616515 Invoice Number 0620-033298433 Invoice Date December 31,2020 $1,482.54 Previous Balance -$1,482.54 Payments/Adjustments $1,482.54 Current Invoice Charges",
+          "confidence": 0.6266369223594666
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "text",
+          "bbox": [
+            602,
+            255,
+            1289,
+            443
+          ],
+          "reading_order": 3,
+          "text": "770 E. Sahara Ave. Las Vegas NV 89104-2943 Customer Service (702) 735-5151 RepublicServices.com/Support",
+          "confidence": 0.4970605671405792
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "text",
+          "bbox": [
+            602,
+            358,
+            1289,
+            442
+          ],
+          "reading_order": 4,
+          "text": "Customer Service (702) 735-5151 RepublicServices.com/Support",
+          "confidence": 0.5427242517471313
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "text",
+          "bbox": [
+            602,
+            474,
+            1543,
+            674
+          ],
+          "reading_order": 5,
+          "text": "Important Information It's easy to go paperless! Sign up for Paperless Billing at RepublicServices.com and enjoy the convenience of managing your account anytime, anywhere, on any device.",
+          "confidence": 0.8164293766021729
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "table",
+          "bbox": [
+            1651,
+            558,
+            2462,
+            686
+          ],
+          "reading_order": 6,
+          "text": "",
+          "confidence": 0.6349520683288574
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "title",
+          "bbox": [
+            605,
+            711,
+            1145,
+            752
+          ],
+          "reading_order": 7,
+          "text": "PAYMENTS/ADJUSTMENTS",
+          "confidence": 0.39646437764167786
+        },
+        {
+          "block_id": "p1_b8",
+          "block_type": "table",
+          "bbox": [
+            602,
+            766,
+            2480,
+            1203
+          ],
+          "reading_order": 8,
+          "text": "",
+          "confidence": 0.733446478843689
+        },
+        {
+          "block_id": "p1_b9",
+          "block_type": "figure",
+          "bbox": [
+            1889,
+            1824,
+            2111,
+            2143
+          ],
+          "reading_order": 9,
+          "text": "",
+          "confidence": 0.9136286973953247
+        },
+        {
+          "block_id": "p1_b10",
+          "block_type": "text",
+          "bbox": [
+            651,
+            1887,
+            1810,
+            2071
+          ],
+          "reading_order": 10,
+          "text": "fingertips. Simple account at your access the Download Republic visit Services or app RepublicServices.com today.",
+          "confidence": 0.8139227032661438
+        },
+        {
+          "block_id": "p1_b11",
+          "block_type": "text",
+          "bbox": [
+            654,
+            1980,
+            1414,
+            2072
+          ],
+          "reading_order": 11,
+          "text": "the Download Republic visit Services or app RepublicServices.com today.",
+          "confidence": 0.4033392667770386
+        },
+        {
+          "block_id": "p1_b12",
+          "block_type": "figure",
+          "bbox": [
+            273,
+            2361,
+            598,
+            2475
+          ],
+          "reading_order": 12,
+          "text": "REPUBLIC SERVICES",
+          "confidence": 0.783538281917572
+        },
+        {
+          "block_id": "p1_b13",
+          "block_type": "table",
+          "bbox": [
+            1568,
+            2404,
+            2421,
+            2598
+          ],
+          "reading_order": 13,
+          "text": "",
+          "confidence": 0.7575296759605408
+        },
+        {
+          "block_id": "p1_b14",
+          "block_type": "text",
+          "bbox": [
+            986,
+            2488,
+            1458,
+            2521
+          ],
+          "reading_order": 14,
+          "text": "Thank You For Choosing Paperless",
+          "confidence": 0.8186563849449158
+        },
+        {
+          "block_id": "p1_b15",
+          "block_type": "text",
+          "bbox": [
+            271,
+            2510,
+            680,
+            2581
+          ],
+          "reading_order": 15,
+          "text": "770 E. Sahara Ave. Las Vegas NV 89104-2943",
+          "confidence": 0.9114105105400085
+        },
+        {
+          "block_id": "p1_b16",
+          "block_type": "text",
+          "bbox": [
+            1000,
+            2613,
+            1294,
+            2653
+          ],
+          "reading_order": 16,
+          "text": "Total Enclosed",
+          "confidence": 0.6846266388893127
+        },
+        {
+          "block_id": "p1_b17",
+          "block_type": "text",
+          "bbox": [
+            1569,
+            2652,
+            2088,
+            2773
+          ],
+          "reading_order": 17,
+          "text": "For Billing Address Changes, Check Box and Complete Reverse.",
+          "confidence": 0.5478977560997009
+        },
+        {
+          "block_id": "p1_b18",
+          "block_type": "text",
+          "bbox": [
+            368,
+            2687,
+            835,
+            2726
+          ],
+          "reading_order": 18,
+          "text": "Address Service Requested",
+          "confidence": 0.8956846594810486
+        },
+        {
+          "block_id": "p1_b19",
+          "block_type": "text",
+          "bbox": [
+            1570,
+            2801,
+            1963,
+            2836
+          ],
+          "reading_order": 19,
+          "text": "Make Checks Payable To:",
+          "confidence": 0.6833806037902832
+        },
+        {
+          "block_id": "p1_b20",
+          "block_type": "text",
+          "bbox": [
+            381,
+            2890,
+            953,
+            3050
+          ],
+          "reading_order": 20,
+          "text": "DESERT TRADE GRAPHICS INC 7582 LAS VEGAS BLVD S #487 LAS VEGAS NV 89123-1009",
+          "confidence": 0.9597699046134949
+        },
+        {
+          "block_id": "p1_b21",
+          "block_type": "text",
+          "bbox": [
+            1575,
+            2991,
+            2058,
+            3107
+          ],
+          "reading_order": 21,
+          "text": "REPUBLIC SERVICES #620 P.O. BOX 78829 PHOENIX AZ 85062-8829",
+          "confidence": 0.9270926713943481
+        },
+        {
+          "block_id": "p1_b22",
+          "block_type": "footer",
+          "bbox": [
+            226,
+            3177,
+            963,
+            3208
+          ],
+          "reading_order": 22,
+          "text": "30620061651500000332984330001482540001482544",
+          "confidence": 0.9208486676216125
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            258,
+            244,
+            546,
+            292
+          ],
+          "text": "REPUBLIC",
+          "confidence": 0.9995725154876709
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            1647,
+            253,
+            1951,
+            290
+          ],
+          "text": "Account Number",
+          "confidence": 0.9983389973640442
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            607,
+            254,
+            937,
+            295
+          ],
+          "text": "770 E. Sahara Ave.",
+          "confidence": 0.9951622486114502
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            2184,
+            254,
+            2467,
+            291
+          ],
+          "text": "3-0620-0616515",
+          "confidence": 0.9996777772903442
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            320,
+            288,
+            482,
+            326
+          ],
+          "text": "SERVICES",
+          "confidence": 0.9983959197998047
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            1647,
+            297,
+            1913,
+            332
+          ],
+          "text": "Invoice Number",
+          "confidence": 0.9988583326339722
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            2179,
+            298,
+            2467,
+            333
+          ],
+          "text": "0620-033298433",
+          "confidence": 0.9994772672653198
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            607,
+            299,
+            1064,
+            340
+          ],
+          "text": "Las Vegas NV 89104-2943",
+          "confidence": 0.9862263798713684
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            1644,
+            338,
+            1859,
+            379
+          ],
+          "text": "Invoice Date",
+          "confidence": 0.9705073237419128
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            2131,
+            339,
+            2465,
+            380
+          ],
+          "text": "December 31,2020",
+          "confidence": 0.9909859895706177
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            608,
+            357,
+            932,
+            398
+          ],
+          "text": "Customer Service",
+          "confidence": 0.9838221669197083
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            1033,
+            357,
+            1295,
+            404
+          ],
+          "text": "(702) 735-5151",
+          "confidence": 0.9800042510032654
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            2291,
+            393,
+            2468,
+            435
+          ],
+          "text": "$1,482.54",
+          "confidence": 0.9945286512374878
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            1646,
+            395,
+            1941,
+            432
+          ],
+          "text": "Previous Balance",
+          "confidence": 0.996941089630127
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            607,
+            404,
+            1128,
+            447
+          ],
+          "text": "RepublicServices.com/Support",
+          "confidence": 0.9998509287834167
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            2282,
+            434,
+            2468,
+            475
+          ],
+          "text": "-$1,482.54",
+          "confidence": 0.996857762336731
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            1647,
+            436,
+            2034,
+            474
+          ],
+          "text": "Payments/Adjustments",
+          "confidence": 0.9997394680976868
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            607,
+            472,
+            1004,
+            516
+          ],
+          "text": "Important Information",
+          "confidence": 0.9939948320388794
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            2292,
+            473,
+            2468,
+            515
+          ],
+          "text": "$1,482.54",
+          "confidence": 0.9946132302284241
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            1645,
+            474,
+            2083,
+            514
+          ],
+          "text": "Current Invoice Charges",
+          "confidence": 0.99184650182724
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            609,
+            517,
+            1548,
+            557
+          ],
+          "text": "It's easy to go paperless! Sign up for Paperless Billing at",
+          "confidence": 0.9727820754051208
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            608,
+            560,
+            1479,
+            600
+          ],
+          "text": "RepublicServices.com and enjoy the convenience of",
+          "confidence": 0.9888981580734253
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            1658,
+            567,
+            2018,
+            607
+          ],
+          "text": "Total Amount Due",
+          "confidence": 0.9847089052200317
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            2066,
+            567,
+            2430,
+            610
+          ],
+          "text": "Payment Due Date",
+          "confidence": 0.9824681282043457
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            607,
+            601,
+            1456,
+            642
+          ],
+          "text": "managing your account anytime, anywhere, on any",
+          "confidence": 0.9878890514373779
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            2088,
+            612,
+            2397,
+            657
+          ],
+          "text": "January 20, 2021",
+          "confidence": 0.9903567433357239
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            1734,
+            614,
+            1910,
+            653
+          ],
+          "text": "$1,482.54",
+          "confidence": 0.9964501261711121
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            605,
+            639,
+            733,
+            679
+          ],
+          "text": "device.",
+          "confidence": 0.9991945624351501
+        },
+        {
+          "line_id": "p1_l29",
+          "bbox": [
+            609,
+            715,
+            1147,
+            752
+          ],
+          "text": "PAYMENTS/ADJUSTMENTS",
+          "confidence": 0.9970787763595581
+        },
+        {
+          "line_id": "p1_l30",
+          "bbox": [
+            605,
+            772,
+            801,
+            815
+          ],
+          "text": "Description",
+          "confidence": 0.9995810985565186
+        },
+        {
+          "line_id": "p1_l31",
+          "bbox": [
+            1485,
+            773,
+            1667,
+            814
+          ],
+          "text": "Reference",
+          "confidence": 0.9997090101242065
+        },
+        {
+          "line_id": "p1_l32",
+          "bbox": [
+            2342,
+            775,
+            2481,
+            813
+          ],
+          "text": "Amount",
+          "confidence": 0.999629557132721
+        },
+        {
+          "line_id": "p1_l33",
+          "bbox": [
+            605,
+            812,
+            1078,
+            855
+          ],
+          "text": "Payment - Thank You 10/20",
+          "confidence": 0.970791220664978
+        },
+        {
+          "line_id": "p1_l34",
+          "bbox": [
+            1485,
+            813,
+            1519,
+            852
+          ],
+          "text": "1",
+          "confidence": 0.679353654384613
+        },
+        {
+          "line_id": "p1_l35",
+          "bbox": [
+            2300,
+            813,
+            2484,
+            854
+          ],
+          "text": "-$1,482.54",
+          "confidence": 0.9894413948059082
+        },
+        {
+          "line_id": "p1_l36",
+          "bbox": [
+            608,
+            881,
+            1206,
+            922
+          ],
+          "text": "CURRENT INVOICE CHARGES",
+          "confidence": 0.9668174386024475
+        },
+        {
+          "line_id": "p1_l37",
+          "bbox": [
+            604,
+            933,
+            803,
+            980
+          ],
+          "text": "Description",
+          "confidence": 0.9996499419212341
+        },
+        {
+          "line_id": "p1_l38",
+          "bbox": [
+            1829,
+            933,
+            1982,
+            983
+          ],
+          "text": "Quantity",
+          "confidence": 0.9993207454681396
+        },
+        {
+          "line_id": "p1_l39",
+          "bbox": [
+            1485,
+            934,
+            1669,
+            978
+          ],
+          "text": "Reference",
+          "confidence": 0.9997162222862244
+        },
+        {
+          "line_id": "p1_l40",
+          "bbox": [
+            2083,
+            934,
+            2255,
+            979
+          ],
+          "text": "Unit Price",
+          "confidence": 0.993776798248291
+        },
+        {
+          "line_id": "p1_l41",
+          "bbox": [
+            2342,
+            937,
+            2481,
+            976
+          ],
+          "text": "Amount",
+          "confidence": 0.9996888637542725
+        },
+        {
+          "line_id": "p1_l42",
+          "bbox": [
+            606,
+            980,
+            1742,
+            1021
+          ],
+          "text": "Desert Trade Graphics Inc 4133 W Patrick Ln CSA CDNL112916",
+          "confidence": 0.9813962578773499
+        },
+        {
+          "line_id": "p1_l43",
+          "bbox": [
+            604,
+            1024,
+            1295,
+            1070
+          ],
+          "text": "Las Vegas,NV Contract: 9620002 (C4)",
+          "confidence": 0.9732276797294617
+        },
+        {
+          "line_id": "p1_l44",
+          "bbox": [
+            2174,
+            1066,
+            2264,
+            1115
+          ],
+          "text": "$.27",
+          "confidence": 0.9974883794784546
+        },
+        {
+          "line_id": "p1_l45",
+          "bbox": [
+            2400,
+            1066,
+            2489,
+            1115
+          ],
+          "text": "$.27",
+          "confidence": 0.9974256157875061
+        },
+        {
+          "line_id": "p1_l46",
+          "bbox": [
+            606,
+            1072,
+            894,
+            1109
+          ],
+          "text": "Tax 01/01-03/31",
+          "confidence": 0.9960806965827942
+        },
+        {
+          "line_id": "p1_l47",
+          "bbox": [
+            2306,
+            1107,
+            2484,
+            1152
+          ],
+          "text": "$1,482.27",
+          "confidence": 0.9966039657592773
+        },
+        {
+          "line_id": "p1_l48",
+          "bbox": [
+            608,
+            1110,
+            1167,
+            1147
+          ],
+          "text": "Current Service/Rent 01/01-03/31",
+          "confidence": 0.9979260563850403
+        },
+        {
+          "line_id": "p1_l49",
+          "bbox": [
+            2307,
+            1164,
+            2483,
+            1206
+          ],
+          "text": "$1,482.54",
+          "confidence": 0.9945492148399353
+        },
+        {
+          "line_id": "p1_l50",
+          "bbox": [
+            610,
+            1165,
+            1154,
+            1201
+          ],
+          "text": "CURRENT INVOICE CHARGES",
+          "confidence": 0.9836434721946716
+        },
+        {
+          "line_id": "p1_l51",
+          "bbox": [
+            1525,
+            1885,
+            1815,
+            1965
+          ],
+          "text": "fingertips.",
+          "confidence": 0.9996059536933899
+        },
+        {
+          "line_id": "p1_l52",
+          "bbox": [
+            656,
+            1886,
+            859,
+            1965
+          ],
+          "text": "Simple",
+          "confidence": 0.9994208812713623
+        },
+        {
+          "line_id": "p1_l53",
+          "bbox": [
+            862,
+            1894,
+            1098,
+            1950
+          ],
+          "text": "account",
+          "confidence": 0.9994052052497864
+        },
+        {
+          "line_id": "p1_l54",
+          "bbox": [
+            1313,
+            1895,
+            1378,
+            1952
+          ],
+          "text": "at",
+          "confidence": 0.9997247457504272
+        },
+        {
+          "line_id": "p1_l55",
+          "bbox": [
+            1375,
+            1896,
+            1522,
+            1961
+          ],
+          "text": "your",
+          "confidence": 0.9989336729049683
+        },
+        {
+          "line_id": "p1_l56",
+          "bbox": [
+            1115,
+            1904,
+            1299,
+            1945
+          ],
+          "text": "access",
+          "confidence": 0.990574061870575
+        },
+        {
+          "line_id": "p1_l57",
+          "bbox": [
+            840,
+            1984,
+            906,
+            2021
+          ],
+          "text": "the",
+          "confidence": 0.9990739226341248
+        },
+        {
+          "line_id": "p1_l58",
+          "bbox": [
+            663,
+            1985,
+            837,
+            2019
+          ],
+          "text": "Download",
+          "confidence": 0.9987952709197998
+        },
+        {
+          "line_id": "p1_l59",
+          "bbox": [
+            912,
+            1986,
+            1064,
+            2025
+          ],
+          "text": "Republic",
+          "confidence": 0.9995423555374146
+        },
+        {
+          "line_id": "p1_l60",
+          "bbox": [
+            1343,
+            1986,
+            1412,
+            2020
+          ],
+          "text": "visit",
+          "confidence": 0.9994937777519226
+        },
+        {
+          "line_id": "p1_l61",
+          "bbox": [
+            1069,
+            1988,
+            1208,
+            2020
+          ],
+          "text": "Services",
+          "confidence": 0.9938820600509644
+        },
+        {
+          "line_id": "p1_l62",
+          "bbox": [
+            1296,
+            1991,
+            1335,
+            2021
+          ],
+          "text": "or",
+          "confidence": 0.994010329246521
+        },
+        {
+          "line_id": "p1_l63",
+          "bbox": [
+            1220,
+            1992,
+            1287,
+            2027
+          ],
+          "text": "app",
+          "confidence": 0.9984344840049744
+        },
+        {
+          "line_id": "p1_l64",
+          "bbox": [
+            663,
+            2033,
+            1031,
+            2073
+          ],
+          "text": "RepublicServices.com",
+          "confidence": 0.9873299598693848
+        },
+        {
+          "line_id": "p1_l65",
+          "bbox": [
+            1040,
+            2033,
+            1150,
+            2076
+          ],
+          "text": "today.",
+          "confidence": 0.9990139603614807
+        },
+        {
+          "line_id": "p1_l66",
+          "bbox": [
+            398,
+            2398,
+            600,
+            2434
+          ],
+          "text": "REPUBLIC",
+          "confidence": 0.9987698793411255
+        },
+        {
+          "line_id": "p1_l67",
+          "bbox": [
+            2247,
+            2404,
+            2425,
+            2449
+          ],
+          "text": "$1,482.54",
+          "confidence": 0.9947620034217834
+        },
+        {
+          "line_id": "p1_l68",
+          "bbox": [
+            1570,
+            2406,
+            1903,
+            2449
+          ],
+          "text": "Total Amount Due",
+          "confidence": 0.9478102326393127
+        },
+        {
+          "line_id": "p1_l69",
+          "bbox": [
+            443,
+            2430,
+            556,
+            2455
+          ],
+          "text": "SERVICES",
+          "confidence": 0.9955250024795532
+        },
+        {
+          "line_id": "p1_l70",
+          "bbox": [
+            1572,
+            2455,
+            1908,
+            2502
+          ],
+          "text": "Payment Due Date",
+          "confidence": 0.9834915995597839
+        },
+        {
+          "line_id": "p1_l71",
+          "bbox": [
+            2116,
+            2455,
+            2424,
+            2500
+          ],
+          "text": "January 20, 2021",
+          "confidence": 0.9914445877075195
+        },
+        {
+          "line_id": "p1_l72",
+          "bbox": [
+            987,
+            2489,
+            1460,
+            2522
+          ],
+          "text": "Thank You For Choosing Paperless",
+          "confidence": 0.9628696441650391
+        },
+        {
+          "line_id": "p1_l73",
+          "bbox": [
+            1575,
+            2508,
+            1881,
+            2546
+          ],
+          "text": "Account Number",
+          "confidence": 0.9974120259284973
+        },
+        {
+          "line_id": "p1_l74",
+          "bbox": [
+            2143,
+            2508,
+            2424,
+            2546
+          ],
+          "text": "3-0620-0616515",
+          "confidence": 0.9993906617164612
+        },
+        {
+          "line_id": "p1_l75",
+          "bbox": [
+            276,
+            2513,
+            574,
+            2543
+          ],
+          "text": "770 E. Sahara Ave.",
+          "confidence": 0.9922444820404053
+        },
+        {
+          "line_id": "p1_l76",
+          "bbox": [
+            277,
+            2549,
+            681,
+            2583
+          ],
+          "text": "Las Vegas NV 89104-2943",
+          "confidence": 0.9809820652008057
+        },
+        {
+          "line_id": "p1_l77",
+          "bbox": [
+            2133,
+            2556,
+            2424,
+            2597
+          ],
+          "text": "0620-033298433",
+          "confidence": 0.9993022084236145
+        },
+        {
+          "line_id": "p1_l78",
+          "bbox": [
+            1573,
+            2557,
+            1860,
+            2597
+          ],
+          "text": "Invoice Number",
+          "confidence": 0.9980663061141968
+        },
+        {
+          "line_id": "p1_l79",
+          "bbox": [
+            997,
+            2615,
+            1298,
+            2656
+          ],
+          "text": "Total Enclosed",
+          "confidence": 0.9922204613685608
+        },
+        {
+          "line_id": "p1_l80",
+          "bbox": [
+            370,
+            2688,
+            838,
+            2728
+          ],
+          "text": "Address Service Requested",
+          "confidence": 0.9801231622695923
+        },
+        {
+          "line_id": "p1_l81",
+          "bbox": [
+            1574,
+            2703,
+            2001,
+            2739
+          ],
+          "text": "For Billing Address Changes,",
+          "confidence": 0.985957682132721
+        },
+        {
+          "line_id": "p1_l82",
+          "bbox": [
+            1575,
+            2739,
+            2090,
+            2772
+          ],
+          "text": "Check Box and Complete Reverse.",
+          "confidence": 0.9655401110649109
+        },
+        {
+          "line_id": "p1_l83",
+          "bbox": [
+            1574,
+            2802,
+            1965,
+            2838
+          ],
+          "text": "Make Checks Payable To:",
+          "confidence": 0.992997944355011
+        },
+        {
+          "line_id": "p1_l84",
+          "bbox": [
+            387,
+            2894,
+            954,
+            2927
+          ],
+          "text": "DESERT TRADE GRAPHICS INC",
+          "confidence": 0.972342848777771
+        },
+        {
+          "line_id": "p1_l85",
+          "bbox": [
+            385,
+            2934,
+            835,
+            2968
+          ],
+          "text": "7582 LAS VEGAS BLVD S",
+          "confidence": 0.9607375860214233
+        },
+        {
+          "line_id": "p1_l86",
+          "bbox": [
+            382,
+            2972,
+            486,
+            3012
+          ],
+          "text": "#487",
+          "confidence": 0.9909292459487915
+        },
+        {
+          "line_id": "p1_l87",
+          "bbox": [
+            1579,
+            2994,
+            2058,
+            3032
+          ],
+          "text": "REPUBLIC SERVICES #620",
+          "confidence": 0.9862009286880493
+        },
+        {
+          "line_id": "p1_l88",
+          "bbox": [
+            387,
+            3018,
+            869,
+            3049
+          ],
+          "text": "LAS VEGAS NV 89123-1009",
+          "confidence": 0.9624391794204712
+        },
+        {
+          "line_id": "p1_l89",
+          "bbox": [
+            1577,
+            3034,
+            1860,
+            3073
+          ],
+          "text": "P.O. BOX 78829",
+          "confidence": 0.9931549429893494
+        },
+        {
+          "line_id": "p1_l90",
+          "bbox": [
+            1580,
+            3077,
+            2016,
+            3111
+          ],
+          "text": "PHOENIX AZ 85062-8829",
+          "confidence": 0.9561368823051453
+        },
+        {
+          "line_id": "p1_l91",
+          "bbox": [
+            230,
+            3182,
+            965,
+            3212
+          ],
+          "text": "30620061651500000332984330001482540001482544",
+          "confidence": 0.9998815655708313
+        }
+      ]
+    },
+    {
+      "page_number": 2,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p2_b1",
+          "block_type": "header",
+          "bbox": [
+            145,
+            190,
+            610,
+            350
+          ],
+          "reading_order": 1,
+          "text": "REPUBLIC SERVICES",
+          "confidence": 0.9478060603141785
+        },
+        {
+          "block_id": "p2_b2",
+          "block_type": "text",
+          "bbox": [
+            158,
+            366,
+            769,
+            459
+          ],
+          "reading_order": 2,
+          "text": "UNDERSTANDING YOUR BILL Visit RepublicServices.com/MyBill",
+          "confidence": 0.5480642318725586
+        },
+        {
+          "block_id": "p2_b3",
+          "block_type": "title",
+          "bbox": [
+            158,
+            507,
+            518,
+            546
+          ],
+          "reading_order": 3,
+          "text": "Check Processing",
+          "confidence": 0.8297750949859619
+        },
+        {
+          "block_id": "p2_b4",
+          "block_type": "text",
+          "bbox": [
+            154,
+            554,
+            1782,
+            771
+          ],
+          "reading_order": 4,
+          "text": "When you provide a check as payment, you authorize us to use information from your check to make a one-time electronic fund transfer from your account.xWhen we make an electronic transfer, funds may be withdrawn from your account the same day we receive your payment or check and you will not receive your check back from your financial institution.",
+          "confidence": 0.9833378195762634
+        },
+        {
+          "block_id": "p2_b5",
+          "block_type": "title",
+          "bbox": [
+            157,
+            818,
+            764,
+            856
+          ],
+          "reading_order": 5,
+          "text": "Cancellation & Payment Policy",
+          "confidence": 0.9409694671630859
+        },
+        {
+          "block_id": "p2_b6",
+          "block_type": "text",
+          "bbox": [
+            154,
+            866,
+            1804,
+            1131
+          ],
+          "reading_order": 6,
+          "text": "Unless prohibited by applicable law,regulation, or franchise or other agreement: (1) we reserve the right to require that payment for services be made only by check, credit card or money order; and (2) if service is canceled during a billing cycle, you will remain responsible for all charges, fees and taxes through the end of the billing cycle. You will not be entitled to proration of billing or a refund for the period between the notice of termination and the end of the current billing cycle.x",
+          "confidence": 0.9547147750854492
+        },
+        {
+          "block_id": "p2_b7",
+          "block_type": "text",
+          "bbox": [
+            155,
+            867,
+            1805,
+            996
+          ],
+          "reading_order": 7,
+          "text": "Unless prohibited by applicable law,regulation, or franchise or other agreement: (1) we reserve the right to require that payment for services be made only by check, credit card or money order; and (2) if service is canceled during a billing cycle, you will remain",
+          "confidence": 0.42371007800102234
+        },
+        {
+          "block_id": "p2_b8",
+          "block_type": "text",
+          "bbox": [
+            155,
+            1002,
+            1804,
+            1131
+          ],
+          "reading_order": 8,
+          "text": "responsible for all charges, fees and taxes through the end of the billing cycle. You will not be entitled to proration of billing or a refund for the period between the notice of termination and the end of the current billing cycle.x",
+          "confidence": 0.4340953230857849
+        },
+        {
+          "block_id": "p2_b9",
+          "block_type": "title",
+          "bbox": [
+            156,
+            1177,
+            1041,
+            1215
+          ],
+          "reading_order": 9,
+          "text": "Understanding Our Rates, Charges and Fees",
+          "confidence": 0.9336453080177307
+        },
+        {
+          "block_id": "p2_b10",
+          "block_type": "text",
+          "bbox": [
+            155,
+            1222,
+            1801,
+            1532
+          ],
+          "reading_order": 10,
+          "text": "If you are receiving service from Republic Services without a writen contract, please visit RepublicServices.com/Fees to review the financial terms and conditions relating to your service. lf you are receiving service from Republic Services pursuant to a written contract, but have questions relating to any charges or fees, RepublicServices.com/Fees provides a detailed description of Republic Services most common charges and fees. If you do not have access to a computer, you may request that a copy be mailed to you by calling Customer Service at the number on the front of this invoice.",
+          "confidence": 0.9856523275375366
+        },
+        {
+          "block_id": "p2_b11",
+          "block_type": "text",
+          "bbox": [
+            155,
+            1580,
+            1729,
+            1755
+          ],
+          "reading_order": 11,
+          "text": "CURRENT INVOICE CHARGESwill be considereddelinquent and a late fee will be assessed if not paid by the end of the month following the invoice date. All PAST DUE BALANCES are due immediately to avoid additional late fees and collection fees being assessed to your account.",
+          "confidence": 0.9846752285957336
+        },
+        {
+          "block_id": "p2_b12",
+          "block_type": "title",
+          "bbox": [
+            157,
+            1799,
+            833,
+            1837
+          ],
+          "reading_order": 12,
+          "text": "PLEASE VISIT OUR WEBSITE AT:",
+          "confidence": 0.6374706625938416
+        },
+        {
+          "block_id": "p2_b13",
+          "block_type": "text",
+          "bbox": [
+            159,
+            1852,
+            719,
+            1891
+          ],
+          "reading_order": 13,
+          "text": "RepublicServicesVegas.com",
+          "confidence": 0.788197934627533
+        },
+        {
+          "block_id": "p2_b14",
+          "block_type": "text",
+          "bbox": [
+            159,
+            1937,
+            1466,
+            2177
+          ],
+          "reading_order": 14,
+          "text": "FOR ADDITIONAL INFORMATION ON: XXXXXXXxDRGP LOCATIONS AND HOURS OF OPERATION XXXXXX×©ROER A ROLLOFF CONTAINER FOR CLEANUPS XXXXXXXXCOMMERCRECYCLING SERVICES XXXXXXXXELECTRONICWASRTECYCLING",
+          "confidence": 0.8090918660163879
+        },
+        {
+          "block_id": "p2_b15",
+          "block_type": "title",
+          "bbox": [
+            159,
+            1938,
+            900,
+            1977
+          ],
+          "reading_order": 15,
+          "text": "FOR ADDITIONAL INFORMATION ON:",
+          "confidence": 0.30088597536087036
+        },
+        {
+          "block_id": "p2_b16",
+          "block_type": "text",
+          "bbox": [
+            167,
+            2436,
+            1568,
+            2506
+          ],
+          "reading_order": 16,
+          "text": "Please fill out the form below if your billing address has changed and return this portion of your statement to us using the envelope enclosed. Thank you!",
+          "confidence": 0.9641170501708984
+        },
+        {
+          "block_id": "p2_b17",
+          "block_type": "text",
+          "bbox": [
+            172,
+            2608,
+            631,
+            2641
+          ],
+          "reading_order": 17,
+          "text": "BILLING ADDRESS CHANGE",
+          "confidence": 0.6941871047019958
+        },
+        {
+          "block_id": "p2_b18",
+          "block_type": "table",
+          "bbox": [
+            165,
+            2663,
+            1587,
+            3012
+          ],
+          "reading_order": 18,
+          "text": "",
+          "confidence": 0.9836024045944214
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p2_l1",
+          "bbox": [
+            325,
+            244,
+            613,
+            292
+          ],
+          "text": "REPUBLIC",
+          "confidence": 0.9995080232620239
+        },
+        {
+          "line_id": "p2_l2",
+          "bbox": [
+            388,
+            290,
+            549,
+            324
+          ],
+          "text": "SERVICES",
+          "confidence": 0.9983842968940735
+        },
+        {
+          "line_id": "p2_l3",
+          "bbox": [
+            165,
+            370,
+            754,
+            407
+          ],
+          "text": "UNDERSTANDING YOUR BILL",
+          "confidence": 0.953335702419281
+        },
+        {
+          "line_id": "p2_l4",
+          "bbox": [
+            160,
+            414,
+            772,
+            463
+          ],
+          "text": "Visit RepublicServices.com/MyBill",
+          "confidence": 0.962020993232727
+        },
+        {
+          "line_id": "p2_l5",
+          "bbox": [
+            161,
+            471,
+            194,
+            503
+          ],
+          "text": "×",
+          "confidence": 0.7464793920516968
+        },
+        {
+          "line_id": "p2_l6",
+          "bbox": [
+            161,
+            504,
+            518,
+            553
+          ],
+          "text": "Check Processing",
+          "confidence": 0.9971243143081665
+        },
+        {
+          "line_id": "p2_l7",
+          "bbox": [
+            162,
+            555,
+            1721,
+            598
+          ],
+          "text": "When you provide a check as payment, you authorize us to use information from your",
+          "confidence": 0.9798507690429688
+        },
+        {
+          "line_id": "p2_l8",
+          "bbox": [
+            162,
+            600,
+            1785,
+            641
+          ],
+          "text": "check to make a one-time electronic fund transfer from your account.xWhen we make an",
+          "confidence": 0.9826673865318298
+        },
+        {
+          "line_id": "p2_l9",
+          "bbox": [
+            163,
+            645,
+            1760,
+            688
+          ],
+          "text": "electronic transfer, funds may be withdrawn from your account the same day we receive",
+          "confidence": 0.9914274215698242
+        },
+        {
+          "line_id": "p2_l10",
+          "bbox": [
+            159,
+            686,
+            1668,
+            737
+          ],
+          "text": "your payment or check and you will not receive your check back from your financial",
+          "confidence": 0.97183758020401
+        },
+        {
+          "line_id": "p2_l11",
+          "bbox": [
+            161,
+            735,
+            349,
+            776
+          ],
+          "text": "institution.",
+          "confidence": 0.9997467398643494
+        },
+        {
+          "line_id": "p2_l12",
+          "bbox": [
+            161,
+            818,
+            760,
+            864
+          ],
+          "text": "Cancellation & Payment Policy",
+          "confidence": 0.9622613191604614
+        },
+        {
+          "line_id": "p2_l13",
+          "bbox": [
+            163,
+            868,
+            1740,
+            911
+          ],
+          "text": "Unless prohibited by applicable law,regulation, or franchise or other agreement: (1) we",
+          "confidence": 0.9702524542808533
+        },
+        {
+          "line_id": "p2_l14",
+          "bbox": [
+            161,
+            911,
+            1808,
+            957
+          ],
+          "text": "reserve the right to require that payment for services be made only by check, credit card or",
+          "confidence": 0.9912346005439758
+        },
+        {
+          "line_id": "p2_l15",
+          "bbox": [
+            161,
+            956,
+            1606,
+            1003
+          ],
+          "text": "money order; and (2) if service is canceled during a billing cycle, you will remain",
+          "confidence": 0.9822718501091003
+        },
+        {
+          "line_id": "p2_l16",
+          "bbox": [
+            161,
+            1001,
+            1798,
+            1048
+          ],
+          "text": "responsible for all charges, fees and taxes through the end of the billing cycle. You will not",
+          "confidence": 0.9649185538291931
+        },
+        {
+          "line_id": "p2_l17",
+          "bbox": [
+            160,
+            1047,
+            1809,
+            1092
+          ],
+          "text": "be entitled to proration of billing or a refund for the period between the notice of termination",
+          "confidence": 0.9708619713783264
+        },
+        {
+          "line_id": "p2_l18",
+          "bbox": [
+            161,
+            1092,
+            890,
+            1138
+          ],
+          "text": "and the end of the current billing cycle.x",
+          "confidence": 0.9765440821647644
+        },
+        {
+          "line_id": "p2_l19",
+          "bbox": [
+            162,
+            1177,
+            1039,
+            1221
+          ],
+          "text": "Understanding Our Rates, Charges and Fees",
+          "confidence": 0.9802834987640381
+        },
+        {
+          "line_id": "p2_l20",
+          "bbox": [
+            163,
+            1225,
+            1776,
+            1269
+          ],
+          "text": "If you are receiving service from Republic Services without a writen contract, please visit",
+          "confidence": 0.9702085852622986
+        },
+        {
+          "line_id": "p2_l21",
+          "bbox": [
+            163,
+            1270,
+            1754,
+            1314
+          ],
+          "text": "RepublicServices.com/Fees to review the financial terms and conditions relating to your",
+          "confidence": 0.9730578660964966
+        },
+        {
+          "line_id": "p2_l22",
+          "bbox": [
+            161,
+            1316,
+            1785,
+            1359
+          ],
+          "text": "service. lf you are receiving service from Republic Services pursuant to a written contract,",
+          "confidence": 0.9836794137954712
+        },
+        {
+          "line_id": "p2_l23",
+          "bbox": [
+            161,
+            1359,
+            1755,
+            1403
+          ],
+          "text": "but have questions relating to any charges or fees, RepublicServices.com/Fees provides",
+          "confidence": 0.9868619441986084
+        },
+        {
+          "line_id": "p2_l24",
+          "bbox": [
+            1773,
+            1367,
+            1805,
+            1399
+          ],
+          "text": "a",
+          "confidence": 0.998561441898346
+        },
+        {
+          "line_id": "p2_l25",
+          "bbox": [
+            160,
+            1403,
+            1762,
+            1449
+          ],
+          "text": "detailed description of Republic Services most common charges and fees. If you do not",
+          "confidence": 0.982035756111145
+        },
+        {
+          "line_id": "p2_l26",
+          "bbox": [
+            158,
+            1445,
+            1682,
+            1497
+          ],
+          "text": "have access to a computer, you may request that a copy be mailed to you by calling",
+          "confidence": 0.9744032025337219
+        },
+        {
+          "line_id": "p2_l27",
+          "bbox": [
+            161,
+            1492,
+            1247,
+            1537
+          ],
+          "text": "Customer Service at the number on the front of this invoice.",
+          "confidence": 0.9706981778144836
+        },
+        {
+          "line_id": "p2_l28",
+          "bbox": [
+            161,
+            1581,
+            1679,
+            1623
+          ],
+          "text": "CURRENT INVOICE CHARGESwill be considereddelinquent and a late fee will be",
+          "confidence": 0.970258891582489
+        },
+        {
+          "line_id": "p2_l29",
+          "bbox": [
+            161,
+            1627,
+            1719,
+            1672
+          ],
+          "text": "assessed if not paid by the end of the month following the invoice date. All PAST DUE",
+          "confidence": 0.9473605751991272
+        },
+        {
+          "line_id": "p2_l30",
+          "bbox": [
+            160,
+            1671,
+            1729,
+            1718
+          ],
+          "text": "BALANCES are due immediately to avoid additional late fees and collection fees being",
+          "confidence": 0.9703991413116455
+        },
+        {
+          "line_id": "p2_l31",
+          "bbox": [
+            162,
+            1721,
+            636,
+            1762
+          ],
+          "text": "assessed to your account.",
+          "confidence": 0.989066481590271
+        },
+        {
+          "line_id": "p2_l32",
+          "bbox": [
+            162,
+            1802,
+            834,
+            1842
+          ],
+          "text": "PLEASE VISIT OUR WEBSITE AT:",
+          "confidence": 0.9392024278640747
+        },
+        {
+          "line_id": "p2_l33",
+          "bbox": [
+            161,
+            1848,
+            713,
+            1895
+          ],
+          "text": "RepublicServicesVegas.com",
+          "confidence": 0.9990551471710205
+        },
+        {
+          "line_id": "p2_l34",
+          "bbox": [
+            161,
+            1904,
+            193,
+            1936
+          ],
+          "text": "×",
+          "confidence": 0.9772845506668091
+        },
+        {
+          "line_id": "p2_l35",
+          "bbox": [
+            163,
+            1942,
+            899,
+            1979
+          ],
+          "text": "FOR ADDITIONAL INFORMATION ON:",
+          "confidence": 0.9701939225196838
+        },
+        {
+          "line_id": "p2_l36",
+          "bbox": [
+            326,
+            1984,
+            1467,
+            2031
+          ],
+          "text": "XXXXXXXxDRGP LOCATIONS AND HOURS OF OPERATION",
+          "confidence": 0.8983868956565857
+        },
+        {
+          "line_id": "p2_l37",
+          "bbox": [
+            329,
+            2037,
+            1469,
+            2078
+          ],
+          "text": "XXXXXX×©ROER A ROLLOFF CONTAINER FOR CLEANUPS",
+          "confidence": 0.9154936671257019
+        },
+        {
+          "line_id": "p2_l38",
+          "bbox": [
+            329,
+            2087,
+            1174,
+            2127
+          ],
+          "text": "XXXXXXXXCOMMERCRECYCLING SERVICES",
+          "confidence": 0.956928551197052
+        },
+        {
+          "line_id": "p2_l39",
+          "bbox": [
+            329,
+            2137,
+            1096,
+            2178
+          ],
+          "text": "XXXXXXXXELECTRONICWASRTECYCLING",
+          "confidence": 0.97412109375
+        },
+        {
+          "line_id": "p2_l40",
+          "bbox": [
+            162,
+            2193,
+            192,
+            2220
+          ],
+          "text": "×",
+          "confidence": 0.9570369720458984
+        },
+        {
+          "line_id": "p2_l41",
+          "bbox": [
+            175,
+            2438,
+            1574,
+            2474
+          ],
+          "text": "Please fill out the form below if your billing address has changed and return this portion of your",
+          "confidence": 0.9751695990562439
+        },
+        {
+          "line_id": "p2_l42",
+          "bbox": [
+            175,
+            2474,
+            1020,
+            2509
+          ],
+          "text": "statement to us using the envelope enclosed. Thank you!",
+          "confidence": 0.9765545129776001
+        },
+        {
+          "line_id": "p2_l43",
+          "bbox": [
+            176,
+            2612,
+            633,
+            2643
+          ],
+          "text": "BILLING ADDRESS CHANGE",
+          "confidence": 0.9648252725601196
+        },
+        {
+          "line_id": "p2_l44",
+          "bbox": [
+            172,
+            2680,
+            284,
+            2714
+          ],
+          "text": "Address",
+          "confidence": 0.9997004270553589
+        },
+        {
+          "line_id": "p2_l45",
+          "bbox": [
+            169,
+            2790,
+            234,
+            2836
+          ],
+          "text": "City",
+          "confidence": 0.9994325637817383
+        },
+        {
+          "line_id": "p2_l46",
+          "bbox": [
+            1293,
+            2791,
+            1424,
+            2834
+          ],
+          "text": "Zip Code",
+          "confidence": 0.996772050857544
+        },
+        {
+          "line_id": "p2_l47",
+          "bbox": [
+            1007,
+            2792,
+            1085,
+            2832
+          ],
+          "text": "State",
+          "confidence": 0.9996837377548218
+        },
+        {
+          "line_id": "p2_l48",
+          "bbox": [
+            171,
+            2907,
+            264,
+            2947
+          ],
+          "text": "Phone",
+          "confidence": 0.9990904927253723
+        },
+        {
+          "line_id": "p2_l49",
+          "bbox": [
+            1009,
+            2910,
+            1216,
+            2944
+          ],
+          "text": "Alternate Phone",
+          "confidence": 0.9891777038574219
+        }
+      ]
+    }
+  ],
+  "document_text": "REPUBLIC SERVICES\nAccount Number 3-0620-0616515 Invoice Number 0620-033298433 Invoice Date December 31,2020 $1,482.54 Previous Balance -$1,482.54 Payments/Adjustments $1,482.54 Current Invoice Charges\n770 E. Sahara Ave. Las Vegas NV 89104-2943 Customer Service (702) 735-5151 RepublicServices.com/Support\nCustomer Service (702) 735-5151 RepublicServices.com/Support\nImportant Information It's easy to go paperless! Sign up for Paperless Billing at RepublicServices.com and enjoy the convenience of managing your account anytime, anywhere, on any device.\n\nPAYMENTS/ADJUSTMENTS\n\n\nfingertips. Simple account at your access the Download Republic visit Services or app RepublicServices.com today.\nthe Download Republic visit Services or app RepublicServices.com today.\nREPUBLIC SERVICES\n\nThank You For Choosing Paperless\n770 E. Sahara Ave. Las Vegas NV 89104-2943\nTotal Enclosed\nFor Billing Address Changes, Check Box and Complete Reverse.\nAddress Service Requested\nMake Checks Payable To:\nDESERT TRADE GRAPHICS INC 7582 LAS VEGAS BLVD S #487 LAS VEGAS NV 89123-1009\nREPUBLIC SERVICES #620 P.O. BOX 78829 PHOENIX AZ 85062-8829\n30620061651500000332984330001482540001482544\n\nREPUBLIC SERVICES\nUNDERSTANDING YOUR BILL Visit RepublicServices.com/MyBill\nCheck Processing\nWhen you provide a check as payment, you authorize us to use information from your check to make a one-time electronic fund transfer from your account.xWhen we make an electronic transfer, funds may be withdrawn from your account the same day we receive your payment or check and you will not receive your check back from your financial institution.\nCancellation & Payment Policy\nUnless prohibited by applicable law,regulation, or franchise or other agreement: (1) we reserve the right to require that payment for services be made only by check, credit card or money order; and (2) if service is canceled during a billing cycle, you will remain responsible for all charges, fees and taxes through the end of the billing cycle. You will not be entitled to proration of billing or a refund for the period between the notice of termination and the end of the current billing cycle.x\nUnless prohibited by applicable law,regulation, or franchise or other agreement: (1) we reserve the right to require that payment for services be made only by check, credit card or money order; and (2) if service is canceled during a billing cycle, you will remain\nresponsible for all charges, fees and taxes through the end of the billing cycle. You will not be entitled to proration of billing or a refund for the period between the notice of termination and the end of the current billing cycle.x\nUnderstanding Our Rates, Charges and Fees\nIf you are receiving service from Republic Services without a writen contract, please visit RepublicServices.com/Fees to review the financial terms and conditions relating to your service. lf you are receiving service from Republic Services pursuant to a written contract, but have questions relating to any charges or fees, RepublicServices.com/Fees provides a detailed description of Republic Services most common charges and fees. If you do not have access to a computer, you may request that a copy be mailed to you by calling Customer Service at the number on the front of this invoice.\nCURRENT INVOICE CHARGESwill be considereddelinquent and a late fee will be assessed if not paid by the end of the month following the invoice date. All PAST DUE BALANCES are due immediately to avoid additional late fees and collection fees being assessed to your account.\nPLEASE VISIT OUR WEBSITE AT:\nRepublicServicesVegas.com\nFOR ADDITIONAL INFORMATION ON: XXXXXXXxDRGP LOCATIONS AND HOURS OF OPERATION XXXXXX×©ROER A ROLLOFF CONTAINER FOR CLEANUPS XXXXXXXXCOMMERCRECYCLING SERVICES XXXXXXXXELECTRONICWASRTECYCLING\nFOR ADDITIONAL INFORMATION ON:\nPlease fill out the form below if your billing address has changed and return this portion of your statement to us using the envelope enclosed. Thank you!\nBILLING ADDRESS CHANGE\n",
+  "tables": [
+    {
+      "page_number": 1,
+      "block_id": "p1_b6",
+      "bbox": [
+        1651,
+        558,
+        2462,
+        686
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 1,
+      "block_id": "p1_b8",
+      "bbox": [
+        602,
+        766,
+        2480,
+        1203
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 1,
+      "block_id": "p1_b13",
+      "bbox": [
+        1568,
+        2404,
+        2421,
+        2598
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 2,
+      "block_id": "p2_b18",
+      "bbox": [
+        165,
+        2663,
+        1587,
+        3012
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": []
+}

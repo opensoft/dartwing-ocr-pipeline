@@ -1,0 +1,112 @@
+T045 full test suite rerun start 2026-05-01T02:15:06+00:00
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.2, pluggy-1.6.0
+rootdir: /workspace
+configfile: pyproject.toml
+plugins: socket-0.7.0, anyio-4.13.0
+collected 395 items
+
+tests/contract_tests/evidence_packet_schema/test_contract_set_metadata.py . [  0%]
+..                                                                       [  0%]
+tests/contract_tests/evidence_packet_schema/test_folder_schema_amendment.py . [  1%]
+.                                                                        [  1%]
+tests/contract_tests/evidence_packet_schema/test_schema_valid_packet.py . [  1%]
+.                                                                        [  1%]
+tests/contract_tests/test_amendment_governance.py ......                 [  3%]
+tests/contract_tests/test_artifact_contracts.py ............             [  6%]
+tests/contract_tests/test_cli_artifact.py .....                          [  7%]
+tests/contract_tests/test_cli_folder.py ....                             [  8%]
+tests/contract_tests/test_cli_show_contract_set.py ..                    [  9%]
+tests/contract_tests/test_corpus_aggregation.py ..                       [  9%]
+tests/contract_tests/test_cross_artifact.py ......                       [ 11%]
+tests/contract_tests/test_edge_extraction_output_shape.py .              [ 11%]
+tests/contract_tests/test_evaluation_artifacts.py ....                   [ 12%]
+tests/contract_tests/test_evaluation_contracts.py .....                  [ 13%]
+tests/contract_tests/test_expected_contract.py .....                     [ 14%]
+tests/contract_tests/test_final_payload_assembler_tie_in.py .            [ 15%]
+tests/contract_tests/test_folder_contract.py ......                      [ 16%]
+tests/contract_tests/test_folder_source_pdf_readability.py .....         [ 17%]
+tests/contract_tests/test_forward_compatibility.py ......                [ 19%]
+tests/contract_tests/test_preprocess_output_confidence_null.py ....      [ 20%]
+tests/contract_tests/test_report_shape.py ....                           [ 21%]
+tests/contract_tests/test_version_stamping.py .......................... [ 28%]
+.........                                                                [ 30%]
+tests/pipeline_tests/test_artifact_placement.py ..                       [ 30%]
+tests/pipeline_tests/test_assembler_cli.py ....                          [ 31%]
+tests/pipeline_tests/test_assembler_inputs_read_only.py .......          [ 33%]
+tests/pipeline_tests/test_assembler_us1_happy_path.py ..                 [ 34%]
+tests/pipeline_tests/test_assembler_us2_flatten.py ......                [ 35%]
+tests/pipeline_tests/test_assembler_us3_review_status.py ....            [ 36%]
+tests/pipeline_tests/test_assembler_us4_quality_summary.py ....          [ 37%]
+tests/pipeline_tests/test_assembler_us5_trace.py ....                    [ 38%]
+tests/pipeline_tests/test_assembler_us6_hard_failures.py ............... [ 42%]
+...                                                                      [ 43%]
+tests/pipeline_tests/test_cli_arguments.py ......                        [ 44%]
+tests/pipeline_tests/test_console_script.py .                            [ 45%]
+tests/pipeline_tests/test_corpus_idempotency.py .                        [ 45%]
+tests/pipeline_tests/test_corpus_loop.py .                               [ 45%]
+tests/pipeline_tests/test_document_folder_input.py ..                    [ 46%]
+tests/pipeline_tests/test_exit_codes.py ...........                      [ 48%]
+tests/pipeline_tests/test_frozen_argument_set.py .                       [ 49%]
+tests/pipeline_tests/test_input_validation.py .....                      [ 50%]
+tests/pipeline_tests/test_missing_name_triad.py .                        [ 50%]
+tests/pipeline_tests/test_network_isolation.py .                         [ 50%]
+tests/pipeline_tests/test_off_limits_names.py .                          [ 51%]
+tests/pipeline_tests/test_ollama_endpoint_precedence.py ....             [ 52%]
+tests/pipeline_tests/test_ollama_unreachable.py .                        [ 52%]
+tests/pipeline_tests/test_overwrite_guard.py ...                         [ 53%]
+tests/pipeline_tests/test_partial_artifacts.py .                         [ 53%]
+tests/pipeline_tests/test_path_resolution.py .................           [ 57%]
+tests/pipeline_tests/test_path_resolution_purity.py ....                 [ 58%]
+tests/pipeline_tests/test_pdf_check.py .....                             [ 60%]
+tests/pipeline_tests/test_quickstart_developer_path.py ..                [ 60%]
+tests/pipeline_tests/test_review_status_mirror.py .                      [ 60%]
+tests/pipeline_tests/test_schema_validation.py ..                        [ 61%]
+tests/pipeline_tests/test_stage_failure_labels.py ....                   [ 62%]
+tests/pipeline_tests/test_stderr_failure_record.py .......               [ 64%]
+tests/pipeline_tests/test_stdout_summary.py ..                           [ 64%]
+tests/pipeline_tests/test_trace_block.py ..                              [ 65%]
+tests/integration/preprocessing/test_debug_images_opt_in.py ...          [ 65%]
+tests/integration/preprocessing/test_engine_init_hard_fail.py ...        [ 66%]
+tests/integration/preprocessing/test_no_ollama_no_cloud.py .             [ 66%]
+tests/integration/preprocessing/test_silent_empty_layout.py ..           [ 67%]
+tests/integration/preprocessing/test_silent_empty_ocr.py ..              [ 67%]
+tests/integration/preprocessing/test_suspicious_single_block.py ..       [ 68%]
+tests/integration/preprocessing/test_unknown_layout_label.py ...         [ 69%]
+tests/integration/preprocessing/test_us1_determinism.py .                [ 69%]
+tests/integration/preprocessing/test_us1_ingestion_sources.py .          [ 69%]
+tests/integration/preprocessing/test_us1_quality_and_text.py ...         [ 70%]
+tests/integration/preprocessing/test_us1_schema_valid.py ..              [ 70%]
+tests/integration/preprocessing/test_us2_multi_page.py .......           [ 72%]
+tests/integration/preprocessing/test_us3_blank_page.py .                 [ 72%]
+tests/integration/preprocessing/test_us3_malformed_inputs.py ......      [ 74%]
+tests/integration/preprocessing/test_us3_partial_failure.py .            [ 74%]
+tests/integration/preprocessing/test_us3_source_total_failure.py .       [ 74%]
+tests/integration/preprocessing/test_us3_step_failure.py .               [ 75%]
+tests/integration/preprocessing/test_us4_tables.py ....                  [ 76%]
+tests/unit/preprocessing/test_artifact.py ........                       [ 78%]
+tests/unit/preprocessing/test_clip_bbox_and_text_verbatim.py .........   [ 80%]
+tests/unit/preprocessing/test_confidence_persistence.py ...............  [ 84%]
+tests/unit/preprocessing/test_document_text.py ......                    [ 85%]
+tests/unit/preprocessing/test_falcon_extension.py ..                     [ 86%]
+tests/unit/preprocessing/test_identifiers.py .......                     [ 88%]
+tests/unit/preprocessing/test_ingestion_sources.py .........             [ 90%]
+tests/unit/preprocessing/test_null_discipline.py ...                     [ 91%]
+tests/unit/preprocessing/test_numpy_array_backed_results.py .            [ 91%]
+tests/unit/preprocessing/test_rasterize.py .........                     [ 93%]
+tests/unit/preprocessing/test_tables_projection.py .........             [ 95%]
+tests/unit/preprocessing/test_version.py .......                         [ 97%]
+tests/unit/preprocessing/test_warnings.py .........                      [100%]
+
+=============================== warnings summary ===============================
+tests/integration/preprocessing/test_no_ollama_no_cloud.py::test_preprocessing_runs_with_no_network_and_unreachable_ollama
+  /usr/local/lib/python3.12/site-packages/setuptools/command/easy_install.py:41: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+    import pkg_resources
+
+tests/integration/preprocessing/test_no_ollama_no_cloud.py::test_preprocessing_runs_with_no_network_and_unreachable_ollama
+  /usr/local/lib/python3.12/site-packages/paddle/utils/cpp_extension/extension_utils.py:712: UserWarning: No ccache found. Please be aware that recompiling all source files may be required. You can download and install ccache from: https://github.com/ccache/ccache/blob/master/doc/INSTALL.md
+    warnings.warn(warning_message)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 395 passed, 2 warnings in 3898.98s (1:04:58) =================
+T045 full test suite rerun end 2026-05-01T03:19:40+00:00

@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.2, pluggy-1.6.0
+rootdir: /workspace
+configfile: pyproject.toml
+plugins: socket-0.7.0, anyio-4.13.0
+collected 16 items
+
+tests/contract_tests/test_artifact_contracts.py ............             [ 75%]
+tests/contract_tests/test_preprocess_output_confidence_null.py ....      [100%]
+
+============================== 16 passed in 0.07s ==============================
