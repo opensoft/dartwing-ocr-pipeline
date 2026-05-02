@@ -28,7 +28,7 @@ Artifact-level entities already documented in `contracts/stage1_vendor_identity/
 
 ### `LayoutBlock`
 
-No schema change. `block_type` is constrained to the frozen enum `{text, title, table, figure, header, footer}`. `confidence` on each block is populated verbatim from `layout_det_res.boxes[*].score` (R-013 / FR-004) — no clamping, no normalization; missing → `null`. New V3 layout labels are mapped to existing values via `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE` per R-003:
+No schema change. `block_type` is constrained to the frozen enum `{text, title, table, figure, header, footer}`. `confidence` on each block is populated from `layout_det_res.boxes[*].score` (R-013 / FR-004) when the value is numeric, finite, and inside `[0.0, 1.0]`; missing or schema-unusable values persist as `null`. New V3 layout labels are mapped to existing values via `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE` per R-003:
 
 | V3 label (from `layout_det_res.boxes[*].label`) | Mapped `block_type` | Rationale |
 |------------------------------------------------|---------------------|-----------|
@@ -58,11 +58,11 @@ line_i = {
     "line_id":   f"p{page_number}_l{i+1}",            # after sort (see below)
     "bbox":      _clip_bbox(_bbox_from_points(overall_ocr_res.rec_boxes[det_i]), width, height),
     "text":      overall_ocr_res.rec_texts[det_i],
-    "confidence": _persist_confidence(overall_ocr_res.rec_scores, det_i),  # verbatim float or null per FR-004 / R-013
+    "confidence": _persist_confidence(overall_ocr_res.rec_scores, det_i),  # bounded float or null per FR-004 / R-013
 }
 ```
 
-`_persist_confidence(scores, i)` returns `float(scores[i])` when the index exists and the value is numeric, else `None`. **No clamping** to `[0.0, 1.0]` (V2's clamp is retired under 010 per Clarifications Q18 / FR-004). **No filter is applied in this function for low-confidence lines** — recognition-threshold filtering happens inside PP-OCRv5 using the engine's default (R-012 / FR-007), and `raw_ocr_lines[*]` is whatever the engine returns after that.
+`_persist_confidence(scores, i)` returns `float(scores[i])` when the index exists and the value is numeric, finite, and inside the schema's `[0.0, 1.0]` confidence range; otherwise it returns `None`. **No clamping** to `[0.0, 1.0]` (V2's clamp is retired under 010 per Clarifications Q18 / FR-004); invalid values become `null` rather than fabricated in-range numbers. **No filter is applied in this function for low-confidence lines** — recognition-threshold filtering happens inside PP-OCRv5 using the engine's default (R-012 / FR-007), and `raw_ocr_lines[*]` is whatever the engine returns after that.
 
 `line_id` is minted AFTER the `(bbox.y0, bbox.x0, det_idx)` stable sort. Identifier scheme (`p{page}_l{n}`) is unchanged from 003.
 
@@ -211,7 +211,7 @@ These rules are enforced by code (deterministic, not model-inferred) and map 1:1
 | Label-fallback warnings do NOT downgrade status | `ingestion_sources.build_ingestion_sources()` ignores `unknown_layout_label` / `suspicious_single_block` | FR-006, FR-018 |
 | Two runs on same PDF + deps ⇒ byte-identical output | covered by R-005 (threading, oneDNN, seed, post-sort, FR-020 warning ordering) | FR-004, SC-003 |
 | Every page with `len(raw_ocr_lines) > 0` has `≥1` block (or fires FR-003) | covered by FR-002 + FR-003 being formal inverses | FR-002 |
-| `confidence` on blocks and lines persisted verbatim from engine output; missing → `null` | `ocr._extract_lines()` + `ocr._extract_blocks()` | FR-004, R-013 |
+| `confidence` on blocks and lines persisted as an in-range engine float or `null` for missing / non-finite / out-of-range values | `ocr._extract_lines()` + `ocr._extract_blocks()` | FR-004, R-013 |
 | OCR recognition threshold at PP-OCRv5 engine default; no project override | `ocr._get_engine()` (no `text_rec_score_thresh` / `drop_score` override) | FR-007, R-012 |
 | `tables[]` populated from V3 `table_res_list`, projected into v1.0.0 shape; richer content discarded | `ocr._extract_blocks()` / `ocr._extract_tables()` | FR-021, R-014 |
 | Debug `page_*.png` emission gated on `--write-page-images`; not covered by FR-004 | `cli.py` → `rasterize.py` / `pipeline.py` | FR-022, R-015 |

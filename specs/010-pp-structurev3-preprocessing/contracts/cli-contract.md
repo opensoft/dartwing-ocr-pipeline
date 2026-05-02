@@ -86,7 +86,7 @@ FR-022 (new in 010) formalizes that behavior: `--write-page-images` is the opt-i
 
 For clarity — these are persisted-artifact rules that clarified in 010 but don't show up as a CLI contract change:
 
-- **FR-004 / R-013 confidence verbatim**: every block and every OCR line in `preprocess_output.json` carries engine-emitted `confidence` verbatim (float or `null`). The V2-era `[0.0, 1.0]` clamp is retired.
+- **FR-004 / R-013 confidence handling**: every block and every OCR line in `preprocess_output.json` carries an in-range engine-emitted `confidence` float or `null` when the score is missing, non-finite, or outside the contract's `[0.0, 1.0]` domain. The V2-era clamp is retired; invalid values are not fabricated into range.
 - **FR-007 / R-012 OCR recognition threshold**: PP-OCRv5's engine default is used with no project override; `len(raw_ocr_lines)` reflects native engine filtering only.
 - **FR-021 / R-014 `tables[]` projection**: `tables[]` is populated from V3's `table_res_list`, projected into the frozen v1.0.0 shape; richer V3 HTML / cell metadata is discarded at the persistence boundary.
 

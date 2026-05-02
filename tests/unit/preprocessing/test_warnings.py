@@ -93,5 +93,6 @@ def test_sort_preserves_insertion_order_on_same_page_and_category():
 def test_warning_sort_key_shape():
     """Return shape is a 3-tuple; callers may rely on its ordering semantics."""
     key = warning_sort_key(build_warning(5, "silent_empty_layout", "x"))
-    assert isinstance(key, tuple) and len(key) == 3
+    assert isinstance(key, tuple)
+    assert len(key) == 3
     assert key[0] == 5

@@ -113,13 +113,11 @@ byte-identical and valid under v1.2.0 (every previously-accepted `confidence`
 value is still accepted; the change only widens what's permitted).
 
 Summary: permit `null` on `preprocess_output.block.confidence` and
-`preprocess_output.ocr_line.confidence`, so preprocessing can persist the
-engine-missing case verbatim instead of substituting `0.0`. Required to
-unblock feature 010's FR-004 / R-013 rule ("persist confidence verbatim;
-missing → `null`, never `0.0`, never empty"), which removes the V2-era
-`max(0.0, min(1.0, float(...)))` clamp in `src/ledgerlinc_ocr/preprocessing/ocr.py`
-and needs a schema that accepts `null` on the rare parallel-array mismatch
-case where `rec_texts` outruns `rec_scores`.
+`preprocess_output.ocr_line.confidence`, and on the mirrored structural
+confidence fields in `evidence_packet`, so preprocessing can persist the
+engine-missing case without substituting `0.0`. Required to unblock feature
+010's FR-004 / R-013 rule ("missing → `null`, never `0.0`, never empty"),
+while preserving the contract's numeric `[0.0, 1.0]` confidence domain.
 
 What changed relative to v1.1.0:
 
@@ -130,9 +128,15 @@ What changed relative to v1.1.0:
   - `minimum: 0.0` and `maximum: 1.0` stay in place — they apply only
     when the value is a number (JSON Schema ignores numeric bounds on
     null), so engine-emitted numbers are still required to be in
-    `[0.0, 1.0]`. This keeps the widening strictly to the null case and
-    leaves out-of-range engine output as a separately-surfaceable concern
-    if it ever materializes.
+    `[0.0, 1.0]`. This keeps the widening strictly to the null case;
+    preprocessing persists missing, non-finite, or out-of-range scores as
+    `null` instead of fabricating an in-range value.
+- `evidence_packet.schema.json`:
+  - `$defs.block.properties.confidence.type` widened from `"number"` to
+    `["number", "null"]`.
+  - `$defs.ocr_line.properties.confidence.type` widened the same way, so
+    evidence-packet assembly can validate a v1.2-compatible
+    `preprocess_output.json` without coercing missing evidence to `0.0`.
 - `contract_set.json`:
   - `contract_set_version` → `"1.2.0"`.
   - `description` updated to name the amendment.

@@ -73,7 +73,7 @@ diff /tmp/pp1.sha /tmp/pp2.sha && echo "DETERMINISTIC"
 
 Scope: the determinism assertion covers `preprocess_output.json` only. Debug `page_*.png` output (opt-in via `--write-page-images`, FR-022 / R-015) is explicitly outside FR-004 — do **not** sha256 the PNGs here.
 
-If the digests differ, stop and audit per R-005 (threading, oneDNN, paddle seed, post-sort, warning ordering) and R-013 (confidence persisted verbatim without clamping). Do NOT commit anything.
+If the digests differ, stop and audit per R-005 (threading, oneDNN, paddle seed, post-sort, warning ordering) and R-013 (confidence persisted as in-range floats or deterministic `null` values). Do NOT commit anything.
 
 ## 5. Regenerate the full corpus (FR-010, SC-002, SC-004)
 

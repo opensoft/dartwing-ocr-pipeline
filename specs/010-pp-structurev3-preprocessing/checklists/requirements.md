@@ -52,14 +52,14 @@
 ### Requirement Clarity
 
 - [ ] CHK005 - Is "PP-OCRv5's default recognition threshold" in FR-007 identified by a specific attribute name (e.g., `text_rec_score_thresh`, `drop_score`), or only by reference to "engine default"? [Ambiguity, Spec §FR-007]
-- [ ] CHK006 - Is "persist verbatim" in FR-004's confidence rule unambiguous about float-precision rounding applied by JSON serialization (e.g., `json.dumps` float formatting)? [Clarity, Spec §FR-004]
+- [ ] CHK006 - Is FR-004's confidence rule unambiguous about JSON float serialization for in-range values and deterministic `null` placement for missing / unusable values? [Clarity, Spec §FR-004]
 - [ ] CHK007 - Is "richer HTML / cell-level structure" in FR-021 enumerated as a closed list of V3 fields, or left to implementer interpretation of "beyond the schema"? [Ambiguity, Spec §FR-021]
 - [ ] CHK008 - Is FR-022's opt-in mechanism named explicitly (e.g., `--write-page-images`) in the requirement text, or only referred to generically as "an explicit CLI flag"? [Clarity, Spec §FR-022]
 
 ### Requirement Consistency
 
 - [ ] CHK009 - Do FR-003 and FR-019 use symmetric detail-string templates and symmetric downgrade semantics for their respective silent-empty conditions? [Consistency, Spec §FR-003, §FR-019]
-- [ ] CHK010 - Are the FR-004 determinism axes (ordering, bbox encoding, text verbatim, confidence verbatim) aligned with R-005's implementation narrative without gap or conflict? [Consistency, Spec §FR-004]
+- [ ] CHK010 - Are the FR-004 determinism axes (ordering, bbox encoding, text verbatim, confidence float-or-null handling) aligned with R-005's implementation narrative without gap or conflict? [Consistency, Spec §FR-004]
 - [ ] CHK011 - Is the Edge Case "pathological single-block page" reconciled with FR-018's trigger threshold (≥ 2 OCR lines) — i.e., no gray-zone page configuration where the Edge Case applies but FR-018 does not fire (or vice versa)? [Consistency, Spec §Edge Cases, §FR-018]
 - [ ] CHK012 - Are FR-015 (no new network deps) and FR-016 (hard-fail on weight-download) consistent with the Assumptions line permitting a one-time first-run warm-up? [Consistency, Spec §FR-015, §FR-016, §Assumptions]
 

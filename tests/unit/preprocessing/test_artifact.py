@@ -76,6 +76,20 @@ def test_validate_passes_on_minimal_valid_artifact():
     artifact_mod.validate(_minimal_valid_artifact())
 
 
+def test_validate_accepts_nullable_confidence_under_latest_preprocess_schema():
+    art = _minimal_valid_artifact()
+    art["pages"][0]["blocks"][0]["confidence"] = None
+    art["pages"][0]["raw_ocr_lines"][0]["confidence"] = None
+    artifact_mod.validate(art)
+
+
+def test_validate_rejects_out_of_range_confidence():
+    art = _minimal_valid_artifact()
+    art["pages"][0]["raw_ocr_lines"][0]["confidence"] = 1.42
+    with pytest.raises(ArtifactInvalidError):
+        artifact_mod.validate(art)
+
+
 def test_validate_raises_on_malformed_artifact():
     bad = _minimal_valid_artifact()
     del bad["ingestion_sources"]

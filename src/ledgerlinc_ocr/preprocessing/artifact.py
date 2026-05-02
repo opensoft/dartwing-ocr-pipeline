@@ -40,7 +40,7 @@ def _normalize_table(entry: dict[str, Any]) -> dict[str, Any]:
         normalized["cells"] = normalized_cells
     return normalized
 SCHEMA_PATH = Path(__file__).resolve().parents[3] / (
-    "contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json"
+    "contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json"
 )
 
 

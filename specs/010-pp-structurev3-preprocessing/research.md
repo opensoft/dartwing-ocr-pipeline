@@ -364,26 +364,26 @@ Fill this section with: `paddleocr` version, `paddlex` version, resolved attribu
 
 ## R-013: Confidence value semantics under V3
 
-**Decision**: Persist `confidence` values verbatim from PPStructureV3 output, as floats, on every block and every OCR line. No clamping to `[0.0, 1.0]`, no renormalization, no sigmoid/min-max remapping. When V3 emits no confidence for a given block or line (e.g., a layout region whose `score` is missing, a recognized line without a `rec_scores` entry), `confidence` is persisted as `null` — never `0.0`, never an empty value, consistent with the constitution's "missing fields use null, never zero / empty string" rule.
+**Decision**: Persist schema-valid `confidence` values from PPStructureV3 output, as floats, on every block and every OCR line. No clamping, no renormalization, no sigmoid/min-max remapping. When V3 emits no confidence for a given block or line, or emits a value outside the contract's numeric `[0.0, 1.0]` confidence domain, `confidence` is persisted as `null` — never `0.0`, never an empty value, consistent with the constitution's "missing fields use null, never zero / empty string" rule.
 
 Implementation points:
 
-- **Blocks**: `confidence = layout_det_res.boxes[i].score` if present and `isinstance(score, (int, float))`, else `None`. No float coercion beyond `float(score)` for JSON stability.
-- **OCR lines**: `confidence = overall_ocr_res.rec_scores[det_i]` if the index exists and the value is numeric, else `None`. Parallel-array length mismatch (e.g., `rec_texts` longer than `rec_scores`) MUST NOT silently drop the line; the line persists with `confidence = null` and a note is captured in research if it ever fires in practice.
+- **Blocks**: `confidence = float(layout_det_res.boxes[i].score)` if present, finite, and within `[0.0, 1.0]`, else `None`.
+- **OCR lines**: `confidence = float(overall_ocr_res.rec_scores[det_i])` if the index exists and the value is finite and within `[0.0, 1.0]`, else `None`. Parallel-array length mismatch (e.g., `rec_texts` longer than `rec_scores`) MUST NOT silently drop the line; the line persists with `confidence = null` and a note is captured in research if it ever fires in practice.
 
-The current V2 path applied `max(0.0, min(1.0, float(...)))` clamping on OCR-line confidences (see `data-model.md:60` pre-010). That clamp is **removed** under 010 per Clarifications Q18. V2 confidences already fell inside `[0.0, 1.0]` in practice, so the observable diff on the `inv_001..inv_020` baselines from this change alone is zero; the rule matters mainly as a posture statement and as insurance against a future engine emitting out-of-range values that would otherwise be silently clamped.
+The current V2 path applied `max(0.0, min(1.0, float(...)))` clamping on OCR-line confidences (see `data-model.md:60` pre-010). That clamp is **removed** under 010 per Clarifications Q18. V2 confidences already fell inside `[0.0, 1.0]` in practice, so the observable diff on the `inv_001..inv_020` baselines from this change alone is zero; the rule matters mainly as a posture statement and as insurance against a future engine emitting out-of-range values that would otherwise be silently clamped. Under the schema-first rule, such values become `null` instead of a fabricated in-range number.
 
 **Rationale**:
-- **Evidence-first discipline**: downstream consumers (evidence packet, extractor, evaluator) decide what to do with confidence signals. Preprocessing is the wrong layer to impose a canonicalization rule, since a clamp or remap would bake in an assumption about what confidence means under a specific engine version.
-- **FR-004 determinism preserved**: verbatim persistence with explicit `null` handling is deterministic. The only flake axis is the engine-native float emission, which is already pinned via `cpu_threads=1` + `enable_mkldnn=False` + `paddle.seed(0)` per R-005.
-- **Engine-bump visibility**: a future engine that changes confidence semantics (e.g., emitting `logit` scores instead of `[0, 1]` probabilities) will produce a visible diff during FR-010 baseline regeneration review, instead of being silently renormalized into the old range.
+- **Evidence-first discipline**: downstream consumers (evidence packet, extractor, evaluator) decide what to do with confidence signals. Preprocessing is the wrong layer to impose a numeric canonicalization rule, since a clamp or remap would bake in an assumption about what confidence means under a specific engine version.
+- **FR-004 determinism preserved**: schema-first persistence with explicit `null` handling is deterministic. The only flake axis is the engine-native float emission, which is already pinned via `cpu_threads=1` + `enable_mkldnn=False` + `paddle.seed(0)` per R-005.
+- **Engine-bump visibility**: a future engine that changes confidence semantics (e.g., emitting `logit` scores instead of `[0, 1]` probabilities) will produce a visible `null`/baseline diff during FR-010 regeneration review, instead of being silently renormalized into the old range.
 
 **Alternatives considered**:
-- Clamp to `[0.0, 1.0]`; missing → `null` (Option B from Clarifications Q18) — rejected. Clamping hides out-of-range values without alerting to them; if a future engine emits logit-scale scores, we'd rather see the outlier and adjust than silently lose the signal.
+- Clamp to `[0.0, 1.0]`; missing → `null` (Option B from Clarifications Q18) — rejected. Clamping hides out-of-range values without alerting to them; if a future engine emits logit-scale scores, the value should become `null` and surface in review instead of being silently fabricated into range.
 - Normalize to `[0.0, 1.0]` via documented mapping — rejected. Adds hidden semantics that downstream consumers would have to reverse-engineer.
 - Drop `confidence` entirely and write `null` on every block and line — rejected. Discards engine-side information that the extractor already consumes as a signal.
 
-**Schema compatibility note**: the frozen `preprocess_output.schema.json` at `contract_set_version = "1.0.0"` accepts both `number` and `null` for `confidence` fields on blocks and lines. No AMENDMENTS entry is required to persist `null`; spot-check the schema before implementation to confirm the `oneOf [number, null]` / `"type": ["number", "null"]` shape is in place, and add a contract-test fixture covering a block/line with `confidence = null` as part of Phase 2.
+**Schema compatibility note**: AMENDMENTS v1.2.0 widens `preprocess_output.schema.json` and the mirrored `evidence_packet.schema.json` structural confidence fields to accept both bounded numbers and `null`. Preprocessing still stamps `contract_set_version = "1.0.0"` for downstream compatibility, but validates writes against the latest v1.2 preprocess schema so the nullable-confidence shape is accepted.
 
 ## R-014: `tables[]` projection boundary under V3
 
@@ -396,7 +396,7 @@ Projection table:
 | `html` (full `<table>…</table>` string) | used only via `_parse_table_dims()` to compute `rows` / `columns`; the raw HTML is NOT persisted | richer HTML discarded |
 | `cell_bbox` (list of per-cell 4-tuple or 4-point polys) | `cells[]` — each projected to the v1.0.0 cell shape (bbox + text fields defined by the schema) | cell ordering preserved as-emitted; if the schema does not carry per-cell text, text content is NOT persisted even though V3 provides it |
 | any V3-only per-cell metadata (e.g., spans, cell type) | **DISCARDED** | requires AMENDMENTS to widen the contract |
-| `table_score` / per-cell scores | `confidence` at table level iff the v1.0.0 schema carries it; verbatim per R-013; otherwise discarded | |
+| `table_score` / per-cell scores | `confidence` at table level iff the v1.0.0 schema carries it and the value is schema-valid per R-013; otherwise discarded | |
 
 Ordering: `tables[]` follows block order within each page (the same sort key as `blocks[]` per R-005). Two runs on the same PDF therefore produce byte-identical `tables[]` ordering.
 

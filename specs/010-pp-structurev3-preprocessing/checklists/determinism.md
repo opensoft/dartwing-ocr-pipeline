@@ -107,13 +107,13 @@ No residuals at any severity level.
 
 ## Session 2026-04-23 Append — Post-Clarify Round 2+3 (CHK038–CHK055)
 
-**Purpose**: Validate determinism-requirement quality after the seven clarifications that landed on 2026-04-22 Q16–Q19 (confidence verbatim, PP-OCRv5 default threshold, `tables[]` projection, debug PNG opt-in) and 2026-04-23 Q23–Q25 (FR-010 broad halt, FR-021 strict-current-shape, zero-overlap out-of-scope). Each item tests whether the determinism contract holds under the new rules — NOT whether the implementation does it right.
+**Purpose**: Validate determinism-requirement quality after the seven clarifications that landed on 2026-04-22 Q16–Q19 (schema-first confidence handling, PP-OCRv5 default threshold, `tables[]` projection, debug PNG opt-in) and 2026-04-23 Q23–Q25 (FR-010 broad halt, FR-021 strict-current-shape, zero-overlap out-of-scope). Each item tests whether the determinism contract holds under the new rules — NOT whether the implementation does it right.
 
-### Confidence Verbatim (FR-004 / R-013)
+### Confidence Handling (FR-004 / R-013)
 
-- [ ] CHK038 Is FR-004's "confidence verbatim" rule enumerated as a determinism axis alongside the existing bbox / text / ordering axes, or only as a value-sourcing rule? [Completeness, Spec §FR-004]
-- [ ] CHK039 Is the retirement of the V2-era `max(0.0, min(1.0, float(...)))` clamp explicit in the requirement text, or left as an implicit consequence of "verbatim"? [Clarity, Spec §FR-004]
-- [ ] CHK040 Is the out-of-range confidence case (engine emits `1.2` or `-0.1`) specified to persist as-is — no NaN substitution, no clamping, no drop — so two reruns produce identical out-of-range values? [Coverage, Spec §FR-004]
+- [ ] CHK038 Is FR-004's confidence rule enumerated as a determinism axis alongside the existing bbox / text / ordering axes, or only as a value-sourcing rule? [Completeness, Spec §FR-004]
+- [ ] CHK039 Is the retirement of the V2-era `max(0.0, min(1.0, float(...)))` clamp explicit in the requirement text, with invalid values becoming `null` instead of fabricated in-range values? [Clarity, Spec §FR-004]
+- [ ] CHK040 Is the out-of-range confidence case (engine emits `1.2` or `-0.1`) specified to persist as `null` — no NaN substitution, no clamping, no drop — so two reruns produce identical null placement? [Coverage, Spec §FR-004]
 - [ ] CHK041 Is the `confidence: null` persistence rule deterministic across reruns — same-engine, same-input → same null placement with no flip to `0.0`? [Consistency, Spec §FR-004]
 
 ### FR-022 PNG-Outside-FR-004 Scope
@@ -146,4 +146,4 @@ No residuals at any severity level.
 
 ### Session-Resolution Traceability
 
-- [ ] CHK055 Is the SC-003 sha256 verification method reiterated against the updated FR-004 (confidence verbatim + PNG-out-of-scope) language, or only against the original FR-004? [Traceability, Spec §SC-003 §FR-004]
+- [ ] CHK055 Is the SC-003 sha256 verification method reiterated against the updated FR-004 (confidence float-or-null handling + PNG-out-of-scope) language, or only against the original FR-004? [Traceability, Spec §SC-003 §FR-004]

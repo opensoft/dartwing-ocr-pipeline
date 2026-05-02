@@ -121,7 +121,7 @@
         "bbox": { "$ref": "#/$defs/bbox" },
         "reading_order": { "type": "integer", "minimum": 1 },
         "text": { "type": "string" },
-        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+        "confidence": { "type": ["number", "null"], "minimum": 0.0, "maximum": 1.0 }
       }
     },
     "ocr_line": {
@@ -132,7 +132,7 @@
         "line_id": { "type": "string", "pattern": "^p\\d+_l\\d+$" },
         "bbox": { "$ref": "#/$defs/bbox" },
         "text": { "type": "string" },
-        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+        "confidence": { "type": ["number", "null"], "minimum": 0.0, "maximum": 1.0 }
       }
     },
     "bbox": {

@@ -10,6 +10,7 @@ in a single `predict(...)` call (FR-007).
 
 from __future__ import annotations
 
+import math
 import re
 import warnings as _std_warnings
 from typing import Any
@@ -198,22 +199,26 @@ def _parse_table_dims(html: str) -> tuple[int, int]:
 
 
 def _persist_confidence_value(value: Any) -> float | None:
-    """FR-004 / R-013: persist a single engine-emitted confidence verbatim.
+    """Persist one engine confidence value in the schema-permitted domain.
 
-    No clamping to `[0.0, 1.0]`, no normalization. `None` / missing → `None`
-    (never `0.0`). Non-numeric values → `None`. The V2-era
-    `max(0.0, min(1.0, float(...)))` clamp is deliberately absent.
+    In-range numeric values are preserved verbatim. Missing, non-numeric,
+    non-finite, and out-of-range values are represented as `None` so the
+    artifact remains valid under the v1.2 nullable-confidence contract without
+    silently clamping engine output.
     """
     if value is None:
         return None
     try:
-        return float(value)
+        conf = float(value)
     except (TypeError, ValueError):
         return None
+    if not math.isfinite(conf) or conf < 0.0 or conf > 1.0:
+        return None
+    return conf
 
 
 def _persist_confidence(scores: Any, idx: int) -> float | None:
-    """FR-004 / R-013: look up `scores[idx]` and persist verbatim.
+    """FR-004 / R-013: look up `scores[idx]` and persist it if schema-valid.
 
     Parallel-array length mismatches (e.g., `rec_texts` longer than
     `rec_scores`) produce `None` for the missing-score lines rather than
@@ -256,7 +261,7 @@ def _extract_lines(
         if det_idx >= len(boxes):
             break
         box = boxes[det_idx]
-        # FR-004 / R-013: persist confidence verbatim; missing → None, never 0.0.
+        # FR-004 / R-013: missing or schema-unusable confidence stays null.
         conf = _persist_confidence(scores, det_idx)
         try:
             bbox = _clip_bbox(_bbox_from_coord(box), width, height)
@@ -296,80 +301,124 @@ def _extract_blocks_and_tables(
 
     staged: list[dict[str, Any]] = []
     for det_idx, region in enumerate(regions):
-        raw_label = str(_attr(region, "label", "text") or "text").lower()
-        if raw_label in PPSTRUCTURE_LABEL_TO_BLOCK_TYPE:
-            block_type = PPSTRUCTURE_LABEL_TO_BLOCK_TYPE[raw_label]
-        else:
-            block_type = "text"
-            warnings_out.append(
-                build_warning(page_number, "unknown_layout_label", f"label={raw_label}")
-            )
-        coord = _coalesce(
-            _attr(region, "coordinate", None),
-            _attr(region, "bbox", None),
-            default=[0, 0, 0, 0],
-        )
-        try:
-            bbox = _clip_bbox(_bbox_from_coord(coord), width, height)
-        except Exception:
-            bbox = [0, 0, 0, 0]
-        # FR-004 / R-013: persist layout-region confidence verbatim; missing → None.
-        # No default of 0.0 when absent — `None` signals "engine did not emit".
-        confidence = _persist_confidence_value(_attr(region, "score", None))
-
-        # Block text content is derived downstream from containing OCR lines
-        # (see `_populate_block_text_from_lines`). V3's richer `parsing_res_list`
-        # Markdown is discarded at the persistence boundary per research R-002.
-        # FR-021 / R-014: raw table HTML is NOT persisted in `block.text`; it is
-        # read only to derive `rows`/`columns` via `_parse_table_dims`.
-        text = ""
-        table_rows = 0
-        table_cols = 0
-        cells: list[dict[str, Any]] = []
-
+        block_type = _map_region_label(region, page_number, warnings_out)
+        table_result = None
         if block_type == "table" and table_idx < len(table_results):
-            tres = table_results[table_idx]
+            table_result = table_results[table_idx]
             table_idx += 1
-            html = _attr(tres, "html", "") or ""
-            if isinstance(html, str) and html:
-                table_rows, table_cols = _parse_table_dims(html)
-            cell_bboxes = _coalesce(
-                _attr(tres, "cell_bbox", None),
-                _attr(tres, "cell_boxes", None),
-                default=[],
-            )
-            for ci, cb in enumerate(cell_bboxes):
-                row_idx = (ci // table_cols) if table_cols > 0 else 0
-                col_idx = (ci % table_cols) if table_cols > 0 else ci
-                try:
-                    cell_coord = cb[:4] if hasattr(cb, "__len__") and len(cb) >= 4 else cb
-                    cell_bbox = _clip_bbox(_bbox_from_coord(cell_coord), width, height)
-                except Exception:
-                    cell_bbox = [0, 0, 0, 0]
-                cells.append(
-                    {
-                        "row": int(row_idx),
-                        "column": int(col_idx),
-                        "bbox": cell_bbox,
-                        "text": "",
-                    }
-                )
-
         staged.append(
-            {
-                "_det_idx": det_idx,
-                "block_type": block_type,
-                "bbox": bbox,
-                "text": text,
-                "confidence": confidence,
-                "_table_rows": table_rows,
-                "_table_cols": table_cols,
-                "_cells": cells,
-            }
+            _stage_layout_region(
+                region=region,
+                det_idx=det_idx,
+                block_type=block_type,
+                table_result=table_result,
+                width=width,
+                height=height,
+            )
         )
 
     staged.sort(key=lambda r: (r["bbox"][1], r["bbox"][0], r["_det_idx"]))
+    blocks, tables = _materialize_blocks_and_tables(staged, page_number)
+    return blocks, tables, warnings_out
 
+
+def _map_region_label(
+    region: Any,
+    page_number: int,
+    warnings_out: list[str],
+) -> str:
+    raw_label = str(_attr(region, "label", "text") or "text").lower()
+    block_type = PPSTRUCTURE_LABEL_TO_BLOCK_TYPE.get(raw_label)
+    if block_type is not None:
+        return block_type
+    warnings_out.append(
+        build_warning(page_number, "unknown_layout_label", f"label={raw_label}")
+    )
+    return "text"
+
+
+def _safe_bbox(coord: Any, width: int, height: int) -> list[int]:
+    try:
+        return _clip_bbox(_bbox_from_coord(coord), width, height)
+    except Exception:
+        return [0, 0, 0, 0]
+
+
+def _table_projection(
+    table_result: Any | None,
+    width: int,
+    height: int,
+) -> tuple[int, int, list[dict[str, Any]]]:
+    if table_result is None:
+        return 0, 0, []
+
+    html = _attr(table_result, "html", "") or ""
+    rows, columns = _parse_table_dims(html) if isinstance(html, str) and html else (0, 0)
+    cell_bboxes = _coalesce(
+        _attr(table_result, "cell_bbox", None),
+        _attr(table_result, "cell_boxes", None),
+        default=[],
+    )
+    cells = [
+        _project_table_cell(ci, cb, columns, width, height)
+        for ci, cb in enumerate(cell_bboxes)
+    ]
+    return rows, columns, cells
+
+
+def _project_table_cell(
+    index: int,
+    cell_box: Any,
+    table_columns: int,
+    width: int,
+    height: int,
+) -> dict[str, Any]:
+    row_idx = (index // table_columns) if table_columns > 0 else 0
+    col_idx = (index % table_columns) if table_columns > 0 else index
+    cell_coord = (
+        cell_box[:4]
+        if hasattr(cell_box, "__len__") and len(cell_box) >= 4
+        else cell_box
+    )
+    return {
+        "row": int(row_idx),
+        "column": int(col_idx),
+        "bbox": _safe_bbox(cell_coord, width, height),
+        "text": "",
+    }
+
+
+def _stage_layout_region(
+    *,
+    region: Any,
+    det_idx: int,
+    block_type: str,
+    table_result: Any | None,
+    width: int,
+    height: int,
+) -> dict[str, Any]:
+    coord = _coalesce(
+        _attr(region, "coordinate", None),
+        _attr(region, "bbox", None),
+        default=[0, 0, 0, 0],
+    )
+    table_rows, table_cols, cells = _table_projection(table_result, width, height)
+    return {
+        "_det_idx": det_idx,
+        "block_type": block_type,
+        "bbox": _safe_bbox(coord, width, height),
+        "text": "",
+        "confidence": _persist_confidence_value(_attr(region, "score", None)),
+        "_table_rows": table_rows,
+        "_table_cols": table_cols,
+        "_cells": cells,
+    }
+
+
+def _materialize_blocks_and_tables(
+    staged: list[dict[str, Any]],
+    page_number: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     blocks: list[dict[str, Any]] = []
     tables: list[dict[str, Any]] = []
     for n, r in enumerate(staged, start=1):
@@ -395,7 +444,7 @@ def _extract_blocks_and_tables(
                     **({"cells": r["_cells"]} if r["_cells"] else {}),
                 }
             )
-    return blocks, tables, warnings_out
+    return blocks, tables
 
 
 def _populate_block_text_from_lines(
@@ -414,9 +463,8 @@ def _populate_block_text_from_lines(
             lx0, ly0, lx1, ly1 = ln["bbox"]
             cx = (lx0 + lx1) / 2
             cy = (ly0 + ly1) / 2
-            if bx0 <= cx <= bx1 and by0 <= cy <= by1:
-                if ln["text"]:
-                    pieces.append(ln["text"])
+            if bx0 <= cx <= bx1 and by0 <= cy <= by1 and ln["text"]:
+                pieces.append(ln["text"])
         if pieces:
             blk["text"] = " ".join(pieces).strip()
 

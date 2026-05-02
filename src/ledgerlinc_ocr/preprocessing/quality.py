@@ -20,8 +20,13 @@ def compute_quality(
     all_lines: list[dict[str, Any]],
     max_skew_deg: float,
 ) -> dict[str, Any]:
-    if all_lines:
-        confs = [float(l["confidence"]) for l in all_lines]
+    confs: list[float] = []
+    for line in all_lines:
+        confidence = line.get("confidence")
+        if confidence is not None:
+            confs.append(float(confidence))
+
+    if confs:
         avg_conf = sum(confs) / len(confs)
         low_ratio = sum(1 for c in confs if c < LOW_CONFIDENCE_THRESHOLD) / len(confs)
     else:
