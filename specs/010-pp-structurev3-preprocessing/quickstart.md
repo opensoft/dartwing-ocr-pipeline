@@ -65,10 +65,13 @@ Verify:
 Rerun the same invocation and compare digests:
 
 ```bash
-sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json > /tmp/pp1.sha
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+
+sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json > "$tmp_dir/pp1.sha"
 ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
-sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json > /tmp/pp2.sha
-diff /tmp/pp1.sha /tmp/pp2.sha && echo "DETERMINISTIC"
+sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json > "$tmp_dir/pp2.sha"
+diff "$tmp_dir/pp1.sha" "$tmp_dir/pp2.sha" && echo "DETERMINISTIC"
 ```
 
 Scope: the determinism assertion covers `preprocess_output.json` only. Debug `page_*.png` output (opt-in via `--write-page-images`, FR-022 / R-015) is explicitly outside FR-004 — do **not** sha256 the PNGs here.

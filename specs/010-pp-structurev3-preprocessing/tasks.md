@@ -55,7 +55,7 @@ Single Python package. Source at `src/ledgerlinc_ocr/preprocessing/`, tests spli
 
 **Goal**: Replace the PaddleOCR 2.10 `PPStructure` + `PaddleOCR` pair with PaddleOCR 3.5 `PPStructureV3` so `tests/stage1_vendor_identity/inv_001_easy/source.pdf` yields `pages[0].blocks.length >= 3` and non-empty `document_text` containing a case-insensitive vendor-identity token (SC-001), while multi-page PDFs process one page at a time instead of requiring whole-document raster materialization.
 
-**Independent Test**: Per spec §US1 Independent Test — run `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy`, open the generated `preprocess_output.json`, and confirm (a) ≥ 3 blocks, (b) non-empty `document_text`, (c) `ingestion_sources.paddleocr_vl.status == "success"`, (d) artifact validates against v1.0.0 schema. Quickstart §3 commands apply verbatim.
+**Independent Test**: Per spec §US1 Independent Test — run `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy`, open the generated `preprocess_output.json`, and confirm (a) ≥ 3 blocks, (b) non-empty `document_text`, (c) `ingestion_sources.paddleocr_vl.status == "success"`, (d) artifact validates against v1.2.0 schema. Quickstart §3 commands apply verbatim.
 
 ### Engine + pipeline rewrite (US1)
 

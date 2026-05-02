@@ -383,7 +383,7 @@ The current V2 path applied `max(0.0, min(1.0, float(...)))` clamping on OCR-lin
 - Normalize to `[0.0, 1.0]` via documented mapping — rejected. Adds hidden semantics that downstream consumers would have to reverse-engineer.
 - Drop `confidence` entirely and write `null` on every block and line — rejected. Discards engine-side information that the extractor already consumes as a signal.
 
-**Schema compatibility note**: AMENDMENTS v1.2.0 widens `preprocess_output.schema.json` and the mirrored `evidence_packet.schema.json` structural confidence fields to accept both bounded numbers and `null`. Preprocessing still stamps `contract_set_version = "1.0.0"` for downstream compatibility, but validates writes against the latest v1.2 preprocess schema so the nullable-confidence shape is accepted.
+**Schema compatibility note**: AMENDMENTS v1.2.0 widens `preprocess_output.schema.json` and the mirrored `evidence_packet.schema.json` structural confidence fields to accept both bounded numbers and `null`. New preprocessing artifacts and evidence packets stamp `contract_set_version = "1.2.0"` so nullable-confidence outputs advertise the contract set that accepts them. Older v1.0.0/v1.1.0 artifacts remain major-compatible with the validator.
 
 ## R-014: `tables[]` projection boundary under V3
 
