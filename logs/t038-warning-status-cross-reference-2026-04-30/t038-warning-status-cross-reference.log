@@ -1,3 +1,0 @@
-T038 SC-002 warning/status cross-reference
-command: scan tests/stage1_vendor_identity inv_*/preprocess_output.json
-Result: PASS checked=0 false_negatives=0

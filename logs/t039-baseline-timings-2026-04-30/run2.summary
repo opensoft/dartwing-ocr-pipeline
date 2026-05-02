@@ -1,4 +1,0 @@
-T039 run2 start 2026-04-30T11:06:30+00:00
-elapsed_seconds=254.790
-{"status": "ok", "document_id": "inv_001", "artifact": "tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json", "warnings": 0}
-T039 run2 end 2026-04-30T11:10:44+00:00
