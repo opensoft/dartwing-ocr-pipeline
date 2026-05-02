@@ -41,7 +41,7 @@ class TestPersistConfidenceValue:
 
     def test_none_never_becomes_zero(self):
         """Constitution's null discipline: missing → null, never 0.0."""
-        assert _persist_confidence_value(None) != 0.0
+        assert _persist_confidence_value(None) is None
 
 
 class TestPersistConfidence:
