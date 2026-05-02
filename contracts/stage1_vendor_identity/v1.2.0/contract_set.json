@@ -1,6 +1,6 @@
 {
   "contract_set_version": "1.2.0",
-  "description": "Stage 1 vendor-identity contract set. Amended at 1.2.0 on 2026-04-23 (MINOR, additive: preprocess_output.block.confidence and preprocess_output.ocr_line.confidence accept null when the engine omits a score, per FR-004 / R-013 of feature 010-pp-structurev3-preprocessing). v1.0.0 and v1.1.0 artifacts remain byte-identical and valid.",
+  "description": "Stage 1 vendor-identity contract set. Amended at 1.2.0 on 2026-04-23 (MINOR, additive: preprocess_output.block.confidence, preprocess_output.ocr_line.confidence, and mirrored evidence_packet structural confidence fields accept null when the engine omits or cannot provide a schema-valid score, per FR-004 / R-013 of feature 010-pp-structurev3-preprocessing). v1.0.0 and v1.1.0 artifacts remain major-compatible; newly generated nullable-confidence artifacts should be stamped 1.2.0.",
   "artifact_names": [
     "preprocess_output",
     "edge_extraction_output",

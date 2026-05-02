@@ -2,9 +2,9 @@
 
 **Feature**: 010-pp-structurev3-preprocessing
 **Phase**: 1 (design)
-**Scope note**: This slice does **not** change the persisted JSON contract. `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` stays at `contract_set_version = "1.0.0"`. What follows is the in-flight data model: what V3 emits, the transformation pipeline that maps V3 output onto the existing artifact fields, and the new internal entities (warning categories, engine-init error) that govern the migration's runtime behavior.
+**Scope note**: This slice makes one narrow persisted-contract change: `contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json` permits `null` on block and OCR-line confidence, mirrored by `evidence_packet.schema.json`. What follows is the in-flight data model: what V3 emits, the transformation pipeline that maps V3 output onto the existing artifact fields, and the new internal entities (warning categories, engine-init error) that govern the migration's runtime behavior.
 
-Artifact-level entities already documented in `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` and `specs/003-pdf-preprocessing/data-model.md` are not re-documented here; only deltas are called out.
+Artifact-level entities already documented in `contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json` and `specs/003-pdf-preprocessing/data-model.md` are not re-documented here; only deltas are called out.
 
 ## Entity overview
 

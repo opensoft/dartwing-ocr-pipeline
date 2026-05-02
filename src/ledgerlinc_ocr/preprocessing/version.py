@@ -7,7 +7,7 @@ from importlib import metadata
 from pathlib import Path
 
 DPI = 300
-CONTRACT_SET_VERSION = "1.0.0"
+CONTRACT_SET_VERSION = "1.2.0"
 SEMVER = "v0.2.0"
 SLICE_PREFIX = "stage1-preprocess"
 

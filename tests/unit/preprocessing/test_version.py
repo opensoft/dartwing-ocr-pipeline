@@ -1,6 +1,7 @@
 import re
 
 from ledgerlinc_ocr.preprocessing.version import (
+    CONTRACT_SET_VERSION,
     DPI,
     SEMVER,
     SLICE_PREFIX,
@@ -48,6 +49,10 @@ def test_default_pulls_installed_paddleocr_version():
 def test_default_semver_is_v020_for_010_migration():
     """FR-008: preprocessing semver bumps to v0.2.0 for the V3 migration."""
     assert SEMVER == "v0.2.0"
+
+
+def test_contract_set_version_matches_nullable_confidence_schema():
+    assert CONTRACT_SET_VERSION == "1.2.0"
 
 
 def test_default_pipeline_version_string_uses_v020():

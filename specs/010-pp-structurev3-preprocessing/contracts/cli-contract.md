@@ -2,7 +2,7 @@
 
 This document captures **only what changes** in the CLI contract vs. the 003-era CLI defined in `specs/003-pdf-preprocessing/contracts/cli-contract.md`. Anything not mentioned here is unchanged.
 
-The persisted artifact shape (`preprocess_output.json`) is defined by the frozen JSON Schema at `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` and is NOT changed by this slice — `contract_set_version` stays `"1.0.0"`.
+The persisted artifact shape (`preprocess_output.json`) is defined by the active JSON Schema at `contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json`. This slice's only schema change is the nullable-confidence widening recorded in `contracts/stage1_vendor_identity/AMENDMENTS.md`; generated preprocessing artifacts emit `contract_set_version = "1.2.0"`.
 
 ## Invocation (unchanged)
 

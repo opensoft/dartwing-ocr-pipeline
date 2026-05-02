@@ -5,7 +5,7 @@ from pathlib import Path
 def test_ac1_schema_valid_single_page(us1_artifact):
     a = us1_artifact
     assert a["source_type"] == "pdf"
-    assert a["contract_set_version"] == "1.0.0"
+    assert a["contract_set_version"] == "1.2.0"
     assert a["document_id"] == "inv_001"
     assert re.match(r"^inv_\d{3}$", a["document_id"])
     assert a["source_file"] == "source.pdf"

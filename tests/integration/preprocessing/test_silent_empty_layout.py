@@ -36,8 +36,8 @@ def test_silent_empty_layout_emits_warning_and_downgrades_status(monkeypatch, us
     # FR-003: document-level status downgraded.
     assert art["ingestion_sources"]["paddleocr_vl"]["status"] == "failure"
 
-    # Artifact still validates against the frozen contract (US2 AC#1).
-    assert art["contract_set_version"] == "1.0.0"
+    # Artifact still validates against the active nullable-confidence contract.
+    assert art["contract_set_version"] == "1.2.0"
 
 
 def test_silent_empty_layout_mixed_page_keeps_healthy_page_blocks(monkeypatch, us1_workdir: Path):

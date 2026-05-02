@@ -65,7 +65,7 @@ Explicitly out of scope:
 
 ## Constraints
 
-- The `preprocess_output.json` contract at `contract_set_version = "1.0.0"` is frozen. All outputs must continue to validate against `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json`.
+- The v1.0.0 `preprocess_output.json` contract remains frozen as a historical snapshot. New outputs for this migration must validate against the active `contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json` and emit `contract_set_version = "1.2.0"`.
 - Determinism. V3 must run CPU-only, single-threaded (`cpu_threads=1`, `use_mp=False` equivalents), and produce byte-stable output for a given input. If V3's ordering is non-deterministic, the migration adds a sort/normalization step.
 - No new cloud or network dependencies beyond the existing model weight downloads from `paddlepaddle.bj.bcebos.com` / `paddlex` model hosters.
 - Warnings are surfaced in the artifact's `warnings` array, not swallowed into stdout. This matches existing preprocessing behavior.
