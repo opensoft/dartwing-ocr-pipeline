@@ -48,7 +48,7 @@
             473
           ],
           "reading_order": 3,
-          "text": "PO BOX 91955 HENDERSON, NV 89009 702-778-7646 vges.dan@gmail.com",
+          "text": "PO BOX 91955 HENDERSON, NV 89009 702-778-7646 vendor@example.com",
           "confidence": 0.8572832942008972
         },
         {
@@ -225,7 +225,7 @@
             552,
             475
           ],
-          "text": "vges.dan@gmail.com",
+          "text": "vendor@example.com",
           "confidence": 0.9997698664665222
         },
         {
@@ -649,7 +649,7 @@
       ]
     }
   ],
-  "document_text": "Service Invoice\nVegas Graphic Equipment Services LLC\nPO BOX 91955 HENDERSON, NV 89009 702-778-7646 vges.dan@gmail.com\n\nBillTo:\nFARHEAP SOLUTIONS/DOT GRAPHICS 6345 S. JONES BLVD. #300 LAS VEGAS, NV 89118 ATTN: Accounts Payable DotGraphics\nEquipment Type ITOH 137 DX\n",
+  "document_text": "Service Invoice\nVegas Graphic Equipment Services LLC\nPO BOX 91955 HENDERSON, NV 89009 702-778-7646 vendor@example.com\n\nBillTo:\nFARHEAP SOLUTIONS/DOT GRAPHICS 6345 S. JONES BLVD. #300 LAS VEGAS, NV 89118 ATTN: Accounts Payable DotGraphics\nEquipment Type ITOH 137 DX\n",
   "tables": [
     {
       "page_number": 1,
