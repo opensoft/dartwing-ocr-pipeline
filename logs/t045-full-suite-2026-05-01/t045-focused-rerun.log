@@ -1,0 +1,24 @@
+T045 focused rerun start 2026-05-01T02:06:42+00:00
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.2, pluggy-1.6.0
+rootdir: /workspace
+configfile: pyproject.toml
+plugins: socket-0.7.0, anyio-4.13.0
+collected 5 items
+
+tests/contract_tests/test_cli_show_contract_set.py ..                    [ 40%]
+tests/integration/preprocessing/test_us1_schema_valid.py ..              [ 80%]
+tests/unit/preprocessing/test_numpy_array_backed_results.py .            [100%]
+
+=============================== warnings summary ===============================
+tests/integration/preprocessing/test_us1_schema_valid.py::test_ac1_schema_valid_single_page
+  /usr/local/lib/python3.12/site-packages/setuptools/command/easy_install.py:41: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+    import pkg_resources
+
+tests/integration/preprocessing/test_us1_schema_valid.py::test_ac1_schema_valid_single_page
+  /usr/local/lib/python3.12/site-packages/paddle/utils/cpp_extension/extension_utils.py:712: UserWarning: No ccache found. Please be aware that recompiling all source files may be required. You can download and install ccache from: https://github.com/ccache/ccache/blob/master/doc/INSTALL.md
+    warnings.warn(warning_message)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 5 passed, 2 warnings in 472.80s (0:07:52) ===================
+T045 focused rerun end 2026-05-01T02:14:38+00:00

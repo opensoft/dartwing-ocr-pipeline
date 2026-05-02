@@ -1,0 +1,404 @@
+Target: corpus:tests/stage1_vendor_identity
+Contract set: 1.2.0
+Result: PASS (0 errors, 10 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_001_easy
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'easy'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_002_easy
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'easy'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_003_easy
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'easy'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_004_easy
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'easy'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_005_easy
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'easy'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_006_medium
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'medium'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_007_medium
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'medium'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_008_medium
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'medium'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_009_medium
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'medium'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_010_medium
+Contract set: 1.2.0
+Result: PASS (0 errors, 1 warnings)
+
+  warning FOLDER_NOTES_MISSING_SOFT
+         at /notes.md
+         reason: notes.md is missing (soft requirement for difficulty 'medium'); folder still passes.
+         expected: FR-029 notes.md soft requirement
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_011_hard
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_012_hard
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_013_hard
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_014_hard
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_015_hard
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_016_missing_name
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_017_missing_name
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_018_missing_name
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_019_missing_name
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: folder:tests/stage1_vendor_identity/inv_020_missing_name
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:preprocess_output
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
+
+--- sub-report ---
+Target: artifact:expected
+Contract set: 1.2.0
+Result: PASS (0 errors, 0 warnings)
+
