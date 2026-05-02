@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json",
+  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json",
   "title": "preprocess_output",
   "description": "Deterministic OCR + layout output for one stage 1 document. Trijunction-ready.",
   "type": "object",
