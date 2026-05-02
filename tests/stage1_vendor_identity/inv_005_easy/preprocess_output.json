@@ -1,0 +1,699 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_005",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "title",
+          "bbox": [
+            1813,
+            149,
+            2451,
+            226
+          ],
+          "reading_order": 1,
+          "text": "Service Invoice",
+          "confidence": 0.42608508467674255
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "title",
+          "bbox": [
+            172,
+            170,
+            1319,
+            236
+          ],
+          "reading_order": 2,
+          "text": "Vegas Graphic Equipment Services LLC",
+          "confidence": 0.47938036918640137
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "text",
+          "bbox": [
+            189,
+            255,
+            732,
+            473
+          ],
+          "reading_order": 3,
+          "text": "PO BOX 91955 HENDERSON, NV 89009 702-778-7646 vendor@example.com",
+          "confidence": 0.8572832942008972
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "table",
+          "bbox": [
+            1853,
+            277,
+            2472,
+            428
+          ],
+          "reading_order": 4,
+          "text": "",
+          "confidence": 0.8754434585571289
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "title",
+          "bbox": [
+            231,
+            621,
+            352,
+            666
+          ],
+          "reading_order": 5,
+          "text": "BillTo:",
+          "confidence": 0.3488735854625702
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "text",
+          "bbox": [
+            228,
+            697,
+            905,
+            874
+          ],
+          "reading_order": 6,
+          "text": "FARHEAP SOLUTIONS/DOT GRAPHICS 6345 S. JONES BLVD. #300 LAS VEGAS, NV 89118 ATTN: Accounts Payable DotGraphics",
+          "confidence": 0.8020943403244019
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "text",
+          "bbox": [
+            1326,
+            841,
+            1607,
+            963
+          ],
+          "reading_order": 7,
+          "text": "Equipment Type ITOH 137 DX",
+          "confidence": 0.489422470331192
+        },
+        {
+          "block_id": "p1_b8",
+          "block_type": "table",
+          "bbox": [
+            105,
+            1307,
+            2402,
+            3056
+          ],
+          "reading_order": 8,
+          "text": "",
+          "confidence": 0.9344756007194519
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            1808,
+            144,
+            2459,
+            233
+          ],
+          "text": "Service Invoice",
+          "confidence": 0.9922417402267456
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            174,
+            168,
+            1324,
+            238
+          ],
+          "text": "Vegas Graphic Equipment Services LLC",
+          "confidence": 0.9891162514686584
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            193,
+            256,
+            528,
+            307
+          ],
+          "text": "PO BOX 91955",
+          "confidence": 0.990305483341217
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            2227,
+            279,
+            2421,
+            324
+          ],
+          "text": "Invoice #",
+          "confidence": 0.9953663349151611
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            1968,
+            284,
+            2061,
+            329
+          ],
+          "text": "Date",
+          "confidence": 0.9995143413543701
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            195,
+            318,
+            733,
+            370
+          ],
+          "text": "HENDERSON, NV 89009",
+          "confidence": 0.969471275806427
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            2273,
+            358,
+            2373,
+            407
+          ],
+          "text": "1109",
+          "confidence": 0.9999443292617798
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            1935,
+            364,
+            2096,
+            402
+          ],
+          "text": "12/9/2020",
+          "confidence": 0.9999663233757019
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            197,
+            382,
+            434,
+            419
+          ],
+          "text": "702-778-7646",
+          "confidence": 0.9998123049736023
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            195,
+            432,
+            552,
+            475
+          ],
+          "text": "vendor@example.com",
+          "confidence": 0.9997698664665222
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            233,
+            624,
+            356,
+            666
+          ],
+          "text": "BillTo:",
+          "confidence": 0.9952487349510193
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            233,
+            704,
+            905,
+            739
+          ],
+          "text": "FARHEAP SOLUTIONS/DOT GRAPHICS",
+          "confidence": 0.9870773553848267
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            234,
+            747,
+            682,
+            784
+          ],
+          "text": "6345 S. JONES BLVD. #300",
+          "confidence": 0.985467255115509
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            232,
+            791,
+            623,
+            832
+          ],
+          "text": "LAS VEGAS, NV 89118",
+          "confidence": 0.9774630665779114
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            231,
+            831,
+            830,
+            881
+          ],
+          "text": "ATTN: Accounts Payable DotGraphics",
+          "confidence": 0.9550195336341858
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            1328,
+            845,
+            1609,
+            889
+          ],
+          "text": "Equipment Type",
+          "confidence": 0.9733677506446838
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            1327,
+            922,
+            1503,
+            960
+          ],
+          "text": "ITOH 137 DX",
+          "confidence": 0.994960367679596
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            1994,
+            1091,
+            2092,
+            1145
+          ],
+          "text": "DDjr",
+          "confidence": 0.9926258325576782
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            1504,
+            1093,
+            1623,
+            1137
+          ],
+          "text": "Terms",
+          "confidence": 0.9996444582939148
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            1843,
+            1093,
+            1941,
+            1137
+          ],
+          "text": "Tech",
+          "confidence": 0.999715268611908
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            231,
+            1129,
+            348,
+            1172
+          ],
+          "text": "P.O. #",
+          "confidence": 0.9729783535003662
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            1448,
+            1181,
+            1680,
+            1221
+          ],
+          "text": "Due on receipt",
+          "confidence": 0.9991915822029114
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            128,
+            1319,
+            209,
+            1382
+          ],
+          "text": "Qty",
+          "confidence": 0.9949600100517273
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            1781,
+            1327,
+            1971,
+            1368
+          ],
+          "text": "Price Each",
+          "confidence": 0.9959697723388672
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            2013,
+            1328,
+            2091,
+            1366
+          ],
+          "text": "U/M",
+          "confidence": 0.9988024830818176
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            278,
+            1329,
+            458,
+            1367
+          ],
+          "text": "Item Code",
+          "confidence": 0.973439633846283
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            1039,
+            1329,
+            1234,
+            1370
+          ],
+          "text": "Description",
+          "confidence": 0.9996489882469177
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            2187,
+            1329,
+            2329,
+            1368
+          ],
+          "text": "Amount",
+          "confidence": 0.9996756911277771
+        },
+        {
+          "line_id": "p1_l29",
+          "bbox": [
+            1994,
+            1393,
+            2043,
+            1437
+          ],
+          "text": "hr",
+          "confidence": 0.9995487928390503
+        },
+        {
+          "line_id": "p1_l30",
+          "bbox": [
+            156,
+            1394,
+            219,
+            1438
+          ],
+          "text": "2.5",
+          "confidence": 0.9999534487724304
+        },
+        {
+          "line_id": "p1_l31",
+          "bbox": [
+            2253,
+            1394,
+            2371,
+            1437
+          ],
+          "text": "350.00",
+          "confidence": 0.9998903274536133
+        },
+        {
+          "line_id": "p1_l32",
+          "bbox": [
+            232,
+            1395,
+            426,
+            1436
+          ],
+          "text": "Service Call",
+          "confidence": 0.998406708240509
+        },
+        {
+          "line_id": "p1_l33",
+          "bbox": [
+            1871,
+            1395,
+            1983,
+            1434
+          ],
+          "text": "140.00",
+          "confidence": 0.9999392032623291
+        },
+        {
+          "line_id": "p1_l34",
+          "bbox": [
+            523,
+            1398,
+            1597,
+            1431
+          ],
+          "text": "1. TWO PROBLEMS - NO KNIFE CLUTCH RUN & BACK GAUGE",
+          "confidence": 0.9618474841117859
+        },
+        {
+          "line_id": "p1_l35",
+          "bbox": [
+            524,
+            1443,
+            749,
+            1477
+          ],
+          "text": "OPERATION;",
+          "confidence": 0.9987052083015442
+        },
+        {
+          "line_id": "p1_l36",
+          "bbox": [
+            551,
+            1487,
+            1663,
+            1520
+          ],
+          "text": "- KNIFE CLUTCH PROBLEM APPEARS TO BE CAUSED BY KNIFE",
+          "confidence": 0.9722398519515991
+        },
+        {
+          "line_id": "p1_l37",
+          "bbox": [
+            525,
+            1532,
+            842,
+            1563
+          ],
+          "text": "CONTROL BOARD",
+          "confidence": 0.9948583245277405
+        },
+        {
+          "line_id": "p1_l38",
+          "bbox": [
+            553,
+            1574,
+            1427,
+            1608
+          ],
+          "text": "- BACK GAUGE NEED ENCODER - NOT COUNTING",
+          "confidence": 0.9654442071914673
+        },
+        {
+          "line_id": "p1_l39",
+          "bbox": [
+            524,
+            1707,
+            1024,
+            1741
+          ],
+          "text": "REF: Service Work Order #1028",
+          "confidence": 0.9616835117340088
+        },
+        {
+          "line_id": "p1_l40",
+          "bbox": [
+            520,
+            1789,
+            678,
+            1835
+          ],
+          "text": "Sales Tax",
+          "confidence": 0.9945354461669922
+        },
+        {
+          "line_id": "p1_l41",
+          "bbox": [
+            2290,
+            1790,
+            2372,
+            1835
+          ],
+          "text": "0.00",
+          "confidence": 0.9999341368675232
+        },
+        {
+          "line_id": "p1_l42",
+          "bbox": [
+            1840,
+            1791,
+            1968,
+            1833
+          ],
+          "text": "8.375%",
+          "confidence": 0.9999136924743652
+        },
+        {
+          "line_id": "p1_l43",
+          "bbox": [
+            153,
+            2911,
+            1826,
+            2970
+          ],
+          "text": "Make all checks payableto VegasGraphicEquipment Services.Remit toaboveaddress.Total Due:",
+          "confidence": 0.9138044118881226
+        },
+        {
+          "line_id": "p1_l44",
+          "bbox": [
+            2215,
+            2916,
+            2364,
+            2965
+          ],
+          "text": "$350.00",
+          "confidence": 0.9985872507095337
+        },
+        {
+          "line_id": "p1_l45",
+          "bbox": [
+            1632,
+            2987,
+            1934,
+            3035
+          ],
+          "text": "Payments/Credits",
+          "confidence": 0.9998390674591064
+        },
+        {
+          "line_id": "p1_l46",
+          "bbox": [
+            2264,
+            2990,
+            2371,
+            3038
+          ],
+          "text": "$0.00",
+          "confidence": 0.9969488382339478
+        },
+        {
+          "line_id": "p1_l47",
+          "bbox": [
+            1633,
+            3069,
+            1867,
+            3113
+          ],
+          "text": "Balance Due",
+          "confidence": 0.9990385174751282
+        },
+        {
+          "line_id": "p1_l48",
+          "bbox": [
+            2215,
+            3069,
+            2360,
+            3111
+          ],
+          "text": "$350.00",
+          "confidence": 0.999026358127594
+        }
+      ]
+    }
+  ],
+  "document_text": "Service Invoice\nVegas Graphic Equipment Services LLC\nPO BOX 91955 HENDERSON, NV 89009 702-778-7646 vendor@example.com\n\nBillTo:\nFARHEAP SOLUTIONS/DOT GRAPHICS 6345 S. JONES BLVD. #300 LAS VEGAS, NV 89118 ATTN: Accounts Payable DotGraphics\nEquipment Type ITOH 137 DX\n",
+  "tables": [
+    {
+      "page_number": 1,
+      "block_id": "p1_b4",
+      "bbox": [
+        1853,
+        277,
+        2472,
+        428
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 1,
+      "block_id": "p1_b8",
+      "bbox": [
+        105,
+        1307,
+        2402,
+        3056
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": []
+}

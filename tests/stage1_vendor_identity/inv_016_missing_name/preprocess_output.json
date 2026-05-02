@@ -1,0 +1,519 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_016",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "title",
+          "bbox": [
+            293,
+            303,
+            495,
+            347
+          ],
+          "reading_order": 1,
+          "text": "INVOICE",
+          "confidence": 0.4953906238079071
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "text",
+          "bbox": [
+            294,
+            409,
+            724,
+            453
+          ],
+          "reading_order": 2,
+          "text": "Date: April 21, 2026",
+          "confidence": 0.4992736279964447
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "text",
+          "bbox": [
+            293,
+            513,
+            658,
+            556
+          ],
+          "reading_order": 3,
+          "text": "Invoice #: 10293",
+          "confidence": 0.49992239475250244
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "text",
+          "bbox": [
+            291,
+            720,
+            575,
+            975
+          ],
+          "reading_order": 4,
+          "text": "Bill To: Brett Heap San Juan, PR",
+          "confidence": 0.4099399745464325
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "title",
+          "bbox": [
+            292,
+            720,
+            449,
+            764
+          ],
+          "reading_order": 5,
+          "text": "Bill To:",
+          "confidence": 0.5529847145080566
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "text",
+          "bbox": [
+            293,
+            825,
+            531,
+            870
+          ],
+          "reading_order": 6,
+          "text": "Brett Heap",
+          "confidence": 0.5467771291732788
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "text",
+          "bbox": [
+            293,
+            928,
+            573,
+            973
+          ],
+          "reading_order": 7,
+          "text": "San Juan, PR",
+          "confidence": 0.5730692148208618
+        },
+        {
+          "block_id": "p1_b8",
+          "block_type": "title",
+          "bbox": [
+            293,
+            1139,
+            443,
+            1183
+          ],
+          "reading_order": 8,
+          "text": "Items:",
+          "confidence": 0.5379919409751892
+        },
+        {
+          "block_id": "p1_b9",
+          "block_type": "table",
+          "bbox": [
+            306,
+            1235,
+            1209,
+            2103
+          ],
+          "reading_order": 9,
+          "text": "",
+          "confidence": 0.9547393321990967
+        },
+        {
+          "block_id": "p1_b10",
+          "block_type": "title",
+          "bbox": [
+            292,
+            2219,
+            800,
+            2264
+          ],
+          "reading_order": 10,
+          "text": "Payment Instructions:",
+          "confidence": 0.8929542899131775
+        },
+        {
+          "block_id": "p1_b11",
+          "block_type": "text",
+          "bbox": [
+            288,
+            2321,
+            2137,
+            2439
+          ],
+          "reading_order": 11,
+          "text": "Please send the money via wire transfer to the account ending in 4492. Payment is due immediately.",
+          "confidence": 0.9647830128669739
+        },
+        {
+          "block_id": "p1_b12",
+          "block_type": "text",
+          "bbox": [
+            287,
+            2496,
+            2213,
+            2756
+          ],
+          "reading_order": 12,
+          "text": "Note: This invoice is poorly formed because it lacks the lssuer's Business Name, Physical Address, and Tax ID/EiN. There is no branding or clear contact information, making it difficult for accounting departments to verify the vendor or process the payment for tax purposes.",
+          "confidence": 0.9508340358734131
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            296,
+            306,
+            499,
+            352
+          ],
+          "text": "INVOICE",
+          "confidence": 0.9994282126426697
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            298,
+            411,
+            730,
+            458
+          ],
+          "text": "Date: April 21, 2026",
+          "confidence": 0.9682515263557434
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            298,
+            515,
+            661,
+            559
+          ],
+          "text": "Invoice #: 10293",
+          "confidence": 0.9747382402420044
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            295,
+            721,
+            452,
+            768
+          ],
+          "text": "Bill To:",
+          "confidence": 0.9759147763252258
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            296,
+            824,
+            533,
+            878
+          ],
+          "text": "Brett Heap",
+          "confidence": 0.9559528231620789
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            297,
+            931,
+            576,
+            976
+          ],
+          "text": "San Juan, PR",
+          "confidence": 0.945457935333252
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            296,
+            1140,
+            450,
+            1186
+          ],
+          "text": "Items:",
+          "confidence": 0.9722974896430969
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            644,
+            1301,
+            849,
+            1352
+          ],
+          "text": "Quantity",
+          "confidence": 0.999780535697937
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            889,
+            1301,
+            1015,
+            1348
+          ],
+          "text": "Price",
+          "confidence": 0.9998796582221985
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            309,
+            1302,
+            578,
+            1349
+          ],
+          "text": "Description",
+          "confidence": 0.9997087121009827
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            1053,
+            1302,
+            1178,
+            1349
+          ],
+          "text": "Total",
+          "confidence": 0.9995948672294617
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            1057,
+            1516,
+            1186,
+            1566
+          ],
+          "text": "1,000",
+          "confidence": 0.998794674873352
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            890,
+            1517,
+            977,
+            1563
+          ],
+          "text": "200",
+          "confidence": 0.9998235106468201
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            310,
+            1519,
+            592,
+            1562
+          ],
+          "text": "Consultation",
+          "confidence": 0.990175724029541
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            643,
+            1519,
+            677,
+            1561
+          ],
+          "text": "5",
+          "confidence": 0.9994677901268005
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            1055,
+            1734,
+            1186,
+            1784
+          ],
+          "text": "5,000",
+          "confidence": 0.9986543655395508
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            645,
+            1736,
+            676,
+            1778
+          ],
+          "text": "1",
+          "confidence": 0.9999402761459351
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            890,
+            1736,
+            1003,
+            1780
+          ],
+          "text": "5000",
+          "confidence": 0.9997869729995728
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            308,
+            1737,
+            603,
+            1781
+          ],
+          "text": "Software Dev",
+          "confidence": 0.9917941093444824
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            1053,
+            1948,
+            1213,
+            2002
+          ],
+          "text": "$6,000",
+          "confidence": 0.984437882900238
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            307,
+            1955,
+            526,
+            1997
+          ],
+          "text": "Total Due",
+          "confidence": 0.9690701961517334
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            297,
+            2218,
+            803,
+            2267
+          ],
+          "text": "Payment Instructions:",
+          "confidence": 0.9900462627410889
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            296,
+            2320,
+            2143,
+            2374
+          ],
+          "text": "Please send the money via wire transfer to the account ending in 4492. Payment is due",
+          "confidence": 0.9776612520217896
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            296,
+            2394,
+            578,
+            2445
+          ],
+          "text": "immediately.",
+          "confidence": 0.9997451901435852
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            294,
+            2494,
+            2052,
+            2550
+          ],
+          "text": " Note: This invoice is poorly formed because it lacks the lssuer's Business Name,",
+          "confidence": 0.9428975582122803
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            297,
+            2569,
+            2115,
+            2619
+          ],
+          "text": "Physical Address, and Tax ID/EiN. There is no branding or clear contact information,",
+          "confidence": 0.964270293712616
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            297,
+            2641,
+            2217,
+            2691
+          ],
+          "text": "making it difficult for accounting departments to verify the vendor or process the payment",
+          "confidence": 0.9716320633888245
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            294,
+            2712,
+            660,
+            2762
+          ],
+          "text": "for tax purposes.",
+          "confidence": 0.9782576560974121
+        }
+      ]
+    }
+  ],
+  "document_text": "INVOICE\nDate: April 21, 2026\nInvoice #: 10293\nBill To: Brett Heap San Juan, PR\nBill To:\nBrett Heap\nSan Juan, PR\nItems:\n\nPayment Instructions:\nPlease send the money via wire transfer to the account ending in 4492. Payment is due immediately.\nNote: This invoice is poorly formed because it lacks the lssuer's Business Name, Physical Address, and Tax ID/EiN. There is no branding or clear contact information, making it difficult for accounting departments to verify the vendor or process the payment for tax purposes.",
+  "tables": [
+    {
+      "page_number": 1,
+      "block_id": "p1_b9",
+      "bbox": [
+        306,
+        1235,
+        1209,
+        2103
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": []
+}

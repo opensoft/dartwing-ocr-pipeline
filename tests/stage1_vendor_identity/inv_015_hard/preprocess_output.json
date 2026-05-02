@@ -1,0 +1,748 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_015",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "header",
+          "bbox": [
+            249,
+            209,
+            425,
+            397
+          ],
+          "reading_order": 1,
+          "text": "",
+          "confidence": 0.5061824917793274
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "header",
+          "bbox": [
+            249,
+            212,
+            793,
+            398
+          ],
+          "reading_order": 2,
+          "text": "Northwind Forge",
+          "confidence": 0.9422315955162048
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "header",
+          "bbox": [
+            1917,
+            265,
+            2322,
+            347
+          ],
+          "reading_order": 3,
+          "text": "INVOICE",
+          "confidence": 0.9155604243278503
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "text",
+          "bbox": [
+            194,
+            540,
+            697,
+            855
+          ],
+          "reading_order": 4,
+          "text": "4521 N Commerce Parkway North Las Vegas, NV 89030 US Phone: (702) 555-0148 Web: ledgerbox.io Email: ar-dept@zoho.com Federal ID (EIN): 91-2208417",
+          "confidence": 0.9226982593536377
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "text",
+          "bbox": [
+            1480,
+            554,
+            2005,
+            747
+          ],
+          "reading_order": 5,
+          "text": "SO-558120 Invoice #: 2025-10-07 Invoice Date: Due Date: 2025-11-06",
+          "confidence": 0.6729674339294434
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "title",
+          "bbox": [
+            195,
+            950,
+            368,
+            992
+          ],
+          "reading_order": 6,
+          "text": "BILL TO",
+          "confidence": 0.43689674139022827
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "text",
+          "bbox": [
+            195,
+            952,
+            658,
+            1195
+          ],
+          "reading_order": 7,
+          "text": "BILL TO Red Rock Mining Supply Purchasing Department 9200 W Cheyenne Ave Las Vegas, NV 89129",
+          "confidence": 0.9245551228523254
+        },
+        {
+          "block_id": "p1_b8",
+          "block_type": "table",
+          "bbox": [
+            207,
+            1253,
+            2341,
+            1955
+          ],
+          "reading_order": 8,
+          "text": "",
+          "confidence": 0.933933675289154
+        },
+        {
+          "block_id": "p1_b9",
+          "block_type": "title",
+          "bbox": [
+            196,
+            2035,
+            320,
+            2073
+          ],
+          "reading_order": 9,
+          "text": "Notes",
+          "confidence": 0.6824077367782593
+        },
+        {
+          "block_id": "p1_b10",
+          "block_type": "text",
+          "bbox": [
+            194,
+            2082,
+            1445,
+            2129
+          ],
+          "reading_order": 10,
+          "text": "All items carry certified mill test reports. MTRs available on request.",
+          "confidence": 0.7089796662330627
+        },
+        {
+          "block_id": "p1_b11",
+          "block_type": "text",
+          "bbox": [
+            193,
+            2221,
+            2212,
+            2259
+          ],
+          "reading_order": 11,
+          "text": "Remit payment by due date above. Please reference invoice number on all payments. Questions: ar-dept@zoho.com or (702) 555-0148.",
+          "confidence": 0.7012447118759155
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            470,
+            249,
+            797,
+            300
+          ],
+          "text": "Northwind",
+          "confidence": 0.9996657967567444
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            1918,
+            269,
+            2331,
+            356
+          ],
+          "text": "INVOICE",
+          "confidence": 0.9970378875732422
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            466,
+            296,
+            654,
+            362
+          ],
+          "text": "Forge",
+          "confidence": 0.9956662058830261
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            201,
+            540,
+            676,
+            585
+          ],
+          "text": "4521 N Commerce Parkway",
+          "confidence": 0.9797515273094177
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            1784,
+            553,
+            2007,
+            601
+          ],
+          "text": "SO-558120",
+          "confidence": 0.9994463324546814
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            1485,
+            557,
+            1683,
+            599
+          ],
+          "text": "Invoice #:",
+          "confidence": 0.9904940724372864
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            201,
+            589,
+            674,
+            629
+          ],
+          "text": "North Las Vegas, NV 89030",
+          "confidence": 0.9876665472984314
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            1785,
+            632,
+            2007,
+            673
+          ],
+          "text": "2025-10-07",
+          "confidence": 0.9997850656509399
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            197,
+            633,
+            263,
+            677
+          ],
+          "text": "US",
+          "confidence": 0.9893050789833069
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            1487,
+            634,
+            1750,
+            672
+          ],
+          "text": "Invoice Date:",
+          "confidence": 0.9894183874130249
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            201,
+            681,
+            594,
+            721
+          ],
+          "text": "Phone: (702) 555-0148",
+          "confidence": 0.9965139031410217
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            1485,
+            706,
+            1686,
+            748
+          ],
+          "text": "Due Date:",
+          "confidence": 0.9975272417068481
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            1785,
+            707,
+            2006,
+            749
+          ],
+          "text": "2025-11-06",
+          "confidence": 0.9997541308403015
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            201,
+            729,
+            508,
+            766
+          ],
+          "text": "Web: ledgerbox.io",
+          "confidence": 0.984063982963562
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            201,
+            772,
+            640,
+            812
+          ],
+          "text": "Email: ar-dept@zoho.com",
+          "confidence": 0.9951297044754028
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            202,
+            819,
+            700,
+            856
+          ],
+          "text": "Federal ID (EIN): 91-2208417",
+          "confidence": 0.9845947027206421
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            202,
+            953,
+            369,
+            993
+          ],
+          "text": "BILL TO",
+          "confidence": 0.9340909123420715
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            199,
+            997,
+            664,
+            1050
+          ],
+          "text": "Red Rock Mining Supply",
+          "confidence": 0.9774040579795837
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            201,
+            1053,
+            647,
+            1097
+          ],
+          "text": "Purchasing Department",
+          "confidence": 0.988624095916748
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            201,
+            1104,
+            636,
+            1145
+          ],
+          "text": "9200 W Cheyenne Ave",
+          "confidence": 0.9886153340339661
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            201,
+            1153,
+            613,
+            1197
+          ],
+          "text": "Las Vegas, NV 89129",
+          "confidence": 0.9952332377433777
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            1365,
+            1277,
+            1453,
+            1336
+          ],
+          "text": "Qty",
+          "confidence": 0.9969739317893982
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            231,
+            1282,
+            467,
+            1330
+          ],
+          "text": "Description",
+          "confidence": 0.9994127154350281
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            1581,
+            1283,
+            1782,
+            1324
+          ],
+          "text": "Unit Price",
+          "confidence": 0.9969194531440735
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            1941,
+            1284,
+            2145,
+            1322
+          ],
+          "text": "Line Total",
+          "confidence": 0.977847695350647
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            228,
+            1369,
+            1152,
+            1417
+          ],
+          "text": "Heavy-duty alloy coupler 2.5\" class 40 (P/N DFC-2540)",
+          "confidence": 0.9661357998847961
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            1486,
+            1371,
+            1541,
+            1413
+          ],
+          "text": "24",
+          "confidence": 0.999915599822998
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            2143,
+            1371,
+            2319,
+            1412
+          ],
+          "text": "$4,428.00",
+          "confidence": 0.9924952387809753
+        },
+        {
+          "line_id": "p1_l29",
+          "bbox": [
+            1755,
+            1373,
+            1899,
+            1411
+          ],
+          "text": "$184.50",
+          "confidence": 0.9972543716430664
+        },
+        {
+          "line_id": "p1_l30",
+          "bbox": [
+            1774,
+            1458,
+            1899,
+            1499
+          ],
+          "text": "$42.75",
+          "confidence": 0.9980490803718567
+        },
+        {
+          "line_id": "p1_l31",
+          "bbox": [
+            230,
+            1459,
+            1167,
+            1502
+          ],
+          "text": "Heat-treated hitch pin assembly, Grade 8 (P/N HPA-8G)",
+          "confidence": 0.9830872416496277
+        },
+        {
+          "line_id": "p1_l32",
+          "bbox": [
+            1487,
+            1459,
+            1541,
+            1501
+          ],
+          "text": "48",
+          "confidence": 0.9998728632926941
+        },
+        {
+          "line_id": "p1_l33",
+          "bbox": [
+            2145,
+            1460,
+            2319,
+            1499
+          ],
+          "text": "$2,052.00",
+          "confidence": 0.9982362389564514
+        },
+        {
+          "line_id": "p1_l34",
+          "bbox": [
+            1487,
+            1545,
+            1542,
+            1587
+          ],
+          "text": "18",
+          "confidence": 0.9999294877052307
+        },
+        {
+          "line_id": "p1_l35",
+          "bbox": [
+            2144,
+            1545,
+            2318,
+            1587
+          ],
+          "text": "$1,600.20",
+          "confidence": 0.9971581697463989
+        },
+        {
+          "line_id": "p1_l36",
+          "bbox": [
+            1775,
+            1546,
+            1900,
+            1585
+          ],
+          "text": "$88.90",
+          "confidence": 0.9986067414283752
+        },
+        {
+          "line_id": "p1_l37",
+          "bbox": [
+            232,
+            1547,
+            1052,
+            1588
+          ],
+          "text": "Structural steel D-ring, 15-ton WLL (P/N DR-15T)",
+          "confidence": 0.9886469841003418
+        },
+        {
+          "line_id": "p1_l38",
+          "bbox": [
+            229,
+            1632,
+            785,
+            1676
+          ],
+          "text": "LTL freight, class 85 - Las Vegas",
+          "confidence": 0.9512345790863037
+        },
+        {
+          "line_id": "p1_l39",
+          "bbox": [
+            1755,
+            1632,
+            1899,
+            1672
+          ],
+          "text": "$189.00",
+          "confidence": 0.9982204437255859
+        },
+        {
+          "line_id": "p1_l40",
+          "bbox": [
+            2173,
+            1632,
+            2318,
+            1672
+          ],
+          "text": "$189.00",
+          "confidence": 0.9985533356666565
+        },
+        {
+          "line_id": "p1_l41",
+          "bbox": [
+            1510,
+            1633,
+            1539,
+            1673
+          ],
+          "text": "1",
+          "confidence": 0.9999736547470093
+        },
+        {
+          "line_id": "p1_l42",
+          "bbox": [
+            1724,
+            1721,
+            1898,
+            1763
+          ],
+          "text": "Subtotal",
+          "confidence": 0.9996144771575928
+        },
+        {
+          "line_id": "p1_l43",
+          "bbox": [
+            2127,
+            1722,
+            2319,
+            1764
+          ],
+          "text": "$8,269.20",
+          "confidence": 0.9985252022743225
+        },
+        {
+          "line_id": "p1_l44",
+          "bbox": [
+            1657,
+            1812,
+            1899,
+            1860
+          ],
+          "text": "Tax (8.25%)",
+          "confidence": 0.985980749130249
+        },
+        {
+          "line_id": "p1_l45",
+          "bbox": [
+            2160,
+            1813,
+            2317,
+            1856
+          ],
+          "text": "$682.21",
+          "confidence": 0.9989147186279297
+        },
+        {
+          "line_id": "p1_l46",
+          "bbox": [
+            2124,
+            1903,
+            2317,
+            1951
+          ],
+          "text": "$8,951.41",
+          "confidence": 0.996196985244751
+        },
+        {
+          "line_id": "p1_l47",
+          "bbox": [
+            1652,
+            1908,
+            1897,
+            1946
+          ],
+          "text": "TOTAL DUE",
+          "confidence": 0.9864524006843567
+        },
+        {
+          "line_id": "p1_l48",
+          "bbox": [
+            198,
+            2034,
+            326,
+            2081
+          ],
+          "text": "Notes",
+          "confidence": 0.999535083770752
+        },
+        {
+          "line_id": "p1_l49",
+          "bbox": [
+            199,
+            2084,
+            1450,
+            2133
+          ],
+          "text": "All items carry certified mill test reports. MTRs available on request.",
+          "confidence": 0.9672940969467163
+        },
+        {
+          "line_id": "p1_l50",
+          "bbox": [
+            203,
+            2225,
+            2217,
+            2260
+          ],
+          "text": "Remit payment by due date above. Please reference invoice number on all payments. Questions: ar-dept@zoho.com or (702) 555-0148.",
+          "confidence": 0.9827182292938232
+        }
+      ]
+    }
+  ],
+  "document_text": "\nNorthwind Forge\nINVOICE\n4521 N Commerce Parkway North Las Vegas, NV 89030 US Phone: (702) 555-0148 Web: ledgerbox.io Email: ar-dept@zoho.com Federal ID (EIN): 91-2208417\nSO-558120 Invoice #: 2025-10-07 Invoice Date: Due Date: 2025-11-06\nBILL TO\nBILL TO Red Rock Mining Supply Purchasing Department 9200 W Cheyenne Ave Las Vegas, NV 89129\n\nNotes\nAll items carry certified mill test reports. MTRs available on request.\nRemit payment by due date above. Please reference invoice number on all payments. Questions: ar-dept@zoho.com or (702) 555-0148.",
+  "tables": [
+    {
+      "page_number": 1,
+      "block_id": "p1_b8",
+      "bbox": [
+        207,
+        1253,
+        2341,
+        1955
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": []
+}

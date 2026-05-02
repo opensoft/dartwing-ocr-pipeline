@@ -1,0 +1,1529 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_002",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2490,
+      "height": 3511,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "header",
+          "bbox": [
+            113,
+            157,
+            247,
+            290
+          ],
+          "reading_order": 1,
+          "text": "D",
+          "confidence": 0.7167971134185791
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "title",
+          "bbox": [
+            1118,
+            161,
+            1378,
+            227
+          ],
+          "reading_order": 2,
+          "text": "Invoice",
+          "confidence": 0.6345898509025574
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "table",
+          "bbox": [
+            1158,
+            303,
+            2361,
+            1031
+          ],
+          "reading_order": 3,
+          "text": "",
+          "confidence": 0.5067170262336731
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "table",
+          "bbox": [
+            118,
+            305,
+            1103,
+            1757
+          ],
+          "reading_order": 4,
+          "text": "",
+          "confidence": 0.5545874238014221
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "text",
+          "bbox": [
+            124,
+            317,
+            579,
+            607
+          ],
+          "reading_order": 5,
+          "text": "Sold from INDIGO AMERICA INC 5555 WINDWARD PARKWAY ALPHARETTA,GA 30004 UNITED STATES Contact: 1-800-204-6344",
+          "confidence": 0.8212769031524658
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "text",
+          "bbox": [
+            1794,
+            322,
+            2271,
+            440
+          ],
+          "reading_order": 6,
+          "text": "2021-CINVUS000013829 12/01/2020",
+          "confidence": 0.4196109175682068
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "text",
+          "bbox": [
+            1164,
+            594,
+            1585,
+            781
+          ],
+          "reading_order": 7,
+          "text": "HP order number HP Tax ID HP Global D-U-N-S number",
+          "confidence": 0.42543283104896545
+        },
+        {
+          "block_id": "p1_b8",
+          "block_type": "text",
+          "bbox": [
+            125,
+            645,
+            640,
+            1017
+          ],
+          "reading_order": 8,
+          "text": "Bill to 13396 DESERT TRADE GRAPHICS INC PO BOX 400113 LAS VEGAS, NV 89140 UNITED STATES Contact: 949-417-1500 denise.heap@farheap.com",
+          "confidence": 0.7884294390678406
+        },
+        {
+          "block_id": "p1_b9",
+          "block_type": "table",
+          "bbox": [
+            1159,
+            822,
+            2363,
+            1032
+          ],
+          "reading_order": 9,
+          "text": "",
+          "confidence": 0.5638589262962341
+        },
+        {
+          "block_id": "p1_b10",
+          "block_type": "text",
+          "bbox": [
+            125,
+            1048,
+            637,
+            1423
+          ],
+          "reading_order": 10,
+          "text": "Sold to 13396 DESERT TRADE GRAPHICS INC PO BOX 400113 LAS VEGAS, NV 89140 UNITED STATES Contact: 949-417-1500 denise.heap@farheap.com",
+          "confidence": 0.8138210773468018
+        },
+        {
+          "block_id": "p1_b11",
+          "block_type": "text",
+          "bbox": [
+            1164,
+            1070,
+            1530,
+            1264
+          ],
+          "reading_order": 11,
+          "text": "Remit To: Indigo America, Inc. P.O. Box 415573 Boston, MA 02241-5573 USA",
+          "confidence": 0.8443982005119324
+        },
+        {
+          "block_id": "p1_b12",
+          "block_type": "table",
+          "bbox": [
+            1160,
+            1297,
+            2364,
+            1678
+          ],
+          "reading_order": 12,
+          "text": "",
+          "confidence": 0.6260250806808472
+        },
+        {
+          "block_id": "p1_b13",
+          "block_type": "text",
+          "bbox": [
+            124,
+            1455,
+            639,
+            1756
+          ],
+          "reading_order": 13,
+          "text": "Ship to 13396500 DESERT TRADE GRAPHICS INC 4133 WEST PATRICKLANE LAS VEGAS,NV 89118 UNITED STATES denise.heap@farheap.com",
+          "confidence": 0.7706798315048218
+        },
+        {
+          "block_id": "p1_b14",
+          "block_type": "text",
+          "bbox": [
+            2138,
+            3215,
+            2291,
+            3252
+          ],
+          "reading_order": 14,
+          "text": "Page 1/2",
+          "confidence": 0.8797544240951538
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            1116,
+            158,
+            1384,
+            231
+          ],
+          "text": "Invoice",
+          "confidence": 0.9887898564338684
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            170,
+            181,
+            246,
+            268
+          ],
+          "text": "D",
+          "confidence": 0.5227199196815491
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            1171,
+            250,
+            1330,
+            305
+          ],
+          "text": "Original",
+          "confidence": 0.9990816116333008
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            129,
+            314,
+            340,
+            366
+          ],
+          "text": "Sold from",
+          "confidence": 0.9978749752044678
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            1163,
+            325,
+            1484,
+            372
+          ],
+          "text": "Invoice number",
+          "confidence": 0.9971286654472351
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            1794,
+            329,
+            2272,
+            369
+          ],
+          "text": "2021-CINVUS000013829",
+          "confidence": 0.9957013130187988
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            128,
+            370,
+            501,
+            409
+          ],
+          "text": "INDIGO AMERICA INC",
+          "confidence": 0.9673550724983215
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            1165,
+            406,
+            1352,
+            441
+          ],
+          "text": "Invoice date",
+          "confidence": 0.9974813461303711
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            1796,
+            406,
+            1967,
+            440
+          ],
+          "text": "12/01/2020",
+          "confidence": 0.9993211030960083
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            129,
+            417,
+            575,
+            448
+          ],
+          "text": "5555 WINDWARD PARKWAY",
+          "confidence": 0.9704632759094238
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            128,
+            457,
+            507,
+            491
+          ],
+          "text": "ALPHARETTA,GA 30004",
+          "confidence": 0.9833199381828308
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            129,
+            500,
+            389,
+            531
+          ],
+          "text": "UNITED STATES",
+          "confidence": 0.9837579131126404
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            1166,
+            503,
+            1524,
+            541
+          ],
+          "text": "Purchase order number",
+          "confidence": 0.9993927478790283
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            127,
+            535,
+            267,
+            570
+          ],
+          "text": "Contact:",
+          "confidence": 0.9993414878845215
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            131,
+            574,
+            369,
+            604
+          ],
+          "text": "1-800-204-6344",
+          "confidence": 0.9993466734886169
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            1166,
+            601,
+            1429,
+            637
+          ],
+          "text": "HP order number",
+          "confidence": 0.995032548904419
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            1796,
+            605,
+            1950,
+            636
+          ],
+          "text": "TN198211",
+          "confidence": 0.9997316598892212
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            130,
+            638,
+            264,
+            687
+          ],
+          "text": "Bill to",
+          "confidence": 0.9349399209022522
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            1166,
+            672,
+            1323,
+            706
+          ],
+          "text": "HP Tax ID",
+          "confidence": 0.9965533018112183
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            129,
+            695,
+            227,
+            732
+          ],
+          "text": "13396",
+          "confidence": 0.9999202489852905
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            129,
+            739,
+            637,
+            770
+          ],
+          "text": "DESERT TRADE GRAPHICS INC",
+          "confidence": 0.9812390804290771
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            1166,
+            742,
+            1584,
+            775
+          ],
+          "text": "HP Global D-U-N-S number",
+          "confidence": 0.9488919377326965
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            1796,
+            743,
+            1966,
+            774
+          ],
+          "text": "009122532",
+          "confidence": 0.9994678497314453
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            128,
+            781,
+            378,
+            812
+          ],
+          "text": "PO BOX 400113",
+          "confidence": 0.9818635582923889
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            128,
+            821,
+            486,
+            855
+          ],
+          "text": "LAS VEGAS, NV 89140",
+          "confidence": 0.987636148929596
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            1175,
+            845,
+            1547,
+            875
+          ],
+          "text": "Remittance information",
+          "confidence": 0.9937291741371155
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            129,
+            865,
+            389,
+            896
+          ],
+          "text": "UNITED STATES",
+          "confidence": 0.9837579131126404
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            126,
+            898,
+            268,
+            935
+          ],
+          "text": "Contact:",
+          "confidence": 0.9983062744140625
+        },
+        {
+          "line_id": "p1_l29",
+          "bbox": [
+            1790,
+            907,
+            1979,
+            951
+          ],
+          "text": " Net 30 days",
+          "confidence": 0.9554067254066467
+        },
+        {
+          "line_id": "p1_l30",
+          "bbox": [
+            1168,
+            912,
+            1398,
+            948
+          ],
+          "text": "Payment terms",
+          "confidence": 0.9950329661369324
+        },
+        {
+          "line_id": "p1_l31",
+          "bbox": [
+            127,
+            936,
+            339,
+            971
+          ],
+          "text": "949-417-1500",
+          "confidence": 0.999186098575592
+        },
+        {
+          "line_id": "p1_l32",
+          "bbox": [
+            1793,
+            976,
+            1968,
+            1018
+          ],
+          "text": "12/31/2020",
+          "confidence": 0.9998939633369446
+        },
+        {
+          "line_id": "p1_l33",
+          "bbox": [
+            127,
+            977,
+            533,
+            1014
+          ],
+          "text": "denise.heap@farheap.com",
+          "confidence": 0.9997676610946655
+        },
+        {
+          "line_id": "p1_l34",
+          "bbox": [
+            1169,
+            981,
+            1443,
+            1015
+          ],
+          "text": "Payment due date",
+          "confidence": 0.9984069466590881
+        },
+        {
+          "line_id": "p1_l35",
+          "bbox": [
+            127,
+            1044,
+            290,
+            1099
+          ],
+          "text": "Sold to",
+          "confidence": 0.9987255334854126
+        },
+        {
+          "line_id": "p1_l36",
+          "bbox": [
+            1165,
+            1068,
+            1315,
+            1105
+          ],
+          "text": "Remit To:",
+          "confidence": 0.9898996353149414
+        },
+        {
+          "line_id": "p1_l37",
+          "bbox": [
+            126,
+            1099,
+            228,
+            1138
+          ],
+          "text": "13396",
+          "confidence": 0.999946117401123
+        },
+        {
+          "line_id": "p1_l38",
+          "bbox": [
+            1168,
+            1114,
+            1463,
+            1145
+          ],
+          "text": "Indigo America, Inc.",
+          "confidence": 0.9766353368759155
+        },
+        {
+          "line_id": "p1_l39",
+          "bbox": [
+            128,
+            1146,
+            637,
+            1177
+          ],
+          "text": "DESERT TRADE GRAPHICS INC",
+          "confidence": 0.9682533740997314
+        },
+        {
+          "line_id": "p1_l40",
+          "bbox": [
+            1166,
+            1151,
+            1421,
+            1184
+          ],
+          "text": "P.O. Box 415573",
+          "confidence": 0.9880526065826416
+        },
+        {
+          "line_id": "p1_l41",
+          "bbox": [
+            128,
+            1187,
+            378,
+            1218
+          ],
+          "text": "PO BOX 400113",
+          "confidence": 0.9818635582923889
+        },
+        {
+          "line_id": "p1_l42",
+          "bbox": [
+            1167,
+            1193,
+            1529,
+            1224
+          ],
+          "text": "Boston, MA 02241-5573",
+          "confidence": 0.9580456018447876
+        },
+        {
+          "line_id": "p1_l43",
+          "bbox": [
+            128,
+            1229,
+            484,
+            1260
+          ],
+          "text": "LAS VEGAS, NV 89140",
+          "confidence": 0.978743314743042
+        },
+        {
+          "line_id": "p1_l44",
+          "bbox": [
+            1166,
+            1231,
+            1243,
+            1265
+          ],
+          "text": "USA",
+          "confidence": 0.9996602535247803
+        },
+        {
+          "line_id": "p1_l45",
+          "bbox": [
+            129,
+            1271,
+            389,
+            1301
+          ],
+          "text": "UNITED STATES",
+          "confidence": 0.9883776307106018
+        },
+        {
+          "line_id": "p1_l46",
+          "bbox": [
+            125,
+            1304,
+            268,
+            1342
+          ],
+          "text": "Contact:",
+          "confidence": 0.9989826679229736
+        },
+        {
+          "line_id": "p1_l47",
+          "bbox": [
+            1171,
+            1310,
+            1329,
+            1351
+          ],
+          "text": "Summary",
+          "confidence": 0.9994291663169861
+        },
+        {
+          "line_id": "p1_l48",
+          "bbox": [
+            128,
+            1345,
+            339,
+            1375
+          ],
+          "text": "949-417-1500",
+          "confidence": 0.9989805817604065
+        },
+        {
+          "line_id": "p1_l49",
+          "bbox": [
+            126,
+            1384,
+            533,
+            1421
+          ],
+          "text": "denise.heap@farheap.com",
+          "confidence": 0.9996500611305237
+        },
+        {
+          "line_id": "p1_l50",
+          "bbox": [
+            1877,
+            1388,
+            2124,
+            1422
+          ],
+          "text": "4,951.00 USD",
+          "confidence": 0.990269660949707
+        },
+        {
+          "line_id": "p1_l51",
+          "bbox": [
+            1167,
+            1391,
+            1328,
+            1425
+          ],
+          "text": "Items total",
+          "confidence": 0.993070662021637
+        },
+        {
+          "line_id": "p1_l52",
+          "bbox": [
+            125,
+            1448,
+            292,
+            1510
+          ],
+          "text": "Ship to",
+          "confidence": 0.9967506527900696
+        },
+        {
+          "line_id": "p1_l53",
+          "bbox": [
+            1954,
+            1454,
+            2125,
+            1494
+          ],
+          "text": "0.00 USD",
+          "confidence": 0.9661195874214172
+        },
+        {
+          "line_id": "p1_l54",
+          "bbox": [
+            1164,
+            1457,
+            1231,
+            1498
+          ],
+          "text": "Tax",
+          "confidence": 0.9989201426506042
+        },
+        {
+          "line_id": "p1_l55",
+          "bbox": [
+            129,
+            1509,
+            282,
+            1543
+          ],
+          "text": "13396500",
+          "confidence": 0.9999336004257202
+        },
+        {
+          "line_id": "p1_l56",
+          "bbox": [
+            1876,
+            1527,
+            2124,
+            1561
+          ],
+          "text": "4,951.00 USD",
+          "confidence": 0.9580829739570618
+        },
+        {
+          "line_id": "p1_l57",
+          "bbox": [
+            1172,
+            1530,
+            1450,
+            1563
+          ],
+          "text": "Invoice Total Due",
+          "confidence": 0.9886768460273743
+        },
+        {
+          "line_id": "p1_l58",
+          "bbox": [
+            128,
+            1552,
+            637,
+            1583
+          ],
+          "text": "DESERT TRADE GRAPHICS INC",
+          "confidence": 0.9682533740997314
+        },
+        {
+          "line_id": "p1_l59",
+          "bbox": [
+            128,
+            1594,
+            556,
+            1624
+          ],
+          "text": "4133 WEST PATRICKLANE",
+          "confidence": 0.9761995673179626
+        },
+        {
+          "line_id": "p1_l60",
+          "bbox": [
+            1164,
+            1629,
+            1300,
+            1668
+          ],
+          "text": "Tax date",
+          "confidence": 0.9989562034606934
+        },
+        {
+          "line_id": "p1_l61",
+          "bbox": [
+            1797,
+            1631,
+            1967,
+            1666
+          ],
+          "text": "12/01/2020",
+          "confidence": 0.9998350143432617
+        },
+        {
+          "line_id": "p1_l62",
+          "bbox": [
+            129,
+            1636,
+            474,
+            1667
+          ],
+          "text": "LAS VEGAS,NV 89118",
+          "confidence": 0.9948396682739258
+        },
+        {
+          "line_id": "p1_l63",
+          "bbox": [
+            129,
+            1677,
+            389,
+            1707
+          ],
+          "text": "UNITED STATES",
+          "confidence": 0.9883776307106018
+        },
+        {
+          "line_id": "p1_l64",
+          "bbox": [
+            127,
+            1717,
+            532,
+            1754
+          ],
+          "text": "denise.heap@farheap.com",
+          "confidence": 0.9996047616004944
+        },
+        {
+          "line_id": "p1_l65",
+          "bbox": [
+            2136,
+            3215,
+            2300,
+            3257
+          ],
+          "text": "Page 1/2",
+          "confidence": 0.9797574877738953
+        }
+      ]
+    },
+    {
+      "page_number": 2,
+      "width": 2490,
+      "height": 3511,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p2_b1",
+          "block_type": "header",
+          "bbox": [
+            76,
+            157,
+            210,
+            290
+          ],
+          "reading_order": 1,
+          "text": "Chp",
+          "confidence": 0.7206588983535767
+        },
+        {
+          "block_id": "p2_b2",
+          "block_type": "title",
+          "bbox": [
+            1153,
+            160,
+            1414,
+            227
+          ],
+          "reading_order": 2,
+          "text": "Invoice",
+          "confidence": 0.5140902400016785
+        },
+        {
+          "block_id": "p2_b3",
+          "block_type": "text",
+          "bbox": [
+            1594,
+            304,
+            2406,
+            345
+          ],
+          "reading_order": 3,
+          "text": "Invoice number: 2021-CINVUS000013829",
+          "confidence": 0.7546144127845764
+        },
+        {
+          "block_id": "p2_b4",
+          "block_type": "table",
+          "bbox": [
+            77,
+            369,
+            2408,
+            1657
+          ],
+          "reading_order": 4,
+          "text": "",
+          "confidence": 0.985708475112915
+        },
+        {
+          "block_id": "p2_b5",
+          "block_type": "text",
+          "bbox": [
+            2138,
+            3215,
+            2291,
+            3252
+          ],
+          "reading_order": 5,
+          "text": "Page 2/ 2",
+          "confidence": 0.8668668270111084
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p2_l1",
+          "bbox": [
+            1152,
+            159,
+            1421,
+            232
+          ],
+          "text": "Invoice",
+          "confidence": 0.9885796904563904
+        },
+        {
+          "line_id": "p2_l2",
+          "bbox": [
+            79,
+            174,
+            211,
+            272
+          ],
+          "text": "Chp",
+          "confidence": 0.8353102207183838
+        },
+        {
+          "line_id": "p2_l3",
+          "bbox": [
+            1599,
+            308,
+            2407,
+            345
+          ],
+          "text": "Invoice number: 2021-CINVUS000013829",
+          "confidence": 0.9899905323982239
+        },
+        {
+          "line_id": "p2_l4",
+          "bbox": [
+            85,
+            385,
+            540,
+            425
+          ],
+          "text": "HP order number: TN198211",
+          "confidence": 0.9816346764564514
+        },
+        {
+          "line_id": "p2_l5",
+          "bbox": [
+            1727,
+            449,
+            1799,
+            500
+          ],
+          "text": "Qty",
+          "confidence": 0.99134761095047
+        },
+        {
+          "line_id": "p2_l6",
+          "bbox": [
+            110,
+            454,
+            242,
+            493
+          ],
+          "text": "Line No",
+          "confidence": 0.9918414354324341
+        },
+        {
+          "line_id": "p2_l7",
+          "bbox": [
+            1931,
+            454,
+            2095,
+            490
+          ],
+          "text": "Unit Price",
+          "confidence": 0.9940823316574097
+        },
+        {
+          "line_id": "p2_l8",
+          "bbox": [
+            271,
+            455,
+            446,
+            489
+          ],
+          "text": "Product ID",
+          "confidence": 0.9881240725517273
+        },
+        {
+          "line_id": "p2_l9",
+          "bbox": [
+            2226,
+            456,
+            2402,
+            491
+          ],
+          "text": "Total Price",
+          "confidence": 0.9865248203277588
+        },
+        {
+          "line_id": "p2_l10",
+          "bbox": [
+            610,
+            457,
+            932,
+            491
+          ],
+          "text": "Product Description",
+          "confidence": 0.9959545135498047
+        },
+        {
+          "line_id": "p2_l11",
+          "bbox": [
+            1703,
+            518,
+            1797,
+            561
+          ],
+          "text": "1.000",
+          "confidence": 0.9999098777770996
+        },
+        {
+          "line_id": "p2_l12",
+          "bbox": [
+            162,
+            523,
+            186,
+            556
+          ],
+          "text": "1",
+          "confidence": 0.9999858140945435
+        },
+        {
+          "line_id": "p2_l13",
+          "bbox": [
+            1906,
+            523,
+            2093,
+            554
+          ],
+          "text": "676.00 USD",
+          "confidence": 0.985007107257843
+        },
+        {
+          "line_id": "p2_l14",
+          "bbox": [
+            2213,
+            523,
+            2401,
+            557
+          ],
+          "text": "676.00 USD",
+          "confidence": 0.996415913105011
+        },
+        {
+          "line_id": "p2_l15",
+          "bbox": [
+            269,
+            525,
+            436,
+            553
+          ],
+          "text": "SB1442NP",
+          "confidence": 0.9997382760047913
+        },
+        {
+          "line_id": "p2_l16",
+          "bbox": [
+            608,
+            526,
+            960,
+            553
+          ],
+          "text": "SHRD BSC Z1 12x5 4V",
+          "confidence": 0.9571729898452759
+        },
+        {
+          "line_id": "p2_l17",
+          "bbox": [
+            260,
+            578,
+            412,
+            608
+          ],
+          "text": "UoM:EA",
+          "confidence": 0.9218826293945312
+        },
+        {
+          "line_id": "p2_l18",
+          "bbox": [
+            261,
+            639,
+            631,
+            666
+          ],
+          "text": "SerialNo:CZ3524147S",
+          "confidence": 0.9734308123588562
+        },
+        {
+          "line_id": "p2_l19",
+          "bbox": [
+            267,
+            686,
+            930,
+            714
+          ],
+          "text": "HPESQ769B P.PRO IN150 SYSTEM GEN8",
+          "confidence": 0.9655734896659851
+        },
+        {
+          "line_id": "p2_l20",
+          "bbox": [
+            268,
+            767,
+            930,
+            794
+          ],
+          "text": "For Period: 12/01/20 To: 12/31/20",
+          "confidence": 0.9816694259643555
+        },
+        {
+          "line_id": "p2_l21",
+          "bbox": [
+            266,
+            804,
+            711,
+            836
+          ],
+          "text": "Service Contract: 5105",
+          "confidence": 0.9871501326560974
+        },
+        {
+          "line_id": "p2_l22",
+          "bbox": [
+            1703,
+            856,
+            1797,
+            896
+          ],
+          "text": "1.000",
+          "confidence": 0.999914824962616
+        },
+        {
+          "line_id": "p2_l23",
+          "bbox": [
+            1875,
+            856,
+            2095,
+            896
+          ],
+          "text": "4,275.00 USD",
+          "confidence": 0.955897331237793
+        },
+        {
+          "line_id": "p2_l24",
+          "bbox": [
+            157,
+            858,
+            188,
+            894
+          ],
+          "text": "2",
+          "confidence": 0.9998059868812561
+        },
+        {
+          "line_id": "p2_l25",
+          "bbox": [
+            266,
+            858,
+            438,
+            892
+          ],
+          "text": "SB1542NV",
+          "confidence": 0.9994181394577026
+        },
+        {
+          "line_id": "p2_l26",
+          "bbox": [
+            2185,
+            859,
+            2400,
+            894
+          ],
+          "text": "4,275.00 USD",
+          "confidence": 0.993657112121582
+        },
+        {
+          "line_id": "p2_l27",
+          "bbox": [
+            607,
+            860,
+            1047,
+            891
+          ],
+          "text": "SHRD BSC Z1w/VP12x5 5V",
+          "confidence": 0.9481532573699951
+        },
+        {
+          "line_id": "p2_l28",
+          "bbox": [
+            258,
+            913,
+            413,
+            948
+          ],
+          "text": "UoM:EA",
+          "confidence": 0.9159789681434631
+        },
+        {
+          "line_id": "p2_l29",
+          "bbox": [
+            260,
+            975,
+            586,
+            1005
+          ],
+          "text": "Serial No:50000387",
+          "confidence": 0.9447327852249146
+        },
+        {
+          "line_id": "p2_l30",
+          "bbox": [
+            267,
+            1022,
+            711,
+            1052
+          ],
+          "text": "CA401A HP INDIGO 10000",
+          "confidence": 0.8823041915893555
+        },
+        {
+          "line_id": "p2_l31",
+          "bbox": [
+            265,
+            1101,
+            931,
+            1133
+          ],
+          "text": "For Period: 12/01/20 To: 12/31/20",
+          "confidence": 0.9756307601928711
+        },
+        {
+          "line_id": "p2_l32",
+          "bbox": [
+            267,
+            1141,
+            712,
+            1173
+          ],
+          "text": "Service Contract: 5105",
+          "confidence": 0.9828105568885803
+        },
+        {
+          "line_id": "p2_l33",
+          "bbox": [
+            2186,
+            1188,
+            2404,
+            1226
+          ],
+          "text": "4,951.00 USD",
+          "confidence": 0.9949551224708557
+        },
+        {
+          "line_id": "p2_l34",
+          "bbox": [
+            1820,
+            1189,
+            2096,
+            1225
+          ],
+          "text": "Subtotal Amount",
+          "confidence": 0.9702066779136658
+        },
+        {
+          "line_id": "p2_l35",
+          "bbox": [
+            2185,
+            1241,
+            2404,
+            1281
+          ],
+          "text": "4,951.00 USD",
+          "confidence": 0.9940423965454102
+        },
+        {
+          "line_id": "p2_l36",
+          "bbox": [
+            1642,
+            1243,
+            2096,
+            1278
+          ],
+          "text": "Subtotal Amount Before Tax",
+          "confidence": 0.9851417541503906
+        },
+        {
+          "line_id": "p2_l37",
+          "bbox": [
+            2185,
+            1295,
+            2404,
+            1335
+          ],
+          "text": "4,951.00 USD",
+          "confidence": 0.9857149124145508
+        },
+        {
+          "line_id": "p2_l38",
+          "bbox": [
+            1875,
+            1298,
+            2097,
+            1332
+          ],
+          "text": "Total Amount",
+          "confidence": 0.9950823783874512
+        },
+        {
+          "line_id": "p2_l39",
+          "bbox": [
+            90,
+            1481,
+            1167,
+            1518
+          ],
+          "text": "Legal notices and other mailed correspondence must be mailed to Indigo",
+          "confidence": 0.9697718024253845
+        },
+        {
+          "line_id": "p2_l40",
+          "bbox": [
+            89,
+            1521,
+            907,
+            1554
+          ],
+          "text": "America Inc., 11311 Chinden Blvd., Boise, Idaho 83714",
+          "confidence": 0.9822976589202881
+        },
+        {
+          "line_id": "p2_l41",
+          "bbox": [
+            2135,
+            3213,
+            2301,
+            3258
+          ],
+          "text": "Page 2/ 2",
+          "confidence": 0.9324353337287903
+        }
+      ]
+    }
+  ],
+  "document_text": "D\nInvoice\n\n\nSold from INDIGO AMERICA INC 5555 WINDWARD PARKWAY ALPHARETTA,GA 30004 UNITED STATES Contact: 1-800-204-6344\n2021-CINVUS000013829 12/01/2020\nHP order number HP Tax ID HP Global D-U-N-S number\nBill to 13396 DESERT TRADE GRAPHICS INC PO BOX 400113 LAS VEGAS, NV 89140 UNITED STATES Contact: 949-417-1500 denise.heap@farheap.com\n\nSold to 13396 DESERT TRADE GRAPHICS INC PO BOX 400113 LAS VEGAS, NV 89140 UNITED STATES Contact: 949-417-1500 denise.heap@farheap.com\nRemit To: Indigo America, Inc. P.O. Box 415573 Boston, MA 02241-5573 USA\n\nShip to 13396500 DESERT TRADE GRAPHICS INC 4133 WEST PATRICKLANE LAS VEGAS,NV 89118 UNITED STATES denise.heap@farheap.com\nPage 1/2\n\nChp\nInvoice\nInvoice number: 2021-CINVUS000013829\n\nPage 2/ 2",
+  "tables": [
+    {
+      "page_number": 1,
+      "block_id": "p1_b3",
+      "bbox": [
+        1158,
+        303,
+        2361,
+        1031
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 1,
+      "block_id": "p1_b4",
+      "bbox": [
+        118,
+        305,
+        1103,
+        1757
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 1,
+      "block_id": "p1_b9",
+      "bbox": [
+        1159,
+        822,
+        2363,
+        1032
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 1,
+      "block_id": "p1_b12",
+      "bbox": [
+        1160,
+        1297,
+        2364,
+        1678
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 2,
+      "block_id": "p2_b4",
+      "bbox": [
+        77,
+        369,
+        2408,
+        1657
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": [
+    "page 1: [unknown_layout_label] label=number",
+    "page 2: [unknown_layout_label] label=number"
+  ]
+}

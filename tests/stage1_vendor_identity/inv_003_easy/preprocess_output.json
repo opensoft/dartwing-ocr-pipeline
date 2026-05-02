@@ -1,0 +1,3059 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_003",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "header",
+          "bbox": [
+            108,
+            110,
+            673,
+            310
+          ],
+          "reading_order": 1,
+          "text": "ULINE",
+          "confidence": 0.8231709003448486
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "header",
+          "bbox": [
+            715,
+            130,
+            1484,
+            298
+          ],
+          "reading_order": 2,
+          "text": "1-800-295-5510 uline.com PO Box 88741·Chicago, IL 60680-1741",
+          "confidence": 0.8715065717697144
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "text",
+          "bbox": [
+            1975,
+            143,
+            2263,
+            212
+          ],
+          "reading_order": 3,
+          "text": "INVOICE",
+          "confidence": 0.45423054695129395
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "text",
+          "bbox": [
+            1793,
+            281,
+            2316,
+            484
+          ],
+          "reading_order": 4,
+          "text": "ULINE FED ID#: 36-3684738 INVOICE #: 126893747 ORDER #: 45811901",
+          "confidence": 0.8346013426780701
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "text",
+          "bbox": [
+            113,
+            389,
+            1131,
+            429
+          ],
+          "reading_order": 5,
+          "text": "THANK YOU FOR YOUR ORDER. ULINE CUSTOMER SINCE 2006",
+          "confidence": 0.6645458340644836
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "text",
+          "bbox": [
+            102,
+            603,
+            907,
+            775
+          ],
+          "reading_order": 6,
+          "text": "SOLD TO: PRINT FULFILLMENT SERVICES PO BOX 400113 LAS VEGAS NV 89140-0113",
+          "confidence": 0.7750704884529114
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "text",
+          "bbox": [
+            1104,
+            603,
+            1876,
+            776
+          ],
+          "reading_order": 7,
+          "text": "SHIP TO: DOT GRAPHICS 4133 WEST PATRICK LANE LAS VEGAS NV 89118",
+          "confidence": 0.5685483813285828
+        },
+        {
+          "block_id": "p1_b8",
+          "block_type": "table",
+          "bbox": [
+            68,
+            997,
+            2440,
+            2214
+          ],
+          "reading_order": 8,
+          "text": "",
+          "confidence": 0.9899373054504395
+        },
+        {
+          "block_id": "p1_b9",
+          "block_type": "footer",
+          "bbox": [
+            963,
+            2659,
+            1581,
+            2701
+          ],
+          "reading_order": 9,
+          "text": "CONTINUED ON NEXT PAGE",
+          "confidence": 0.9051159024238586
+        },
+        {
+          "block_id": "p1_b10",
+          "block_type": "text",
+          "bbox": [
+            2257,
+            3156,
+            2437,
+            3192
+          ],
+          "reading_order": 10,
+          "text": "Page 1of 2",
+          "confidence": 0.9151355028152466
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            135,
+            130,
+            662,
+            298
+          ],
+          "text": "ULINE",
+          "confidence": 0.9970579147338867
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            722,
+            132,
+            1149,
+            183
+          ],
+          "text": "1-800-295-5510",
+          "confidence": 0.9998384118080139
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            1972,
+            143,
+            2272,
+            217
+          ],
+          "text": "INVOICE",
+          "confidence": 0.9985426068305969
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            717,
+            203,
+            933,
+            249
+          ],
+          "text": "uline.com",
+          "confidence": 0.9997122287750244
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            716,
+            256,
+            1490,
+            301
+          ],
+          "text": "PO Box 88741·Chicago, IL 60680-1741",
+          "confidence": 0.9747744798660278
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            1800,
+            287,
+            2317,
+            327
+          ],
+          "text": "ULINE FED ID#: 36-3684738",
+          "confidence": 0.9807330965995789
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            1800,
+            366,
+            2241,
+            406
+          ],
+          "text": "INVOICE #: 126893747",
+          "confidence": 0.9965167045593262
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            119,
+            398,
+            1134,
+            432
+          ],
+          "text": "THANK YOU FOR YOUR ORDER. ULINE CUSTOMER SINCE 2006",
+          "confidence": 0.96531081199646
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            1801,
+            449,
+            2187,
+            487
+          ],
+          "text": "ORDER #: 45811901",
+          "confidence": 0.9955341219902039
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            102,
+            607,
+            285,
+            651
+          ],
+          "text": "SOLD TO:",
+          "confidence": 0.8610726594924927
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            1105,
+            607,
+            1270,
+            652
+          ],
+          "text": "SHIP TO:",
+          "confidence": 0.9598058462142944
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            1363,
+            608,
+            1677,
+            654
+          ],
+          "text": "DOT GRAPHICS",
+          "confidence": 0.9830483794212341
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            339,
+            611,
+            910,
+            651
+          ],
+          "text": "PRINT FULFILLMENT SERVICES",
+          "confidence": 0.9914318323135376
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            339,
+            674,
+            670,
+            715
+          ],
+          "text": "PO BOX 400113",
+          "confidence": 0.9816851019859314
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            1366,
+            674,
+            1877,
+            715
+          ],
+          "text": "4133 WEST PATRICK LANE",
+          "confidence": 0.9455494284629822
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            339,
+            737,
+            891,
+            777
+          ],
+          "text": "LAS VEGAS NV 89140-0113",
+          "confidence": 0.9811872243881226
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            1366,
+            737,
+            1798,
+            778
+          ],
+          "text": "LAS VEGAS NV 89118",
+          "confidence": 0.9865666627883911
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            930,
+            1016,
+            1076,
+            1058
+          ],
+          "text": "SHIP VIA",
+          "confidence": 0.9708216190338135
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            1886,
+            1017,
+            2000,
+            1057
+          ],
+          "text": "TERMS",
+          "confidence": 0.9994609951972961
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            1249,
+            1018,
+            1463,
+            1056
+          ],
+          "text": "ORDER DATE",
+          "confidence": 0.9810392260551453
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            1520,
+            1018,
+            1749,
+            1056
+          ],
+          "text": "DATE SHIPPED",
+          "confidence": 0.9957687854766846
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            2153,
+            1018,
+            2390,
+            1056
+          ],
+          "text": "INVOICE DATE",
+          "confidence": 0.9949614405632019
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            392,
+            1019,
+            771,
+            1056
+          ],
+          "text": "PURCHASE ORDER NO.",
+          "confidence": 0.973796546459198
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            93,
+            1020,
+            353,
+            1054
+          ],
+          "text": "CUSTOMER NO.",
+          "confidence": 0.9906663298606873
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            1549,
+            1089,
+            1726,
+            1139
+          ],
+          "text": "11/19/20",
+          "confidence": 0.9999059438705444
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            1270,
+            1091,
+            1447,
+            1137
+          ],
+          "text": "11/19/20",
+          "confidence": 0.9998698234558105
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            1832,
+            1091,
+            2049,
+            1134
+          ],
+          "text": "NET 30 DAYS",
+          "confidence": 0.9831411838531494
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            2186,
+            1092,
+            2363,
+            1137
+          ],
+          "text": "11/19/20",
+          "confidence": 0.9998907446861267
+        },
+        {
+          "line_id": "p1_l29",
+          "bbox": [
+            137,
+            1093,
+            312,
+            1135
+          ],
+          "text": "2846112",
+          "confidence": 0.9999118447303772
+        },
+        {
+          "line_id": "p1_l30",
+          "bbox": [
+            427,
+            1093,
+            742,
+            1133
+          ],
+          "text": "CAS336127K5B6",
+          "confidence": 0.9992212057113647
+        },
+        {
+          "line_id": "p1_l31",
+          "bbox": [
+            878,
+            1094,
+            1131,
+            1135
+          ],
+          "text": "OAK HARBOR",
+          "confidence": 0.9563020467758179
+        },
+        {
+          "line_id": "p1_l32",
+          "bbox": [
+            143,
+            1154,
+            212,
+            1192
+          ],
+          "text": "QTY",
+          "confidence": 0.9893175959587097
+        },
+        {
+          "line_id": "p1_l33",
+          "bbox": [
+            432,
+            1155,
+            522,
+            1191
+          ],
+          "text": "BACK",
+          "confidence": 0.9990503787994385
+        },
+        {
+          "line_id": "p1_l34",
+          "bbox": [
+            2197,
+            1157,
+            2352,
+            1188
+          ],
+          "text": "EXTENDED",
+          "confidence": 0.9992817640304565
+        },
+        {
+          "line_id": "p1_l35",
+          "bbox": [
+            297,
+            1167,
+            364,
+            1206
+          ],
+          "text": "U/M",
+          "confidence": 0.9986021518707275
+        },
+        {
+          "line_id": "p1_l36",
+          "bbox": [
+            1247,
+            1169,
+            1445,
+            1202
+          ],
+          "text": "DESCRIPTION",
+          "confidence": 0.9994939565658569
+        },
+        {
+          "line_id": "p1_l37",
+          "bbox": [
+            1858,
+            1169,
+            2021,
+            1203
+          ],
+          "text": "UNIT PRICE",
+          "confidence": 0.9952378273010254
+        },
+        {
+          "line_id": "p1_l38",
+          "bbox": [
+            648,
+            1171,
+            848,
+            1202
+          ],
+          "text": "ITEM NUMBER",
+          "confidence": 0.9960697293281555
+        },
+        {
+          "line_id": "p1_l39",
+          "bbox": [
+            404,
+            1190,
+            550,
+            1222
+          ],
+          "text": "ORDERED",
+          "confidence": 0.9988478422164917
+        },
+        {
+          "line_id": "p1_l40",
+          "bbox": [
+            2226,
+            1190,
+            2320,
+            1223
+          ],
+          "text": "PRICE",
+          "confidence": 0.9976663589477539
+        },
+        {
+          "line_id": "p1_l41",
+          "bbox": [
+            105,
+            1191,
+            251,
+            1223
+          ],
+          "text": "ORDERED",
+          "confidence": 0.9992719888687134
+        },
+        {
+          "line_id": "p1_l42",
+          "bbox": [
+            202,
+            1241,
+            265,
+            1291
+          ],
+          "text": "60",
+          "confidence": 0.9998868107795715
+        },
+        {
+          "line_id": "p1_l43",
+          "bbox": [
+            945,
+            1242,
+            1745,
+            1287
+          ],
+          "text": "28 X 22\" JUMBO KRAFT EASY-FOLD MAILERS",
+          "confidence": 0.9571719765663147
+        },
+        {
+          "line_id": "p1_l44",
+          "bbox": [
+            301,
+            1243,
+            361,
+            1289
+          ],
+          "text": "EA",
+          "confidence": 0.9975725412368774
+        },
+        {
+          "line_id": "p1_l45",
+          "bbox": [
+            1995,
+            1243,
+            2090,
+            1288
+          ],
+          "text": "4.03",
+          "confidence": 0.9999411106109619
+        },
+        {
+          "line_id": "p1_l46",
+          "bbox": [
+            601,
+            1244,
+            738,
+            1287
+          ],
+          "text": "S-9857",
+          "confidence": 0.9997721314430237
+        },
+        {
+          "line_id": "p1_l47",
+          "bbox": [
+            2269,
+            1245,
+            2436,
+            1284
+          ],
+          "text": "241.80 T",
+          "confidence": 0.9989033341407776
+        },
+        {
+          "line_id": "p1_l48",
+          "bbox": [
+            178,
+            1301,
+            264,
+            1351
+          ],
+          "text": "500",
+          "confidence": 0.9996067881584167
+        },
+        {
+          "line_id": "p1_l49",
+          "bbox": [
+            301,
+            1303,
+            361,
+            1350
+          ],
+          "text": "EA",
+          "confidence": 0.9982036352157593
+        },
+        {
+          "line_id": "p1_l50",
+          "bbox": [
+            2018,
+            1303,
+            2092,
+            1351
+          ],
+          "text": ".60",
+          "confidence": 0.9998319149017334
+        },
+        {
+          "line_id": "p1_l51",
+          "bbox": [
+            2269,
+            1304,
+            2439,
+            1348
+          ],
+          "text": "300.00 T",
+          "confidence": 0.935994029045105
+        },
+        {
+          "line_id": "p1_l52",
+          "bbox": [
+            600,
+            1305,
+            738,
+            1348
+          ],
+          "text": "S-4954",
+          "confidence": 0.9997919201850891
+        },
+        {
+          "line_id": "p1_l53",
+          "bbox": [
+            946,
+            1305,
+            1699,
+            1347
+          ],
+          "text": "11 1/4 X 8 3/4 X 4\" CORRUGATED BOXES",
+          "confidence": 0.9457465410232544
+        },
+        {
+          "line_id": "p1_l54",
+          "bbox": [
+            178,
+            1363,
+            265,
+            1412
+          ],
+          "text": "500",
+          "confidence": 0.999720573425293
+        },
+        {
+          "line_id": "p1_l55",
+          "bbox": [
+            301,
+            1364,
+            361,
+            1410
+          ],
+          "text": "EA",
+          "confidence": 0.9975759983062744
+        },
+        {
+          "line_id": "p1_l56",
+          "bbox": [
+            2019,
+            1364,
+            2092,
+            1412
+          ],
+          "text": ".65",
+          "confidence": 0.9996328353881836
+        },
+        {
+          "line_id": "p1_l57",
+          "bbox": [
+            2269,
+            1365,
+            2438,
+            1407
+          ],
+          "text": "325.00 T",
+          "confidence": 0.9476430416107178
+        },
+        {
+          "line_id": "p1_l58",
+          "bbox": [
+            600,
+            1366,
+            739,
+            1409
+          ],
+          "text": "S-4609",
+          "confidence": 0.9998064637184143
+        },
+        {
+          "line_id": "p1_l59",
+          "bbox": [
+            947,
+            1367,
+            1699,
+            1407
+          ],
+          "text": "11 1/4 X 8 3/4 X 6\" CORRUGATED BOXES",
+          "confidence": 0.9695881605148315
+        },
+        {
+          "line_id": "p1_l60",
+          "bbox": [
+            2269,
+            1423,
+            2439,
+            1468
+          ],
+          "text": "138.00 T",
+          "confidence": 0.9974708557128906
+        },
+        {
+          "line_id": "p1_l61",
+          "bbox": [
+            179,
+            1425,
+            263,
+            1471
+          ],
+          "text": "300",
+          "confidence": 0.9997167587280273
+        },
+        {
+          "line_id": "p1_l62",
+          "bbox": [
+            301,
+            1425,
+            360,
+            1472
+          ],
+          "text": "EA",
+          "confidence": 0.998217761516571
+        },
+        {
+          "line_id": "p1_l63",
+          "bbox": [
+            2019,
+            1425,
+            2091,
+            1473
+          ],
+          "text": ".46",
+          "confidence": 0.9997823238372803
+        },
+        {
+          "line_id": "p1_l64",
+          "bbox": [
+            600,
+            1427,
+            739,
+            1470
+          ],
+          "text": "S-4362",
+          "confidence": 0.9998531341552734
+        },
+        {
+          "line_id": "p1_l65",
+          "bbox": [
+            947,
+            1429,
+            1533,
+            1466
+          ],
+          "text": "9 X 6X 6\" CORRUGATED BOXES",
+          "confidence": 0.9541952610015869
+        },
+        {
+          "line_id": "p1_l66",
+          "bbox": [
+            157,
+            1485,
+            264,
+            1533
+          ],
+          "text": "1000",
+          "confidence": 0.9998264312744141
+        },
+        {
+          "line_id": "p1_l67",
+          "bbox": [
+            305,
+            1485,
+            354,
+            1534
+          ],
+          "text": "Ｃ",
+          "confidence": 0.8785767555236816
+        },
+        {
+          "line_id": "p1_l68",
+          "bbox": [
+            1972,
+            1486,
+            2091,
+            1533
+          ],
+          "text": "40.00",
+          "confidence": 0.9998781085014343
+        },
+        {
+          "line_id": "p1_l69",
+          "bbox": [
+            2270,
+            1487,
+            2439,
+            1529
+          ],
+          "text": "400.00 T",
+          "confidence": 0.9677106142044067
+        },
+        {
+          "line_id": "p1_l70",
+          "bbox": [
+            600,
+            1488,
+            762,
+            1530
+          ],
+          "text": "S-20997",
+          "confidence": 0.9997894167900085
+        },
+        {
+          "line_id": "p1_l71",
+          "bbox": [
+            946,
+            1489,
+            1677,
+            1529
+          ],
+          "text": "4 X 4 X 3\" KRAFT INDESTRUCTO MAILERS",
+          "confidence": 0.9496214389801025
+        },
+        {
+          "line_id": "p1_l72",
+          "bbox": [
+            305,
+            1545,
+            354,
+            1594
+          ],
+          "text": "Ｃ",
+          "confidence": 0.7681138515472412
+        },
+        {
+          "line_id": "p1_l73",
+          "bbox": [
+            179,
+            1547,
+            263,
+            1593
+          ],
+          "text": "200",
+          "confidence": 0.9998680949211121
+        },
+        {
+          "line_id": "p1_l74",
+          "bbox": [
+            1970,
+            1547,
+            2091,
+            1594
+          ],
+          "text": "97.00",
+          "confidence": 0.9998360872268677
+        },
+        {
+          "line_id": "p1_l75",
+          "bbox": [
+            599,
+            1548,
+            764,
+            1593
+          ],
+          "text": "S-15092",
+          "confidence": 0.999795138835907
+        },
+        {
+          "line_id": "p1_l76",
+          "bbox": [
+            2271,
+            1548,
+            2438,
+            1590
+          ],
+          "text": "194.00 T",
+          "confidence": 0.9982978701591492
+        },
+        {
+          "line_id": "p1_l77",
+          "bbox": [
+            946,
+            1550,
+            1675,
+            1589
+          ],
+          "text": "9 X 6X 2\" WHITE INDESTRUCTO MAILERS",
+          "confidence": 0.9646998643875122
+        },
+        {
+          "line_id": "p1_l78",
+          "bbox": [
+            178,
+            1606,
+            264,
+            1657
+          ],
+          "text": "300",
+          "confidence": 0.9997282028198242
+        },
+        {
+          "line_id": "p1_l79",
+          "bbox": [
+            2017,
+            1606,
+            2092,
+            1658
+          ],
+          "text": ".56",
+          "confidence": 0.9997839331626892
+        },
+        {
+          "line_id": "p1_l80",
+          "bbox": [
+            301,
+            1608,
+            360,
+            1655
+          ],
+          "text": "EA",
+          "confidence": 0.998217761516571
+        },
+        {
+          "line_id": "p1_l81",
+          "bbox": [
+            599,
+            1608,
+            740,
+            1655
+          ],
+          "text": "S-4950",
+          "confidence": 0.9996602535247803
+        },
+        {
+          "line_id": "p1_l82",
+          "bbox": [
+            944,
+            1609,
+            1534,
+            1652
+          ],
+          "text": "9 X 8 X 6\" CORRUGATED BOXES",
+          "confidence": 0.917941689491272
+        },
+        {
+          "line_id": "p1_l83",
+          "bbox": [
+            2270,
+            1609,
+            2438,
+            1652
+          ],
+          "text": "168.00 T",
+          "confidence": 0.99808269739151
+        },
+        {
+          "line_id": "p1_l84",
+          "bbox": [
+            597,
+            1668,
+            764,
+            1717
+          ],
+          "text": "S-13359",
+          "confidence": 0.9998060464859009
+        },
+        {
+          "line_id": "p1_l85",
+          "bbox": [
+            178,
+            1669,
+            264,
+            1719
+          ],
+          "text": "200",
+          "confidence": 0.9997570514678955
+        },
+        {
+          "line_id": "p1_l86",
+          "bbox": [
+            305,
+            1670,
+            354,
+            1719
+          ],
+          "text": "Ｃ",
+          "confidence": 0.8835588097572327
+        },
+        {
+          "line_id": "p1_l87",
+          "bbox": [
+            1972,
+            1670,
+            2091,
+            1717
+          ],
+          "text": "75.00",
+          "confidence": 0.9998375177383423
+        },
+        {
+          "line_id": "p1_l88",
+          "bbox": [
+            2270,
+            1672,
+            2438,
+            1714
+          ],
+          "text": "150.00 T",
+          "confidence": 0.996680498123169
+        },
+        {
+          "line_id": "p1_l89",
+          "bbox": [
+            946,
+            1673,
+            1676,
+            1713
+          ],
+          "text": "6 X 5 X 2\" WHITE INDESTRUCTO MAILERS",
+          "confidence": 0.9416725635528564
+        },
+        {
+          "line_id": "p1_l90",
+          "bbox": [
+            177,
+            1728,
+            264,
+            1781
+          ],
+          "text": "500",
+          "confidence": 0.9996258616447449
+        },
+        {
+          "line_id": "p1_l91",
+          "bbox": [
+            597,
+            1730,
+            740,
+            1779
+          ],
+          "text": "S-4630",
+          "confidence": 0.9997629523277283
+        },
+        {
+          "line_id": "p1_l92",
+          "bbox": [
+            2019,
+            1731,
+            2091,
+            1779
+          ],
+          "text": ".96",
+          "confidence": 0.9996716380119324
+        },
+        {
+          "line_id": "p1_l93",
+          "bbox": [
+            301,
+            1732,
+            360,
+            1778
+          ],
+          "text": "EA",
+          "confidence": 0.9979642629623413
+        },
+        {
+          "line_id": "p1_l94",
+          "bbox": [
+            2270,
+            1733,
+            2439,
+            1775
+          ],
+          "text": "480.00 T",
+          "confidence": 0.9865728616714478
+        },
+        {
+          "line_id": "p1_l95",
+          "bbox": [
+            948,
+            1736,
+            1558,
+            1773
+          ],
+          "text": "17 X 9 X 9\" CORRUGATED BOXES",
+          "confidence": 0.9270809292793274
+        },
+        {
+          "line_id": "p1_l96",
+          "bbox": [
+            177,
+            1791,
+            265,
+            1841
+          ],
+          "text": "500",
+          "confidence": 0.9997031092643738
+        },
+        {
+          "line_id": "p1_l97",
+          "bbox": [
+            1995,
+            1792,
+            2091,
+            1840
+          ],
+          "text": "1.63",
+          "confidence": 0.9998859763145447
+        },
+        {
+          "line_id": "p1_l98",
+          "bbox": [
+            301,
+            1793,
+            360,
+            1839
+          ],
+          "text": "EA",
+          "confidence": 0.9979642629623413
+        },
+        {
+          "line_id": "p1_l99",
+          "bbox": [
+            599,
+            1793,
+            764,
+            1838
+          ],
+          "text": "S-20484",
+          "confidence": 0.9997515082359314
+        },
+        {
+          "line_id": "p1_l100",
+          "bbox": [
+            2269,
+            1794,
+            2439,
+            1836
+          ],
+          "text": "815.00 T",
+          "confidence": 0.9363293647766113
+        },
+        {
+          "line_id": "p1_l101",
+          "bbox": [
+            947,
+            1795,
+            1606,
+            1835
+          ],
+          "text": "17 X 14 X 14\" CORRUGATED BOXES",
+          "confidence": 0.9507657885551453
+        },
+        {
+          "line_id": "p1_l102",
+          "bbox": [
+            226,
+            1853,
+            264,
+            1900
+          ],
+          "text": "2",
+          "confidence": 0.999056875705719
+        },
+        {
+          "line_id": "p1_l103",
+          "bbox": [
+            300,
+            1853,
+            360,
+            1900
+          ],
+          "text": "CT",
+          "confidence": 0.9975490570068359
+        },
+        {
+          "line_id": "p1_l104",
+          "bbox": [
+            599,
+            1854,
+            764,
+            1899
+          ],
+          "text": "S-18293",
+          "confidence": 0.9997955560684204
+        },
+        {
+          "line_id": "p1_l105",
+          "bbox": [
+            1950,
+            1854,
+            2090,
+            1900
+          ],
+          "text": "100.00",
+          "confidence": 0.9999549984931946
+        },
+        {
+          "line_id": "p1_l106",
+          "bbox": [
+            2269,
+            1855,
+            2439,
+            1897
+          ],
+          "text": "200.00 T",
+          "confidence": 0.9391130208969116
+        },
+        {
+          "line_id": "p1_l107",
+          "bbox": [
+            947,
+            1858,
+            1747,
+            1895
+          ],
+          "text": "REVERSE TUCKCARTONS - KRAFT, 3 X 2X 4\"",
+          "confidence": 0.9231684803962708
+        },
+        {
+          "line_id": "p1_l108",
+          "bbox": [
+            304,
+            1912,
+            354,
+            1963
+          ],
+          "text": "C",
+          "confidence": 0.5707079768180847
+        },
+        {
+          "line_id": "p1_l109",
+          "bbox": [
+            177,
+            1913,
+            265,
+            1962
+          ],
+          "text": "200",
+          "confidence": 0.9998839497566223
+        },
+        {
+          "line_id": "p1_l110",
+          "bbox": [
+            599,
+            1915,
+            764,
+            1960
+          ],
+          "text": "S-22114",
+          "confidence": 0.9997445344924927
+        },
+        {
+          "line_id": "p1_l111",
+          "bbox": [
+            1952,
+            1916,
+            2089,
+            1959
+          ],
+          "text": "133.00",
+          "confidence": 0.9999189972877502
+        },
+        {
+          "line_id": "p1_l112",
+          "bbox": [
+            2269,
+            1916,
+            2439,
+            1958
+          ],
+          "text": "266.00 T",
+          "confidence": 0.9642575979232788
+        },
+        {
+          "line_id": "p1_l113",
+          "bbox": [
+            948,
+            1919,
+            1699,
+            1956
+          ],
+          "text": "16 X 4 X 4\" KRAFT INDESTRUCTO MAILERS",
+          "confidence": 0.9401517510414124
+        },
+        {
+          "line_id": "p1_l114",
+          "bbox": [
+            305,
+            1974,
+            352,
+            2022
+          ],
+          "text": "C",
+          "confidence": 0.9583579897880554
+        },
+        {
+          "line_id": "p1_l115",
+          "bbox": [
+            179,
+            1975,
+            263,
+            2022
+          ],
+          "text": "500",
+          "confidence": 0.9997580647468567
+        },
+        {
+          "line_id": "p1_l116",
+          "bbox": [
+            1970,
+            1975,
+            2091,
+            2022
+          ],
+          "text": "93.00",
+          "confidence": 0.9998804330825806
+        },
+        {
+          "line_id": "p1_l117",
+          "bbox": [
+            599,
+            1976,
+            764,
+            2021
+          ],
+          "text": "S-16529",
+          "confidence": 0.9997626543045044
+        },
+        {
+          "line_id": "p1_l118",
+          "bbox": [
+            2270,
+            1977,
+            2439,
+            2019
+          ],
+          "text": "465.00 T",
+          "confidence": 0.9884569644927979
+        },
+        {
+          "line_id": "p1_l119",
+          "bbox": [
+            948,
+            1980,
+            1676,
+            2017
+          ],
+          "text": "8 X 7 X 2\" WHITE INDESTRUCTO MAILERS",
+          "confidence": 0.932519793510437
+        },
+        {
+          "line_id": "p1_l120",
+          "bbox": [
+            179,
+            2036,
+            263,
+            2083
+          ],
+          "text": "500",
+          "confidence": 0.9997580647468567
+        },
+        {
+          "line_id": "p1_l121",
+          "bbox": [
+            301,
+            2036,
+            360,
+            2083
+          ],
+          "text": "EA",
+          "confidence": 0.998217761516571
+        },
+        {
+          "line_id": "p1_l122",
+          "bbox": [
+            598,
+            2036,
+            760,
+            2081
+          ],
+          "text": "S-12591",
+          "confidence": 0.9996438026428223
+        },
+        {
+          "line_id": "p1_l123",
+          "bbox": [
+            2019,
+            2036,
+            2092,
+            2084
+          ],
+          "text": ".72",
+          "confidence": 0.9992260932922363
+        },
+        {
+          "line_id": "p1_l124",
+          "bbox": [
+            2268,
+            2036,
+            2439,
+            2081
+          ],
+          "text": "360.00 T",
+          "confidence": 0.9933406114578247
+        },
+        {
+          "line_id": "p1_l125",
+          "bbox": [
+            948,
+            2041,
+            1698,
+            2078
+          ],
+          "text": "11 1/4 X 8 3/4 X 8\" CORRUGATED BOXES",
+          "confidence": 0.9508610963821411
+        },
+        {
+          "line_id": "p1_l126",
+          "bbox": [
+            304,
+            2095,
+            355,
+            2145
+          ],
+          "text": "Ｃ",
+          "confidence": 0.6529337167739868
+        },
+        {
+          "line_id": "p1_l127",
+          "bbox": [
+            157,
+            2096,
+            264,
+            2144
+          ],
+          "text": "1000",
+          "confidence": 0.9998264312744141
+        },
+        {
+          "line_id": "p1_l128",
+          "bbox": [
+            2266,
+            2096,
+            2441,
+            2144
+          ],
+          "text": "510.00 T",
+          "confidence": 0.9960055351257324
+        },
+        {
+          "line_id": "p1_l129",
+          "bbox": [
+            599,
+            2097,
+            764,
+            2143
+          ],
+          "text": "S-18960",
+          "confidence": 0.999864399433136
+        },
+        {
+          "line_id": "p1_l130",
+          "bbox": [
+            1970,
+            2097,
+            2092,
+            2144
+          ],
+          "text": "51.00",
+          "confidence": 0.999772846698761
+        },
+        {
+          "line_id": "p1_l131",
+          "bbox": [
+            946,
+            2100,
+            1675,
+            2139
+          ],
+          "text": "8 X 4 X 3\" KRAFT INDESTRUCTO MAILERS",
+          "confidence": 0.9468814134597778
+        },
+        {
+          "line_id": "p1_l132",
+          "bbox": [
+            966,
+            2660,
+            1587,
+            2711
+          ],
+          "text": "CONTINUED ON NEXT PAGE",
+          "confidence": 0.8464002013206482
+        },
+        {
+          "line_id": "p1_l133",
+          "bbox": [
+            2256,
+            3154,
+            2446,
+            3198
+          ],
+          "text": "Page 1of 2",
+          "confidence": 0.9219764471054077
+        }
+      ]
+    },
+    {
+      "page_number": 2,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p2_b1",
+          "block_type": "header",
+          "bbox": [
+            108,
+            110,
+            674,
+            310
+          ],
+          "reading_order": 1,
+          "text": "ULINE",
+          "confidence": 0.8568809032440186
+        },
+        {
+          "block_id": "p2_b2",
+          "block_type": "header",
+          "bbox": [
+            715,
+            129,
+            1484,
+            298
+          ],
+          "reading_order": 2,
+          "text": "1-800-295-5510 uline.com PO Box 88741·Chicago, IL 60680-1741",
+          "confidence": 0.9006372094154358
+        },
+        {
+          "block_id": "p2_b3",
+          "block_type": "header",
+          "bbox": [
+            1975,
+            143,
+            2263,
+            212
+          ],
+          "reading_order": 3,
+          "text": "INVOICE",
+          "confidence": 0.5239647626876831
+        },
+        {
+          "block_id": "p2_b4",
+          "block_type": "text",
+          "bbox": [
+            1793,
+            281,
+            2316,
+            484
+          ],
+          "reading_order": 4,
+          "text": "ULINE FED ID#: 36-3684738 INVOICE #: 126893747 ORDER #: 45811901",
+          "confidence": 0.7699546813964844
+        },
+        {
+          "block_id": "p2_b5",
+          "block_type": "header",
+          "bbox": [
+            113,
+            389,
+            1131,
+            429
+          ],
+          "reading_order": 5,
+          "text": "THANK YOU FOR YOUR ORDER. ULINE CUSTOMER SINCE 2006",
+          "confidence": 0.6589703559875488
+        },
+        {
+          "block_id": "p2_b6",
+          "block_type": "text",
+          "bbox": [
+            103,
+            602,
+            906,
+            776
+          ],
+          "reading_order": 6,
+          "text": "SOLD TO: PRINT FULFILLMENT SERVICES PO BOX 400113 LAS VEGAS NV 89140-0113",
+          "confidence": 0.7612848877906799
+        },
+        {
+          "block_id": "p2_b7",
+          "block_type": "text",
+          "bbox": [
+            1105,
+            603,
+            1876,
+            776
+          ],
+          "reading_order": 7,
+          "text": "SHIP TO: DOT GRAPHICS 4133 WEST PATRICK LANE LAS VEGAS NV 89118",
+          "confidence": 0.4920942187309265
+        },
+        {
+          "block_id": "p2_b8",
+          "block_type": "table",
+          "bbox": [
+            63,
+            992,
+            2441,
+            2355
+          ],
+          "reading_order": 8,
+          "text": "",
+          "confidence": 0.9366884231567383
+        },
+        {
+          "block_id": "p2_b9",
+          "block_type": "table",
+          "bbox": [
+            58,
+            2415,
+            2436,
+            2652
+          ],
+          "reading_order": 9,
+          "text": "",
+          "confidence": 0.9151558876037598
+        },
+        {
+          "block_id": "p2_b10",
+          "block_type": "text",
+          "bbox": [
+            59,
+            2420,
+            360,
+            2658
+          ],
+          "reading_order": 10,
+          "text": "PLEASE PAY FROM THIS INVOICE REFER TO THIS INVOICE NUMBER WHEN CONTACTING US REGARDING THIS TRANSACTION",
+          "confidence": 0.7554692625999451
+        },
+        {
+          "block_id": "p2_b11",
+          "block_type": "text",
+          "bbox": [
+            1598,
+            2677,
+            2079,
+            2802
+          ],
+          "reading_order": 11,
+          "text": "AMOUNT ENCLOSED $ IF DIFFERENT THAN AMOUNT DUE EXPLAIN DIFFERENCES ON REVERSE SIDE",
+          "confidence": 0.5733146667480469
+        },
+        {
+          "block_id": "p2_b12",
+          "block_type": "text",
+          "bbox": [
+            1619,
+            2841,
+            2400,
+            2928
+          ],
+          "reading_order": 12,
+          "text": "IMPORTANT – PLEASE DETACH AND RETURN THIS PORTION TO INSURE PROPER CREDIT",
+          "confidence": 0.8731947541236877
+        },
+        {
+          "block_id": "p2_b13",
+          "block_type": "text",
+          "bbox": [
+            851,
+            2898,
+            1460,
+            3107
+          ],
+          "reading_order": 13,
+          "text": "ULINE ATTN: ACCOUNTS RECEIVABLE PO Box 88741 Chicago IL 60680-1741",
+          "confidence": 0.9039443135261536
+        },
+        {
+          "block_id": "p2_b14",
+          "block_type": "text",
+          "bbox": [
+            411,
+            2899,
+            569,
+            2988
+          ],
+          "reading_order": 14,
+          "text": "MAKE CHECK PAYABLE AND MAIL TO:",
+          "confidence": 0.8905702233314514
+        },
+        {
+          "block_id": "p2_b15",
+          "block_type": "text",
+          "bbox": [
+            2257,
+            3157,
+            2437,
+            3192
+          ],
+          "reading_order": 15,
+          "text": "Page 2 of 2",
+          "confidence": 0.8996186256408691
+        },
+        {
+          "block_id": "p2_b16",
+          "block_type": "footer",
+          "bbox": [
+            190,
+            3164,
+            1002,
+            3200
+          ],
+          "reading_order": 16,
+          "text": "0284611201268937472011190006281209",
+          "confidence": 0.9392486214637756
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p2_l1",
+          "bbox": [
+            135,
+            130,
+            662,
+            298
+          ],
+          "text": "ULINE",
+          "confidence": 0.9970579147338867
+        },
+        {
+          "line_id": "p2_l2",
+          "bbox": [
+            722,
+            132,
+            1149,
+            183
+          ],
+          "text": "1-800-295-5510",
+          "confidence": 0.9998034834861755
+        },
+        {
+          "line_id": "p2_l3",
+          "bbox": [
+            1972,
+            143,
+            2272,
+            217
+          ],
+          "text": "INVOICE",
+          "confidence": 0.9985426068305969
+        },
+        {
+          "line_id": "p2_l4",
+          "bbox": [
+            717,
+            203,
+            933,
+            249
+          ],
+          "text": "uline.com",
+          "confidence": 0.9997122287750244
+        },
+        {
+          "line_id": "p2_l5",
+          "bbox": [
+            716,
+            256,
+            1490,
+            301
+          ],
+          "text": "PO Box 88741·Chicago, IL 60680-1741",
+          "confidence": 0.9716410040855408
+        },
+        {
+          "line_id": "p2_l6",
+          "bbox": [
+            1800,
+            287,
+            2317,
+            327
+          ],
+          "text": "ULINE FED ID#: 36-3684738",
+          "confidence": 0.9651998281478882
+        },
+        {
+          "line_id": "p2_l7",
+          "bbox": [
+            1800,
+            366,
+            2241,
+            406
+          ],
+          "text": "INVOICE #: 126893747",
+          "confidence": 0.9964844584465027
+        },
+        {
+          "line_id": "p2_l8",
+          "bbox": [
+            119,
+            398,
+            1134,
+            432
+          ],
+          "text": "THANK YOU FOR YOUR ORDER. ULINE CUSTOMER SINCE 2006",
+          "confidence": 0.96531081199646
+        },
+        {
+          "line_id": "p2_l9",
+          "bbox": [
+            1801,
+            449,
+            2187,
+            487
+          ],
+          "text": "ORDER #: 45811901",
+          "confidence": 0.995501697063446
+        },
+        {
+          "line_id": "p2_l10",
+          "bbox": [
+            102,
+            607,
+            285,
+            651
+          ],
+          "text": "SOLD TO:",
+          "confidence": 0.8610726594924927
+        },
+        {
+          "line_id": "p2_l11",
+          "bbox": [
+            1105,
+            607,
+            1270,
+            652
+          ],
+          "text": "SHIP TO:",
+          "confidence": 0.9598058462142944
+        },
+        {
+          "line_id": "p2_l12",
+          "bbox": [
+            1363,
+            608,
+            1677,
+            654
+          ],
+          "text": "DOT GRAPHICS",
+          "confidence": 0.9810833930969238
+        },
+        {
+          "line_id": "p2_l13",
+          "bbox": [
+            339,
+            611,
+            910,
+            651
+          ],
+          "text": "PRINT FULFILLMENT SERVICES",
+          "confidence": 0.9906584620475769
+        },
+        {
+          "line_id": "p2_l14",
+          "bbox": [
+            339,
+            674,
+            670,
+            715
+          ],
+          "text": "PO BOX 400113",
+          "confidence": 0.9887920022010803
+        },
+        {
+          "line_id": "p2_l15",
+          "bbox": [
+            1366,
+            674,
+            1877,
+            715
+          ],
+          "text": "4133 WEST PATRICK LANE",
+          "confidence": 0.9508750438690186
+        },
+        {
+          "line_id": "p2_l16",
+          "bbox": [
+            339,
+            737,
+            891,
+            777
+          ],
+          "text": "LAS VEGAS NV 89140-0113",
+          "confidence": 0.9843316078186035
+        },
+        {
+          "line_id": "p2_l17",
+          "bbox": [
+            1366,
+            737,
+            1798,
+            778
+          ],
+          "text": "LAS VEGAS NV 89118",
+          "confidence": 0.9860297441482544
+        },
+        {
+          "line_id": "p2_l18",
+          "bbox": [
+            930,
+            1016,
+            1076,
+            1058
+          ],
+          "text": "SHIP VIA",
+          "confidence": 0.9708216190338135
+        },
+        {
+          "line_id": "p2_l19",
+          "bbox": [
+            1886,
+            1017,
+            2000,
+            1057
+          ],
+          "text": "TERMS",
+          "confidence": 0.9994609951972961
+        },
+        {
+          "line_id": "p2_l20",
+          "bbox": [
+            1250,
+            1018,
+            1463,
+            1056
+          ],
+          "text": "ORDER DATE",
+          "confidence": 0.9892416000366211
+        },
+        {
+          "line_id": "p2_l21",
+          "bbox": [
+            1520,
+            1018,
+            1750,
+            1056
+          ],
+          "text": "DATE SHIPPED",
+          "confidence": 0.9619637131690979
+        },
+        {
+          "line_id": "p2_l22",
+          "bbox": [
+            2153,
+            1018,
+            2390,
+            1056
+          ],
+          "text": "INVOICE DATE",
+          "confidence": 0.9956499934196472
+        },
+        {
+          "line_id": "p2_l23",
+          "bbox": [
+            392,
+            1019,
+            771,
+            1056
+          ],
+          "text": "PURCHASE ORDER NO.",
+          "confidence": 0.9683850407600403
+        },
+        {
+          "line_id": "p2_l24",
+          "bbox": [
+            93,
+            1020,
+            353,
+            1054
+          ],
+          "text": "CUSTOMER NO.",
+          "confidence": 0.9895578026771545
+        },
+        {
+          "line_id": "p2_l25",
+          "bbox": [
+            1549,
+            1090,
+            1727,
+            1139
+          ],
+          "text": "11/19/20",
+          "confidence": 0.9999018907546997
+        },
+        {
+          "line_id": "p2_l26",
+          "bbox": [
+            2184,
+            1090,
+            2364,
+            1139
+          ],
+          "text": "11/19/20",
+          "confidence": 0.9998774528503418
+        },
+        {
+          "line_id": "p2_l27",
+          "bbox": [
+            1270,
+            1092,
+            1446,
+            1137
+          ],
+          "text": "11/19/20",
+          "confidence": 0.9998931884765625
+        },
+        {
+          "line_id": "p2_l28",
+          "bbox": [
+            1833,
+            1092,
+            2049,
+            1133
+          ],
+          "text": "NET 30 DAYS",
+          "confidence": 0.9566349387168884
+        },
+        {
+          "line_id": "p2_l29",
+          "bbox": [
+            137,
+            1093,
+            311,
+            1135
+          ],
+          "text": "2846112",
+          "confidence": 0.9999197721481323
+        },
+        {
+          "line_id": "p2_l30",
+          "bbox": [
+            426,
+            1093,
+            742,
+            1133
+          ],
+          "text": "CAS336127K5B6",
+          "confidence": 0.99964439868927
+        },
+        {
+          "line_id": "p2_l31",
+          "bbox": [
+            878,
+            1093,
+            1131,
+            1134
+          ],
+          "text": "OAK HARBOR",
+          "confidence": 0.9564279317855835
+        },
+        {
+          "line_id": "p2_l32",
+          "bbox": [
+            143,
+            1154,
+            212,
+            1192
+          ],
+          "text": "QTY",
+          "confidence": 0.9893175959587097
+        },
+        {
+          "line_id": "p2_l33",
+          "bbox": [
+            432,
+            1155,
+            522,
+            1191
+          ],
+          "text": "BACK",
+          "confidence": 0.9990503787994385
+        },
+        {
+          "line_id": "p2_l34",
+          "bbox": [
+            2196,
+            1156,
+            2354,
+            1190
+          ],
+          "text": "EXTENDED",
+          "confidence": 0.9992721676826477
+        },
+        {
+          "line_id": "p2_l35",
+          "bbox": [
+            296,
+            1166,
+            365,
+            1208
+          ],
+          "text": "U/M",
+          "confidence": 0.9977150559425354
+        },
+        {
+          "line_id": "p2_l36",
+          "bbox": [
+            1858,
+            1169,
+            2021,
+            1204
+          ],
+          "text": "UNIT PRICE",
+          "confidence": 0.9865280985832214
+        },
+        {
+          "line_id": "p2_l37",
+          "bbox": [
+            1248,
+            1171,
+            1444,
+            1202
+          ],
+          "text": "DESCRIPTION",
+          "confidence": 0.9997804164886475
+        },
+        {
+          "line_id": "p2_l38",
+          "bbox": [
+            649,
+            1173,
+            847,
+            1201
+          ],
+          "text": "ITEM NUMBER",
+          "confidence": 0.9866050481796265
+        },
+        {
+          "line_id": "p2_l39",
+          "bbox": [
+            2225,
+            1189,
+            2321,
+            1225
+          ],
+          "text": "PRICE",
+          "confidence": 0.9983168840408325
+        },
+        {
+          "line_id": "p2_l40",
+          "bbox": [
+            105,
+            1190,
+            250,
+            1222
+          ],
+          "text": "ORDERED",
+          "confidence": 0.9989370107650757
+        },
+        {
+          "line_id": "p2_l41",
+          "bbox": [
+            404,
+            1191,
+            550,
+            1223
+          ],
+          "text": "ORDERED",
+          "confidence": 0.998867928981781
+        },
+        {
+          "line_id": "p2_l42",
+          "bbox": [
+            294,
+            1235,
+            359,
+            1286
+          ],
+          "text": "CT",
+          "confidence": 0.9956036806106567
+        },
+        {
+          "line_id": "p2_l43",
+          "bbox": [
+            222,
+            1237,
+            260,
+            1284
+          ],
+          "text": "3",
+          "confidence": 0.9995419979095459
+        },
+        {
+          "line_id": "p2_l44",
+          "bbox": [
+            1943,
+            1237,
+            2085,
+            1283
+          ],
+          "text": "113.00",
+          "confidence": 0.9998963475227356
+        },
+        {
+          "line_id": "p2_l45",
+          "bbox": [
+            594,
+            1238,
+            733,
+            1284
+          ],
+          "text": "S-8376",
+          "confidence": 0.9997923374176025
+        },
+        {
+          "line_id": "p2_l46",
+          "bbox": [
+            2264,
+            1238,
+            2436,
+            1283
+          ],
+          "text": "339.00 T",
+          "confidence": 0.9973059892654419
+        },
+        {
+          "line_id": "p2_l47",
+          "bbox": [
+            938,
+            1239,
+            1718,
+            1281
+          ],
+          "text": "FANFOLDED DIRECT THERMAL LABELS - 4X",
+          "confidence": 0.9381989240646362
+        },
+        {
+          "line_id": "p2_l48",
+          "bbox": [
+            937,
+            1289,
+            990,
+            1337
+          ],
+          "text": "6\"",
+          "confidence": 0.7382606267929077
+        },
+        {
+          "line_id": "p2_l49",
+          "bbox": [
+            1989,
+            1348,
+            2086,
+            1399
+          ],
+          "text": "1.48",
+          "confidence": 0.9998863339424133
+        },
+        {
+          "line_id": "p2_l50",
+          "bbox": [
+            174,
+            1349,
+            259,
+            1399
+          ],
+          "text": "300",
+          "confidence": 0.9995598793029785
+        },
+        {
+          "line_id": "p2_l51",
+          "bbox": [
+            296,
+            1351,
+            356,
+            1397
+          ],
+          "text": "EA",
+          "confidence": 0.9974359273910522
+        },
+        {
+          "line_id": "p2_l52",
+          "bbox": [
+            2264,
+            1351,
+            2435,
+            1396
+          ],
+          "text": "444.00 T",
+          "confidence": 0.9976948499679565
+        },
+        {
+          "line_id": "p2_l53",
+          "bbox": [
+            596,
+            1352,
+            733,
+            1395
+          ],
+          "text": "S-8108",
+          "confidence": 0.9997467994689941
+        },
+        {
+          "line_id": "p2_l54",
+          "bbox": [
+            940,
+            1354,
+            1475,
+            1394
+          ],
+          "text": "TRIANGLE TUBES - 3 X 24 1/4\"",
+          "confidence": 0.9665527939796448
+        },
+        {
+          "line_id": "p2_l55",
+          "bbox": [
+            937,
+            1410,
+            1524,
+            1456
+          ],
+          "text": "SONY® WIRELESS HEADPHONES",
+          "confidence": 0.979981005191803
+        },
+        {
+          "line_id": "p2_l56",
+          "bbox": [
+            2335,
+            1410,
+            2410,
+            1460
+          ],
+          "text": ".00",
+          "confidence": 0.999553918838501
+        },
+        {
+          "line_id": "p2_l57",
+          "bbox": [
+            2013,
+            1411,
+            2087,
+            1459
+          ],
+          "text": ".00",
+          "confidence": 0.99954754114151
+        },
+        {
+          "line_id": "p2_l58",
+          "bbox": [
+            297,
+            1412,
+            356,
+            1458
+          ],
+          "text": "EA",
+          "confidence": 0.9979726076126099
+        },
+        {
+          "line_id": "p2_l59",
+          "bbox": [
+            596,
+            1414,
+            757,
+            1456
+          ],
+          "text": "S-22542",
+          "confidence": 0.9998356103897095
+        },
+        {
+          "line_id": "p2_l60",
+          "bbox": [
+            228,
+            1416,
+            252,
+            1455
+          ],
+          "text": "1",
+          "confidence": 0.997819185256958
+        },
+        {
+          "line_id": "p2_l61",
+          "bbox": [
+            987,
+            1468,
+            1453,
+            1505
+          ],
+          "text": "THIS ITEM AT NO CHARGE",
+          "confidence": 0.9805601239204407
+        },
+        {
+          "line_id": "p2_l62",
+          "bbox": [
+            940,
+            1569,
+            1452,
+            1609
+          ],
+          "text": "'T' DENOTES A TAXABLE LINE.",
+          "confidence": 0.930172860622406
+        },
+        {
+          "line_id": "p2_l63",
+          "bbox": [
+            70,
+            2237,
+            710,
+            2270
+          ],
+          "text": "ORDER PLACED BY: KSENIA CHTCHEVELEVA",
+          "confidence": 0.9666416645050049
+        },
+        {
+          "line_id": "p2_l64",
+          "bbox": [
+            891,
+            2247,
+            1051,
+            2285
+          ],
+          "text": "SUB-TOTAL",
+          "confidence": 0.9980131983757019
+        },
+        {
+          "line_id": "p2_l65",
+          "bbox": [
+            1271,
+            2249,
+            1424,
+            2283
+          ],
+          "text": "SALES TAX",
+          "confidence": 0.9907625913619995
+        },
+        {
+          "line_id": "p2_l66",
+          "bbox": [
+            2087,
+            2249,
+            2290,
+            2283
+          ],
+          "text": "AMOUNT DUE",
+          "confidence": 0.9898564219474792
+        },
+        {
+          "line_id": "p2_l67",
+          "bbox": [
+            1576,
+            2251,
+            1879,
+            2282
+          ],
+          "text": "SHIPPING/HANDLING",
+          "confidence": 0.9996022582054138
+        },
+        {
+          "line_id": "p2_l68",
+          "bbox": [
+            69,
+            2280,
+            205,
+            2312
+          ],
+          "text": "INTERNET",
+          "confidence": 0.9995079636573792
+        },
+        {
+          "line_id": "p2_l69",
+          "bbox": [
+            248,
+            2281,
+            518,
+            2313
+          ],
+          "text": "PRO #: 83527251",
+          "confidence": 0.9926465749740601
+        },
+        {
+          "line_id": "p2_l70",
+          "bbox": [
+            1688,
+            2290,
+            1761,
+            2339
+          ],
+          "text": ".00",
+          "confidence": 0.9995184540748596
+        },
+        {
+          "line_id": "p2_l71",
+          "bbox": [
+            881,
+            2292,
+            1059,
+            2339
+          ],
+          "text": "5,795.80",
+          "confidence": 0.9949108362197876
+        },
+        {
+          "line_id": "p2_l72",
+          "bbox": [
+            2100,
+            2292,
+            2278,
+            2338
+          ],
+          "text": "6,281.20",
+          "confidence": 0.9989528656005859
+        },
+        {
+          "line_id": "p2_l73",
+          "bbox": [
+            1278,
+            2293,
+            1417,
+            2336
+          ],
+          "text": "485.40",
+          "confidence": 0.999893844127655
+        },
+        {
+          "line_id": "p2_l74",
+          "bbox": [
+            65,
+            2425,
+            333,
+            2455
+          ],
+          "text": "PLEASE PAY FROM",
+          "confidence": 0.9620954990386963
+        },
+        {
+          "line_id": "p2_l75",
+          "bbox": [
+            1250,
+            2432,
+            1416,
+            2463
+          ],
+          "text": "CUSTOMER",
+          "confidence": 0.9996461868286133
+        },
+        {
+          "line_id": "p2_l76",
+          "bbox": [
+            648,
+            2453,
+            910,
+            2484
+          ],
+          "text": "CUSTOMER NAME",
+          "confidence": 0.982139527797699
+        },
+        {
+          "line_id": "p2_l77",
+          "bbox": [
+            1870,
+            2453,
+            2077,
+            2483
+          ],
+          "text": "INVOICE DATE",
+          "confidence": 0.9815521836280823
+        },
+        {
+          "line_id": "p2_l78",
+          "bbox": [
+            2178,
+            2453,
+            2379,
+            2484
+          ],
+          "text": "AMOUNT DUE",
+          "confidence": 0.9963586926460266
+        },
+        {
+          "line_id": "p2_l79",
+          "bbox": [
+            1525,
+            2455,
+            1781,
+            2482
+          ],
+          "text": "INVOICE NUMBER",
+          "confidence": 0.978879451751709
+        },
+        {
+          "line_id": "p2_l80",
+          "bbox": [
+            64,
+            2459,
+            266,
+            2490
+          ],
+          "text": "THIS INVOICE",
+          "confidence": 0.9962752461433411
+        },
+        {
+          "line_id": "p2_l81",
+          "bbox": [
+            1269,
+            2474,
+            1398,
+            2505
+          ],
+          "text": "NUMBER",
+          "confidence": 0.9993768334388733
+        },
+        {
+          "line_id": "p2_l82",
+          "bbox": [
+            64,
+            2491,
+            272,
+            2525
+          ],
+          "text": "REFER TO THIS",
+          "confidence": 0.9869083762168884
+        },
+        {
+          "line_id": "p2_l83",
+          "bbox": [
+            65,
+            2527,
+            325,
+            2557
+          ],
+          "text": "INVOICE NUMBER",
+          "confidence": 0.9961270689964294
+        },
+        {
+          "line_id": "p2_l84",
+          "bbox": [
+            2186,
+            2553,
+            2368,
+            2604
+          ],
+          "text": "6,281.20",
+          "confidence": 0.9960119724273682
+        },
+        {
+          "line_id": "p2_l85",
+          "bbox": [
+            405,
+            2557,
+            929,
+            2600
+          ],
+          "text": "PRINT FULFILLMENT SERVICES",
+          "confidence": 0.9874560832977295
+        },
+        {
+          "line_id": "p2_l86",
+          "bbox": [
+            1244,
+            2557,
+            1420,
+            2599
+          ],
+          "text": "2846112",
+          "confidence": 0.9998629689216614
+        },
+        {
+          "line_id": "p2_l87",
+          "bbox": [
+            1886,
+            2558,
+            2059,
+            2600
+          ],
+          "text": "11/19/20",
+          "confidence": 0.9999339580535889
+        },
+        {
+          "line_id": "p2_l88",
+          "bbox": [
+            1548,
+            2559,
+            1765,
+            2597
+          ],
+          "text": "126893747",
+          "confidence": 0.9999436140060425
+        },
+        {
+          "line_id": "p2_l89",
+          "bbox": [
+            64,
+            2561,
+            367,
+            2591
+          ],
+          "text": "WHEN CONTACTING",
+          "confidence": 0.9681769013404846
+        },
+        {
+          "line_id": "p2_l90",
+          "bbox": [
+            65,
+            2595,
+            292,
+            2625
+          ],
+          "text": "US REGARDING",
+          "confidence": 0.9962007403373718
+        },
+        {
+          "line_id": "p2_l91",
+          "bbox": [
+            67,
+            2631,
+            338,
+            2658
+          ],
+          "text": "THIS TRANSACTION",
+          "confidence": 0.9671951532363892
+        },
+        {
+          "line_id": "p2_l92",
+          "bbox": [
+            1609,
+            2685,
+            1945,
+            2716
+          ],
+          "text": "AMOUNT ENCLOSED",
+          "confidence": 0.9688913822174072
+        },
+        {
+          "line_id": "p2_l93",
+          "bbox": [
+            2059,
+            2711,
+            2088,
+            2753
+          ],
+          "text": "$",
+          "confidence": 0.9394165873527527
+        },
+        {
+          "line_id": "p2_l94",
+          "bbox": [
+            1606,
+            2728,
+            2027,
+            2758
+          ],
+          "text": "IF DIFFERENT THAN AMOUNT DUE",
+          "confidence": 0.970781147480011
+        },
+        {
+          "line_id": "p2_l95",
+          "bbox": [
+            1609,
+            2776,
+            2048,
+            2799
+          ],
+          "text": "EXPLAIN DIFFERENCES ON REVERSE SIDE",
+          "confidence": 0.9819973707199097
+        },
+        {
+          "line_id": "p2_l96",
+          "bbox": [
+            1624,
+            2846,
+            2402,
+            2880
+          ],
+          "text": "IMPORTANT – PLEASE DETACH AND RETURN THIS",
+          "confidence": 0.9500786662101746
+        },
+        {
+          "line_id": "p2_l97",
+          "bbox": [
+            1714,
+            2892,
+            2314,
+            2930
+          ],
+          "text": "PORTION TO INSURE PROPER CREDIT",
+          "confidence": 0.9862609505653381
+        },
+        {
+          "line_id": "p2_l98",
+          "bbox": [
+            859,
+            2901,
+            978,
+            2945
+          ],
+          "text": "ULINE",
+          "confidence": 0.9974198341369629
+        },
+        {
+          "line_id": "p2_l99",
+          "bbox": [
+            415,
+            2903,
+            571,
+            2930
+          ],
+          "text": "MAKE CHECK",
+          "confidence": 0.9867890477180481
+        },
+        {
+          "line_id": "p2_l100",
+          "bbox": [
+            416,
+            2936,
+            568,
+            2960
+          ],
+          "text": "PAYABLE AND",
+          "confidence": 0.9893274903297424
+        },
+        {
+          "line_id": "p2_l101",
+          "bbox": [
+            859,
+            2953,
+            1461,
+            2995
+          ],
+          "text": "ATTN: ACCOUNTS RECEIVABLE",
+          "confidence": 0.9922610521316528
+        },
+        {
+          "line_id": "p2_l102",
+          "bbox": [
+            414,
+            2965,
+            517,
+            2994
+          ],
+          "text": "MAIL TO:",
+          "confidence": 0.9832613468170166
+        },
+        {
+          "line_id": "p2_l103",
+          "bbox": [
+            860,
+            3007,
+            1148,
+            3048
+          ],
+          "text": "PO Box 88741",
+          "confidence": 0.9591520428657532
+        },
+        {
+          "line_id": "p2_l104",
+          "bbox": [
+            859,
+            3060,
+            1353,
+            3111
+          ],
+          "text": "Chicago IL 60680-1741",
+          "confidence": 0.9907308220863342
+        },
+        {
+          "line_id": "p2_l105",
+          "bbox": [
+            2257,
+            3156,
+            2445,
+            3197
+          ],
+          "text": "Page 2 of 2",
+          "confidence": 0.9514841437339783
+        },
+        {
+          "line_id": "p2_l106",
+          "bbox": [
+            194,
+            3168,
+            1006,
+            3205
+          ],
+          "text": "0284611201268937472011190006281209",
+          "confidence": 0.9999372959136963
+        }
+      ]
+    }
+  ],
+  "document_text": "ULINE\n1-800-295-5510 uline.com PO Box 88741·Chicago, IL 60680-1741\nINVOICE\nULINE FED ID#: 36-3684738 INVOICE #: 126893747 ORDER #: 45811901\nTHANK YOU FOR YOUR ORDER. ULINE CUSTOMER SINCE 2006\nSOLD TO: PRINT FULFILLMENT SERVICES PO BOX 400113 LAS VEGAS NV 89140-0113\nSHIP TO: DOT GRAPHICS 4133 WEST PATRICK LANE LAS VEGAS NV 89118\n\nCONTINUED ON NEXT PAGE\nPage 1of 2\n\nULINE\n1-800-295-5510 uline.com PO Box 88741·Chicago, IL 60680-1741\nINVOICE\nULINE FED ID#: 36-3684738 INVOICE #: 126893747 ORDER #: 45811901\nTHANK YOU FOR YOUR ORDER. ULINE CUSTOMER SINCE 2006\nSOLD TO: PRINT FULFILLMENT SERVICES PO BOX 400113 LAS VEGAS NV 89140-0113\nSHIP TO: DOT GRAPHICS 4133 WEST PATRICK LANE LAS VEGAS NV 89118\n\n\nPLEASE PAY FROM THIS INVOICE REFER TO THIS INVOICE NUMBER WHEN CONTACTING US REGARDING THIS TRANSACTION\nAMOUNT ENCLOSED $ IF DIFFERENT THAN AMOUNT DUE EXPLAIN DIFFERENCES ON REVERSE SIDE\nIMPORTANT – PLEASE DETACH AND RETURN THIS PORTION TO INSURE PROPER CREDIT\nULINE ATTN: ACCOUNTS RECEIVABLE PO Box 88741 Chicago IL 60680-1741\nMAKE CHECK PAYABLE AND MAIL TO:\nPage 2 of 2\n0284611201268937472011190006281209",
+  "tables": [
+    {
+      "page_number": 1,
+      "block_id": "p1_b8",
+      "bbox": [
+        68,
+        997,
+        2440,
+        2214
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 2,
+      "block_id": "p2_b8",
+      "bbox": [
+        63,
+        992,
+        2441,
+        2355
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 2,
+      "block_id": "p2_b9",
+      "bbox": [
+        58,
+        2415,
+        2436,
+        2652
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": [
+    "page 1: [unknown_layout_label] label=number",
+    "page 2: [unknown_layout_label] label=number"
+  ]
+}

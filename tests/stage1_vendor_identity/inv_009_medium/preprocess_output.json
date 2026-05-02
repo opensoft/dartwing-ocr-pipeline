@@ -1,0 +1,3676 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_009",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 5,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "header",
+          "bbox": [
+            142,
+            121,
+            1284,
+            355
+          ],
+          "reading_order": 1,
+          "text": "PAYNE&FEARS",
+          "confidence": 0.5796238780021667
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "header",
+          "bbox": [
+            2063,
+            180,
+            2411,
+            347
+          ],
+          "reading_order": 2,
+          "text": "4 Park Plaza, Suite 1100 Irvine, CA 92614 T 949. 851.1100 F 949. 851.1212",
+          "confidence": 0.71967613697052
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "text",
+          "bbox": [
+            139,
+            598,
+            702,
+            706
+          ],
+          "reading_order": 3,
+          "text": "Farheap Solutions, Inc. dan@danielstanleylaw.com",
+          "confidence": 0.7387945055961609
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "text",
+          "bbox": [
+            1791,
+            598,
+            2402,
+            760
+          ],
+          "reading_order": 4,
+          "text": "November 30, 2020 317836 Invoice No.: Federal ID No.: 33-0507930",
+          "confidence": 0.7416108250617981
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "title",
+          "bbox": [
+            975,
+            886,
+            1566,
+            942
+          ],
+          "reading_order": 5,
+          "text": "INVOICE SUMMARY",
+          "confidence": 0.6387495398521423
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "text",
+          "bbox": [
+            138,
+            1008,
+            1403,
+            1062
+          ],
+          "reading_order": 6,
+          "text": "For professional services performed through October 31, 2020",
+          "confidence": 0.5736015439033508
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "text",
+          "bbox": [
+            138,
+            1008,
+            1403,
+            1175
+          ],
+          "reading_order": 7,
+          "text": "For professional services performed through October 31, 2020 Client/Matter No.: 4122.018",
+          "confidence": 0.5711869597434998
+        },
+        {
+          "block_id": "p1_b8",
+          "block_type": "text",
+          "bbox": [
+            140,
+            1124,
+            722,
+            1173
+          ],
+          "reading_order": 8,
+          "text": "Client/Matter No.: 4122.018",
+          "confidence": 0.6020178198814392
+        },
+        {
+          "block_id": "p1_b9",
+          "block_type": "title",
+          "bbox": [
+            141,
+            1240,
+            1137,
+            1294
+          ],
+          "reading_order": 9,
+          "text": "RE: Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.639818012714386
+        },
+        {
+          "block_id": "p1_b10",
+          "block_type": "text",
+          "bbox": [
+            587,
+            1352,
+            2016,
+            1815
+          ],
+          "reading_order": 10,
+          "text": "$ 2,408.00 Professional Services $ .00 Costs Incurred and Advanced $ 2,408.00 TOTAL THIS INVOICE $ 49,705.04 Previous Balance $ 52,113.04 TOTAL BALANCE DUE",
+          "confidence": 0.4431834816932678
+        },
+        {
+          "block_id": "p1_b11",
+          "block_type": "text",
+          "bbox": [
+            588,
+            1357,
+            1195,
+            1461
+          ],
+          "reading_order": 11,
+          "text": "Professional Services Costs Incurred and Advanced",
+          "confidence": 0.5794575810432434
+        },
+        {
+          "block_id": "p1_b12",
+          "block_type": "figure",
+          "bbox": [
+            2171,
+            2911,
+            2418,
+            3106
+          ],
+          "reading_order": 12,
+          "text": "- P ＆",
+          "confidence": 0.5676229000091553
+        },
+        {
+          "block_id": "p1_b13",
+          "block_type": "footer",
+          "bbox": [
+            280,
+            3142,
+            2259,
+            3187
+          ],
+          "reading_order": 13,
+          "text": "Irvine | Las Vegas |Los Angeles F Phoenix | Salt Lake City| San Francisco | Silicon Valley | www.paynefears.com",
+          "confidence": 0.9129084348678589
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            131,
+            166,
+            1297,
+            313
+          ],
+          "text": "PAYNE&FEARS",
+          "confidence": 0.9953885674476624
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            2068,
+            183,
+            2414,
+            221
+          ],
+          "text": "4 Park Plaza, Suite 1100",
+          "confidence": 0.977419912815094
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            2177,
+            223,
+            2416,
+            267
+          ],
+          "text": "Irvine, CA 92614",
+          "confidence": 0.9629946947097778
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            2180,
+            268,
+            2414,
+            306
+          ],
+          "text": "T 949. 851.1100",
+          "confidence": 0.974368691444397
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            2181,
+            312,
+            2415,
+            350
+          ],
+          "text": "F 949. 851.1212",
+          "confidence": 0.9808299541473389
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            143,
+            599,
+            615,
+            652
+          ],
+          "text": "Farheap Solutions, Inc.",
+          "confidence": 0.9431156516075134
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            1996,
+            601,
+            2404,
+            648
+          ],
+          "text": "November 30, 2020",
+          "confidence": 0.9810665249824524
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            2243,
+            656,
+            2408,
+            708
+          ],
+          "text": "317836",
+          "confidence": 0.9999296069145203
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            146,
+            660,
+            703,
+            709
+          ],
+          "text": "dan@danielstanleylaw.com",
+          "confidence": 0.9998533129692078
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            1795,
+            660,
+            2050,
+            705
+          ],
+          "text": "Invoice No.:",
+          "confidence": 0.9718590378761292
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            1793,
+            715,
+            2118,
+            762
+          ],
+          "text": "Federal ID No.:",
+          "confidence": 0.9737104773521423
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            2154,
+            717,
+            2405,
+            762
+          ],
+          "text": "33-0507930",
+          "confidence": 0.999843418598175
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            979,
+            889,
+            1570,
+            943
+          ],
+          "text": "INVOICE SUMMARY",
+          "confidence": 0.9939835667610168
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            142,
+            1009,
+            1404,
+            1065
+          ],
+          "text": "For professional services performed through October 31, 2020",
+          "confidence": 0.968234121799469
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            147,
+            1130,
+            720,
+            1174
+          ],
+          "text": "Client/Matter No.: 4122.018",
+          "confidence": 0.9605745673179626
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            142,
+            1240,
+            1137,
+            1298
+          ],
+          "text": "RE: Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.9842663407325745
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            1794,
+            1355,
+            2019,
+            1408
+          ],
+          "text": "$ 2,408.00",
+          "confidence": 0.9758283495903015
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            595,
+            1358,
+            1030,
+            1405
+          ],
+          "text": "Professional Services",
+          "confidence": 0.9963460564613342
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            1904,
+            1410,
+            2021,
+            1466
+          ],
+          "text": "$ .00",
+          "confidence": 0.9634917378425598
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            598,
+            1417,
+            1194,
+            1461
+          ],
+          "text": "Costs Incurred and Advanced",
+          "confidence": 0.9948638677597046
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            1792,
+            1525,
+            2019,
+            1584
+          ],
+          "text": "$ 2,408.00",
+          "confidence": 0.9814226031303406
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            596,
+            1531,
+            1142,
+            1578
+          ],
+          "text": "TOTAL THIS INVOICE",
+          "confidence": 0.9961941242218018
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            1766,
+            1641,
+            2019,
+            1696
+          ],
+          "text": "$ 49,705.04",
+          "confidence": 0.9962241649627686
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            595,
+            1647,
+            950,
+            1693
+          ],
+          "text": "Previous Balance",
+          "confidence": 0.9708091020584106
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            1764,
+            1757,
+            2018,
+            1811
+          ],
+          "text": "$ 52,113.04",
+          "confidence": 0.9975780844688416
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            597,
+            1764,
+            1150,
+            1808
+          ],
+          "text": "TOTAL BALANCE DUE",
+          "confidence": 0.9755799770355225
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            2353,
+            2963,
+            2413,
+            3055
+          ],
+          "text": "-",
+          "confidence": 0.48125529289245605
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            2176,
+            2965,
+            2241,
+            3058
+          ],
+          "text": "P",
+          "confidence": 0.9990479350090027
+        },
+        {
+          "line_id": "p1_l29",
+          "bbox": [
+            2265,
+            2978,
+            2325,
+            3050
+          ],
+          "text": "＆",
+          "confidence": 0.595341682434082
+        },
+        {
+          "line_id": "p1_l30",
+          "bbox": [
+            281,
+            3142,
+            913,
+            3191
+          ],
+          "text": "Irvine | Las Vegas |Los Angeles F",
+          "confidence": 0.8915919661521912
+        },
+        {
+          "line_id": "p1_l31",
+          "bbox": [
+            888,
+            3142,
+            2263,
+            3192
+          ],
+          "text": "Phoenix | Salt Lake City| San Francisco | Silicon Valley | www.paynefears.com",
+          "confidence": 0.9298109412193298
+        }
+      ]
+    },
+    {
+      "page_number": 2,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p2_b1",
+          "block_type": "header",
+          "bbox": [
+            1834,
+            175,
+            2397,
+            223
+          ],
+          "reading_order": 1,
+          "text": "PAYNE & FEARS LLP",
+          "confidence": 0.9316549301147461
+        },
+        {
+          "block_id": "p2_b2",
+          "block_type": "header",
+          "bbox": [
+            139,
+            297,
+            957,
+            405
+          ],
+          "reading_order": 2,
+          "text": "Client/Matter No.: 4122.018 Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.7377246618270874
+        },
+        {
+          "block_id": "p2_b3",
+          "block_type": "header",
+          "bbox": [
+            1985,
+            297,
+            2397,
+            399
+          ],
+          "reading_order": 3,
+          "text": "November 30, 2020 Invoice No.: 317836",
+          "confidence": 0.6992865204811096
+        },
+        {
+          "block_id": "p2_b4",
+          "block_type": "text",
+          "bbox": [
+            140,
+            526,
+            798,
+            572
+          ],
+          "reading_order": 4,
+          "text": "PROFESSIONAL SERVICES",
+          "confidence": 0.7628071308135986
+        },
+        {
+          "block_id": "p2_b5",
+          "block_type": "table",
+          "bbox": [
+            120,
+            638,
+            2423,
+            2783
+          ],
+          "reading_order": 5,
+          "text": "",
+          "confidence": 0.9902826547622681
+        },
+        {
+          "block_id": "p2_b6",
+          "block_type": "text",
+          "bbox": [
+            892,
+            2847,
+            1737,
+            2896
+          ],
+          "reading_order": 6,
+          "text": "TOTAL PROFESSIONAL SERVICES",
+          "confidence": 0.5267786979675293
+        },
+        {
+          "block_id": "p2_b7",
+          "block_type": "footer",
+          "bbox": [
+            2181,
+            2848,
+            2399,
+            2897
+          ],
+          "reading_order": 7,
+          "text": "$ 2,408.00",
+          "confidence": 0.5571449398994446
+        },
+        {
+          "block_id": "p2_b8",
+          "block_type": "text",
+          "bbox": [
+            1259,
+            3163,
+            1284,
+            3199
+          ],
+          "reading_order": 8,
+          "text": "2",
+          "confidence": 0.8150421977043152
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p2_l1",
+          "bbox": [
+            1835,
+            177,
+            2405,
+            228
+          ],
+          "text": "PAYNE & FEARS LLP",
+          "confidence": 0.9540529847145081
+        },
+        {
+          "line_id": "p2_l2",
+          "bbox": [
+            146,
+            298,
+            722,
+            346
+          ],
+          "text": "Client/Matter No.: 4122.018",
+          "confidence": 0.95644611120224
+        },
+        {
+          "line_id": "p2_l3",
+          "bbox": [
+            1996,
+            298,
+            2403,
+            347
+          ],
+          "text": "November 30, 2020",
+          "confidence": 0.9833835363388062
+        },
+        {
+          "line_id": "p2_l4",
+          "bbox": [
+            141,
+            355,
+            961,
+            412
+          ],
+          "text": "Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.9821119904518127
+        },
+        {
+          "line_id": "p2_l5",
+          "bbox": [
+            1984,
+            360,
+            2402,
+            404
+          ],
+          "text": "Invoice No.: 317836",
+          "confidence": 0.9987462759017944
+        },
+        {
+          "line_id": "p2_l6",
+          "bbox": [
+            145,
+            531,
+            803,
+            575
+          ],
+          "text": "PROFESSIONAL SERVICES",
+          "confidence": 0.9787299036979675
+        },
+        {
+          "line_id": "p2_l7",
+          "bbox": [
+            535,
+            677,
+            1036,
+            733
+          ],
+          "text": "Description of Services",
+          "confidence": 0.9969664812088013
+        },
+        {
+          "line_id": "p2_l8",
+          "bbox": [
+            217,
+            678,
+            336,
+            734
+          ],
+          "text": "Date",
+          "confidence": 0.9995431900024414
+        },
+        {
+          "line_id": "p2_l9",
+          "bbox": [
+            1849,
+            678,
+            1998,
+            732
+          ],
+          "text": "Hours",
+          "confidence": 0.9997865557670593
+        },
+        {
+          "line_id": "p2_l10",
+          "bbox": [
+            2068,
+            679,
+            2184,
+            731
+          ],
+          "text": "Rate",
+          "confidence": 0.999740481376648
+        },
+        {
+          "line_id": "p2_l11",
+          "bbox": [
+            2217,
+            679,
+            2408,
+            730
+          ],
+          "text": "Amount",
+          "confidence": 0.9997461438179016
+        },
+        {
+          "line_id": "p2_l12",
+          "bbox": [
+            368,
+            680,
+            476,
+            736
+          ],
+          "text": "Atty",
+          "confidence": 0.902417004108429
+        },
+        {
+          "line_id": "p2_l13",
+          "bbox": [
+            535,
+            752,
+            1729,
+            811
+          ],
+          "text": "Correspond with D. Stanley regarding trial preparation and",
+          "confidence": 0.9766256809234619
+        },
+        {
+          "line_id": "p2_l14",
+          "bbox": [
+            2253,
+            753,
+            2408,
+            806
+          ],
+          "text": "249.00",
+          "confidence": 0.999880850315094
+        },
+        {
+          "line_id": "p2_l15",
+          "bbox": [
+            1922,
+            754,
+            2000,
+            806
+          ],
+          "text": ".60",
+          "confidence": 0.9998490214347839
+        },
+        {
+          "line_id": "p2_l16",
+          "bbox": [
+            146,
+            755,
+            334,
+            804
+          ],
+          "text": "10/01/20",
+          "confidence": 0.9999428987503052
+        },
+        {
+          "line_id": "p2_l17",
+          "bbox": [
+            369,
+            755,
+            467,
+            806
+          ],
+          "text": "SJO",
+          "confidence": 0.9986737370491028
+        },
+        {
+          "line_id": "p2_l18",
+          "bbox": [
+            2032,
+            755,
+            2183,
+            805
+          ],
+          "text": "415.00",
+          "confidence": 0.9998838901519775
+        },
+        {
+          "line_id": "p2_l19",
+          "bbox": [
+            538,
+            813,
+            1794,
+            862
+          ],
+          "text": "witness outlines (.2); evaluate witness outline format and draft",
+          "confidence": 0.9781635403633118
+        },
+        {
+          "line_id": "p2_l20",
+          "bbox": [
+            536,
+            869,
+            1734,
+            925
+          ],
+          "text": "correspondence to D. Stanley regarding the same (.3); draft",
+          "confidence": 0.9889237880706787
+        },
+        {
+          "line_id": "p2_l21",
+          "bbox": [
+            535,
+            927,
+            1754,
+            984
+          ],
+          "text": "correspondence to J. Sylvester regarding joint pretrial report",
+          "confidence": 0.9677636027336121
+        },
+        {
+          "line_id": "p2_l22",
+          "bbox": [
+            531,
+            979,
+            625,
+            1046
+          ],
+          "text": "(.1)",
+          "confidence": 0.9814425706863403
+        },
+        {
+          "line_id": "p2_l23",
+          "bbox": [
+            2252,
+            1072,
+            2408,
+            1129
+          ],
+          "text": "247.50",
+          "confidence": 0.9998748302459717
+        },
+        {
+          "line_id": "p2_l24",
+          "bbox": [
+            537,
+            1077,
+            1741,
+            1131
+          ],
+          "text": "Prepare for and participate in meeting to obtain information",
+          "confidence": 0.9634840488433838
+        },
+        {
+          "line_id": "p2_l25",
+          "bbox": [
+            1923,
+            1077,
+            2000,
+            1128
+          ],
+          "text": ".50",
+          "confidence": 0.9998624920845032
+        },
+        {
+          "line_id": "p2_l26",
+          "bbox": [
+            2031,
+            1077,
+            2183,
+            1127
+          ],
+          "text": "495.00",
+          "confidence": 0.9998798370361328
+        },
+        {
+          "line_id": "p2_l27",
+          "bbox": [
+            146,
+            1078,
+            335,
+            1127
+          ],
+          "text": "10/02/20",
+          "confidence": 0.9999523162841797
+        },
+        {
+          "line_id": "p2_l28",
+          "bbox": [
+            368,
+            1078,
+            472,
+            1126
+          ],
+          "text": "DFF",
+          "confidence": 0.9983356595039368
+        },
+        {
+          "line_id": "p2_l29",
+          "bbox": [
+            538,
+            1136,
+            1298,
+            1186
+          ],
+          "text": "from J. Rimpo; confer with R. Larsen",
+          "confidence": 0.9593614935874939
+        },
+        {
+          "line_id": "p2_l30",
+          "bbox": [
+            2253,
+            1223,
+            2408,
+            1276
+          ],
+          "text": "788.50",
+          "confidence": 0.999821662902832
+        },
+        {
+          "line_id": "p2_l31",
+          "bbox": [
+            1899,
+            1224,
+            2000,
+            1276
+          ],
+          "text": "1.90",
+          "confidence": 0.9999780058860779
+        },
+        {
+          "line_id": "p2_l32",
+          "bbox": [
+            368,
+            1225,
+            466,
+            1276
+          ],
+          "text": "SJO",
+          "confidence": 0.9963114261627197
+        },
+        {
+          "line_id": "p2_l33",
+          "bbox": [
+            2031,
+            1225,
+            2182,
+            1275
+          ],
+          "text": "415.00",
+          "confidence": 0.9998418688774109
+        },
+        {
+          "line_id": "p2_l34",
+          "bbox": [
+            148,
+            1227,
+            334,
+            1273
+          ],
+          "text": "10/04/20",
+          "confidence": 0.9999338984489441
+        },
+        {
+          "line_id": "p2_l35",
+          "bbox": [
+            537,
+            1227,
+            1738,
+            1278
+          ],
+          "text": "Evaluate pre-trial tasks, witnesses to subpoena for trial, and",
+          "confidence": 0.9851889610290527
+        },
+        {
+          "line_id": "p2_l36",
+          "bbox": [
+            539,
+            1285,
+            1802,
+            1335
+          ],
+          "text": "deposition designations (.6); review and evaluate Shemger and",
+          "confidence": 0.9955710172653198
+        },
+        {
+          "line_id": "p2_l37",
+          "bbox": [
+            536,
+            1341,
+            1634,
+            1393
+          ],
+          "text": "Desert Trade Graphic's disclosures regarding potential",
+          "confidence": 0.9978290796279907
+        },
+        {
+          "line_id": "p2_l38",
+          "bbox": [
+            537,
+            1397,
+            1749,
+            1450
+          ],
+          "text": "testimony of A. Ochs, R. Gordon, D. Gilad, K. Nagy, and S.",
+          "confidence": 0.9720647931098938
+        },
+        {
+          "line_id": "p2_l39",
+          "bbox": [
+            536,
+            1455,
+            1720,
+            1506
+          ],
+          "text": "Pinter (.9); draft correspondence to D. Fears and R. Larsen",
+          "confidence": 0.9656167030334473
+        },
+        {
+          "line_id": "p2_l40",
+          "bbox": [
+            538,
+            1517,
+            1163,
+            1567
+          ],
+          "text": "regarding pre-trial strategy (.4)",
+          "confidence": 0.9807687401771545
+        },
+        {
+          "line_id": "p2_l41",
+          "bbox": [
+            537,
+            1601,
+            1713,
+            1659
+          ],
+          "text": "Correspond with R. Larsen and J. Sylvester regarding trial",
+          "confidence": 0.9702354073524475
+        },
+        {
+          "line_id": "p2_l42",
+          "bbox": [
+            1923,
+            1602,
+            2000,
+            1654
+          ],
+          "text": ".40",
+          "confidence": 0.9999164938926697
+        },
+        {
+          "line_id": "p2_l43",
+          "bbox": [
+            2031,
+            1602,
+            2182,
+            1653
+          ],
+          "text": "415.00",
+          "confidence": 0.9998849034309387
+        },
+        {
+          "line_id": "p2_l44",
+          "bbox": [
+            2258,
+            1602,
+            2407,
+            1654
+          ],
+          "text": "166.00",
+          "confidence": 0.9999621510505676
+        },
+        {
+          "line_id": "p2_l45",
+          "bbox": [
+            146,
+            1603,
+            334,
+            1653
+          ],
+          "text": "10/05/20",
+          "confidence": 0.9999654293060303
+        },
+        {
+          "line_id": "p2_l46",
+          "bbox": [
+            368,
+            1603,
+            465,
+            1653
+          ],
+          "text": "SJO",
+          "confidence": 0.9965909123420715
+        },
+        {
+          "line_id": "p2_l47",
+          "bbox": [
+            538,
+            1666,
+            789,
+            1711
+          ],
+          "text": "continuance",
+          "confidence": 0.9998632073402405
+        },
+        {
+          "line_id": "p2_l48",
+          "bbox": [
+            534,
+            1750,
+            1379,
+            1807
+          ],
+          "text": "Begin to draft stipulation to continue trial",
+          "confidence": 0.9589908719062805
+        },
+        {
+          "line_id": "p2_l49",
+          "bbox": [
+            1922,
+            1750,
+            2000,
+            1803
+          ],
+          "text": ".70",
+          "confidence": 0.9996302723884583
+        },
+        {
+          "line_id": "p2_l50",
+          "bbox": [
+            145,
+            1752,
+            334,
+            1801
+          ],
+          "text": "10/05/20",
+          "confidence": 0.9999258518218994
+        },
+        {
+          "line_id": "p2_l51",
+          "bbox": [
+            369,
+            1752,
+            502,
+            1802
+          ],
+          "text": "HAW",
+          "confidence": 0.9988913536071777
+        },
+        {
+          "line_id": "p2_l52",
+          "bbox": [
+            2031,
+            1752,
+            2182,
+            1802
+          ],
+          "text": "290.00",
+          "confidence": 0.9999258518218994
+        },
+        {
+          "line_id": "p2_l53",
+          "bbox": [
+            2255,
+            1752,
+            2407,
+            1802
+          ],
+          "text": "203.00",
+          "confidence": 0.9998993277549744
+        },
+        {
+          "line_id": "p2_l54",
+          "bbox": [
+            367,
+            1841,
+            467,
+            1893
+          ],
+          "text": "SJO",
+          "confidence": 0.9940373301506042
+        },
+        {
+          "line_id": "p2_l55",
+          "bbox": [
+            1922,
+            1841,
+            2000,
+            1893
+          ],
+          "text": ".20",
+          "confidence": 0.9998056888580322
+        },
+        {
+          "line_id": "p2_l56",
+          "bbox": [
+            2280,
+            1841,
+            2407,
+            1893
+          ],
+          "text": "83.00",
+          "confidence": 0.9998413324356079
+        },
+        {
+          "line_id": "p2_l57",
+          "bbox": [
+            146,
+            1842,
+            334,
+            1891
+          ],
+          "text": "10/06/20",
+          "confidence": 0.9999616742134094
+        },
+        {
+          "line_id": "p2_l58",
+          "bbox": [
+            2032,
+            1843,
+            2181,
+            1890
+          ],
+          "text": "415.00",
+          "confidence": 0.9998854994773865
+        },
+        {
+          "line_id": "p2_l59",
+          "bbox": [
+            538,
+            1844,
+            1741,
+            1894
+          ],
+          "text": "Correspond with R. Larsen and D. Fears regarding calendar",
+          "confidence": 0.9814760684967041
+        },
+        {
+          "line_id": "p2_l60",
+          "bbox": [
+            533,
+            1897,
+            623,
+            1953
+          ],
+          "text": "call",
+          "confidence": 0.9998373985290527
+        },
+        {
+          "line_id": "p2_l61",
+          "bbox": [
+            1923,
+            1990,
+            2000,
+            2041
+          ],
+          "text": ".80",
+          "confidence": 0.9998220801353455
+        },
+        {
+          "line_id": "p2_l62",
+          "bbox": [
+            536,
+            1991,
+            1600,
+            2043
+          ],
+          "text": "Prepare for and participate in calendar call (.5); draft",
+          "confidence": 0.9797701239585876
+        },
+        {
+          "line_id": "p2_l63",
+          "bbox": [
+            2255,
+            1991,
+            2406,
+            2041
+          ],
+          "text": "332.00",
+          "confidence": 0.999809205532074
+        },
+        {
+          "line_id": "p2_l64",
+          "bbox": [
+            369,
+            1992,
+            465,
+            2040
+          ],
+          "text": "SJO",
+          "confidence": 0.9965962767601013
+        },
+        {
+          "line_id": "p2_l65",
+          "bbox": [
+            2033,
+            1992,
+            2181,
+            2039
+          ],
+          "text": "415.00",
+          "confidence": 0.9998538494110107
+        },
+        {
+          "line_id": "p2_l66",
+          "bbox": [
+            146,
+            1993,
+            332,
+            2039
+          ],
+          "text": "10/07/20",
+          "confidence": 0.9998482465744019
+        },
+        {
+          "line_id": "p2_l67",
+          "bbox": [
+            538,
+            2049,
+            1785,
+            2102
+          ],
+          "text": "correspondence to D. Stanley regarding new trial and pre-trial",
+          "confidence": 0.9967004060745239
+        },
+        {
+          "line_id": "p2_l68",
+          "bbox": [
+            536,
+            2105,
+            735,
+            2161
+          ],
+          "text": "dates (.3)",
+          "confidence": 0.9949992299079895
+        },
+        {
+          "line_id": "p2_l69",
+          "bbox": [
+            145,
+            2194,
+            334,
+            2246
+          ],
+          "text": "10/09/20",
+          "confidence": 0.9999597072601318
+        },
+        {
+          "line_id": "p2_l70",
+          "bbox": [
+            2253,
+            2194,
+            2407,
+            2247
+          ],
+          "text": "245.00",
+          "confidence": 0.9998469352722168
+        },
+        {
+          "line_id": "p2_l71",
+          "bbox": [
+            536,
+            2196,
+            1751,
+            2245
+          ],
+          "text": "Review and evaluate all trial related deadlines based on new",
+          "confidence": 0.9840625524520874
+        },
+        {
+          "line_id": "p2_l72",
+          "bbox": [
+            1900,
+            2196,
+            1999,
+            2244
+          ],
+          "text": "1.40",
+          "confidence": 0.999966561794281
+        },
+        {
+          "line_id": "p2_l73",
+          "bbox": [
+            2036,
+            2196,
+            2180,
+            2243
+          ],
+          "text": "175.00",
+          "confidence": 0.9999203681945801
+        },
+        {
+          "line_id": "p2_l74",
+          "bbox": [
+            369,
+            2197,
+            442,
+            2244
+          ],
+          "text": "EB",
+          "confidence": 0.9990513324737549
+        },
+        {
+          "line_id": "p2_l75",
+          "bbox": [
+            536,
+            2253,
+            725,
+            2305
+          ],
+          "text": "trial date",
+          "confidence": 0.9937750101089478
+        },
+        {
+          "line_id": "p2_l76",
+          "bbox": [
+            2278,
+            2343,
+            2408,
+            2397
+          ],
+          "text": "35.00",
+          "confidence": 0.9998543858528137
+        },
+        {
+          "line_id": "p2_l77",
+          "bbox": [
+            1923,
+            2344,
+            2000,
+            2396
+          ],
+          "text": ".20",
+          "confidence": 0.99986332654953
+        },
+        {
+          "line_id": "p2_l78",
+          "bbox": [
+            2034,
+            2344,
+            2181,
+            2394
+          ],
+          "text": "175.00",
+          "confidence": 0.9999348521232605
+        },
+        {
+          "line_id": "p2_l79",
+          "bbox": [
+            535,
+            2345,
+            1776,
+            2398
+          ],
+          "text": "Evaluate and revise Trial Preparation Checklist based on new",
+          "confidence": 0.9769726991653442
+        },
+        {
+          "line_id": "p2_l80",
+          "bbox": [
+            146,
+            2346,
+            334,
+            2395
+          ],
+          "text": "10/12/20",
+          "confidence": 0.999951183795929
+        },
+        {
+          "line_id": "p2_l81",
+          "bbox": [
+            368,
+            2346,
+            442,
+            2394
+          ],
+          "text": "EB",
+          "confidence": 0.9988188743591309
+        },
+        {
+          "line_id": "p2_l82",
+          "bbox": [
+            537,
+            2402,
+            724,
+            2454
+          ],
+          "text": "trial date",
+          "confidence": 0.9966785311698914
+        },
+        {
+          "line_id": "p2_l83",
+          "bbox": [
+            536,
+            2494,
+            1767,
+            2545
+          ],
+          "text": "Review correspondence from the court vacating November 9",
+          "confidence": 0.9748311042785645
+        },
+        {
+          "line_id": "p2_l84",
+          "bbox": [
+            1922,
+            2494,
+            2000,
+            2545
+          ],
+          "text": ".10",
+          "confidence": 0.9997691512107849
+        },
+        {
+          "line_id": "p2_l85",
+          "bbox": [
+            2280,
+            2494,
+            2407,
+            2545
+          ],
+          "text": "41.50",
+          "confidence": 0.9998840093612671
+        },
+        {
+          "line_id": "p2_l86",
+          "bbox": [
+            369,
+            2495,
+            466,
+            2544
+          ],
+          "text": "SJO",
+          "confidence": 0.9975607991218567
+        },
+        {
+          "line_id": "p2_l87",
+          "bbox": [
+            147,
+            2496,
+            333,
+            2542
+          ],
+          "text": "10/28/20",
+          "confidence": 0.9999221563339233
+        },
+        {
+          "line_id": "p2_l88",
+          "bbox": [
+            2033,
+            2496,
+            2181,
+            2543
+          ],
+          "text": "415.00",
+          "confidence": 0.99985671043396
+        },
+        {
+          "line_id": "p2_l89",
+          "bbox": [
+            538,
+            2554,
+            891,
+            2600
+          ],
+          "text": "status conference",
+          "confidence": 0.9979140162467957
+        },
+        {
+          "line_id": "p2_l90",
+          "bbox": [
+            144,
+            2641,
+            335,
+            2693
+          ],
+          "text": "10/28/20",
+          "confidence": 0.9999408721923828
+        },
+        {
+          "line_id": "p2_l91",
+          "bbox": [
+            1922,
+            2641,
+            2000,
+            2693
+          ],
+          "text": ".10",
+          "confidence": 0.9997544884681702
+        },
+        {
+          "line_id": "p2_l92",
+          "bbox": [
+            2034,
+            2641,
+            2182,
+            2691
+          ],
+          "text": "175.00",
+          "confidence": 0.9999333024024963
+        },
+        {
+          "line_id": "p2_l93",
+          "bbox": [
+            2281,
+            2641,
+            2408,
+            2693
+          ],
+          "text": "17.50",
+          "confidence": 0.9999512434005737
+        },
+        {
+          "line_id": "p2_l94",
+          "bbox": [
+            535,
+            2642,
+            1635,
+            2695
+          ],
+          "text": "Evaluate correspondence from Dept. 15 clerk vacating",
+          "confidence": 0.97446608543396
+        },
+        {
+          "line_id": "p2_l95",
+          "bbox": [
+            368,
+            2643,
+            442,
+            2691
+          ],
+          "text": "EB",
+          "confidence": 0.9988188743591309
+        },
+        {
+          "line_id": "p2_l96",
+          "bbox": [
+            534,
+            2698,
+            1749,
+            2756
+          ],
+          "text": "November 9th status check and update calendar accordingly",
+          "confidence": 0.9911836981773376
+        },
+        {
+          "line_id": "p2_l97",
+          "bbox": [
+            2178,
+            2847,
+            2408,
+            2906
+          ],
+          "text": "$ 2,408.00",
+          "confidence": 0.982867419719696
+        },
+        {
+          "line_id": "p2_l98",
+          "bbox": [
+            895,
+            2851,
+            1741,
+            2898
+          ],
+          "text": "TOTAL PROFESSIONAL SERVICES",
+          "confidence": 0.9946320056915283
+        },
+        {
+          "line_id": "p2_l99",
+          "bbox": [
+            1253,
+            3157,
+            1295,
+            3209
+          ],
+          "text": "2",
+          "confidence": 0.999550998210907
+        }
+      ]
+    },
+    {
+      "page_number": 3,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p3_b1",
+          "block_type": "header",
+          "bbox": [
+            1834,
+            175,
+            2397,
+            223
+          ],
+          "reading_order": 1,
+          "text": "PAYNE & FEARS LLP",
+          "confidence": 0.9404195547103882
+        },
+        {
+          "block_id": "p3_b2",
+          "block_type": "text",
+          "bbox": [
+            138,
+            297,
+            958,
+            405
+          ],
+          "reading_order": 2,
+          "text": "Client/Matter No.: 4122.018 Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.7610630393028259
+        },
+        {
+          "block_id": "p3_b3",
+          "block_type": "text",
+          "bbox": [
+            1984,
+            297,
+            2397,
+            399
+          ],
+          "reading_order": 3,
+          "text": "November 30, 2020 Invoice No.: 317836",
+          "confidence": 0.7509819269180298
+        },
+        {
+          "block_id": "p3_b4",
+          "block_type": "text",
+          "bbox": [
+            139,
+            526,
+            1160,
+            573
+          ],
+          "reading_order": 4,
+          "text": "SUMMARY OF PROFESSIONAL SERVICES",
+          "confidence": 0.6682045459747314
+        },
+        {
+          "block_id": "p3_b5",
+          "block_type": "table",
+          "bbox": [
+            117,
+            638,
+            2425,
+            1022
+          ],
+          "reading_order": 5,
+          "text": "",
+          "confidence": 0.9793568849563599
+        },
+        {
+          "block_id": "p3_b6",
+          "block_type": "footer",
+          "bbox": [
+            894,
+            1198,
+            1435,
+            1244
+          ],
+          "reading_order": 6,
+          "text": "TOTAL THIS INVOICE",
+          "confidence": 0.7430859804153442
+        },
+        {
+          "block_id": "p3_b7",
+          "block_type": "text",
+          "bbox": [
+            2180,
+            1199,
+            2398,
+            1247
+          ],
+          "reading_order": 7,
+          "text": "$ 2,408.00",
+          "confidence": 0.7041953802108765
+        },
+        {
+          "block_id": "p3_b8",
+          "block_type": "text",
+          "bbox": [
+            1259,
+            3162,
+            1284,
+            3199
+          ],
+          "reading_order": 8,
+          "text": "3",
+          "confidence": 0.8119518756866455
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p3_l1",
+          "bbox": [
+            1835,
+            177,
+            2405,
+            228
+          ],
+          "text": "PAYNE & FEARS LLP",
+          "confidence": 0.9535415768623352
+        },
+        {
+          "line_id": "p3_l2",
+          "bbox": [
+            146,
+            298,
+            722,
+            346
+          ],
+          "text": "Client/Matter No.: 4122.018",
+          "confidence": 0.9522214531898499
+        },
+        {
+          "line_id": "p3_l3",
+          "bbox": [
+            1996,
+            298,
+            2403,
+            347
+          ],
+          "text": "November 30, 2020",
+          "confidence": 0.9756210446357727
+        },
+        {
+          "line_id": "p3_l4",
+          "bbox": [
+            141,
+            355,
+            961,
+            412
+          ],
+          "text": "Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.9835129976272583
+        },
+        {
+          "line_id": "p3_l5",
+          "bbox": [
+            1984,
+            360,
+            2402,
+            404
+          ],
+          "text": "Invoice No.: 317836",
+          "confidence": 0.9938281178474426
+        },
+        {
+          "line_id": "p3_l6",
+          "bbox": [
+            144,
+            530,
+            1165,
+            577
+          ],
+          "text": "SUMMARY OF PROFESSIONAL SERVICES",
+          "confidence": 0.9912011623382568
+        },
+        {
+          "line_id": "p3_l7",
+          "bbox": [
+            1292,
+            662,
+            1440,
+            714
+          ],
+          "text": "Hours",
+          "confidence": 0.9998195767402649
+        },
+        {
+          "line_id": "p3_l8",
+          "bbox": [
+            1726,
+            662,
+            1842,
+            714
+          ],
+          "text": "Rate",
+          "confidence": 0.9997876882553101
+        },
+        {
+          "line_id": "p3_l9",
+          "bbox": [
+            2278,
+            662,
+            2408,
+            713
+          ],
+          "text": "Total",
+          "confidence": 0.9998529553413391
+        },
+        {
+          "line_id": "p3_l10",
+          "bbox": [
+            140,
+            663,
+            280,
+            714
+          ],
+          "text": "Name",
+          "confidence": 0.9998987913131714
+        },
+        {
+          "line_id": "p3_l11",
+          "bbox": [
+            1363,
+            721,
+            1441,
+            773
+          ],
+          "text": ".70",
+          "confidence": 0.9996803402900696
+        },
+        {
+          "line_id": "p3_l12",
+          "bbox": [
+            1691,
+            722,
+            1841,
+            772
+          ],
+          "text": "290.00",
+          "confidence": 0.999945342540741
+        },
+        {
+          "line_id": "p3_l13",
+          "bbox": [
+            2255,
+            722,
+            2407,
+            772
+          ],
+          "text": "203.00",
+          "confidence": 0.9998993277549744
+        },
+        {
+          "line_id": "p3_l14",
+          "bbox": [
+            142,
+            723,
+            537,
+            774
+          ],
+          "text": "Hilary A. Williams",
+          "confidence": 0.9913368225097656
+        },
+        {
+          "line_id": "p3_l15",
+          "bbox": [
+            1365,
+            778,
+            1440,
+            830
+          ],
+          "text": ".50",
+          "confidence": 0.9998462796211243
+        },
+        {
+          "line_id": "p3_l16",
+          "bbox": [
+            141,
+            779,
+            459,
+            829
+          ],
+          "text": "Daniel F. Fears",
+          "confidence": 0.9815971255302429
+        },
+        {
+          "line_id": "p3_l17",
+          "bbox": [
+            1692,
+            779,
+            1841,
+            829
+          ],
+          "text": "495.00",
+          "confidence": 0.9999272227287292
+        },
+        {
+          "line_id": "p3_l18",
+          "bbox": [
+            2255,
+            779,
+            2407,
+            829
+          ],
+          "text": "247.50",
+          "confidence": 0.9998330473899841
+        },
+        {
+          "line_id": "p3_l19",
+          "bbox": [
+            1338,
+            836,
+            1440,
+            888
+          ],
+          "text": "4.00",
+          "confidence": 0.9999061822891235
+        },
+        {
+          "line_id": "p3_l20",
+          "bbox": [
+            1691,
+            837,
+            1841,
+            887
+          ],
+          "text": "415.00",
+          "confidence": 0.9999001026153564
+        },
+        {
+          "line_id": "p3_l21",
+          "bbox": [
+            2221,
+            837,
+            2407,
+            890
+          ],
+          "text": "1,660.00",
+          "confidence": 0.9998858571052551
+        },
+        {
+          "line_id": "p3_l22",
+          "bbox": [
+            142,
+            838,
+            421,
+            886
+          ],
+          "text": "Sarah J. Odia",
+          "confidence": 0.9756374359130859
+        },
+        {
+          "line_id": "p3_l23",
+          "bbox": [
+            141,
+            894,
+            427,
+            946
+          ],
+          "text": "Erica Bennett",
+          "confidence": 0.9806080460548401
+        },
+        {
+          "line_id": "p3_l24",
+          "bbox": [
+            1341,
+            894,
+            1439,
+            943
+          ],
+          "text": "1.70",
+          "confidence": 0.9999321699142456
+        },
+        {
+          "line_id": "p3_l25",
+          "bbox": [
+            1693,
+            894,
+            1842,
+            944
+          ],
+          "text": "175.00",
+          "confidence": 0.9999483227729797
+        },
+        {
+          "line_id": "p3_l26",
+          "bbox": [
+            2255,
+            894,
+            2407,
+            944
+          ],
+          "text": "297.50",
+          "confidence": 0.9998067021369934
+        },
+        {
+          "line_id": "p3_l27",
+          "bbox": [
+            1339,
+            950,
+            1440,
+            1004
+          ],
+          "text": "6.90",
+          "confidence": 0.9999184608459473
+        },
+        {
+          "line_id": "p3_l28",
+          "bbox": [
+            2180,
+            950,
+            2409,
+            1007
+          ],
+          "text": "$ 2,408.00",
+          "confidence": 0.9790817499160767
+        },
+        {
+          "line_id": "p3_l29",
+          "bbox": [
+            142,
+            951,
+            360,
+            1004
+          ],
+          "text": "TOTALS",
+          "confidence": 0.9989851117134094
+        },
+        {
+          "line_id": "p3_l30",
+          "bbox": [
+            2181,
+            1200,
+            2407,
+            1256
+          ],
+          "text": "$ 2,408.00",
+          "confidence": 0.9912835955619812
+        },
+        {
+          "line_id": "p3_l31",
+          "bbox": [
+            896,
+            1205,
+            1440,
+            1249
+          ],
+          "text": "TOTAL THIS INVOICE",
+          "confidence": 0.9673427939414978
+        },
+        {
+          "line_id": "p3_l32",
+          "bbox": [
+            1253,
+            3156,
+            1296,
+            3209
+          ],
+          "text": "3",
+          "confidence": 0.9996402263641357
+        }
+      ]
+    },
+    {
+      "page_number": 4,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p4_b1",
+          "block_type": "header",
+          "bbox": [
+            1834,
+            175,
+            2397,
+            223
+          ],
+          "reading_order": 1,
+          "text": "PAYNE & FEARS LLP",
+          "confidence": 0.9438122510910034
+        },
+        {
+          "block_id": "p4_b2",
+          "block_type": "text",
+          "bbox": [
+            138,
+            297,
+            957,
+            405
+          ],
+          "reading_order": 2,
+          "text": "Client/Matter No.: 4122.018 Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.7382889986038208
+        },
+        {
+          "block_id": "p4_b3",
+          "block_type": "text",
+          "bbox": [
+            1984,
+            297,
+            2398,
+            399
+          ],
+          "reading_order": 3,
+          "text": "November 30, 2020 Invoice No.: 317836",
+          "confidence": 0.6637567281723022
+        },
+        {
+          "block_id": "p4_b4",
+          "block_type": "text",
+          "bbox": [
+            140,
+            525,
+            1028,
+            573
+          ],
+          "reading_order": 4,
+          "text": "OPEN INVOICES FOR THIS MATTER",
+          "confidence": 0.7523838877677917
+        },
+        {
+          "block_id": "p4_b5",
+          "block_type": "table",
+          "bbox": [
+            115,
+            638,
+            2425,
+            1250
+          ],
+          "reading_order": 5,
+          "text": "",
+          "confidence": 0.9737496972084045
+        },
+        {
+          "block_id": "p4_b6",
+          "block_type": "text",
+          "bbox": [
+            889,
+            1371,
+            1449,
+            1650
+          ],
+          "reading_order": 6,
+          "text": "Previous Balance Balance Due This Invoice TOTAL BALANCE DUE",
+          "confidence": 0.47378072142601013
+        },
+        {
+          "block_id": "p4_b7",
+          "block_type": "text",
+          "bbox": [
+            1258,
+            3162,
+            1286,
+            3199
+          ],
+          "reading_order": 7,
+          "text": "4",
+          "confidence": 0.813434362411499
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p4_l1",
+          "bbox": [
+            1835,
+            177,
+            2405,
+            228
+          ],
+          "text": "PAYNE & FEARS LLP",
+          "confidence": 0.9533223509788513
+        },
+        {
+          "line_id": "p4_l2",
+          "bbox": [
+            146,
+            298,
+            722,
+            346
+          ],
+          "text": "Client/Matter No.: 4122.018",
+          "confidence": 0.953208863735199
+        },
+        {
+          "line_id": "p4_l3",
+          "bbox": [
+            1996,
+            298,
+            2403,
+            347
+          ],
+          "text": "November 30, 2020",
+          "confidence": 0.9833835363388062
+        },
+        {
+          "line_id": "p4_l4",
+          "bbox": [
+            141,
+            355,
+            960,
+            412
+          ],
+          "text": "Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.9892628788948059
+        },
+        {
+          "line_id": "p4_l5",
+          "bbox": [
+            1984,
+            360,
+            2402,
+            404
+          ],
+          "text": "Invoice No.: 317836",
+          "confidence": 0.9987462759017944
+        },
+        {
+          "line_id": "p4_l6",
+          "bbox": [
+            147,
+            532,
+            1032,
+            576
+          ],
+          "text": "OPEN INVOICES FOR THIS MATTER",
+          "confidence": 0.9911892414093018
+        },
+        {
+          "line_id": "p4_l7",
+          "bbox": [
+            1601,
+            663,
+            1892,
+            711
+          ],
+          "text": "PAYMENTS",
+          "confidence": 0.9996892213821411
+        },
+        {
+          "line_id": "p4_l8",
+          "bbox": [
+            2193,
+            663,
+            2405,
+            711
+          ],
+          "text": "ENDING",
+          "confidence": 0.9966194033622742
+        },
+        {
+          "line_id": "p4_l9",
+          "bbox": [
+            143,
+            664,
+            374,
+            712
+          ],
+          "text": "INVOICE",
+          "confidence": 0.9994535446166992
+        },
+        {
+          "line_id": "p4_l10",
+          "bbox": [
+            784,
+            664,
+            933,
+            710
+          ],
+          "text": "DATE",
+          "confidence": 0.9992261528968811
+        },
+        {
+          "line_id": "p4_l11",
+          "bbox": [
+            1122,
+            665,
+            1349,
+            710
+          ],
+          "text": "INVOICE",
+          "confidence": 0.999811053276062
+        },
+        {
+          "line_id": "p4_l12",
+          "bbox": [
+            1165,
+            720,
+            1349,
+            767
+          ],
+          "text": "TOTAL",
+          "confidence": 0.9991976022720337
+        },
+        {
+          "line_id": "p4_l13",
+          "bbox": [
+            180,
+            722,
+            412,
+            767
+          ],
+          "text": "NUMBER",
+          "confidence": 0.9996899962425232
+        },
+        {
+          "line_id": "p4_l14",
+          "bbox": [
+            1619,
+            722,
+            1892,
+            767
+          ],
+          "text": "RECEIVED",
+          "confidence": 0.9997909069061279
+        },
+        {
+          "line_id": "p4_l15",
+          "bbox": [
+            2151,
+            722,
+            2404,
+            766
+          ],
+          "text": "BALANCE",
+          "confidence": 0.9997952580451965
+        },
+        {
+          "line_id": "p4_l16",
+          "bbox": [
+            1819,
+            778,
+            1895,
+            830
+          ],
+          "text": ".00",
+          "confidence": 0.9998283386230469
+        },
+        {
+          "line_id": "p4_l17",
+          "bbox": [
+            143,
+            779,
+            307,
+            829
+          ],
+          "text": "308340",
+          "confidence": 0.9999261498451233
+        },
+        {
+          "line_id": "p4_l18",
+          "bbox": [
+            2196,
+            780,
+            2405,
+            829
+          ],
+          "text": "18,785.09",
+          "confidence": 0.9992798566818237
+        },
+        {
+          "line_id": "p4_l19",
+          "bbox": [
+            750,
+            781,
+            933,
+            827
+          ],
+          "text": "10/25/19",
+          "confidence": 0.9999372959136963
+        },
+        {
+          "line_id": "p4_l20",
+          "bbox": [
+            1144,
+            782,
+            1350,
+            829
+          ],
+          "text": "18,785.09",
+          "confidence": 0.9989257454872131
+        },
+        {
+          "line_id": "p4_l21",
+          "bbox": [
+            1819,
+            835,
+            1895,
+            887
+          ],
+          "text": ".00",
+          "confidence": 0.9998003840446472
+        },
+        {
+          "line_id": "p4_l22",
+          "bbox": [
+            1142,
+            837,
+            1352,
+            889
+          ],
+          "text": "15,540.76",
+          "confidence": 0.9989627003669739
+        },
+        {
+          "line_id": "p4_l23",
+          "bbox": [
+            143,
+            838,
+            306,
+            887
+          ],
+          "text": "308585",
+          "confidence": 0.9998763203620911
+        },
+        {
+          "line_id": "p4_l24",
+          "bbox": [
+            2197,
+            838,
+            2406,
+            887
+          ],
+          "text": "15,540.76",
+          "confidence": 0.9997053146362305
+        },
+        {
+          "line_id": "p4_l25",
+          "bbox": [
+            750,
+            839,
+            933,
+            885
+          ],
+          "text": "11/13/19",
+          "confidence": 0.9999622106552124
+        },
+        {
+          "line_id": "p4_l26",
+          "bbox": [
+            1818,
+            892,
+            1896,
+            944
+          ],
+          "text": ".00",
+          "confidence": 0.9996796250343323
+        },
+        {
+          "line_id": "p4_l27",
+          "bbox": [
+            143,
+            894,
+            306,
+            943
+          ],
+          "text": "311538",
+          "confidence": 0.9998418688774109
+        },
+        {
+          "line_id": "p4_l28",
+          "bbox": [
+            769,
+            894,
+            935,
+            943
+          ],
+          "text": "2/28/20",
+          "confidence": 0.9998897314071655
+        },
+        {
+          "line_id": "p4_l29",
+          "bbox": [
+            2258,
+            894,
+            2407,
+            944
+          ],
+          "text": "190.00",
+          "confidence": 0.9999708533287048
+        },
+        {
+          "line_id": "p4_l30",
+          "bbox": [
+            1204,
+            895,
+            1351,
+            942
+          ],
+          "text": "190.00",
+          "confidence": 0.9999523162841797
+        },
+        {
+          "line_id": "p4_l31",
+          "bbox": [
+            1819,
+            950,
+            1895,
+            1003
+          ],
+          "text": ".00",
+          "confidence": 0.9997987747192383
+        },
+        {
+          "line_id": "p4_l32",
+          "bbox": [
+            1166,
+            951,
+            1353,
+            1005
+          ],
+          "text": "1,008.00",
+          "confidence": 0.9997830390930176
+        },
+        {
+          "line_id": "p4_l33",
+          "bbox": [
+            2219,
+            951,
+            2408,
+            1005
+          ],
+          "text": "1,008.00",
+          "confidence": 0.9998658299446106
+        },
+        {
+          "line_id": "p4_l34",
+          "bbox": [
+            143,
+            952,
+            306,
+            1002
+          ],
+          "text": "312338",
+          "confidence": 0.9998915791511536
+        },
+        {
+          "line_id": "p4_l35",
+          "bbox": [
+            770,
+            952,
+            935,
+            1002
+          ],
+          "text": "3/23/20",
+          "confidence": 0.9998782873153687
+        },
+        {
+          "line_id": "p4_l36",
+          "bbox": [
+            1162,
+            1004,
+            1354,
+            1063
+          ],
+          "text": "2,282.72",
+          "confidence": 0.9910142421722412
+        },
+        {
+          "line_id": "p4_l37",
+          "bbox": [
+            2218,
+            1009,
+            2408,
+            1062
+          ],
+          "text": "2,282.72",
+          "confidence": 0.9973304271697998
+        },
+        {
+          "line_id": "p4_l38",
+          "bbox": [
+            143,
+            1010,
+            307,
+            1059
+          ],
+          "text": "312516",
+          "confidence": 0.999903678894043
+        },
+        {
+          "line_id": "p4_l39",
+          "bbox": [
+            770,
+            1010,
+            935,
+            1059
+          ],
+          "text": "4/09/20",
+          "confidence": 0.9999445676803589
+        },
+        {
+          "line_id": "p4_l40",
+          "bbox": [
+            1820,
+            1010,
+            1895,
+            1060
+          ],
+          "text": ".00",
+          "confidence": 0.9998063445091248
+        },
+        {
+          "line_id": "p4_l41",
+          "bbox": [
+            2218,
+            1063,
+            2409,
+            1122
+          ],
+          "text": "1,797.50",
+          "confidence": 0.9992862343788147
+        },
+        {
+          "line_id": "p4_l42",
+          "bbox": [
+            1817,
+            1064,
+            1895,
+            1119
+          ],
+          "text": ".00",
+          "confidence": 0.9997429847717285
+        },
+        {
+          "line_id": "p4_l43",
+          "bbox": [
+            142,
+            1065,
+            307,
+            1118
+          ],
+          "text": "313376",
+          "confidence": 0.9998967051506042
+        },
+        {
+          "line_id": "p4_l44",
+          "bbox": [
+            1165,
+            1067,
+            1353,
+            1120
+          ],
+          "text": "1,797.50",
+          "confidence": 0.9992619752883911
+        },
+        {
+          "line_id": "p4_l45",
+          "bbox": [
+            770,
+            1068,
+            935,
+            1117
+          ],
+          "text": "5/21/20",
+          "confidence": 0.9998331665992737
+        },
+        {
+          "line_id": "p4_l46",
+          "bbox": [
+            1164,
+            1123,
+            1353,
+            1178
+          ],
+          "text": "1,494.00",
+          "confidence": 0.9991271495819092
+        },
+        {
+          "line_id": "p4_l47",
+          "bbox": [
+            2220,
+            1124,
+            2407,
+            1177
+          ],
+          "text": "1,494.00",
+          "confidence": 0.9997944235801697
+        },
+        {
+          "line_id": "p4_l48",
+          "bbox": [
+            1820,
+            1125,
+            1895,
+            1175
+          ],
+          "text": ".00",
+          "confidence": 0.9997712969779968
+        },
+        {
+          "line_id": "p4_l49",
+          "bbox": [
+            143,
+            1126,
+            306,
+            1175
+          ],
+          "text": "316373",
+          "confidence": 0.9999057650566101
+        },
+        {
+          "line_id": "p4_l50",
+          "bbox": [
+            769,
+            1126,
+            935,
+            1175
+          ],
+          "text": "9/23/20",
+          "confidence": 0.9998801350593567
+        },
+        {
+          "line_id": "p4_l51",
+          "bbox": [
+            2216,
+            1177,
+            2410,
+            1237
+          ],
+          "text": "8,606.97",
+          "confidence": 0.9948217272758484
+        },
+        {
+          "line_id": "p4_l52",
+          "bbox": [
+            1163,
+            1180,
+            1352,
+            1236
+          ],
+          "text": "8,606.97",
+          "confidence": 0.9943782091140747
+        },
+        {
+          "line_id": "p4_l53",
+          "bbox": [
+            1819,
+            1181,
+            1895,
+            1234
+          ],
+          "text": ".00",
+          "confidence": 0.9997932314872742
+        },
+        {
+          "line_id": "p4_l54",
+          "bbox": [
+            143,
+            1182,
+            307,
+            1232
+          ],
+          "text": "317096",
+          "confidence": 0.9999451637268066
+        },
+        {
+          "line_id": "p4_l55",
+          "bbox": [
+            748,
+            1182,
+            935,
+            1231
+          ],
+          "text": "10/30/20",
+          "confidence": 0.9999550580978394
+        },
+        {
+          "line_id": "p4_l56",
+          "bbox": [
+            2158,
+            1374,
+            2404,
+            1423
+          ],
+          "text": "$ 49,705.04",
+          "confidence": 0.9889045357704163
+        },
+        {
+          "line_id": "p4_l57",
+          "bbox": [
+            893,
+            1375,
+            1251,
+            1422
+          ],
+          "text": "Previous Balance",
+          "confidence": 0.9955007433891296
+        },
+        {
+          "line_id": "p4_l58",
+          "bbox": [
+            2179,
+            1485,
+            2408,
+            1541
+          ],
+          "text": "$ 2,408.00",
+          "confidence": 0.9761680364608765
+        },
+        {
+          "line_id": "p4_l59",
+          "bbox": [
+            892,
+            1488,
+            1424,
+            1538
+          ],
+          "text": "Balance Due This Invoice",
+          "confidence": 0.9709832072257996
+        },
+        {
+          "line_id": "p4_l60",
+          "bbox": [
+            2154,
+            1600,
+            2408,
+            1656
+          ],
+          "text": "$ 52,113.04",
+          "confidence": 0.986746072769165
+        },
+        {
+          "line_id": "p4_l61",
+          "bbox": [
+            896,
+            1605,
+            1452,
+            1653
+          ],
+          "text": "TOTAL BALANCE DUE",
+          "confidence": 0.975026547908783
+        },
+        {
+          "line_id": "p4_l62",
+          "bbox": [
+            1255,
+            3161,
+            1295,
+            3208
+          ],
+          "text": "4",
+          "confidence": 0.9996337890625
+        }
+      ]
+    },
+    {
+      "page_number": 5,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p5_b1",
+          "block_type": "header",
+          "bbox": [
+            143,
+            122,
+            1284,
+            355
+          ],
+          "reading_order": 1,
+          "text": "PAYNE&FEARS",
+          "confidence": 0.5657513737678528
+        },
+        {
+          "block_id": "p5_b2",
+          "block_type": "text",
+          "bbox": [
+            2063,
+            181,
+            2412,
+            346
+          ],
+          "reading_order": 2,
+          "text": "4 Park Plaza, Suite 1100 Irvine, CA 92614 T 949. 851.1100 F 949. 851.1212",
+          "confidence": 0.6840135455131531
+        },
+        {
+          "block_id": "p5_b3",
+          "block_type": "text",
+          "bbox": [
+            139,
+            600,
+            702,
+            705
+          ],
+          "reading_order": 3,
+          "text": "Farheap Solutions, Inc. dan@ danielstanleylaw.com",
+          "confidence": 0.8480944037437439
+        },
+        {
+          "block_id": "p5_b4",
+          "block_type": "text",
+          "bbox": [
+            1791,
+            600,
+            2402,
+            760
+          ],
+          "reading_order": 4,
+          "text": "November 30, 2020 317836 Invoice No.: Federal ID No.: 33-0507930",
+          "confidence": 0.7869922518730164
+        },
+        {
+          "block_id": "p5_b5",
+          "block_type": "title",
+          "bbox": [
+            945,
+            887,
+            1598,
+            940
+          ],
+          "reading_order": 5,
+          "text": "REMITTANCE ADVICE",
+          "confidence": 0.6002167463302612
+        },
+        {
+          "block_id": "p5_b6",
+          "block_type": "text",
+          "bbox": [
+            140,
+            1021,
+            721,
+            1065
+          ],
+          "reading_order": 6,
+          "text": "Client/Matter No.: 4122.018",
+          "confidence": 0.8484228849411011
+        },
+        {
+          "block_id": "p5_b7",
+          "block_type": "text",
+          "bbox": [
+            142,
+            1136,
+            1080,
+            1185
+          ],
+          "reading_order": 7,
+          "text": "RE: Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.7470402717590332
+        },
+        {
+          "block_id": "p5_b8",
+          "block_type": "text",
+          "bbox": [
+            592,
+            1308,
+            1328,
+            1356
+          ],
+          "reading_order": 8,
+          "text": "BALANCE DUE THIS INVOICE",
+          "confidence": 0.47528719902038574
+        },
+        {
+          "block_id": "p5_b9",
+          "block_type": "text",
+          "bbox": [
+            1718,
+            1309,
+            2018,
+            1591
+          ],
+          "reading_order": 9,
+          "text": "$ 2,408.00 $ 49,705.04 $ 52,113.04",
+          "confidence": 0.454231321811676
+        },
+        {
+          "block_id": "p5_b10",
+          "block_type": "text",
+          "bbox": [
+            1722,
+            1424,
+            2014,
+            1475
+          ],
+          "reading_order": 10,
+          "text": "$ 49,705.04",
+          "confidence": 0.43631818890571594
+        },
+        {
+          "block_id": "p5_b11",
+          "block_type": "text",
+          "bbox": [
+            590,
+            1425,
+            949,
+            1471
+          ],
+          "reading_order": 11,
+          "text": "Previous Balance",
+          "confidence": 0.4772002696990967
+        },
+        {
+          "block_id": "p5_b12",
+          "block_type": "text",
+          "bbox": [
+            593,
+            1538,
+            1150,
+            1585
+          ],
+          "reading_order": 12,
+          "text": "TOTAL BALANCE DUE",
+          "confidence": 0.5204817056655884
+        },
+        {
+          "block_id": "p5_b13",
+          "block_type": "text",
+          "bbox": [
+            1720,
+            1539,
+            2014,
+            1590
+          ],
+          "reading_order": 13,
+          "text": "$ 52,113.04",
+          "confidence": 0.425992876291275
+        },
+        {
+          "block_id": "p5_b14",
+          "block_type": "text",
+          "bbox": [
+            1053,
+            1827,
+            1658,
+            2044
+          ],
+          "reading_order": 14,
+          "text": "PAYNE & FEARS LLP ATTN：Accounts Receivable 4 Park Plaza, Suite 1100 Irvine, California 92614",
+          "confidence": 0.8209279775619507
+        },
+        {
+          "block_id": "p5_b15",
+          "block_type": "text",
+          "bbox": [
+            142,
+            1828,
+            989,
+            1876
+          ],
+          "reading_order": 15,
+          "text": "Please return this advice with payment to:",
+          "confidence": 0.5999836921691895
+        },
+        {
+          "block_id": "p5_b16",
+          "block_type": "text",
+          "bbox": [
+            1009,
+            2285,
+            1535,
+            2331
+          ],
+          "reading_order": 16,
+          "text": "TERMS: NET 30 DAYS",
+          "confidence": 0.6172525882720947
+        },
+        {
+          "block_id": "p5_b17",
+          "block_type": "text",
+          "bbox": [
+            893,
+            2461,
+            1647,
+            2569
+          ],
+          "reading_order": 17,
+          "text": "Thank you! Your business is greatly appreciated.",
+          "confidence": 0.9235104322433472
+        },
+        {
+          "block_id": "p5_b18",
+          "block_type": "figure",
+          "bbox": [
+            2171,
+            2913,
+            2417,
+            3106
+          ],
+          "reading_order": 18,
+          "text": "P - ＆",
+          "confidence": 0.6241000294685364
+        },
+        {
+          "block_id": "p5_b19",
+          "block_type": "footer",
+          "bbox": [
+            284,
+            3143,
+            2260,
+            3187
+          ],
+          "reading_order": 19,
+          "text": "Irvine | Las Vegas |LosAngeles F Phoenix | Salt Lake City | San Francisco | Silicon Valley I www.paynefears.com",
+          "confidence": 0.8951177597045898
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p5_l1",
+          "bbox": [
+            131,
+            166,
+            1297,
+            313
+          ],
+          "text": "PAYNE&FEARS",
+          "confidence": 0.9899118542671204
+        },
+        {
+          "line_id": "p5_l2",
+          "bbox": [
+            2068,
+            183,
+            2414,
+            221
+          ],
+          "text": "4 Park Plaza, Suite 1100",
+          "confidence": 0.9501494765281677
+        },
+        {
+          "line_id": "p5_l3",
+          "bbox": [
+            2177,
+            223,
+            2416,
+            267
+          ],
+          "text": "Irvine, CA 92614",
+          "confidence": 0.9634268283843994
+        },
+        {
+          "line_id": "p5_l4",
+          "bbox": [
+            2180,
+            268,
+            2414,
+            306
+          ],
+          "text": "T 949. 851.1100",
+          "confidence": 0.9764188528060913
+        },
+        {
+          "line_id": "p5_l5",
+          "bbox": [
+            2181,
+            312,
+            2415,
+            350
+          ],
+          "text": "F 949. 851.1212",
+          "confidence": 0.9785205721855164
+        },
+        {
+          "line_id": "p5_l6",
+          "bbox": [
+            143,
+            599,
+            615,
+            652
+          ],
+          "text": "Farheap Solutions, Inc.",
+          "confidence": 0.9727419018745422
+        },
+        {
+          "line_id": "p5_l7",
+          "bbox": [
+            1996,
+            600,
+            2404,
+            647
+          ],
+          "text": "November 30, 2020",
+          "confidence": 0.9738189578056335
+        },
+        {
+          "line_id": "p5_l8",
+          "bbox": [
+            2243,
+            656,
+            2408,
+            708
+          ],
+          "text": "317836",
+          "confidence": 0.9999296069145203
+        },
+        {
+          "line_id": "p5_l9",
+          "bbox": [
+            145,
+            659,
+            704,
+            709
+          ],
+          "text": "dan@ danielstanleylaw.com",
+          "confidence": 0.9865872263908386
+        },
+        {
+          "line_id": "p5_l10",
+          "bbox": [
+            1795,
+            660,
+            2050,
+            705
+          ],
+          "text": "Invoice No.:",
+          "confidence": 0.998256504535675
+        },
+        {
+          "line_id": "p5_l11",
+          "bbox": [
+            1794,
+            717,
+            2118,
+            761
+          ],
+          "text": "Federal ID No.:",
+          "confidence": 0.9710338115692139
+        },
+        {
+          "line_id": "p5_l12",
+          "bbox": [
+            2154,
+            717,
+            2405,
+            762
+          ],
+          "text": "33-0507930",
+          "confidence": 0.9999014139175415
+        },
+        {
+          "line_id": "p5_l13",
+          "bbox": [
+            945,
+            889,
+            1603,
+            943
+          ],
+          "text": "REMITTANCE ADVICE",
+          "confidence": 0.976540744304657
+        },
+        {
+          "line_id": "p5_l14",
+          "bbox": [
+            146,
+            1021,
+            721,
+            1069
+          ],
+          "text": "Client/Matter No.: 4122.018",
+          "confidence": 0.9718742966651917
+        },
+        {
+          "line_id": "p5_l15",
+          "bbox": [
+            138,
+            1132,
+            1081,
+            1192
+          ],
+          "text": "RE: Desert Trade v. Shemger Enterprises (2)",
+          "confidence": 0.980282723903656
+        },
+        {
+          "line_id": "p5_l16",
+          "bbox": [
+            1795,
+            1308,
+            2017,
+            1361
+          ],
+          "text": "$ 2,408.00",
+          "confidence": 0.9950875043869019
+        },
+        {
+          "line_id": "p5_l17",
+          "bbox": [
+            595,
+            1313,
+            1328,
+            1357
+          ],
+          "text": "BALANCE DUE THIS INVOICE",
+          "confidence": 0.9935261607170105
+        },
+        {
+          "line_id": "p5_l18",
+          "bbox": [
+            1769,
+            1424,
+            2018,
+            1473
+          ],
+          "text": "$ 49,705.04",
+          "confidence": 0.9743666052818298
+        },
+        {
+          "line_id": "p5_l19",
+          "bbox": [
+            594,
+            1425,
+            950,
+            1472
+          ],
+          "text": "Previous Balance",
+          "confidence": 0.9994562864303589
+        },
+        {
+          "line_id": "p5_l20",
+          "bbox": [
+            1765,
+            1536,
+            2018,
+            1591
+          ],
+          "text": "$ 52,113.04",
+          "confidence": 0.9970616698265076
+        },
+        {
+          "line_id": "p5_l21",
+          "bbox": [
+            595,
+            1541,
+            1152,
+            1588
+          ],
+          "text": "TOTAL BALANCE DUE",
+          "confidence": 0.9939612150192261
+        },
+        {
+          "line_id": "p5_l22",
+          "bbox": [
+            144,
+            1828,
+            989,
+            1880
+          ],
+          "text": "Please return this advice with payment to:",
+          "confidence": 0.9748587012290955
+        },
+        {
+          "line_id": "p5_l23",
+          "bbox": [
+            1055,
+            1829,
+            1552,
+            1873
+          ],
+          "text": "PAYNE & FEARS LLP",
+          "confidence": 0.9795610904693604
+        },
+        {
+          "line_id": "p5_l24",
+          "bbox": [
+            1058,
+            1886,
+            1660,
+            1932
+          ],
+          "text": "ATTN：Accounts Receivable",
+          "confidence": 0.9895660281181335
+        },
+        {
+          "line_id": "p5_l25",
+          "bbox": [
+            1057,
+            1943,
+            1555,
+            1990
+          ],
+          "text": "4 Park Plaza, Suite 1100",
+          "confidence": 0.9672216773033142
+        },
+        {
+          "line_id": "p5_l26",
+          "bbox": [
+            1059,
+            2002,
+            1549,
+            2049
+          ],
+          "text": "Irvine, California 92614",
+          "confidence": 0.9755699038505554
+        },
+        {
+          "line_id": "p5_l27",
+          "bbox": [
+            1011,
+            2289,
+            1536,
+            2334
+          ],
+          "text": "TERMS: NET 30 DAYS",
+          "confidence": 0.9663625359535217
+        },
+        {
+          "line_id": "p5_l28",
+          "bbox": [
+            1149,
+            2459,
+            1400,
+            2513
+          ],
+          "text": "Thank you!",
+          "confidence": 0.9971619844436646
+        },
+        {
+          "line_id": "p5_l29",
+          "bbox": [
+            893,
+            2517,
+            1651,
+            2573
+          ],
+          "text": "Your business is greatly appreciated.",
+          "confidence": 0.9756168723106384
+        },
+        {
+          "line_id": "p5_l30",
+          "bbox": [
+            2175,
+            2963,
+            2243,
+            3059
+          ],
+          "text": "P",
+          "confidence": 0.9985975623130798
+        },
+        {
+          "line_id": "p5_l31",
+          "bbox": [
+            2353,
+            2963,
+            2413,
+            3055
+          ],
+          "text": "-",
+          "confidence": 0.48125529289245605
+        },
+        {
+          "line_id": "p5_l32",
+          "bbox": [
+            2265,
+            2978,
+            2325,
+            3050
+          ],
+          "text": "＆",
+          "confidence": 0.595341682434082
+        },
+        {
+          "line_id": "p5_l33",
+          "bbox": [
+            281,
+            3142,
+            912,
+            3191
+          ],
+          "text": "Irvine | Las Vegas |LosAngeles F",
+          "confidence": 0.9099146723747253
+        },
+        {
+          "line_id": "p5_l34",
+          "bbox": [
+            890,
+            3143,
+            2262,
+            3190
+          ],
+          "text": "Phoenix | Salt Lake City | San Francisco | Silicon Valley I www.paynefears.com",
+          "confidence": 0.9420191645622253
+        }
+      ]
+    }
+  ],
+  "document_text": "PAYNE&FEARS\n4 Park Plaza, Suite 1100 Irvine, CA 92614 T 949. 851.1100 F 949. 851.1212\nFarheap Solutions, Inc. dan@danielstanleylaw.com\nNovember 30, 2020 317836 Invoice No.: Federal ID No.: 33-0507930\nINVOICE SUMMARY\nFor professional services performed through October 31, 2020\nFor professional services performed through October 31, 2020 Client/Matter No.: 4122.018\nClient/Matter No.: 4122.018\nRE: Desert Trade v. Shemger Enterprises (2)\n$ 2,408.00 Professional Services $ .00 Costs Incurred and Advanced $ 2,408.00 TOTAL THIS INVOICE $ 49,705.04 Previous Balance $ 52,113.04 TOTAL BALANCE DUE\nProfessional Services Costs Incurred and Advanced\n- P ＆\nIrvine | Las Vegas |Los Angeles F Phoenix | Salt Lake City| San Francisco | Silicon Valley | www.paynefears.com\n\nPAYNE & FEARS LLP\nClient/Matter No.: 4122.018 Desert Trade v. Shemger Enterprises (2)\nNovember 30, 2020 Invoice No.: 317836\nPROFESSIONAL SERVICES\n\nTOTAL PROFESSIONAL SERVICES\n$ 2,408.00\n2\n\nPAYNE & FEARS LLP\nClient/Matter No.: 4122.018 Desert Trade v. Shemger Enterprises (2)\nNovember 30, 2020 Invoice No.: 317836\nSUMMARY OF PROFESSIONAL SERVICES\n\nTOTAL THIS INVOICE\n$ 2,408.00\n3\n\nPAYNE & FEARS LLP\nClient/Matter No.: 4122.018 Desert Trade v. Shemger Enterprises (2)\nNovember 30, 2020 Invoice No.: 317836\nOPEN INVOICES FOR THIS MATTER\n\nPrevious Balance Balance Due This Invoice TOTAL BALANCE DUE\n4\n\nPAYNE&FEARS\n4 Park Plaza, Suite 1100 Irvine, CA 92614 T 949. 851.1100 F 949. 851.1212\nFarheap Solutions, Inc. dan@ danielstanleylaw.com\nNovember 30, 2020 317836 Invoice No.: Federal ID No.: 33-0507930\nREMITTANCE ADVICE\nClient/Matter No.: 4122.018\nRE: Desert Trade v. Shemger Enterprises (2)\nBALANCE DUE THIS INVOICE\n$ 2,408.00 $ 49,705.04 $ 52,113.04\n$ 49,705.04\nPrevious Balance\nTOTAL BALANCE DUE\n$ 52,113.04\nPAYNE & FEARS LLP ATTN：Accounts Receivable 4 Park Plaza, Suite 1100 Irvine, California 92614\nPlease return this advice with payment to:\nTERMS: NET 30 DAYS\nThank you! Your business is greatly appreciated.\nP - ＆\nIrvine | Las Vegas |LosAngeles F Phoenix | Salt Lake City | San Francisco | Silicon Valley I www.paynefears.com",
+  "tables": [
+    {
+      "page_number": 2,
+      "block_id": "p2_b5",
+      "bbox": [
+        120,
+        638,
+        2423,
+        2783
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 3,
+      "block_id": "p3_b5",
+      "bbox": [
+        117,
+        638,
+        2425,
+        1022
+      ],
+      "rows": 0,
+      "columns": 0
+    },
+    {
+      "page_number": 4,
+      "block_id": "p4_b5",
+      "bbox": [
+        115,
+        638,
+        2425,
+        1250
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": [
+    "page 2: [unknown_layout_label] label=number",
+    "page 3: [unknown_layout_label] label=number",
+    "page 4: [unknown_layout_label] label=number"
+  ]
+}

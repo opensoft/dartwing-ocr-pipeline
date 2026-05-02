@@ -1,0 +1,696 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_018",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "text",
+          "bbox": [
+            210,
+            220,
+            961,
+            485
+          ],
+          "reading_order": 1,
+          "text": "Distribution Center #07 5500 Industrial Pkwy Reno, NV 89506 Sales: (775) 555-0108 | Fax: (775) 555-0109 orders@officestreampro.example.com Federal Tax ID: 88-3142059",
+          "confidence": 0.8841615319252014
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "header",
+          "bbox": [
+            1950,
+            232,
+            2325,
+            306
+          ],
+          "reading_order": 2,
+          "text": "INVOICE",
+          "confidence": 0.7540762424468994
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "text",
+          "bbox": [
+            331,
+            590,
+            872,
+            633
+          ],
+          "reading_order": 3,
+          "text": "SO-0044981 Invoice #:",
+          "confidence": 0.5995660424232483
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "text",
+          "bbox": [
+            1292,
+            590,
+            1873,
+            699
+          ],
+          "reading_order": 4,
+          "text": "Invoice Date: 2021-01-11 2021-02-10 Due Date:",
+          "confidence": 0.7650206089019775
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "text",
+          "bbox": [
+            195,
+            775,
+            569,
+            958
+          ],
+          "reading_order": 5,
+          "text": "BILL TO DOTG Printing 1120 S Decatur Blvd Las Vegas, NV 89102",
+          "confidence": 0.838075578212738
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "table",
+          "bbox": [
+            205,
+            1029,
+            2341,
+            1820
+          ],
+          "reading_order": 6,
+          "text": "",
+          "confidence": 0.9631357192993164
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "text",
+          "bbox": [
+            194,
+            1955,
+            1427,
+            2074
+          ],
+          "reading_order": 7,
+          "text": "Remit to PO Box 914, Sparks NV 89432. Returns accepted within 30 days with RMA. orders@ officestreampro.example.com. Federal Tax ID88-3142059 |NVSeller's Permit 1020-44781",
+          "confidence": 0.8405376672744751
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            217,
+            221,
+            606,
+            258
+          ],
+          "text": "Distribution Center #07",
+          "confidence": 0.9971436858177185
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            1951,
+            234,
+            2333,
+            317
+          ],
+          "text": "INVOICE",
+          "confidence": 0.9992562532424927
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            215,
+            266,
+            568,
+            310
+          ],
+          "text": "5500 Industrial Pkwy",
+          "confidence": 0.9808882474899292
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            217,
+            314,
+            499,
+            353
+          ],
+          "text": "Reno, NV 89506",
+          "confidence": 0.9649845361709595
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            216,
+            360,
+            963,
+            400
+          ],
+          "text": "Sales: (775) 555-0108 | Fax: (775) 555-0109",
+          "confidence": 0.9626348614692688
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            216,
+            405,
+            856,
+            445
+          ],
+          "text": "orders@officestreampro.example.com",
+          "confidence": 0.9902027249336243
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            217,
+            453,
+            689,
+            487
+          ],
+          "text": "Federal Tax ID: 88-3142059",
+          "confidence": 0.9754257798194885
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            1296,
+            591,
+            1562,
+            635
+          ],
+          "text": "Invoice Date:",
+          "confidence": 0.998564600944519
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            1653,
+            591,
+            1875,
+            636
+          ],
+          "text": "2021-01-11",
+          "confidence": 0.9996630549430847
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            637,
+            593,
+            876,
+            634
+          ],
+          "text": "SO-0044981",
+          "confidence": 0.999744713306427
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            337,
+            594,
+            536,
+            635
+          ],
+          "text": "Invoice #:",
+          "confidence": 0.9541517496109009
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            1654,
+            660,
+            1877,
+            701
+          ],
+          "text": "2021-02-10",
+          "confidence": 0.9998184442520142
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            1296,
+            661,
+            1497,
+            702
+          ],
+          "text": "Due Date:",
+          "confidence": 0.9932315349578857
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            201,
+            777,
+            371,
+            819
+          ],
+          "text": "BILL TO",
+          "confidence": 0.9581109285354614
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            199,
+            825,
+            453,
+            870
+          ],
+          "text": "DOTG Printing",
+          "confidence": 0.9941930770874023
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            203,
+            875,
+            549,
+            909
+          ],
+          "text": "1120 S Decatur Blvd",
+          "confidence": 0.956630289554596
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            201,
+            920,
+            571,
+            958
+          ],
+          "text": "Las Vegas, NV 89102",
+          "confidence": 0.9905339479446411
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            1364,
+            1053,
+            1454,
+            1114
+          ],
+          "text": "Qty",
+          "confidence": 0.9962190985679626
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            231,
+            1060,
+            467,
+            1108
+          ],
+          "text": "Description",
+          "confidence": 0.9994924068450928
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            1581,
+            1061,
+            1782,
+            1102
+          ],
+          "text": "Unit Price",
+          "confidence": 0.9979724884033203
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            1942,
+            1063,
+            2145,
+            1101
+          ],
+          "text": "Line Total",
+          "confidence": 0.9963550567626953
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            230,
+            1148,
+            1214,
+            1194
+          ],
+          "text": "SKU OS-44102 Copy paper 8.5x11 20lb, case of 10 reams",
+          "confidence": 0.9642478823661804
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            1488,
+            1149,
+            1541,
+            1191
+          ],
+          "text": "12",
+          "confidence": 0.9999715089797974
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            2174,
+            1149,
+            2320,
+            1190
+          ],
+          "text": "$515.88",
+          "confidence": 0.9990168809890747
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            1775,
+            1150,
+            1899,
+            1189
+          ],
+          "text": "$42.99",
+          "confidence": 0.9987063407897949
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            2173,
+            1236,
+            2319,
+            1277
+          ],
+          "text": "$874.00",
+          "confidence": 0.9976510405540466
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            232,
+            1237,
+            999,
+            1279
+          ],
+          "text": "SKU OS-71980 Toner cartridge HP 58X black",
+          "confidence": 0.9835450053215027
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            1755,
+            1238,
+            1899,
+            1276
+          ],
+          "text": "$218.50",
+          "confidence": 0.9982001185417175
+        },
+        {
+          "line_id": "p1_l29",
+          "bbox": [
+            1509,
+            1239,
+            1540,
+            1276
+          ],
+          "text": "4",
+          "confidence": 0.9997187256813049
+        },
+        {
+          "line_id": "p1_l30",
+          "bbox": [
+            1774,
+            1324,
+            1899,
+            1363
+          ],
+          "text": "$17.80",
+          "confidence": 0.9982543587684631
+        },
+        {
+          "line_id": "p1_l31",
+          "bbox": [
+            1508,
+            1325,
+            1541,
+            1366
+          ],
+          "text": "6",
+          "confidence": 0.9998749494552612
+        },
+        {
+          "line_id": "p1_l32",
+          "bbox": [
+            234,
+            1327,
+            1058,
+            1364
+          ],
+          "text": "SKU OS-33115 File folders letter manila, box/100",
+          "confidence": 0.977932870388031
+        },
+        {
+          "line_id": "p1_l33",
+          "bbox": [
+            2176,
+            1327,
+            2318,
+            1362
+          ],
+          "text": "$106.80",
+          "confidence": 0.998435914516449
+        },
+        {
+          "line_id": "p1_l34",
+          "bbox": [
+            1487,
+            1409,
+            1541,
+            1452
+          ],
+          "text": "20",
+          "confidence": 0.9999650120735168
+        },
+        {
+          "line_id": "p1_l35",
+          "bbox": [
+            1774,
+            1409,
+            1899,
+            1448
+          ],
+          "text": "$13.25",
+          "confidence": 0.997998058795929
+        },
+        {
+          "line_id": "p1_l36",
+          "bbox": [
+            2175,
+            1411,
+            2319,
+            1449
+          ],
+          "text": "$265.00",
+          "confidence": 0.9986109137535095
+        },
+        {
+          "line_id": "p1_l37",
+          "bbox": [
+            233,
+            1413,
+            1116,
+            1450
+          ],
+          "text": "SKU OS-90210 Nitrile gloves powder-free L, box/100",
+          "confidence": 0.970593273639679
+        },
+        {
+          "line_id": "p1_l38",
+          "bbox": [
+            1774,
+            1496,
+            1899,
+            1539
+          ],
+          "text": "$72.40",
+          "confidence": 0.9976336359977722
+        },
+        {
+          "line_id": "p1_l39",
+          "bbox": [
+            2194,
+            1496,
+            2319,
+            1539
+          ],
+          "text": "$72.40",
+          "confidence": 0.9976329803466797
+        },
+        {
+          "line_id": "p1_l40",
+          "bbox": [
+            231,
+            1497,
+            591,
+            1542
+          ],
+          "text": "Freight - LTL delivery",
+          "confidence": 0.988220751285553
+        },
+        {
+          "line_id": "p1_l41",
+          "bbox": [
+            1510,
+            1498,
+            1539,
+            1536
+          ],
+          "text": "1",
+          "confidence": 0.9999407529830933
+        },
+        {
+          "line_id": "p1_l42",
+          "bbox": [
+            2126,
+            1586,
+            2319,
+            1628
+          ],
+          "text": "$1,834.08",
+          "confidence": 0.9982024431228638
+        },
+        {
+          "line_id": "p1_l43",
+          "bbox": [
+            1725,
+            1588,
+            1898,
+            1626
+          ],
+          "text": "Subtotal",
+          "confidence": 0.9996719360351562
+        },
+        {
+          "line_id": "p1_l44",
+          "bbox": [
+            1658,
+            1677,
+            1900,
+            1725
+          ],
+          "text": "Tax (8.25%)",
+          "confidence": 0.9991840124130249
+        },
+        {
+          "line_id": "p1_l45",
+          "bbox": [
+            2159,
+            1678,
+            2316,
+            1721
+          ],
+          "text": "$151.31",
+          "confidence": 0.996832549571991
+        },
+        {
+          "line_id": "p1_l46",
+          "bbox": [
+            2124,
+            1768,
+            2318,
+            1814
+          ],
+          "text": "$1,985.39",
+          "confidence": 0.9962776899337769
+        },
+        {
+          "line_id": "p1_l47",
+          "bbox": [
+            1652,
+            1772,
+            1897,
+            1810
+          ],
+          "text": "TOTAL DUE",
+          "confidence": 0.9872750043869019
+        },
+        {
+          "line_id": "p1_l48",
+          "bbox": [
+            202,
+            1959,
+            807,
+            1994
+          ],
+          "text": "Remit to PO Box 914, Sparks NV 89432.",
+          "confidence": 0.9426125288009644
+        },
+        {
+          "line_id": "p1_l49",
+          "bbox": [
+            202,
+            2001,
+            1430,
+            2037
+          ],
+          "text": "Returns accepted within 30 days with RMA. orders@ officestreampro.example.com.",
+          "confidence": 0.9789453148841858
+        },
+        {
+          "line_id": "p1_l50",
+          "bbox": [
+            202,
+            2044,
+            1096,
+            2078
+          ],
+          "text": "Federal Tax ID88-3142059 |NVSeller's Permit 1020-44781",
+          "confidence": 0.9667224884033203
+        }
+      ]
+    }
+  ],
+  "document_text": "Distribution Center #07 5500 Industrial Pkwy Reno, NV 89506 Sales: (775) 555-0108 | Fax: (775) 555-0109 orders@officestreampro.example.com Federal Tax ID: 88-3142059\nINVOICE\nSO-0044981 Invoice #:\nInvoice Date: 2021-01-11 2021-02-10 Due Date:\nBILL TO DOTG Printing 1120 S Decatur Blvd Las Vegas, NV 89102\n\nRemit to PO Box 914, Sparks NV 89432. Returns accepted within 30 days with RMA. orders@ officestreampro.example.com. Federal Tax ID88-3142059 |NVSeller's Permit 1020-44781",
+  "tables": [
+    {
+      "page_number": 1,
+      "block_id": "p1_b6",
+      "bbox": [
+        205,
+        1029,
+        2341,
+        1820
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": []
+}

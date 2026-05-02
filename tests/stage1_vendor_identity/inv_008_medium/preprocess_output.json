@@ -1,0 +1,4200 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_008",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 4,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "text",
+          "bbox": [
+            26,
+            57,
+            72,
+            469
+          ],
+          "reading_order": 1,
+          "text": "00033713012021024231",
+          "confidence": 0.9229552149772644
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "header",
+          "bbox": [
+            207,
+            65,
+            1055,
+            262
+          ],
+          "reading_order": 2,
+          "text": "GAS SOUTHWEST swgas.com",
+          "confidence": 0.6380041241645813
+        },
+        {
+          "block_id": "p1_b3",
+          "block_type": "header",
+          "bbox": [
+            208,
+            66,
+            395,
+            255
+          ],
+          "reading_order": 3,
+          "text": "",
+          "confidence": 0.6237576603889465
+        },
+        {
+          "block_id": "p1_b4",
+          "block_type": "header",
+          "bbox": [
+            2208,
+            99,
+            2401,
+            137
+          ],
+          "reading_order": 4,
+          "text": "Page 1 of 4",
+          "confidence": 0.7590895891189575
+        },
+        {
+          "block_id": "p1_b5",
+          "block_type": "header",
+          "bbox": [
+            1705,
+            151,
+            2026,
+            283
+          ],
+          "reading_order": 5,
+          "text": "\"APP\" AMOUNT DUE",
+          "confidence": 0.5816356539726257
+        },
+        {
+          "block_id": "p1_b6",
+          "block_type": "text",
+          "bbox": [
+            2087,
+            170,
+            2375,
+            270
+          ],
+          "reading_order": 6,
+          "text": "PAST DUE AFTER 02/08/2021",
+          "confidence": 0.6045456528663635
+        },
+        {
+          "block_id": "p1_b7",
+          "block_type": "header",
+          "bbox": [
+            286,
+            291,
+            1031,
+            359
+          ],
+          "reading_order": 7,
+          "text": "",
+          "confidence": 0.6912662982940674
+        },
+        {
+          "block_id": "p1_b8",
+          "block_type": "text",
+          "bbox": [
+            1525,
+            316,
+            2415,
+            773
+          ],
+          "reading_order": 8,
+          "text": "ACCOUNT 211-6955523-005 Billing From 12/16/2020 - 01/18/2021 Date Mailed 01/20/2021 Your Local Office Is: 1631 W CRAIG RD SUITE 2, NO LAS VEGAS NV 89032 Customer Assistance/Asistencia al Cliente Toll Free/Llamada Gratis 877-860-6020 Hearing Impaired: 711",
+          "confidence": 0.9649573564529419
+        },
+        {
+          "block_id": "p1_b9",
+          "block_type": "text",
+          "bbox": [
+            209,
+            394,
+            719,
+            532
+          ],
+          "reading_order": 9,
+          "text": "DESERT TRADE GRAPHICS INC 7582 LAS VEGAS BLV #487 LAS VEGAS NV 89123",
+          "confidence": 0.7877695560455322
+        },
+        {
+          "block_id": "p1_b10",
+          "block_type": "text",
+          "bbox": [
+            206,
+            693,
+            1043,
+            733
+          ],
+          "reading_order": 10,
+          "text": "Service Address: 4133 W PATRICK LN # B, 89118",
+          "confidence": 0.7514817118644714
+        },
+        {
+          "block_id": "p1_b11",
+          "block_type": "text",
+          "bbox": [
+            210,
+            832,
+            968,
+            885
+          ],
+          "reading_order": 11,
+          "text": "DAILY AVERAGE USAGE (THERMS)",
+          "confidence": 0.7022536396980286
+        },
+        {
+          "block_id": "p1_b12",
+          "block_type": "text",
+          "bbox": [
+            1362,
+            833,
+            1982,
+            884
+          ],
+          "reading_order": 12,
+          "text": "MONTHLY USAGE (THErMS)",
+          "confidence": 0.6590343117713928
+        },
+        {
+          "block_id": "p1_b13",
+          "block_type": "text",
+          "bbox": [
+            1319,
+            902,
+            2391,
+            1412
+          ],
+          "reading_order": 13,
+          "text": "1800 1600 1400 1200 1000 800 600 400 Your 200 gas usage this J F N D M A M A S J 0 J J month 2020 2021",
+          "confidence": 0.9116262793540955
+        },
+        {
+          "block_id": "p1_b14",
+          "block_type": "text",
+          "bbox": [
+            207,
+            906,
+            987,
+            1324
+          ],
+          "reading_order": 14,
+          "text": "37.94 Current 17.43 Last Month 35.91 Last Year",
+          "confidence": 0.8715591430664062
+        },
+        {
+          "block_id": "p1_b15",
+          "block_type": "title",
+          "bbox": [
+            950,
+            1504,
+            1387,
+            1545
+          ],
+          "reading_order": 15,
+          "text": "WHAT'S THAT SMeLL?",
+          "confidence": 0.8102056980133057
+        },
+        {
+          "block_id": "p1_b16",
+          "block_type": "text",
+          "bbox": [
+            1793,
+            1505,
+            2324,
+            1545
+          ],
+          "reading_order": 16,
+          "text": "MOVING JUSTGOT EASIER",
+          "confidence": 0.6515740156173706
+        },
+        {
+          "block_id": "p1_b17",
+          "block_type": "title",
+          "bbox": [
+            122,
+            1509,
+            622,
+            1551
+          ],
+          "reading_order": 17,
+          "text": "IMPORTANT MESSAGES",
+          "confidence": 0.8637924194335938
+        },
+        {
+          "block_id": "p1_b18",
+          "block_type": "figure",
+          "bbox": [
+            1791,
+            1569,
+            2122,
+            2041
+          ],
+          "reading_order": 18,
+          "text": "",
+          "confidence": 0.9550380110740662
+        },
+        {
+          "block_id": "p1_b19",
+          "block_type": "text",
+          "bbox": [
+            2135,
+            1572,
+            2488,
+            1982
+          ],
+          "reading_order": 19,
+          "text": "The easiest way to transfer or turn  your service off is by visiting swgas.com and choosing Start, Stop or Move Service. You're just a few clicks away! Also available in the Southwest Gas mobile app.",
+          "confidence": 0.8554204702377319
+        },
+        {
+          "block_id": "p1_b20",
+          "block_type": "text",
+          "bbox": [
+            949,
+            1573,
+            1301,
+            1694
+          ],
+          "reading_order": 20,
+          "text": "Natural gas smells bad for a reason — it's for your safety.",
+          "confidence": 0.4185345768928528
+        },
+        {
+          "block_id": "p1_b21",
+          "block_type": "text",
+          "bbox": [
+            946,
+            1574,
+            1319,
+            1915
+          ],
+          "reading_order": 21,
+          "text": "Natural gas smells bad for a reason — it's for your safety. If you suspect a leak, 不 immediately go to a safe place, then call 911 and Southwest Gas at 877-860-6020.",
+          "confidence": 0.8591583967208862
+        },
+        {
+          "block_id": "p1_b22",
+          "block_type": "figure",
+          "bbox": [
+            1329,
+            1575,
+            1659,
+            2051
+          ],
+          "reading_order": 22,
+          "text": "#",
+          "confidence": 0.9636601805686951
+        },
+        {
+          "block_id": "p1_b23",
+          "block_type": "title",
+          "bbox": [
+            317,
+            1594,
+            682,
+            1632
+          ],
+          "reading_order": 23,
+          "text": "Flexible Payment Plans",
+          "confidence": 0.8245866298675537
+        },
+        {
+          "block_id": "p1_b24",
+          "block_type": "text",
+          "bbox": [
+            117,
+            1702,
+            863,
+            1955
+          ],
+          "reading_order": 24,
+          "text": "With our Automatic (APP) and Equal Payment Plans (EPP), customers can easily pay their bills on time every month and manage their budget. Visit swgas.com or download our mobile app to get started!",
+          "confidence": 0.9745312333106995
+        },
+        {
+          "block_id": "p1_b25",
+          "block_type": "text",
+          "bbox": [
+            947,
+            1715,
+            1319,
+            1914
+          ],
+          "reading_order": 25,
+          "text": "If you suspect a leak, 不 immediately go to a safe place, then call 911 and Southwest Gas at 877-860-6020.",
+          "confidence": 0.42934316396713257
+        },
+        {
+          "block_id": "p1_b26",
+          "block_type": "text",
+          "bbox": [
+            1116,
+            2180,
+            1515,
+            2216
+          ],
+          "reading_order": 26,
+          "text": "REMITWITHPAYMENT",
+          "confidence": 0.5889918208122253
+        },
+        {
+          "block_id": "p1_b27",
+          "block_type": "figure",
+          "bbox": [
+            1709,
+            2253,
+            2418,
+            2448
+          ],
+          "reading_order": 27,
+          "text": "\"APP\" PAST DUE AFTER 02/08/2021 AMOUNT DUE ACCOUNT 211-6955523-005",
+          "confidence": 0.605872631072998
+        },
+        {
+          "block_id": "p1_b28",
+          "block_type": "figure",
+          "bbox": [
+            282,
+            2305,
+            448,
+            2471
+          ],
+          "reading_order": 28,
+          "text": "",
+          "confidence": 0.6589734554290771
+        },
+        {
+          "block_id": "p1_b29",
+          "block_type": "title",
+          "bbox": [
+            472,
+            2348,
+            1019,
+            2429
+          ],
+          "reading_order": 29,
+          "text": "SOUTHWEST GAS",
+          "confidence": 0.45570510625839233
+        },
+        {
+          "block_id": "p1_b30",
+          "block_type": "text",
+          "bbox": [
+            493,
+            2447,
+            947,
+            2539
+          ],
+          "reading_order": 30,
+          "text": "PO Box 98890 Las Vegas NV 89193-8890",
+          "confidence": 0.7904054522514343
+        },
+        {
+          "block_id": "p1_b31",
+          "block_type": "figure",
+          "bbox": [
+            1459,
+            2551,
+            2462,
+            3076
+          ],
+          "reading_order": 31,
+          "text": "SOUTHWEST GAS PO Box 24531 Oakland, CA 94623-1531 Please include account number on check or money order and make payable to Southwest Gas. Do not send cash through the mail. 211695552300590000663050000000003",
+          "confidence": 0.5428634881973267
+        },
+        {
+          "block_id": "p1_b32",
+          "block_type": "text",
+          "bbox": [
+            335,
+            2720,
+            846,
+            2856
+          ],
+          "reading_order": 32,
+          "text": "DESERT TRADE GRAPHICS INC 7582 LAS VEGAS BLV #487 LAS VEGAS NV 89123",
+          "confidence": 0.9544854760169983
+        },
+        {
+          "block_id": "p1_b33",
+          "block_type": "text",
+          "bbox": [
+            1531,
+            3136,
+            2312,
+            3176
+          ],
+          "reading_order": 33,
+          "text": "SEE REVERSE SIDE FOR IMPORTANT DETAILS",
+          "confidence": 0.5251070857048035
+        },
+        {
+          "block_id": "p1_b34",
+          "block_type": "text",
+          "bbox": [
+            2102,
+            3212,
+            2305,
+            3244
+          ],
+          "reading_order": 34,
+          "text": "927.0 12/2019",
+          "confidence": 0.6027464866638184
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [
+            31,
+            61,
+            71,
+            480
+          ],
+          "text": "00033713012021024231",
+          "confidence": 0.9998866319656372
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [
+            2207,
+            97,
+            2406,
+            141
+          ],
+          "text": "Page 1 of 4",
+          "confidence": 0.9623746871948242
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [
+            891,
+            115,
+            1066,
+            214
+          ],
+          "text": "GAS",
+          "confidence": 0.9657074809074402
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [
+            424,
+            121,
+            889,
+            207
+          ],
+          "text": "SOUTHWEST",
+          "confidence": 0.9752604961395264
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [
+            1784,
+            155,
+            2026,
+            234
+          ],
+          "text": "\"APP\"",
+          "confidence": 0.9431764483451843
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [
+            2090,
+            176,
+            2376,
+            210
+          ],
+          "text": "PAST DUE AFTER",
+          "confidence": 0.9776260256767273
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [
+            2108,
+            224,
+            2361,
+            273
+          ],
+          "text": "02/08/2021",
+          "confidence": 0.9998968839645386
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [
+            850,
+            227,
+            1058,
+            268
+          ],
+          "text": "swgas.com",
+          "confidence": 0.9995998740196228
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [
+            1775,
+            237,
+            2031,
+            278
+          ],
+          "text": "AMOUNT DUE",
+          "confidence": 0.9250982999801636
+        },
+        {
+          "line_id": "p1_l10",
+          "bbox": [
+            286,
+            291,
+            1031,
+            359
+          ],
+          "text": "",
+          "confidence": 0.0
+        },
+        {
+          "line_id": "p1_l11",
+          "bbox": [
+            1832,
+            319,
+            2415,
+            361
+          ],
+          "text": "ACCOUNT 211-6955523-005",
+          "confidence": 0.9929792881011963
+        },
+        {
+          "line_id": "p1_l12",
+          "bbox": [
+            1768,
+            381,
+            2416,
+            422
+          ],
+          "text": "Billing From 12/16/2020 - 01/18/2021",
+          "confidence": 0.9824736714363098
+        },
+        {
+          "line_id": "p1_l13",
+          "bbox": [
+            215,
+            400,
+            719,
+            434
+          ],
+          "text": "DESERT TRADE GRAPHICS INC",
+          "confidence": 0.9746192693710327
+        },
+        {
+          "line_id": "p1_l14",
+          "bbox": [
+            1994,
+            437,
+            2417,
+            477
+          ],
+          "text": "Date Mailed 01/20/2021",
+          "confidence": 0.9947090148925781
+        },
+        {
+          "line_id": "p1_l15",
+          "bbox": [
+            213,
+            449,
+            670,
+            484
+          ],
+          "text": "7582 LAS VEGAS BLV #487",
+          "confidence": 0.9684781432151794
+        },
+        {
+          "line_id": "p1_l16",
+          "bbox": [
+            2062,
+            495,
+            2417,
+            532
+          ],
+          "text": "Your Local Office Is:",
+          "confidence": 0.962181568145752
+        },
+        {
+          "line_id": "p1_l17",
+          "bbox": [
+            214,
+            500,
+            575,
+            534
+          ],
+          "text": "LAS VEGAS NV 89123",
+          "confidence": 0.9924102425575256
+        },
+        {
+          "line_id": "p1_l18",
+          "bbox": [
+            1529,
+            551,
+            2417,
+            588
+          ],
+          "text": "1631 W CRAIG RD SUITE 2, NO LAS VEGAS NV 89032",
+          "confidence": 0.9410657286643982
+        },
+        {
+          "line_id": "p1_l19",
+          "bbox": [
+            1634,
+            609,
+            2416,
+            649
+          ],
+          "text": "Customer Assistance/Asistencia al Cliente",
+          "confidence": 0.9785798192024231
+        },
+        {
+          "line_id": "p1_l20",
+          "bbox": [
+            1682,
+            669,
+            2418,
+            710
+          ],
+          "text": "Toll Free/Llamada Gratis 877-860-6020",
+          "confidence": 0.9940363168716431
+        },
+        {
+          "line_id": "p1_l21",
+          "bbox": [
+            212,
+            698,
+            1045,
+            735
+          ],
+          "text": "Service Address: 4133 W PATRICK LN # B, 89118",
+          "confidence": 0.9516443014144897
+        },
+        {
+          "line_id": "p1_l22",
+          "bbox": [
+            1995,
+            730,
+            2417,
+            774
+          ],
+          "text": "Hearing Impaired: 711",
+          "confidence": 0.990981936454773
+        },
+        {
+          "line_id": "p1_l23",
+          "bbox": [
+            1363,
+            830,
+            1985,
+            889
+          ],
+          "text": "MONTHLY USAGE (THErMS)",
+          "confidence": 0.8734629154205322
+        },
+        {
+          "line_id": "p1_l24",
+          "bbox": [
+            213,
+            832,
+            968,
+            888
+          ],
+          "text": "DAILY AVERAGE USAGE (THERMS)",
+          "confidence": 0.9138283729553223
+        },
+        {
+          "line_id": "p1_l25",
+          "bbox": [
+            1321,
+            916,
+            1408,
+            952
+          ],
+          "text": "1800",
+          "confidence": 0.9764737486839294
+        },
+        {
+          "line_id": "p1_l26",
+          "bbox": [
+            212,
+            948,
+            309,
+            984
+          ],
+          "text": "37.94",
+          "confidence": 0.9998223185539246
+        },
+        {
+          "line_id": "p1_l27",
+          "bbox": [
+            1321,
+            957,
+            1404,
+            993
+          ],
+          "text": "1600",
+          "confidence": 0.9995900988578796
+        },
+        {
+          "line_id": "p1_l28",
+          "bbox": [
+            212,
+            984,
+            340,
+            1023
+          ],
+          "text": "Current",
+          "confidence": 0.9993358254432678
+        },
+        {
+          "line_id": "p1_l29",
+          "bbox": [
+            1322,
+            999,
+            1409,
+            1032
+          ],
+          "text": "1400",
+          "confidence": 0.9844882488250732
+        },
+        {
+          "line_id": "p1_l30",
+          "bbox": [
+            1322,
+            1040,
+            1400,
+            1073
+          ],
+          "text": "1200",
+          "confidence": 0.9999203681945801
+        },
+        {
+          "line_id": "p1_l31",
+          "bbox": [
+            1321,
+            1079,
+            1403,
+            1115
+          ],
+          "text": "1000",
+          "confidence": 0.9998871088027954
+        },
+        {
+          "line_id": "p1_l32",
+          "bbox": [
+            213,
+            1094,
+            309,
+            1130
+          ],
+          "text": "17.43",
+          "confidence": 0.9998730421066284
+        },
+        {
+          "line_id": "p1_l33",
+          "bbox": [
+            1336,
+            1119,
+            1418,
+            1156
+          ],
+          "text": "800",
+          "confidence": 0.9769951701164246
+        },
+        {
+          "line_id": "p1_l34",
+          "bbox": [
+            212,
+            1130,
+            393,
+            1166
+          ],
+          "text": "Last Month",
+          "confidence": 0.9986127018928528
+        },
+        {
+          "line_id": "p1_l35",
+          "bbox": [
+            1336,
+            1159,
+            1419,
+            1196
+          ],
+          "text": "600",
+          "confidence": 0.9897708296775818
+        },
+        {
+          "line_id": "p1_l36",
+          "bbox": [
+            1336,
+            1200,
+            1418,
+            1237
+          ],
+          "text": "400",
+          "confidence": 0.9720813632011414
+        },
+        {
+          "line_id": "p1_l37",
+          "bbox": [
+            2264,
+            1202,
+            2356,
+            1245
+          ],
+          "text": "Your",
+          "confidence": 0.9991051554679871
+        },
+        {
+          "line_id": "p1_l38",
+          "bbox": [
+            1336,
+            1240,
+            1418,
+            1276
+          ],
+          "text": "200",
+          "confidence": 0.9954073429107666
+        },
+        {
+          "line_id": "p1_l39",
+          "bbox": [
+            2265,
+            1240,
+            2333,
+            1282
+          ],
+          "text": "gas",
+          "confidence": 0.9981346726417542
+        },
+        {
+          "line_id": "p1_l40",
+          "bbox": [
+            212,
+            1243,
+            309,
+            1279
+          ],
+          "text": "35.91",
+          "confidence": 0.9998475313186646
+        },
+        {
+          "line_id": "p1_l41",
+          "bbox": [
+            2267,
+            1275,
+            2375,
+            1314
+          ],
+          "text": "usage",
+          "confidence": 0.9972780346870422
+        },
+        {
+          "line_id": "p1_l42",
+          "bbox": [
+            212,
+            1279,
+            360,
+            1316
+          ],
+          "text": "Last Year",
+          "confidence": 0.9968380331993103
+        },
+        {
+          "line_id": "p1_l43",
+          "bbox": [
+            2265,
+            1302,
+            2337,
+            1341
+          ],
+          "text": "this",
+          "confidence": 0.9979931116104126
+        },
+        {
+          "line_id": "p1_l44",
+          "bbox": [
+            1416,
+            1322,
+            1441,
+            1354
+          ],
+          "text": "J",
+          "confidence": 0.889750599861145
+        },
+        {
+          "line_id": "p1_l45",
+          "bbox": [
+            1536,
+            1322,
+            1562,
+            1353
+          ],
+          "text": "F",
+          "confidence": 0.9983048439025879
+        },
+        {
+          "line_id": "p1_l46",
+          "bbox": [
+            2073,
+            1322,
+            2105,
+            1353
+          ],
+          "text": "N",
+          "confidence": 0.9934020638465881
+        },
+        {
+          "line_id": "p1_l47",
+          "bbox": [
+            2133,
+            1322,
+            2165,
+            1353
+          ],
+          "text": "D",
+          "confidence": 0.995148241519928
+        },
+        {
+          "line_id": "p1_l48",
+          "bbox": [
+            1591,
+            1323,
+            1629,
+            1353
+          ],
+          "text": "M",
+          "confidence": 0.9981435537338257
+        },
+        {
+          "line_id": "p1_l49",
+          "bbox": [
+            1653,
+            1323,
+            1685,
+            1353
+          ],
+          "text": "A",
+          "confidence": 0.9688757061958313
+        },
+        {
+          "line_id": "p1_l50",
+          "bbox": [
+            1709,
+            1323,
+            1748,
+            1353
+          ],
+          "text": "M",
+          "confidence": 0.998134434223175
+        },
+        {
+          "line_id": "p1_l51",
+          "bbox": [
+            1893,
+            1323,
+            1924,
+            1354
+          ],
+          "text": "A",
+          "confidence": 0.9891152381896973
+        },
+        {
+          "line_id": "p1_l52",
+          "bbox": [
+            1955,
+            1323,
+            1982,
+            1353
+          ],
+          "text": "S",
+          "confidence": 0.9683770537376404
+        },
+        {
+          "line_id": "p1_l53",
+          "bbox": [
+            1775,
+            1324,
+            1801,
+            1352
+          ],
+          "text": "J",
+          "confidence": 0.9360706210136414
+        },
+        {
+          "line_id": "p1_l54",
+          "bbox": [
+            2014,
+            1324,
+            2044,
+            1352
+          ],
+          "text": "0",
+          "confidence": 0.7531493306159973
+        },
+        {
+          "line_id": "p1_l55",
+          "bbox": [
+            1837,
+            1325,
+            1860,
+            1351
+          ],
+          "text": "J",
+          "confidence": 0.9844490885734558
+        },
+        {
+          "line_id": "p1_l56",
+          "bbox": [
+            2196,
+            1325,
+            2217,
+            1351
+          ],
+          "text": "J",
+          "confidence": 0.9688546657562256
+        },
+        {
+          "line_id": "p1_l57",
+          "bbox": [
+            2267,
+            1336,
+            2387,
+            1375
+          ],
+          "text": "month",
+          "confidence": 0.9995733499526978
+        },
+        {
+          "line_id": "p1_l58",
+          "bbox": [
+            1393,
+            1368,
+            1480,
+            1408
+          ],
+          "text": "2020",
+          "confidence": 0.9999011754989624
+        },
+        {
+          "line_id": "p1_l59",
+          "bbox": [
+            2161,
+            1372,
+            2240,
+            1404
+          ],
+          "text": "2021",
+          "confidence": 0.9998856782913208
+        },
+        {
+          "line_id": "p1_l60",
+          "bbox": [
+            952,
+            1506,
+            1390,
+            1547
+          ],
+          "text": "WHAT'S THAT SMeLL?",
+          "confidence": 0.8723471164703369
+        },
+        {
+          "line_id": "p1_l61",
+          "bbox": [
+            1795,
+            1508,
+            2324,
+            1547
+          ],
+          "text": "MOVING JUSTGOT EASIER",
+          "confidence": 0.941351056098938
+        },
+        {
+          "line_id": "p1_l62",
+          "bbox": [
+            125,
+            1511,
+            625,
+            1552
+          ],
+          "text": "IMPORTANT MESSAGES",
+          "confidence": 0.953607439994812
+        },
+        {
+          "line_id": "p1_l63",
+          "bbox": [
+            2133,
+            1569,
+            2381,
+            1608
+          ],
+          "text": "The easiest way",
+          "confidence": 0.998074471950531
+        },
+        {
+          "line_id": "p1_l64",
+          "bbox": [
+            953,
+            1573,
+            1299,
+            1610
+          ],
+          "text": "Natural gas smells bad",
+          "confidence": 0.9956613779067993
+        },
+        {
+          "line_id": "p1_l65",
+          "bbox": [
+            321,
+            1598,
+            683,
+            1632
+          ],
+          "text": "Flexible Payment Plans",
+          "confidence": 0.9972676634788513
+        },
+        {
+          "line_id": "p1_l66",
+          "bbox": [
+            2134,
+            1613,
+            2415,
+            1644
+          ],
+          "text": "to transfer or turn",
+          "confidence": 0.9957007169723511
+        },
+        {
+          "line_id": "p1_l67",
+          "bbox": [
+            949,
+            1614,
+            1289,
+            1652
+          ],
+          "text": "for a reason — it's for",
+          "confidence": 0.9642083644866943
+        },
+        {
+          "line_id": "p1_l68",
+          "bbox": [
+            2131,
+            1651,
+            2453,
+            1693
+          ],
+          "text": " your service off is by",
+          "confidence": 0.9396445155143738
+        },
+        {
+          "line_id": "p1_l69",
+          "bbox": [
+            950,
+            1657,
+            1135,
+            1698
+          ],
+          "text": "your safety.",
+          "confidence": 0.980628490447998
+        },
+        {
+          "line_id": "p1_l70",
+          "bbox": [
+            2135,
+            1698,
+            2490,
+            1732
+          ],
+          "text": "visiting swgas.com and",
+          "confidence": 0.9986007213592529
+        },
+        {
+          "line_id": "p1_l71",
+          "bbox": [
+            124,
+            1705,
+            840,
+            1742
+          ],
+          "text": "With our Automatic (APP) and Equal Payment",
+          "confidence": 0.978302001953125
+        },
+        {
+          "line_id": "p1_l72",
+          "bbox": [
+            952,
+            1717,
+            1273,
+            1755
+          ],
+          "text": "If you suspect a leak,",
+          "confidence": 0.9745277166366577
+        },
+        {
+          "line_id": "p1_l73",
+          "bbox": [
+            2134,
+            1735,
+            2493,
+            1775
+          ],
+          "text": "choosing Start, Stop or",
+          "confidence": 0.9954938292503357
+        },
+        {
+          "line_id": "p1_l74",
+          "bbox": [
+            124,
+            1758,
+            859,
+            1796
+          ],
+          "text": "Plans (EPP), customers can easily pay their bills",
+          "confidence": 0.9710627794265747
+        },
+        {
+          "line_id": "p1_l75",
+          "bbox": [
+            1297,
+            1758,
+            1319,
+            1915
+          ],
+          "text": "不",
+          "confidence": 0.650130033493042
+        },
+        {
+          "line_id": "p1_l76",
+          "bbox": [
+            1329,
+            1758,
+            1658,
+            2050
+          ],
+          "text": "#",
+          "confidence": 0.07668083161115646
+        },
+        {
+          "line_id": "p1_l77",
+          "bbox": [
+            951,
+            1759,
+            1262,
+            1798
+          ],
+          "text": "immediately go to a",
+          "confidence": 0.9911181926727295
+        },
+        {
+          "line_id": "p1_l78",
+          "bbox": [
+            2136,
+            1779,
+            2360,
+            1813
+          ],
+          "text": "Move Service.",
+          "confidence": 0.9824561476707458
+        },
+        {
+          "line_id": "p1_l79",
+          "bbox": [
+            951,
+            1800,
+            1323,
+            1839
+          ],
+          "text": "safe place, then call 911",
+          "confidence": 0.9563209414482117
+        },
+        {
+          "line_id": "p1_l80",
+          "bbox": [
+            125,
+            1815,
+            863,
+            1849
+          ],
+          "text": "on time every month and manage their budget.",
+          "confidence": 0.9734907746315002
+        },
+        {
+          "line_id": "p1_l81",
+          "bbox": [
+            2135,
+            1822,
+            2478,
+            1856
+          ],
+          "text": "You're just a few clicks",
+          "confidence": 0.9750151634216309
+        },
+        {
+          "line_id": "p1_l82",
+          "bbox": [
+            952,
+            1844,
+            1290,
+            1878
+          ],
+          "text": "and Southwest Gas at",
+          "confidence": 0.9960414171218872
+        },
+        {
+          "line_id": "p1_l83",
+          "bbox": [
+            2135,
+            1862,
+            2446,
+            1899
+          ],
+          "text": "away! Also available",
+          "confidence": 0.9855721592903137
+        },
+        {
+          "line_id": "p1_l84",
+          "bbox": [
+            125,
+            1870,
+            866,
+            1904
+          ],
+          "text": "Visit swgas.com or download our mobile app to",
+          "confidence": 0.9893471598625183
+        },
+        {
+          "line_id": "p1_l85",
+          "bbox": [
+            952,
+            1885,
+            1180,
+            1919
+          ],
+          "text": "877-860-6020.",
+          "confidence": 0.9964598417282104
+        },
+        {
+          "line_id": "p1_l86",
+          "bbox": [
+            2136,
+            1904,
+            2461,
+            1937
+          ],
+          "text": "in the Southwest Gas",
+          "confidence": 0.9564734697341919
+        },
+        {
+          "line_id": "p1_l87",
+          "bbox": [
+            122,
+            1921,
+            312,
+            1960
+          ],
+          "text": "get started!",
+          "confidence": 0.9617850184440613
+        },
+        {
+          "line_id": "p1_l88",
+          "bbox": [
+            2133,
+            1944,
+            2321,
+            1985
+          ],
+          "text": "mobile app.",
+          "confidence": 0.997236967086792
+        },
+        {
+          "line_id": "p1_l89",
+          "bbox": [
+            1118,
+            2186,
+            1522,
+            2217
+          ],
+          "text": "REMITWITHPAYMENT",
+          "confidence": 0.9800783395767212
+        },
+        {
+          "line_id": "p1_l90",
+          "bbox": [
+            1789,
+            2259,
+            2031,
+            2338
+          ],
+          "text": "\"APP\"",
+          "confidence": 0.9413987994194031
+        },
+        {
+          "line_id": "p1_l91",
+          "bbox": [
+            2095,
+            2278,
+            2383,
+            2317
+          ],
+          "text": "PAST DUE AFTER",
+          "confidence": 0.9777159690856934
+        },
+        {
+          "line_id": "p1_l92",
+          "bbox": [
+            2112,
+            2329,
+            2364,
+            2378
+          ],
+          "text": "02/08/2021",
+          "confidence": 0.99989253282547
+        },
+        {
+          "line_id": "p1_l93",
+          "bbox": [
+            464,
+            2336,
+            1036,
+            2438
+          ],
+          "text": "SOUTHWEST GAS",
+          "confidence": 0.9404746294021606
+        },
+        {
+          "line_id": "p1_l94",
+          "bbox": [
+            1778,
+            2338,
+            2038,
+            2386
+          ],
+          "text": "AMOUNT DUE",
+          "confidence": 0.9402326345443726
+        },
+        {
+          "line_id": "p1_l95",
+          "bbox": [
+            1835,
+            2405,
+            2418,
+            2446
+          ],
+          "text": "ACCOUNT 211-6955523-005",
+          "confidence": 0.9956123232841492
+        },
+        {
+          "line_id": "p1_l96",
+          "bbox": [
+            496,
+            2450,
+            738,
+            2488
+          ],
+          "text": "PO Box 98890",
+          "confidence": 0.9563319683074951
+        },
+        {
+          "line_id": "p1_l97",
+          "bbox": [
+            494,
+            2497,
+            948,
+            2544
+          ],
+          "text": "Las Vegas NV 89193-8890",
+          "confidence": 0.986288845539093
+        },
+        {
+          "line_id": "p1_l98",
+          "bbox": [
+            1563,
+            2564,
+            1871,
+            2598
+          ],
+          "text": "SOUTHWEST GAS",
+          "confidence": 0.9828464984893799
+        },
+        {
+          "line_id": "p1_l99",
+          "bbox": [
+            1564,
+            2615,
+            1806,
+            2649
+          ],
+          "text": "PO Box 24531",
+          "confidence": 0.9924595355987549
+        },
+        {
+          "line_id": "p1_l100",
+          "bbox": [
+            1562,
+            2663,
+            1986,
+            2703
+          ],
+          "text": "Oakland, CA 94623-1531",
+          "confidence": 0.9882495403289795
+        },
+        {
+          "line_id": "p1_l101",
+          "bbox": [
+            343,
+            2725,
+            847,
+            2759
+          ],
+          "text": "DESERT TRADE GRAPHICS INC",
+          "confidence": 0.9682794809341431
+        },
+        {
+          "line_id": "p1_l102",
+          "bbox": [
+            341,
+            2773,
+            798,
+            2807
+          ],
+          "text": "7582 LAS VEGAS BLV #487",
+          "confidence": 0.9511388540267944
+        },
+        {
+          "line_id": "p1_l103",
+          "bbox": [
+            1526,
+            2815,
+            2454,
+            2847
+          ],
+          "text": "Please include account number on check or money order and make",
+          "confidence": 0.9825565814971924
+        },
+        {
+          "line_id": "p1_l104",
+          "bbox": [
+            342,
+            2824,
+            702,
+            2858
+          ],
+          "text": "LAS VEGAS NV 89123",
+          "confidence": 0.9935426712036133
+        },
+        {
+          "line_id": "p1_l105",
+          "bbox": [
+            1599,
+            2854,
+            2454,
+            2891
+          ],
+          "text": "payable to Southwest Gas. Do not send cash through the mail.",
+          "confidence": 0.9898919463157654
+        },
+        {
+          "line_id": "p1_l106",
+          "bbox": [
+            1465,
+            3027,
+            2460,
+            3067
+          ],
+          "text": "211695552300590000663050000000003",
+          "confidence": 0.9961298108100891
+        },
+        {
+          "line_id": "p1_l107",
+          "bbox": [
+            1536,
+            3141,
+            2310,
+            3177
+          ],
+          "text": "SEE REVERSE SIDE FOR IMPORTANT DETAILS",
+          "confidence": 0.9166759848594666
+        },
+        {
+          "line_id": "p1_l108",
+          "bbox": [
+            2105,
+            3216,
+            2307,
+            3247
+          ],
+          "text": "927.0 12/2019",
+          "confidence": 0.9965057969093323
+        }
+      ]
+    },
+    {
+      "page_number": 2,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p2_b1",
+          "block_type": "text",
+          "bbox": [
+            2318,
+            15,
+            2508,
+            55
+          ],
+          "reading_order": 1,
+          "text": "Page 2 of 4",
+          "confidence": 0.8111419081687927
+        },
+        {
+          "block_id": "p2_b2",
+          "block_type": "header",
+          "bbox": [
+            124,
+            65,
+            1391,
+            100
+          ],
+          "reading_order": 2,
+          "text": "NOTICE TO SOUTHWEST GAS CORPORATION (SWG) NEVADA CUSTOMERS",
+          "confidence": 0.804963231086731
+        },
+        {
+          "block_id": "p2_b3",
+          "block_type": "text",
+          "bbox": [
+            121,
+            140,
+            2457,
+            204
+          ],
+          "reading_order": 3,
+          "text": "CUSTOMER QUESTIONS OR ASSISTANCE NEEDED? Visit www.swgas.com and create a MyAccount to view,manage, and customize your gas account online, or call our local toll-free number (llamada gratis) at 1-877-860-6020 for billing questions.",
+          "confidence": 0.9178529977798462
+        },
+        {
+          "block_id": "p2_b4",
+          "block_type": "text",
+          "bbox": [
+            123,
+            231,
+            1594,
+            265
+          ],
+          "reading_order": 4,
+          "text": "Basic Service Charge and Delivery - These charges recover the costs of operating the natural gas distribution system.",
+          "confidence": 0.8679969310760498
+        },
+        {
+          "block_id": "p2_b5",
+          "block_type": "text",
+          "bbox": [
+            120,
+            290,
+            2458,
+            355
+          ],
+          "reading_order": 5,
+          "text": "BillingFactor-Thebillingfactorisuedtoconvertthemetredvolumeofgasintounitsofheatenergywhicharecalledtherms.SWGbillscustomersonaperthermbasisortheamount of energycontainedintheasdelivered.Thecurenteadingminusthepreviousrading,timesthebillingactorqualsthenumberofthermsyouhaveusedinthecurrentbilling priod.",
+          "confidence": 0.9447569251060486
+        },
+        {
+          "block_id": "p2_b6",
+          "block_type": "text",
+          "bbox": [
+            120,
+            381,
+            2457,
+            567
+          ],
+          "reading_order": 6,
+          "text": "Customer Buried Gas Piping - Customers may have underground gas piping that is not maintained by SWG. (Reference Federal Regulation 49 CFR Part 192.16) This piping,which is typically located between the gas meterand a buildingoroutdoor gasappliance,may consistof buried steel gas lines.Steel gas lines are subject to the effectsof corrosion if they are not maintained,whichcouldresultin leakage.Regardlesif thepipeis steelorplastic,itisimportantthatunderground naturalgas pipingis periodicalmonitoredtoidentifypotentialproblems that might cause a hazardous condition.Federal regulations encourage customers to employ qualifiedplumbingand heating contractors forall inspections,monitoring,and repairingof customer buried gaspiping.Unsafe conditions discovered mustbe repaired immediately. For assistance in locating licensed plumbers or contractors,or reviewing relocation,replacement,or maintenance options, call Energy Services at 1-800-654-2765. Remember, call before you dig to locate gas piping in advance, and excavate by hand.",
+          "confidence": 0.9725425243377686
+        },
+        {
+          "block_id": "p2_b7",
+          "block_type": "text",
+          "bbox": [
+            121,
+            592,
+            2456,
+            686
+          ],
+          "reading_order": 7,
+          "text": "Deposits-If youare anexistingcustomer,yourdeposit will becredited toyouraccount,withanyapplicableinterest,aftercontinuous service and timely paymentofbills in accordance with SWGcommissionapprovedrules.Ifyourservice has beendiscontinuedeitherat yourrequestorby SWG,yourdeposit,plusanyapplicableinterestwil berefunded toyou,less the amount of any unpaid bills.",
+          "confidence": 0.9555633664131165
+        },
+        {
+          "block_id": "p2_b8",
+          "block_type": "text",
+          "bbox": [
+            121,
+            710,
+            2454,
+            778
+          ],
+          "reading_order": 8,
+          "text": "Disconnection of Service at Customer Request - Please call SWG at least five (5) working days in advance of the date you wish to have service disconnected. If SWG is not notified, service will continue to be billed to the customer of record.",
+          "confidence": 0.9294581413269043
+        },
+        {
+          "block_id": "p2_b9",
+          "block_type": "text",
+          "bbox": [
+            121,
+            801,
+            2455,
+            867
+          ],
+          "reading_order": 9,
+          "text": "Electronic Check Conversion - When a check is provided as payment, SWG is authorized to either use information from the check to make a one-time electronic funds transfer from the account or to process the payment as a check transaction.",
+          "confidence": 0.9290768504142761
+        },
+        {
+          "block_id": "p2_b10",
+          "block_type": "text",
+          "bbox": [
+            121,
+            891,
+            2455,
+            956
+          ],
+          "reading_order": 10,
+          "text": "Emergency Service - In case of an emergency or if you smell natural gas,call SWG at 1-877-860-6020,or dial 911. Emergency service is also available by calling: Southern Nevada (including Bullhead,Las Vegas, Laughlin, and Needles) 1-800-447-5422 or,Northern Nevada1-800-772-4555.",
+          "confidence": 0.9278801083564758
+        },
+        {
+          "block_id": "p2_b11",
+          "block_type": "text",
+          "bbox": [
+            123,
+            979,
+            1384,
+            1015
+          ],
+          "reading_order": 11,
+          "text": "Gas Cost - This charge recovers the cost of natural gas purchased by SWG on behalf of its customers.",
+          "confidence": 0.8668085932731628
+        },
+        {
+          "block_id": "p2_b12",
+          "block_type": "text",
+          "bbox": [
+            121,
+            1041,
+            2456,
+            1110
+          ],
+          "reading_order": 12,
+          "text": "Infrastructure Expansion (IE) Rate — The rate established for the purpose of providing natural gas service to unservedor underserved areas in the state pursuant to Nevada Revised Statutes 704.9925",
+          "confidence": 0.9239065647125244
+        },
+        {
+          "block_id": "p2_b13",
+          "block_type": "text",
+          "bbox": [
+            120,
+            1131,
+            2456,
+            1197
+          ],
+          "reading_order": 13,
+          "text": "Notice to Employers- Requesta Safety Data Sheet (SDS)fornatural gas bycalling EnergyServices at1-800-654-2765orvisitingwww.swgas.com/emergencysafety.Pleaseensure your employees know how to obtain SDS information.",
+          "confidence": 0.9290285110473633
+        },
+        {
+          "block_id": "p2_b14",
+          "block_type": "text",
+          "bbox": [
+            121,
+            1221,
+            2455,
+            1287
+          ],
+          "reading_order": 14,
+          "text": "Past Due Date/Late Pay Charge-The monthlybill is due and payableuponpresentationand becomes past due ifnot paid bythe\"Past Due Afterdateon thebill.Alate paycharge may be added to any past due amount.",
+          "confidence": 0.9358822107315063
+        },
+        {
+          "block_id": "p2_b15",
+          "block_type": "text",
+          "bbox": [
+            120,
+            1309,
+            2456,
+            1378
+          ],
+          "reading_order": 15,
+          "text": "Rates and Other Information - The Rules and Rate Schedules of SWG are available at your nearest SWG Customer Business Office or by going online at www.swgas.com. The address and telephonenumberoftheoficethat servesyouareprintedonthefrontofthis bill(top).",
+          "confidence": 0.9398574233055115
+        },
+        {
+          "block_id": "p2_b16",
+          "block_type": "text",
+          "bbox": [
+            120,
+            1399,
+            2455,
+            1469
+          ],
+          "reading_order": 16,
+          "text": "Renewable Energy Program (REP) Rate - The REP Rate recovers the cost of SWG's participation in the Solar Thermal Demonstration Program. For more information visit www.swgas.com/nvsolar.",
+          "confidence": 0.9377251863479614
+        },
+        {
+          "block_id": "p2_b17",
+          "block_type": "text",
+          "bbox": [
+            120,
+            1490,
+            2454,
+            1556
+          ],
+          "reading_order": 17,
+          "text": "Rightof Accessand BillEstimation-SWG will havetherightofaccesstoyour premises foranypurpose normallyconnected with thefurnishingofnatural gas service(s).If SWG isunable to read a meter on the scheduled date because of circumstances beyond its control, SWG will calculate the bill based upon estimated usage for that billing period.",
+          "confidence": 0.9392850995063782
+        },
+        {
+          "block_id": "p2_b18",
+          "block_type": "text",
+          "bbox": [
+            120,
+            1581,
+            2455,
+            1677
+          ],
+          "reading_order": 18,
+          "text": "Service Establishment and Reestablishment Charge - For each establishmentof service there is acharge which appears on the first bill following the establishment of service.This charge partiallycoversthecostsincurredto setupthe serviceandcreatetheaccountinthe SwGbillingsystem.Whenvergasserviceisturnedoff ecauseofnonpaymentthedelinquentbillls a reestablishment charge, must be paid and credit reestablished before service will be restored.",
+          "confidence": 0.9514243006706238
+        },
+        {
+          "block_id": "p2_b19",
+          "block_type": "text",
+          "bbox": [
+            119,
+            1701,
+            2455,
+            1796
+          ],
+          "reading_order": 19,
+          "text": "Special Services-Everyeffortwill be made to ensureuninterrupted serviceto residentialcustomers whonotifySWG about permanent residentsin theirhousehold who are seriouslyill, disabled,orelderly.Also,inanefforttoavoid servicebeingturnedoff;anyresidentialcustomer mayelecttodesignatea thirdparty(agencyorindividual)to receiveacopyof all Disconnect Notices.",
+          "confidence": 0.9499928951263428
+        },
+        {
+          "block_id": "p2_b20",
+          "block_type": "text",
+          "bbox": [
+            122,
+            1820,
+            2457,
+            1889
+          ],
+          "reading_order": 20,
+          "text": "Universal Energy Charge - Nevada law requires SWG to include a\"Universal Energy Charge\"(UEC)on customer's monthlygas bills. The money collected from this charge is used for y19,m08,v2 programstoasistliiblehouseholdipayingforaturalasandlctricityandorprogramsofnergconservation,weatherizationandenergycy.",
+          "confidence": 0.9348077774047852
+        },
+        {
+          "block_id": "p2_b21",
+          "block_type": "text",
+          "bbox": [
+            120,
+            1911,
+            2457,
+            2035
+          ],
+          "reading_order": 21,
+          "text": "ShouldyoubliveyouhavebenbilledincorrctylasecontactSWGatourll-enumberamadaratis)1-7-60-620Ifyoutheraferwishtodisptethisblyoushouldsubmit your dispute in writing to the PublicUtilities Commissionof Nevada (PUCN)atCapital Plaza,1150 E. WilliamStreet,CarsonCity,Nevada 89701-3109,or9075 West Diablo Drive, Suite250, Las Vegas,Nevada89148.The PUCN Consumer Divisionoffices mayalso bereached by telephoneat the followingphone numbers: Las Vegas(702) 486-2600,CarsonCity(775)68400, or visit puc.nv.gov. The amount of this bill must be paid to prevent discontinuance of service; however, your payment to SwG may be made under protest if you so desire.",
+          "confidence": 0.9643169045448303
+        },
+        {
+          "block_id": "p2_b22",
+          "block_type": "text",
+          "bbox": [
+            122,
+            2062,
+            2457,
+            2124
+          ],
+          "reading_order": 22,
+          "text": "Payments - Take advantage of our customer service features at www.swgas.com where you can view a variety of payment options, and find easy steps to pay your gas bill online. Create a MyAccount to view, manage, and customize your gas account online. To pay by ATM/debit/credit card, call Speedpay toll free at 1-866-263-5188.",
+          "confidence": 0.9513788819313049
+        },
+        {
+          "block_id": "p2_b23",
+          "block_type": "text",
+          "bbox": [
+            793,
+            2182,
+            1826,
+            2220
+          ],
+          "reading_order": 23,
+          "text": "RETAINPORTIONABOVE DOTTEDLINEFOR YOUR RECORDS",
+          "confidence": 0.7527410984039307
+        },
+        {
+          "block_id": "p2_b24",
+          "block_type": "figure",
+          "bbox": [
+            1647,
+            2265,
+            2391,
+            2329
+          ],
+          "reading_order": 24,
+          "text": "",
+          "confidence": 0.6742382049560547
+        },
+        {
+          "block_id": "p2_b25",
+          "block_type": "text",
+          "bbox": [
+            972,
+            2300,
+            1488,
+            2396
+          ],
+          "reading_order": 25,
+          "text": "Sign up for Paperless Billing at swgas.com",
+          "confidence": 0.41239529848098755
+        },
+        {
+          "block_id": "p2_b26",
+          "block_type": "title",
+          "bbox": [
+            972,
+            2300,
+            1489,
+            2347
+          ],
+          "reading_order": 26,
+          "text": "Sign up for Paperless Billing at",
+          "confidence": 0.3829917311668396
+        },
+        {
+          "block_id": "p2_b27",
+          "block_type": "text",
+          "bbox": [
+            1136,
+            2359,
+            1327,
+            2395
+          ],
+          "reading_order": 27,
+          "text": "swgas.com",
+          "confidence": 0.4520816206932068
+        },
+        {
+          "block_id": "p2_b28",
+          "block_type": "text",
+          "bbox": [
+            1489,
+            2359,
+            2487,
+            2404
+          ],
+          "reading_order": 28,
+          "text": "211695552300590000663050000000003",
+          "confidence": 0.6145839095115662
+        },
+        {
+          "block_id": "p2_b29",
+          "block_type": "text",
+          "bbox": [
+            1732,
+            2462,
+            2441,
+            2555
+          ],
+          "reading_order": 29,
+          "text": "If address changed, please check the box and provide new address below.",
+          "confidence": 0.8492517471313477
+        },
+        {
+          "block_id": "p2_b30",
+          "block_type": "text",
+          "bbox": [
+            123,
+            2922,
+            373,
+            2960
+          ],
+          "reading_order": 30,
+          "text": "WAYS TO PAY",
+          "confidence": 0.49344614148139954
+        },
+        {
+          "block_id": "p2_b31",
+          "block_type": "figure",
+          "bbox": [
+            249,
+            2981,
+            449,
+            3215
+          ],
+          "reading_order": 31,
+          "text": "ONLINE MyAccount swgas.com",
+          "confidence": 0.5870078802108765
+        },
+        {
+          "block_id": "p2_b32",
+          "block_type": "figure",
+          "bbox": [
+            2018,
+            2984,
+            2338,
+            3180
+          ],
+          "reading_order": 32,
+          "text": "PAY LOCATIONS",
+          "confidence": 0.5383023023605347
+        },
+        {
+          "block_id": "p2_b33",
+          "block_type": "figure",
+          "bbox": [
+            696,
+            2985,
+            923,
+            3256
+          ],
+          "reading_order": 33,
+          "text": "MOBILE APP Download Application",
+          "confidence": 0.5385563373565674
+        },
+        {
+          "block_id": "p2_b34",
+          "block_type": "figure",
+          "bbox": [
+            1561,
+            2988,
+            1893,
+            3161
+          ],
+          "reading_order": 34,
+          "text": "MAIL",
+          "confidence": 0.6833575963973999
+        },
+        {
+          "block_id": "p2_b35",
+          "block_type": "text",
+          "bbox": [
+            1171,
+            3177,
+            1367,
+            3250
+          ],
+          "reading_order": 35,
+          "text": "877-860-6020 Press 2",
+          "confidence": 0.4835134744644165
+        },
+        {
+          "block_id": "p2_b36",
+          "block_type": "text",
+          "bbox": [
+            1553,
+            3179,
+            1896,
+            3251
+          ],
+          "reading_order": 36,
+          "text": "PO Box 24531 Oakland, CA 94623-1531",
+          "confidence": 0.5597257018089294
+        },
+        {
+          "block_id": "p2_b37",
+          "block_type": "text",
+          "bbox": [
+            2012,
+            3183,
+            2344,
+            3254
+          ],
+          "reading_order": 37,
+          "text": "myaccount.swgas.com/ paystation",
+          "confidence": 0.5279850363731384
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p2_l1",
+          "bbox": [
+            2317,
+            13,
+            2515,
+            61
+          ],
+          "text": "Page 2 of 4",
+          "confidence": 0.9759231209754944
+        },
+        {
+          "line_id": "p2_l2",
+          "bbox": [
+            127,
+            66,
+            1396,
+            106
+          ],
+          "text": "NOTICE TO SOUTHWEST GAS CORPORATION (SWG) NEVADA CUSTOMERS",
+          "confidence": 0.9689710736274719
+        },
+        {
+          "line_id": "p2_l3",
+          "bbox": [
+            128,
+            138,
+            2460,
+            178
+          ],
+          "text": "CUSTOMER QUESTIONS OR ASSISTANCE NEEDED? Visit www.swgas.com and create a MyAccount to view,manage, and customize your gas account",
+          "confidence": 0.9480113387107849
+        },
+        {
+          "line_id": "p2_l4",
+          "bbox": [
+            126,
+            170,
+            1538,
+            208
+          ],
+          "text": "online, or call our local toll-free number (llamada gratis) at 1-877-860-6020 for billing questions.",
+          "confidence": 0.9640317559242249
+        },
+        {
+          "line_id": "p2_l5",
+          "bbox": [
+            125,
+            229,
+            1595,
+            270
+          ],
+          "text": "Basic Service Charge and Delivery - These charges recover the costs of operating the natural gas distribution system.",
+          "confidence": 0.9651175737380981
+        },
+        {
+          "line_id": "p2_l6",
+          "bbox": [
+            127,
+            290,
+            2461,
+            331
+          ],
+          "text": "BillingFactor-Thebillingfactorisuedtoconvertthemetredvolumeofgasintounitsofheatenergywhicharecalledtherms.SWGbillscustomersonaperthermbasisortheamount of",
+          "confidence": 0.8587939739227295
+        },
+        {
+          "line_id": "p2_l7",
+          "bbox": [
+            125,
+            322,
+            2345,
+            362
+          ],
+          "text": "energycontainedintheasdelivered.Thecurenteadingminusthepreviousrading,timesthebillingactorqualsthenumberofthermsyouhaveusedinthecurrentbilling priod.",
+          "confidence": 0.8749954700469971
+        },
+        {
+          "line_id": "p2_l8",
+          "bbox": [
+            125,
+            381,
+            2459,
+            419
+          ],
+          "text": "Customer Buried Gas Piping - Customers may have underground gas piping that is not maintained by SWG. (Reference Federal Regulation 49 CFR Part 192.16) This piping,which is",
+          "confidence": 0.9663910269737244
+        },
+        {
+          "line_id": "p2_l9",
+          "bbox": [
+            128,
+            415,
+            2459,
+            449
+          ],
+          "text": "typically located between the gas meterand a buildingoroutdoor gasappliance,may consistof buried steel gas lines.Steel gas lines are subject to the effectsof corrosion if they are not",
+          "confidence": 0.9416520595550537
+        },
+        {
+          "line_id": "p2_l10",
+          "bbox": [
+            126,
+            443,
+            2459,
+            478
+          ],
+          "text": "maintained,whichcouldresultin leakage.Regardlesif thepipeis steelorplastic,itisimportantthatunderground naturalgas pipingis periodicalmonitoredtoidentifypotentialproblems that",
+          "confidence": 0.9168304204940796
+        },
+        {
+          "line_id": "p2_l11",
+          "bbox": [
+            128,
+            475,
+            2459,
+            508
+          ],
+          "text": "might cause a hazardous condition.Federal regulations encourage customers to employ qualifiedplumbingand heating contractors forall inspections,monitoring,and repairingof customer",
+          "confidence": 0.9634107947349548
+        },
+        {
+          "line_id": "p2_l12",
+          "bbox": [
+            128,
+            504,
+            2460,
+            538
+          ],
+          "text": "buried gaspiping.Unsafe conditions discovered mustbe repaired immediately. For assistance in locating licensed plumbers or contractors,or reviewing relocation,replacement,or",
+          "confidence": 0.9558197259902954
+        },
+        {
+          "line_id": "p2_l13",
+          "bbox": [
+            128,
+            534,
+            1942,
+            568
+          ],
+          "text": "maintenance options, call Energy Services at 1-800-654-2765. Remember, call before you dig to locate gas piping in advance, and excavate by hand.",
+          "confidence": 0.9631235003471375
+        },
+        {
+          "line_id": "p2_l14",
+          "bbox": [
+            128,
+            593,
+            2457,
+            626
+          ],
+          "text": "Deposits-If youare anexistingcustomer,yourdeposit will becredited toyouraccount,withanyapplicableinterest,aftercontinuous service and timely paymentofbills in accordance with",
+          "confidence": 0.9596765637397766
+        },
+        {
+          "line_id": "p2_l15",
+          "bbox": [
+            126,
+            621,
+            2460,
+            659
+          ],
+          "text": "SWGcommissionapprovedrules.Ifyourservice has beendiscontinuedeitherat yourrequestorby SWG,yourdeposit,plusanyapplicableinterestwil berefunded toyou,less the amount",
+          "confidence": 0.8614562153816223
+        },
+        {
+          "line_id": "p2_l16",
+          "bbox": [
+            128,
+            653,
+            361,
+            690
+          ],
+          "text": "of any unpaid bills.",
+          "confidence": 0.9545424580574036
+        },
+        {
+          "line_id": "p2_l17",
+          "bbox": [
+            128,
+            713,
+            2457,
+            747
+          ],
+          "text": "Disconnection of Service at Customer Request - Please call SWG at least five (5) working days in advance of the date you wish to have service disconnected. If SWG is not notified,",
+          "confidence": 0.9716602563858032
+        },
+        {
+          "line_id": "p2_l18",
+          "bbox": [
+            126,
+            742,
+            838,
+            777
+          ],
+          "text": "service will continue to be billed to the customer of record.",
+          "confidence": 0.980648398399353
+        },
+        {
+          "line_id": "p2_l19",
+          "bbox": [
+            126,
+            800,
+            2459,
+            839
+          ],
+          "text": "Electronic Check Conversion - When a check is provided as payment, SWG is authorized to either use information from the check to make a one-time electronic funds transfer from the",
+          "confidence": 0.963163435459137
+        },
+        {
+          "line_id": "p2_l20",
+          "bbox": [
+            127,
+            832,
+            844,
+            870
+          ],
+          "text": "account or to process the payment as a check transaction.",
+          "confidence": 0.9555423259735107
+        },
+        {
+          "line_id": "p2_l21",
+          "bbox": [
+            128,
+            893,
+            2457,
+            927
+          ],
+          "text": "Emergency Service - In case of an emergency or if you smell natural gas,call SWG at 1-877-860-6020,or dial 911. Emergency service is also available by calling: Southern Nevada",
+          "confidence": 0.9559193849563599
+        },
+        {
+          "line_id": "p2_l22",
+          "bbox": [
+            128,
+            922,
+            1466,
+            959
+          ],
+          "text": "(including Bullhead,Las Vegas, Laughlin, and Needles) 1-800-447-5422 or,Northern Nevada1-800-772-4555.",
+          "confidence": 0.9327248334884644
+        },
+        {
+          "line_id": "p2_l23",
+          "bbox": [
+            126,
+            979,
+            1389,
+            1021
+          ],
+          "text": "Gas Cost - This charge recovers the cost of natural gas purchased by SWG on behalf of its customers.",
+          "confidence": 0.958355188369751
+        },
+        {
+          "line_id": "p2_l24",
+          "bbox": [
+            127,
+            1043,
+            2458,
+            1080
+          ],
+          "text": "Infrastructure Expansion (IE) Rate — The rate established for the purpose of providing natural gas service to unservedor underserved areas in the state pursuant to Nevada Revised",
+          "confidence": 0.9570941925048828
+        },
+        {
+          "line_id": "p2_l25",
+          "bbox": [
+            127,
+            1071,
+            356,
+            1107
+          ],
+          "text": "Statutes 704.9925",
+          "confidence": 0.9803135991096497
+        },
+        {
+          "line_id": "p2_l26",
+          "bbox": [
+            125,
+            1130,
+            2460,
+            1172
+          ],
+          "text": "Notice to Employers- Requesta Safety Data Sheet (SDS)fornatural gas bycalling EnergyServices at1-800-654-2765orvisitingwww.swgas.com/emergencysafety.Pleaseensure your",
+          "confidence": 0.9446840286254883
+        },
+        {
+          "line_id": "p2_l27",
+          "bbox": [
+            126,
+            1163,
+            721,
+            1198
+          ],
+          "text": "employees know how to obtain SDS information.",
+          "confidence": 0.9688628315925598
+        },
+        {
+          "line_id": "p2_l28",
+          "bbox": [
+            125,
+            1221,
+            2457,
+            1260
+          ],
+          "text": "Past Due Date/Late Pay Charge-The monthlybill is due and payableuponpresentationand becomes past due ifnot paid bythe\"Past Due Afterdateon thebill.Alate paycharge may be",
+          "confidence": 0.9401139616966248
+        },
+        {
+          "line_id": "p2_l29",
+          "bbox": [
+            129,
+            1256,
+            508,
+            1287
+          ],
+          "text": "added to any past due amount.",
+          "confidence": 0.9714857339859009
+        },
+        {
+          "line_id": "p2_l30",
+          "bbox": [
+            125,
+            1311,
+            2458,
+            1349
+          ],
+          "text": "Rates and Other Information - The Rules and Rate Schedules of SWG are available at your nearest SWG Customer Business Office or by going online at www.swgas.com. The address and",
+          "confidence": 0.9703208804130554
+        },
+        {
+          "line_id": "p2_l31",
+          "bbox": [
+            126,
+            1342,
+            1175,
+            1380
+          ],
+          "text": "telephonenumberoftheoficethat servesyouareprintedonthefrontofthis bill(top).",
+          "confidence": 0.8826708793640137
+        },
+        {
+          "line_id": "p2_l32",
+          "bbox": [
+            127,
+            1402,
+            2460,
+            1439
+          ],
+          "text": "Renewable Energy Program (REP) Rate - The REP Rate recovers the cost of SWG's participation in the Solar Thermal Demonstration Program. For more information visit",
+          "confidence": 0.9597885608673096
+        },
+        {
+          "line_id": "p2_l33",
+          "bbox": [
+            126,
+            1433,
+            443,
+            1469
+          ],
+          "text": "www.swgas.com/nvsolar.",
+          "confidence": 0.9976750016212463
+        },
+        {
+          "line_id": "p2_l34",
+          "bbox": [
+            128,
+            1491,
+            2459,
+            1528
+          ],
+          "text": "Rightof Accessand BillEstimation-SWG will havetherightofaccesstoyour premises foranypurpose normallyconnected with thefurnishingofnatural gas service(s).If SWG isunable",
+          "confidence": 0.928381621837616
+        },
+        {
+          "line_id": "p2_l35",
+          "bbox": [
+            127,
+            1524,
+            2094,
+            1557
+          ],
+          "text": "to read a meter on the scheduled date because of circumstances beyond its control, SWG will calculate the bill based upon estimated usage for that billing period.",
+          "confidence": 0.9564048647880554
+        },
+        {
+          "line_id": "p2_l36",
+          "bbox": [
+            126,
+            1581,
+            2457,
+            1617
+          ],
+          "text": "Service Establishment and Reestablishment Charge - For each establishmentof service there is acharge which appears on the first bill following the establishment of service.This charge",
+          "confidence": 0.9471477270126343
+        },
+        {
+          "line_id": "p2_l37",
+          "bbox": [
+            127,
+            1612,
+            2458,
+            1649
+          ],
+          "text": "partiallycoversthecostsincurredto setupthe serviceandcreatetheaccountinthe SwGbillingsystem.Whenvergasserviceisturnedoff ecauseofnonpaymentthedelinquentbillls",
+          "confidence": 0.8337937593460083
+        },
+        {
+          "line_id": "p2_l38",
+          "bbox": [
+            126,
+            1641,
+            1289,
+            1679
+          ],
+          "text": "a reestablishment charge, must be paid and credit reestablished before service will be restored.",
+          "confidence": 0.9608481526374817
+        },
+        {
+          "line_id": "p2_l39",
+          "bbox": [
+            128,
+            1702,
+            2457,
+            1739
+          ],
+          "text": "Special Services-Everyeffortwill be made to ensureuninterrupted serviceto residentialcustomers whonotifySWG about permanent residentsin theirhousehold who are seriouslyill,",
+          "confidence": 0.9518856406211853
+        },
+        {
+          "line_id": "p2_l40",
+          "bbox": [
+            126,
+            1733,
+            2458,
+            1768
+          ],
+          "text": "disabled,orelderly.Also,inanefforttoavoid servicebeingturnedoff;anyresidentialcustomer mayelecttodesignatea thirdparty(agencyorindividual)to receiveacopyof all Disconnect",
+          "confidence": 0.9588639140129089
+        },
+        {
+          "line_id": "p2_l41",
+          "bbox": [
+            124,
+            1760,
+            233,
+            1798
+          ],
+          "text": "Notices.",
+          "confidence": 0.9984735250473022
+        },
+        {
+          "line_id": "p2_l42",
+          "bbox": [
+            128,
+            1822,
+            2460,
+            1859
+          ],
+          "text": "Universal Energy Charge - Nevada law requires SWG to include a\"Universal Energy Charge\"(UEC)on customer's monthlygas bills. The money collected from this charge is used for",
+          "confidence": 0.9533177018165588
+        },
+        {
+          "line_id": "p2_l43",
+          "bbox": [
+            2300,
+            1851,
+            2461,
+            1891
+          ],
+          "text": "y19,m08,v2",
+          "confidence": 0.9513325691223145
+        },
+        {
+          "line_id": "p2_l44",
+          "bbox": [
+            126,
+            1853,
+            2040,
+            1891
+          ],
+          "text": "programstoasistliiblehouseholdipayingforaturalasandlctricityandorprogramsofnergconservation,weatherizationandenergycy.",
+          "confidence": 0.8007246851921082
+        },
+        {
+          "line_id": "p2_l45",
+          "bbox": [
+            128,
+            1912,
+            2459,
+            1949
+          ],
+          "text": "ShouldyoubliveyouhavebenbilledincorrctylasecontactSWGatourll-enumberamadaratis)1-7-60-620Ifyoutheraferwishtodisptethisblyoushouldsubmit",
+          "confidence": 0.7977086901664734
+        },
+        {
+          "line_id": "p2_l46",
+          "bbox": [
+            126,
+            1942,
+            2458,
+            1978
+          ],
+          "text": "your dispute in writing to the PublicUtilities Commissionof Nevada (PUCN)atCapital Plaza,1150 E. WilliamStreet,CarsonCity,Nevada 89701-3109,or9075 West Diablo Drive, Suite250,",
+          "confidence": 0.9341197609901428
+        },
+        {
+          "line_id": "p2_l47",
+          "bbox": [
+            126,
+            1971,
+            2458,
+            2009
+          ],
+          "text": "Las Vegas,Nevada89148.The PUCN Consumer Divisionoffices mayalso bereached by telephoneat the followingphone numbers: Las Vegas(702) 486-2600,CarsonCity(775)68400,",
+          "confidence": 0.9100359678268433
+        },
+        {
+          "line_id": "p2_l48",
+          "bbox": [
+            128,
+            2005,
+            2197,
+            2039
+          ],
+          "text": "or visit puc.nv.gov. The amount of this bill must be paid to prevent discontinuance of service; however, your payment to SwG may be made under protest if you so desire.",
+          "confidence": 0.9700587391853333
+        },
+        {
+          "line_id": "p2_l49",
+          "bbox": [
+            127,
+            2062,
+            2457,
+            2098
+          ],
+          "text": "Payments - Take advantage of our customer service features at www.swgas.com where you can view a variety of payment options, and find easy steps to pay your gas bill",
+          "confidence": 0.9768535494804382
+        },
+        {
+          "line_id": "p2_l50",
+          "bbox": [
+            128,
+            2094,
+            2308,
+            2127
+          ],
+          "text": "online. Create a MyAccount to view, manage, and customize your gas account online. To pay by ATM/debit/credit card, call Speedpay toll free at 1-866-263-5188.",
+          "confidence": 0.9563726186752319
+        },
+        {
+          "line_id": "p2_l51",
+          "bbox": [
+            797,
+            2188,
+            1824,
+            2221
+          ],
+          "text": "RETAINPORTIONABOVE DOTTEDLINEFOR YOUR RECORDS",
+          "confidence": 0.9672361612319946
+        },
+        {
+          "line_id": "p2_l52",
+          "bbox": [
+            977,
+            2303,
+            1491,
+            2344
+          ],
+          "text": "Sign up for Paperless Billing at",
+          "confidence": 0.979210615158081
+        },
+        {
+          "line_id": "p2_l53",
+          "bbox": [
+            1138,
+            2358,
+            1329,
+            2396
+          ],
+          "text": "swgas.com",
+          "confidence": 0.999718964099884
+        },
+        {
+          "line_id": "p2_l54",
+          "bbox": [
+            1491,
+            2362,
+            2488,
+            2405
+          ],
+          "text": "211695552300590000663050000000003",
+          "confidence": 0.9970957636833191
+        },
+        {
+          "line_id": "p2_l55",
+          "bbox": [
+            1742,
+            2465,
+            2443,
+            2502
+          ],
+          "text": "If address changed, please check the box",
+          "confidence": 0.973197340965271
+        },
+        {
+          "line_id": "p2_l56",
+          "bbox": [
+            1742,
+            2517,
+            2298,
+            2554
+          ],
+          "text": "and provide new address below.",
+          "confidence": 0.9933013916015625
+        },
+        {
+          "line_id": "p2_l57",
+          "bbox": [
+            124,
+            2925,
+            374,
+            2962
+          ],
+          "text": "WAYS TO PAY",
+          "confidence": 0.9577219486236572
+        },
+        {
+          "line_id": "p2_l58",
+          "bbox": [
+            1675,
+            2990,
+            1776,
+            3030
+          ],
+          "text": "MAIL",
+          "confidence": 0.9821391701698303
+        },
+        {
+          "line_id": "p2_l59",
+          "bbox": [
+            274,
+            2991,
+            414,
+            3030
+          ],
+          "text": "ONLINE",
+          "confidence": 0.9910609722137451
+        },
+        {
+          "line_id": "p2_l60",
+          "bbox": [
+            1203,
+            2992,
+            1334,
+            3028
+          ],
+          "text": "PHONE",
+          "confidence": 0.9969995617866516
+        },
+        {
+          "line_id": "p2_l61",
+          "bbox": [
+            698,
+            2993,
+            919,
+            3028
+          ],
+          "text": "MOBILE APP",
+          "confidence": 0.9724655151367188
+        },
+        {
+          "line_id": "p2_l62",
+          "bbox": [
+            2038,
+            2993,
+            2320,
+            3027
+          ],
+          "text": "PAY LOCATIONS",
+          "confidence": 0.9825361967086792
+        },
+        {
+          "line_id": "p2_l63",
+          "bbox": [
+            282,
+            3086,
+            419,
+            3114
+          ],
+          "text": "MyAccount",
+          "confidence": 0.9993903636932373
+        },
+        {
+          "line_id": "p2_l64",
+          "bbox": [
+            1172,
+            3180,
+            1368,
+            3211
+          ],
+          "text": "877-860-6020",
+          "confidence": 0.999824047088623
+        },
+        {
+          "line_id": "p2_l65",
+          "bbox": [
+            734,
+            3181,
+            882,
+            3212
+          ],
+          "text": "Download",
+          "confidence": 0.9992771148681641
+        },
+        {
+          "line_id": "p2_l66",
+          "bbox": [
+            1627,
+            3181,
+            1823,
+            3212
+          ],
+          "text": "PO Box 24531",
+          "confidence": 0.9443071484565735
+        },
+        {
+          "line_id": "p2_l67",
+          "bbox": [
+            2015,
+            3182,
+            2341,
+            3215
+          ],
+          "text": "myaccount.swgas.com/",
+          "confidence": 0.9991022348403931
+        },
+        {
+          "line_id": "p2_l68",
+          "bbox": [
+            267,
+            3186,
+            421,
+            3213
+          ],
+          "text": "swgas.com",
+          "confidence": 0.9995234608650208
+        },
+        {
+          "line_id": "p2_l69",
+          "bbox": [
+            1217,
+            3219,
+            1323,
+            3251
+          ],
+          "text": "Press 2",
+          "confidence": 0.9935792088508606
+        },
+        {
+          "line_id": "p2_l70",
+          "bbox": [
+            2103,
+            3221,
+            2254,
+            3256
+          ],
+          "text": "paystation",
+          "confidence": 0.9996511340141296
+        },
+        {
+          "line_id": "p2_l71",
+          "bbox": [
+            1556,
+            3222,
+            1896,
+            3252
+          ],
+          "text": "Oakland, CA 94623-1531",
+          "confidence": 0.9863170385360718
+        },
+        {
+          "line_id": "p2_l72",
+          "bbox": [
+            728,
+            3223,
+            888,
+            3254
+          ],
+          "text": "Application",
+          "confidence": 0.9997875690460205
+        }
+      ]
+    },
+    {
+      "page_number": 3,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p3_b1",
+          "block_type": "text",
+          "bbox": [
+            2209,
+            78,
+            2401,
+            118
+          ],
+          "reading_order": 1,
+          "text": "Page 3 of 4",
+          "confidence": 0.5267592072486877
+        },
+        {
+          "block_id": "p3_b2",
+          "block_type": "table",
+          "bbox": [
+            151,
+            129,
+            2406,
+            2419
+          ],
+          "reading_order": 2,
+          "text": "",
+          "confidence": 0.7698802351951599
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p3_l1",
+          "bbox": [
+            2207,
+            76,
+            2407,
+            124
+          ],
+          "text": "Page 3 of 4",
+          "confidence": 0.9362895488739014
+        },
+        {
+          "line_id": "p3_l2",
+          "bbox": [
+            164,
+            128,
+            439,
+            165
+          ],
+          "text": "PREVIOUS BILL:",
+          "confidence": 0.9651907682418823
+        },
+        {
+          "line_id": "p3_l3",
+          "bbox": [
+            1784,
+            156,
+            2026,
+            234
+          ],
+          "text": "\"APP\"",
+          "confidence": 0.9095758199691772
+        },
+        {
+          "line_id": "p3_l4",
+          "bbox": [
+            2088,
+            173,
+            2377,
+            212
+          ],
+          "text": "PAST DUE AFTER",
+          "confidence": 0.9729313254356384
+        },
+        {
+          "line_id": "p3_l5",
+          "bbox": [
+            985,
+            183,
+            1109,
+            226
+          ],
+          "text": "$391.63",
+          "confidence": 0.997897744178772
+        },
+        {
+          "line_id": "p3_l6",
+          "bbox": [
+            164,
+            190,
+            398,
+            221
+          ],
+          "text": "Previous Balance",
+          "confidence": 0.9932979345321655
+        },
+        {
+          "line_id": "p3_l7",
+          "bbox": [
+            2107,
+            224,
+            2361,
+            273
+          ],
+          "text": "02/08/2021",
+          "confidence": 0.9998840093612671
+        },
+        {
+          "line_id": "p3_l8",
+          "bbox": [
+            987,
+            230,
+            1144,
+            268
+          ],
+          "text": "$391.63CR",
+          "confidence": 0.9984878897666931
+        },
+        {
+          "line_id": "p3_l9",
+          "bbox": [
+            165,
+            235,
+            676,
+            267
+          ],
+          "text": "Payment(s) Since Last Bill - Thank You",
+          "confidence": 0.9343639016151428
+        },
+        {
+          "line_id": "p3_l10",
+          "bbox": [
+            1775,
+            237,
+            2031,
+            278
+          ],
+          "text": "AMOUNT DUE",
+          "confidence": 0.9189931750297546
+        },
+        {
+          "line_id": "p3_l11",
+          "bbox": [
+            1231,
+            272,
+            1326,
+            316
+          ],
+          "text": "$0.00",
+          "confidence": 0.9942833185195923
+        },
+        {
+          "line_id": "p3_l12",
+          "bbox": [
+            164,
+            281,
+            399,
+            311
+          ],
+          "text": "Balance Forward",
+          "confidence": 0.9957433342933655
+        },
+        {
+          "line_id": "p3_l13",
+          "bbox": [
+            1833,
+            307,
+            2418,
+            349
+          ],
+          "text": "ACCOUNT 211-6955523-005",
+          "confidence": 0.9931970834732056
+        },
+        {
+          "line_id": "p3_l14",
+          "bbox": [
+            2123,
+            381,
+            2419,
+            415
+          ],
+          "text": "RATE SCHEDULE:",
+          "confidence": 0.9816109538078308
+        },
+        {
+          "line_id": "p3_l15",
+          "bbox": [
+            1913,
+            426,
+            2419,
+            463
+          ],
+          "text": "538/SG-G2 GENERAL SERVICE-2",
+          "confidence": 0.9866976141929626
+        },
+        {
+          "line_id": "p3_l16",
+          "bbox": [
+            219,
+            556,
+            951,
+            597
+          ],
+          "text": "CURRENT BiLliNG: 33 DAYS (Rate Change)",
+          "confidence": 0.946910560131073
+        },
+        {
+          "line_id": "p3_l17",
+          "bbox": [
+            1686,
+            595,
+            1877,
+            632
+          ],
+          "text": " Total Therms",
+          "confidence": 0.956032395362854
+        },
+        {
+          "line_id": "p3_l18",
+          "bbox": [
+            1290,
+            596,
+            1477,
+            633
+          ],
+          "text": "Billing Factor",
+          "confidence": 0.9631163477897644
+        },
+        {
+          "line_id": "p3_l19",
+          "bbox": [
+            679,
+            599,
+            794,
+            631
+          ],
+          "text": "Current",
+          "confidence": 0.9994900822639465
+        },
+        {
+          "line_id": "p3_l20",
+          "bbox": [
+            975,
+            599,
+            1103,
+            630
+          ],
+          "text": "Previous",
+          "confidence": 0.999384880065918
+        },
+        {
+          "line_id": "p3_l21",
+          "bbox": [
+            220,
+            644,
+            513,
+            678
+          ],
+          "text": "METER READING",
+          "confidence": 0.9702258706092834
+        },
+        {
+          "line_id": "p3_l22",
+          "bbox": [
+            676,
+            646,
+            773,
+            679
+          ],
+          "text": "Jan 18",
+          "confidence": 0.9971661567687988
+        },
+        {
+          "line_id": "p3_l23",
+          "bbox": [
+            978,
+            646,
+            1079,
+            678
+          ],
+          "text": "Dec 16",
+          "confidence": 0.9828498363494873
+        },
+        {
+          "line_id": "p3_l24",
+          "bbox": [
+            895,
+            658,
+            912,
+            677
+          ],
+          "text": "-",
+          "confidence": 0.7345021367073059
+        },
+        {
+          "line_id": "p3_l25",
+          "bbox": [
+            677,
+            690,
+            755,
+            724
+          ],
+          "text": "3479",
+          "confidence": 0.9996126890182495
+        },
+        {
+          "line_id": "p3_l26",
+          "bbox": [
+            974,
+            690,
+            1051,
+            724
+          ],
+          "text": "2196",
+          "confidence": 0.9998989105224609
+        },
+        {
+          "line_id": "p3_l27",
+          "bbox": [
+            1290,
+            690,
+            1486,
+            724
+          ],
+          "text": "1283x .9759",
+          "confidence": 0.9739822745323181
+        },
+        {
+          "line_id": "p3_l28",
+          "bbox": [
+            1696,
+            690,
+            1774,
+            724
+          ],
+          "text": "1252",
+          "confidence": 0.9998598098754883
+        },
+        {
+          "line_id": "p3_l29",
+          "bbox": [
+            1170,
+            700,
+            1190,
+            717
+          ],
+          "text": "二",
+          "confidence": 0.357119083404541
+        },
+        {
+          "line_id": "p3_l30",
+          "bbox": [
+            1604,
+            700,
+            1626,
+            717
+          ],
+          "text": "Ⅱ",
+          "confidence": 0.3993237316608429
+        },
+        {
+          "line_id": "p3_l31",
+          "bbox": [
+            1427,
+            753,
+            1553,
+            794
+          ],
+          "text": "Cycle 10",
+          "confidence": 0.9871389865875244
+        },
+        {
+          "line_id": "p3_l32",
+          "bbox": [
+            680,
+            758,
+            1267,
+            788
+          ],
+          "text": "Next meter read date is: February 17, 2021",
+          "confidence": 0.9454267621040344
+        },
+        {
+          "line_id": "p3_l33",
+          "bbox": [
+            2163,
+            888,
+            2274,
+            939
+          ],
+          "text": "COST",
+          "confidence": 0.7765269875526428
+        },
+        {
+          "line_id": "p3_l34",
+          "bbox": [
+            270,
+            896,
+            440,
+            931
+          ],
+          "text": "CHARGES",
+          "confidence": 0.9991559386253357
+        },
+        {
+          "line_id": "p3_l35",
+          "bbox": [
+            210,
+            996,
+            487,
+            1042
+          ],
+          "text": "Delivery Charge",
+          "confidence": 0.9991533160209656
+        },
+        {
+          "line_id": "p3_l36",
+          "bbox": [
+            1206,
+            1049,
+            1265,
+            1089
+          ],
+          "text": "sX",
+          "confidence": 0.9052162170410156
+        },
+        {
+          "line_id": "p3_l37",
+          "bbox": [
+            1321,
+            1050,
+            1466,
+            1088
+          ],
+          "text": ".111420",
+          "confidence": 0.9998690485954285
+        },
+        {
+          "line_id": "p3_l38",
+          "bbox": [
+            297,
+            1051,
+            537,
+            1085
+          ],
+          "text": "Previous Rate",
+          "confidence": 0.9990916848182678
+        },
+        {
+          "line_id": "p3_l39",
+          "bbox": [
+            986,
+            1051,
+            1224,
+            1088
+          ],
+          "text": "1252 Therms",
+          "confidence": 0.9981052279472351
+        },
+        {
+          "line_id": "p3_l40",
+          "bbox": [
+            1301,
+            1096,
+            1505,
+            1143
+          ],
+          "text": "15/33 Days",
+          "confidence": 0.9984393119812012
+        },
+        {
+          "line_id": "p3_l41",
+          "bbox": [
+            1781,
+            1099,
+            1887,
+            1139
+          ],
+          "text": "63.41",
+          "confidence": 0.9998483657836914
+        },
+        {
+          "line_id": "p3_l42",
+          "bbox": [
+            1084,
+            1100,
+            1242,
+            1138
+          ],
+          "text": "139.50",
+          "confidence": 0.9950351119041443
+        },
+        {
+          "line_id": "p3_l43",
+          "bbox": [
+            1225,
+            1100,
+            1264,
+            1137
+          ],
+          "text": "X",
+          "confidence": 0.9077377915382385
+        },
+        {
+          "line_id": "p3_l44",
+          "bbox": [
+            248,
+            1102,
+            643,
+            1136
+          ],
+          "text": "Previous Rate Subtotal",
+          "confidence": 0.9971492886543274
+        },
+        {
+          "line_id": "p3_l45",
+          "bbox": [
+            1545,
+            1111,
+            1567,
+            1129
+          ],
+          "text": "=",
+          "confidence": 0.48184049129486084
+        },
+        {
+          "line_id": "p3_l46",
+          "bbox": [
+            985,
+            1198,
+            1267,
+            1239
+          ],
+          "text": "1252 Therms X",
+          "confidence": 0.9921121597290039
+        },
+        {
+          "line_id": "p3_l47",
+          "bbox": [
+            1319,
+            1198,
+            1465,
+            1237
+          ],
+          "text": ".105980",
+          "confidence": 0.9998677968978882
+        },
+        {
+          "line_id": "p3_l48",
+          "bbox": [
+            297,
+            1201,
+            520,
+            1237
+          ],
+          "text": "Current Rate",
+          "confidence": 0.9922976493835449
+        },
+        {
+          "line_id": "p3_l49",
+          "bbox": [
+            1301,
+            1244,
+            1505,
+            1294
+          ],
+          "text": "18/33 Days",
+          "confidence": 0.9989781379699707
+        },
+        {
+          "line_id": "p3_l50",
+          "bbox": [
+            1778,
+            1245,
+            1887,
+            1293
+          ],
+          "text": "72.38",
+          "confidence": 0.9998496770858765
+        },
+        {
+          "line_id": "p3_l51",
+          "bbox": [
+            1082,
+            1246,
+            1270,
+            1291
+          ],
+          "text": "132.69 X",
+          "confidence": 0.9475589394569397
+        },
+        {
+          "line_id": "p3_l52",
+          "bbox": [
+            248,
+            1253,
+            626,
+            1284
+          ],
+          "text": "Current Rate Subtotal",
+          "confidence": 0.9907696843147278
+        },
+        {
+          "line_id": "p3_l53",
+          "bbox": [
+            1544,
+            1258,
+            1568,
+            1282
+          ],
+          "text": "=",
+          "confidence": 0.9716030359268188
+        },
+        {
+          "line_id": "p3_l54",
+          "bbox": [
+            2175,
+            1299,
+            2300,
+            1338
+          ],
+          "text": "135.79",
+          "confidence": 0.9997413158416748
+        },
+        {
+          "line_id": "p3_l55",
+          "bbox": [
+            209,
+            1302,
+            583,
+            1340
+          ],
+          "text": "Total Delivery Charge",
+          "confidence": 0.9950344562530518
+        },
+        {
+          "line_id": "p3_l56",
+          "bbox": [
+            1858,
+            1309,
+            1884,
+            1338
+          ],
+          "text": "=",
+          "confidence": 0.9202820062637329
+        },
+        {
+          "line_id": "p3_l57",
+          "bbox": [
+            1671,
+            1393,
+            1878,
+            1446
+          ],
+          "text": "15/33 Days",
+          "confidence": 0.9979988932609558
+        },
+        {
+          "line_id": "p3_l58",
+          "bbox": [
+            244,
+            1398,
+            402,
+            1439
+          ],
+          "text": "Gas Cost",
+          "confidence": 0.9979934692382812
+        },
+        {
+          "line_id": "p3_l59",
+          "bbox": [
+            979,
+            1398,
+            1265,
+            1436
+          ],
+          "text": "Total Therms X",
+          "confidence": 0.987320065498352
+        },
+        {
+          "line_id": "p3_l60",
+          "bbox": [
+            1320,
+            1398,
+            1466,
+            1438
+          ],
+          "text": ".276560",
+          "confidence": 0.9998468160629272
+        },
+        {
+          "line_id": "p3_l61",
+          "bbox": [
+            1530,
+            1400,
+            1566,
+            1438
+          ],
+          "text": "X",
+          "confidence": 0.9228581786155701
+        },
+        {
+          "line_id": "p3_l62",
+          "bbox": [
+            1671,
+            1444,
+            1878,
+            1495
+          ],
+          "text": "18/33 Days",
+          "confidence": 0.9985688924789429
+        },
+        {
+          "line_id": "p3_l63",
+          "bbox": [
+            244,
+            1448,
+            403,
+            1489
+          ],
+          "text": "Gas Cost",
+          "confidence": 0.9976088404655457
+        },
+        {
+          "line_id": "p3_l64",
+          "bbox": [
+            979,
+            1448,
+            1266,
+            1486
+          ],
+          "text": "Total Therms X",
+          "confidence": 0.983616828918457
+        },
+        {
+          "line_id": "p3_l65",
+          "bbox": [
+            1321,
+            1450,
+            1466,
+            1488
+          ],
+          "text": ".252550",
+          "confidence": 0.9998602271080017
+        },
+        {
+          "line_id": "p3_l66",
+          "bbox": [
+            1530,
+            1450,
+            1567,
+            1488
+          ],
+          "text": "X",
+          "confidence": 0.8940109014511108
+        },
+        {
+          "line_id": "p3_l67",
+          "bbox": [
+            2174,
+            1498,
+            2299,
+            1537
+          ],
+          "text": "329.86",
+          "confidence": 0.9999370574951172
+        },
+        {
+          "line_id": "p3_l68",
+          "bbox": [
+            208,
+            1500,
+            461,
+            1534
+          ],
+          "text": "Total Gas Cost",
+          "confidence": 0.9825478196144104
+        },
+        {
+          "line_id": "p3_l69",
+          "bbox": [
+            1859,
+            1510,
+            1883,
+            1532
+          ],
+          "text": "=",
+          "confidence": 0.7327110171318054
+        },
+        {
+          "line_id": "p3_l70",
+          "bbox": [
+            2175,
+            1599,
+            2300,
+            1638
+          ],
+          "text": "160.00",
+          "confidence": 0.9998442530632019
+        },
+        {
+          "line_id": "p3_l71",
+          "bbox": [
+            211,
+            1600,
+            564,
+            1638
+          ],
+          "text": "Basic Service Charge",
+          "confidence": 0.998303234577179
+        },
+        {
+          "line_id": "p3_l72",
+          "bbox": [
+            1672,
+            1694,
+            1877,
+            1746
+          ],
+          "text": "15/33 Days",
+          "confidence": 0.998397707939148
+        },
+        {
+          "line_id": "p3_l73",
+          "bbox": [
+            1321,
+            1701,
+            1466,
+            1739
+          ],
+          "text": ".001860",
+          "confidence": 0.9999094605445862
+        },
+        {
+          "line_id": "p3_l74",
+          "bbox": [
+            979,
+            1702,
+            1265,
+            1739
+          ],
+          "text": "Total Therms X",
+          "confidence": 0.9835619330406189
+        },
+        {
+          "line_id": "p3_l75",
+          "bbox": [
+            247,
+            1703,
+            405,
+            1738
+          ],
+          "text": "REP Rate",
+          "confidence": 0.9980984926223755
+        },
+        {
+          "line_id": "p3_l76",
+          "bbox": [
+            1532,
+            1703,
+            1564,
+            1739
+          ],
+          "text": "X",
+          "confidence": 0.9381800293922424
+        },
+        {
+          "line_id": "p3_l77",
+          "bbox": [
+            1670,
+            1743,
+            1879,
+            1798
+          ],
+          "text": "18/33 Days",
+          "confidence": 0.9956704378128052
+        },
+        {
+          "line_id": "p3_l78",
+          "bbox": [
+            979,
+            1751,
+            1266,
+            1789
+          ],
+          "text": "Total Therms X",
+          "confidence": 0.9882649779319763
+        },
+        {
+          "line_id": "p3_l79",
+          "bbox": [
+            1321,
+            1751,
+            1466,
+            1789
+          ],
+          "text": ".000850",
+          "confidence": 0.9999017715454102
+        },
+        {
+          "line_id": "p3_l80",
+          "bbox": [
+            1531,
+            1751,
+            1566,
+            1790
+          ],
+          "text": "X",
+          "confidence": 0.8514276146888733
+        },
+        {
+          "line_id": "p3_l81",
+          "bbox": [
+            245,
+            1752,
+            407,
+            1789
+          ],
+          "text": "REP Rate",
+          "confidence": 0.9811428189277649
+        },
+        {
+          "line_id": "p3_l82",
+          "bbox": [
+            207,
+            1801,
+            466,
+            1838
+          ],
+          "text": "Total REP Rate",
+          "confidence": 0.988945484161377
+        },
+        {
+          "line_id": "p3_l83",
+          "bbox": [
+            2218,
+            1802,
+            2302,
+            1841
+          ],
+          "text": "1.64",
+          "confidence": 0.9994941353797913
+        },
+        {
+          "line_id": "p3_l84",
+          "bbox": [
+            1859,
+            1811,
+            1883,
+            1834
+          ],
+          "text": "=",
+          "confidence": 0.8128294348716736
+        },
+        {
+          "line_id": "p3_l85",
+          "bbox": [
+            1672,
+            1895,
+            1877,
+            1945
+          ],
+          "text": "15/33 Days",
+          "confidence": 0.9988964796066284
+        },
+        {
+          "line_id": "p3_l86",
+          "bbox": [
+            243,
+            1900,
+            374,
+            1941
+          ],
+          "text": "IE Rate",
+          "confidence": 0.9655089974403381
+        },
+        {
+          "line_id": "p3_l87",
+          "bbox": [
+            979,
+            1901,
+            1266,
+            1938
+          ],
+          "text": "Total Therms X",
+          "confidence": 0.963297426700592
+        },
+        {
+          "line_id": "p3_l88",
+          "bbox": [
+            1531,
+            1902,
+            1566,
+            1940
+          ],
+          "text": "X",
+          "confidence": 0.8835073709487915
+        },
+        {
+          "line_id": "p3_l89",
+          "bbox": [
+            1322,
+            1903,
+            1465,
+            1938
+          ],
+          "text": ".000040",
+          "confidence": 0.9998940229415894
+        },
+        {
+          "line_id": "p3_l90",
+          "bbox": [
+            1670,
+            1944,
+            1879,
+            1997
+          ],
+          "text": "18/33 Days",
+          "confidence": 0.9964834451675415
+        },
+        {
+          "line_id": "p3_l91",
+          "bbox": [
+            242,
+            1949,
+            374,
+            1990
+          ],
+          "text": "IE Rate",
+          "confidence": 0.9617446660995483
+        },
+        {
+          "line_id": "p3_l92",
+          "bbox": [
+            979,
+            1950,
+            1266,
+            1988
+          ],
+          "text": "Total Therms X",
+          "confidence": 0.9565648436546326
+        },
+        {
+          "line_id": "p3_l93",
+          "bbox": [
+            1321,
+            1951,
+            1466,
+            1989
+          ],
+          "text": ".000340",
+          "confidence": 0.9999109506607056
+        },
+        {
+          "line_id": "p3_l94",
+          "bbox": [
+            1530,
+            1951,
+            1567,
+            1989
+          ],
+          "text": "X",
+          "confidence": 0.8940109014511108
+        },
+        {
+          "line_id": "p3_l95",
+          "bbox": [
+            207,
+            2001,
+            432,
+            2038
+          ],
+          "text": "Total IE Rate",
+          "confidence": 0.9819823503494263
+        },
+        {
+          "line_id": "p3_l96",
+          "bbox": [
+            2218,
+            2001,
+            2299,
+            2039
+          ],
+          "text": "0.25",
+          "confidence": 0.9998234510421753
+        },
+        {
+          "line_id": "p3_l97",
+          "bbox": [
+            1856,
+            2008,
+            1884,
+            2034
+          ],
+          "text": "=",
+          "confidence": 0.8675053119659424
+        },
+        {
+          "line_id": "p3_l98",
+          "bbox": [
+            208,
+            2099,
+            412,
+            2139
+          ],
+          "text": "Local Taxes",
+          "confidence": 0.9978653192520142
+        },
+        {
+          "line_id": "p3_l99",
+          "bbox": [
+            2195,
+            2100,
+            2301,
+            2139
+          ],
+          "text": "31.38",
+          "confidence": 0.9998500943183899
+        },
+        {
+          "line_id": "p3_l100",
+          "bbox": [
+            2215,
+            2148,
+            2301,
+            2193
+          ],
+          "text": "4.13",
+          "confidence": 0.9996691942214966
+        },
+        {
+          "line_id": "p3_l101",
+          "bbox": [
+            210,
+            2149,
+            633,
+            2192
+          ],
+          "text": "Universal Energy Charge",
+          "confidence": 0.9936103224754333
+        },
+        {
+          "line_id": "p3_l102",
+          "bbox": [
+            2154,
+            2296,
+            2301,
+            2344
+          ],
+          "text": "$663.05",
+          "confidence": 0.9961119294166565
+        },
+        {
+          "line_id": "p3_l103",
+          "bbox": [
+            208,
+            2300,
+            413,
+            2341
+          ],
+          "text": "Current Bill",
+          "confidence": 0.9955764412879944
+        },
+        {
+          "line_id": "p3_l104",
+          "bbox": [
+            2193,
+            2358,
+            2303,
+            2410
+          ],
+          "text": "$0.00",
+          "confidence": 0.9922624826431274
+        },
+        {
+          "line_id": "p3_l105",
+          "bbox": [
+            209,
+            2365,
+            508,
+            2403
+          ],
+          "text": "Balance Forward",
+          "confidence": 0.9900887608528137
+        }
+      ]
+    },
+    {
+      "page_number": 4,
+      "width": 2550,
+      "height": 3301,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p4_b1",
+          "block_type": "text",
+          "bbox": [
+            2282,
+            41,
+            2472,
+            82
+          ],
+          "reading_order": 1,
+          "text": "Page 4 of 4",
+          "confidence": 0.8052662014961243
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p4_l1",
+          "bbox": [
+            2285,
+            41,
+            2480,
+            87
+          ],
+          "text": "Page 4 of 4",
+          "confidence": 0.986777663230896
+        }
+      ]
+    }
+  ],
+  "document_text": "00033713012021024231\nGAS SOUTHWEST swgas.com\n\nPage 1 of 4\n\"APP\" AMOUNT DUE\nPAST DUE AFTER 02/08/2021\n\nACCOUNT 211-6955523-005 Billing From 12/16/2020 - 01/18/2021 Date Mailed 01/20/2021 Your Local Office Is: 1631 W CRAIG RD SUITE 2, NO LAS VEGAS NV 89032 Customer Assistance/Asistencia al Cliente Toll Free/Llamada Gratis 877-860-6020 Hearing Impaired: 711\nDESERT TRADE GRAPHICS INC 7582 LAS VEGAS BLV #487 LAS VEGAS NV 89123\nService Address: 4133 W PATRICK LN # B, 89118\nDAILY AVERAGE USAGE (THERMS)\nMONTHLY USAGE (THErMS)\n1800 1600 1400 1200 1000 800 600 400 Your 200 gas usage this J F N D M A M A S J 0 J J month 2020 2021\n37.94 Current 17.43 Last Month 35.91 Last Year\nWHAT'S THAT SMeLL?\nMOVING JUSTGOT EASIER\nIMPORTANT MESSAGES\n\nThe easiest way to transfer or turn  your service off is by visiting swgas.com and choosing Start, Stop or Move Service. You're just a few clicks away! Also available in the Southwest Gas mobile app.\nNatural gas smells bad for a reason — it's for your safety.\nNatural gas smells bad for a reason — it's for your safety. If you suspect a leak, 不 immediately go to a safe place, then call 911 and Southwest Gas at 877-860-6020.\n#\nFlexible Payment Plans\nWith our Automatic (APP) and Equal Payment Plans (EPP), customers can easily pay their bills on time every month and manage their budget. Visit swgas.com or download our mobile app to get started!\nIf you suspect a leak, 不 immediately go to a safe place, then call 911 and Southwest Gas at 877-860-6020.\nREMITWITHPAYMENT\n\"APP\" PAST DUE AFTER 02/08/2021 AMOUNT DUE ACCOUNT 211-6955523-005\n\nSOUTHWEST GAS\nPO Box 98890 Las Vegas NV 89193-8890\nSOUTHWEST GAS PO Box 24531 Oakland, CA 94623-1531 Please include account number on check or money order and make payable to Southwest Gas. Do not send cash through the mail. 211695552300590000663050000000003\nDESERT TRADE GRAPHICS INC 7582 LAS VEGAS BLV #487 LAS VEGAS NV 89123\nSEE REVERSE SIDE FOR IMPORTANT DETAILS\n927.0 12/2019\n\nPage 2 of 4\nNOTICE TO SOUTHWEST GAS CORPORATION (SWG) NEVADA CUSTOMERS\nCUSTOMER QUESTIONS OR ASSISTANCE NEEDED? Visit www.swgas.com and create a MyAccount to view,manage, and customize your gas account online, or call our local toll-free number (llamada gratis) at 1-877-860-6020 for billing questions.\nBasic Service Charge and Delivery - These charges recover the costs of operating the natural gas distribution system.\nBillingFactor-Thebillingfactorisuedtoconvertthemetredvolumeofgasintounitsofheatenergywhicharecalledtherms.SWGbillscustomersonaperthermbasisortheamount of energycontainedintheasdelivered.Thecurenteadingminusthepreviousrading,timesthebillingactorqualsthenumberofthermsyouhaveusedinthecurrentbilling priod.\nCustomer Buried Gas Piping - Customers may have underground gas piping that is not maintained by SWG. (Reference Federal Regulation 49 CFR Part 192.16) This piping,which is typically located between the gas meterand a buildingoroutdoor gasappliance,may consistof buried steel gas lines.Steel gas lines are subject to the effectsof corrosion if they are not maintained,whichcouldresultin leakage.Regardlesif thepipeis steelorplastic,itisimportantthatunderground naturalgas pipingis periodicalmonitoredtoidentifypotentialproblems that might cause a hazardous condition.Federal regulations encourage customers to employ qualifiedplumbingand heating contractors forall inspections,monitoring,and repairingof customer buried gaspiping.Unsafe conditions discovered mustbe repaired immediately. For assistance in locating licensed plumbers or contractors,or reviewing relocation,replacement,or maintenance options, call Energy Services at 1-800-654-2765. Remember, call before you dig to locate gas piping in advance, and excavate by hand.\nDeposits-If youare anexistingcustomer,yourdeposit will becredited toyouraccount,withanyapplicableinterest,aftercontinuous service and timely paymentofbills in accordance with SWGcommissionapprovedrules.Ifyourservice has beendiscontinuedeitherat yourrequestorby SWG,yourdeposit,plusanyapplicableinterestwil berefunded toyou,less the amount of any unpaid bills.\nDisconnection of Service at Customer Request - Please call SWG at least five (5) working days in advance of the date you wish to have service disconnected. If SWG is not notified, service will continue to be billed to the customer of record.\nElectronic Check Conversion - When a check is provided as payment, SWG is authorized to either use information from the check to make a one-time electronic funds transfer from the account or to process the payment as a check transaction.\nEmergency Service - In case of an emergency or if you smell natural gas,call SWG at 1-877-860-6020,or dial 911. Emergency service is also available by calling: Southern Nevada (including Bullhead,Las Vegas, Laughlin, and Needles) 1-800-447-5422 or,Northern Nevada1-800-772-4555.\nGas Cost - This charge recovers the cost of natural gas purchased by SWG on behalf of its customers.\nInfrastructure Expansion (IE) Rate — The rate established for the purpose of providing natural gas service to unservedor underserved areas in the state pursuant to Nevada Revised Statutes 704.9925\nNotice to Employers- Requesta Safety Data Sheet (SDS)fornatural gas bycalling EnergyServices at1-800-654-2765orvisitingwww.swgas.com/emergencysafety.Pleaseensure your employees know how to obtain SDS information.\nPast Due Date/Late Pay Charge-The monthlybill is due and payableuponpresentationand becomes past due ifnot paid bythe\"Past Due Afterdateon thebill.Alate paycharge may be added to any past due amount.\nRates and Other Information - The Rules and Rate Schedules of SWG are available at your nearest SWG Customer Business Office or by going online at www.swgas.com. The address and telephonenumberoftheoficethat servesyouareprintedonthefrontofthis bill(top).\nRenewable Energy Program (REP) Rate - The REP Rate recovers the cost of SWG's participation in the Solar Thermal Demonstration Program. For more information visit www.swgas.com/nvsolar.\nRightof Accessand BillEstimation-SWG will havetherightofaccesstoyour premises foranypurpose normallyconnected with thefurnishingofnatural gas service(s).If SWG isunable to read a meter on the scheduled date because of circumstances beyond its control, SWG will calculate the bill based upon estimated usage for that billing period.\nService Establishment and Reestablishment Charge - For each establishmentof service there is acharge which appears on the first bill following the establishment of service.This charge partiallycoversthecostsincurredto setupthe serviceandcreatetheaccountinthe SwGbillingsystem.Whenvergasserviceisturnedoff ecauseofnonpaymentthedelinquentbillls a reestablishment charge, must be paid and credit reestablished before service will be restored.\nSpecial Services-Everyeffortwill be made to ensureuninterrupted serviceto residentialcustomers whonotifySWG about permanent residentsin theirhousehold who are seriouslyill, disabled,orelderly.Also,inanefforttoavoid servicebeingturnedoff;anyresidentialcustomer mayelecttodesignatea thirdparty(agencyorindividual)to receiveacopyof all Disconnect Notices.\nUniversal Energy Charge - Nevada law requires SWG to include a\"Universal Energy Charge\"(UEC)on customer's monthlygas bills. The money collected from this charge is used for y19,m08,v2 programstoasistliiblehouseholdipayingforaturalasandlctricityandorprogramsofnergconservation,weatherizationandenergycy.\nShouldyoubliveyouhavebenbilledincorrctylasecontactSWGatourll-enumberamadaratis)1-7-60-620Ifyoutheraferwishtodisptethisblyoushouldsubmit your dispute in writing to the PublicUtilities Commissionof Nevada (PUCN)atCapital Plaza,1150 E. WilliamStreet,CarsonCity,Nevada 89701-3109,or9075 West Diablo Drive, Suite250, Las Vegas,Nevada89148.The PUCN Consumer Divisionoffices mayalso bereached by telephoneat the followingphone numbers: Las Vegas(702) 486-2600,CarsonCity(775)68400, or visit puc.nv.gov. The amount of this bill must be paid to prevent discontinuance of service; however, your payment to SwG may be made under protest if you so desire.\nPayments - Take advantage of our customer service features at www.swgas.com where you can view a variety of payment options, and find easy steps to pay your gas bill online. Create a MyAccount to view, manage, and customize your gas account online. To pay by ATM/debit/credit card, call Speedpay toll free at 1-866-263-5188.\nRETAINPORTIONABOVE DOTTEDLINEFOR YOUR RECORDS\n\nSign up for Paperless Billing at swgas.com\nSign up for Paperless Billing at\nswgas.com\n211695552300590000663050000000003\nIf address changed, please check the box and provide new address below.\nWAYS TO PAY\nONLINE MyAccount swgas.com\nPAY LOCATIONS\nMOBILE APP Download Application\nMAIL\n877-860-6020 Press 2\nPO Box 24531 Oakland, CA 94623-1531\nmyaccount.swgas.com/ paystation\n\nPage 3 of 4\n\n\nPage 4 of 4",
+  "tables": [
+    {
+      "page_number": 3,
+      "block_id": "p3_b2",
+      "bbox": [
+        151,
+        129,
+        2406,
+        2419
+      ],
+      "rows": 0,
+      "columns": 0
+    }
+  ],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": [
+    "page 1: [unknown_layout_label] label=aside_text",
+    "page 1: [unknown_layout_label] label=chart",
+    "page 1: [unknown_layout_label] label=chart",
+    "page 2: [unknown_layout_label] label=number",
+    "page 3: [unknown_layout_label] label=number",
+    "page 4: [unknown_layout_label] label=number"
+  ]
+}
