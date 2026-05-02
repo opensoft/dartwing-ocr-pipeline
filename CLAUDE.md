@@ -88,9 +88,9 @@ From the constitution (`.specify/memory/constitution.md`):
 
 ## Stage 1 contracts are machine-validated
 
-The seven stage 1 artifact shapes and the per-document folder contract are now enforced in code, not only documented. Frozen at `contract_set_version = "1.0.0"`.
+The stage 1 artifact shapes and the per-document folder contract are now enforced in code, not only documented. The current contract set is `contract_set_version = "1.2.0"`; earlier `v1.0.0` and `v1.1.0` snapshots remain frozen for compatibility and amendment history.
 
-- **Machine-readable contracts**: `contracts/stage1_vendor_identity/v1.0.0/` — one JSON Schema per artifact plus the folder contract and `contract_set.json` metadata. Updated only through `contracts/stage1_vendor_identity/AMENDMENTS.md`.
+- **Machine-readable contracts**: `contracts/stage1_vendor_identity/v1.2.0/` — one JSON Schema per artifact plus the folder contract and `contract_set.json` metadata. Updated only through `contracts/stage1_vendor_identity/AMENDMENTS.md`.
 - **Validator**: `src/ledgerlinc_ocr/validator/` — CLI at `python -m ledgerlinc_ocr.validator` (subcommands: `validate artifact`, `validate folder`, `validate corpus`, `show contract-set`). Importable Python API; see `specs/001-freeze-schemas-folder-contracts/contracts/module-api.md` for stability guarantees.
 - **Install**: `python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"`. Test suite: `.venv/bin/pytest tests/contract_tests/`.
 
@@ -152,6 +152,8 @@ The seven stage 1 artifact shapes and the per-document folder contract are now e
 - Filesystem only. Reads `<per-document-folder>/edge_extraction_output.json`, writes `routing_decision.json` atomically into the same folder. No network, no model calls. (008-routing)
 - Python 3.12 (matches devcontainer base image and existing `ledgerlinc-ocr` package) + `jsonschema >= 4.22` (already installed; used for schema validation via the existing `ledgerlinc_ocr.validator.artifact` loader), `pydantic >= 2.7` (already installed; used for typed internal result objects), Python stdlib (`argparse`, `json`, `pathlib`, `datetime`, `dataclasses`). No new runtime dependencies. (009-final-payload)
 - Filesystem only. Reads `<per-doc-folder>/edge_extraction_output.json` and `<per-doc-folder>/routing_decision.json`. Writes `<per-doc-folder>/final_structured_payload.json`. Trace block references `source.pdf` and `preprocess_output.json` by relative path but does not read them. (009-final-payload)
+- Python 3.12 (devcontainer base image, matches 001/002/003/004/005/006/007) (010-pp-structurev3-preprocessing)
+- Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network at steady state; first-run warm-up downloads ~500 MB of weights from `paddlepaddle.bj.bcebos.com` / `paddlex` hosters. (010-pp-structurev3-preprocessing)
 
 ## Recent Changes
 - 005-single-voter-extraction: Stage 1 single-voter edge extractor landed under `src/ledgerlinc_ocr/extract/`. CLI: `ledgerlinc-extract`. Host-Ollama HTTP (httpx, no retries) + pluggable `VoterAdapter` Protocol + deterministic 8-step reconciliation → schema-valid `edge_extraction_output.json`. See `specs/005-single-voter-extraction/quickstart.md`.

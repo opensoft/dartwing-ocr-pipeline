@@ -1,0 +1,70 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300",
+  "document_id": "inv_099",
+  "source_type": "pdf",
+  "source_file": "source.pdf",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 3300,
+      "rotation_detected": 0,
+      "blocks": [
+        {
+          "block_id": "p1_b1",
+          "block_type": "title",
+          "bbox": [120, 80, 980, 210],
+          "reading_order": 1,
+          "text": "HEADER LINE",
+          "confidence": 0.97
+        },
+        {
+          "block_id": "p1_b2",
+          "block_type": "text",
+          "bbox": [120, 240, 980, 400],
+          "reading_order": 2,
+          "text": "engine emitted no score for this block",
+          "confidence": null
+        }
+      ],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [120, 80, 980, 210],
+          "text": "HEADER LINE",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [120, 240, 980, 290],
+          "text": "engine emitted no score for this line",
+          "confidence": null
+        }
+      ]
+    }
+  ],
+  "document_text": "HEADER LINE\nengine emitted no score for this block",
+  "tables": [],
+  "quality": {
+    "scan_quality": "good",
+    "skew_detected": false,
+    "noise_level": "low"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": []
+}

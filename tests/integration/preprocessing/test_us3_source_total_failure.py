@@ -17,11 +17,18 @@ def test_ac5_paddleocr_total_failure(tmp_path, us3_fixtures, monkeypatch):
     folder.mkdir()
     shutil.copy(us3_fixtures["partial"], folder / "source.pdf")
 
-    def always_raise(*args, **kwargs):
-        raise RuntimeError("simulated PaddleOCR total failure")
+    # V3 migration (FR-007): the pair `run_ocr_lines`/`run_layout` is retired;
+    # all per-page inference flows through `run_page`. `run_page` catches its
+    # own per-page runtime exceptions and returns `([], [], [], [warning])`,
+    # so the stub mirrors that contract directly.
+    def fail_at_engine_layer(image, page_number, width, height):
+        warning = (
+            f"page {page_number}: layout extraction failed: "
+            f"RuntimeError: simulated PaddleOCR total failure"
+        )
+        return [], [], [], [warning]
 
-    monkeypatch.setattr(ocr, "run_ocr_lines", always_raise)
-    monkeypatch.setattr(ocr, "run_layout", always_raise)
+    monkeypatch.setattr(ocr, "run_page", fail_at_engine_layer)
 
     out = pipeline.run(pipeline.Invocation(document_folder=folder))
     art = json.loads(out.read_text(encoding="utf-8"))

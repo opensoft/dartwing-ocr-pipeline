@@ -1,7 +1,19 @@
 """US3 AC#4 — per-step failure boundary.
 
-When OCR fails but layout succeeds: keep `blocks` (text possibly empty),
-`raw_ocr_lines == []`, warning names the step. Symmetric when layout fails.
+Historical AC#4 distinguished "OCR failed / layout succeeded" from "layout
+failed / OCR succeeded". Under the V3 migration (FR-007) layout and OCR come
+from the same `PPStructureV3.predict(...)` call, so the per-step decomposition
+no longer exists at the engine layer. The V3-era analogues are:
+
+- `run_page` catches its own `engine.predict` exceptions and returns
+  `([], [], [], [<layout extraction failed>])`, producing an empty-but-valid
+  artifact.
+- The FR-003 and FR-019 silent-empty paths cover the "lines but no blocks"
+  and "blocks but no lines" asymmetries directly; those scenarios have
+  dedicated integration tests (`test_silent_empty_layout.py`,
+  `test_silent_empty_ocr.py`).
+
+This test consolidates AC#4 into a single check of the V3 engine-crash path.
 """
 
 from __future__ import annotations
@@ -17,45 +29,32 @@ def _staged_folder(tmp_path, us3_fixtures, name):
     return folder
 
 
-def test_ac4_ocr_failed_layout_succeeded(tmp_path, us3_fixtures, monkeypatch):
+def test_ac4_engine_predict_crash_produces_empty_valid_artifact(
+    tmp_path, us3_fixtures, monkeypatch,
+):
     from ledgerlinc_ocr.preprocessing import ocr, pipeline
 
     folder = _staged_folder(tmp_path, us3_fixtures, "inv_030")
 
-    def fake_ocr(img, page, w, h):
-        raise RuntimeError("simulated OCR detector crash")
+    # Mirror `run_page`'s internal try/except contract: a per-page engine
+    # crash surfaces as `([], [], [], [layout extraction failed warning])`.
+    def fake_engine_crash(img, page, w, h):
+        return [], [], [], [
+            f"page {page}: layout extraction failed: "
+            f"RuntimeError: simulated engine crash"
+        ]
 
-    monkeypatch.setattr(ocr, "run_ocr_lines", fake_ocr)
-
-    out = pipeline.run(pipeline.Invocation(document_folder=folder))
-    art = json.loads(out.read_text(encoding="utf-8"))
-
-    for page in art["pages"]:
-        assert page["raw_ocr_lines"] == [], page
-    assert any("OCR failed" in w for w in art["warnings"]), art["warnings"]
-    # Layout succeeded → some page should have at least structural blocks
-    # even if their `text` is empty. (PPStructure on text pages yields text blocks.)
-    assert any(len(p["blocks"]) > 0 for p in art["pages"]), (
-        "layout should still populate blocks"
-    )
-
-
-def test_ac4_layout_failed_ocr_succeeded(tmp_path, us3_fixtures, monkeypatch):
-    from ledgerlinc_ocr.preprocessing import ocr, pipeline
-
-    folder = _staged_folder(tmp_path, us3_fixtures, "inv_030")
-
-    def fake_layout(img, page, w, h):
-        raise RuntimeError("simulated layout crash")
-
-    monkeypatch.setattr(ocr, "run_layout", fake_layout)
+    monkeypatch.setattr(ocr, "run_page", fake_engine_crash)
 
     out = pipeline.run(pipeline.Invocation(document_folder=folder))
     art = json.loads(out.read_text(encoding="utf-8"))
 
     for page in art["pages"]:
         assert page["blocks"] == [], page
+        assert page["raw_ocr_lines"] == [], page
     assert any("layout extraction failed" in w for w in art["warnings"]), art["warnings"]
-    assert any(len(p["raw_ocr_lines"]) > 0 for p in art["pages"]), (
-        "OCR should still populate raw_ocr_lines"
-    )
+    # All pages empty → aggregate "all pages failed" warning MUST fire.
+    assert any(
+        "paddleocr_vl" in w and "failure" in w for w in art["warnings"]
+    ), art["warnings"]
+    assert art["ingestion_sources"]["paddleocr_vl"]["status"] == "failure"

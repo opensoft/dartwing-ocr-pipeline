@@ -4,8 +4,8 @@ Tier 1 runs `jsonschema.Draft202012Validator` and translates each
 `ValidationError` into a `Violation`. A small post-processing pass refines
 codes based on field path (e.g. `SCHEMA_ENUM_VIOLATION` under `challenge_tags`
 becomes `CHALLENGE_TAG_UNKNOWN`) and enforces a handful of rules that are
-easier in Python than in JSON Schema (empty string ⇒ `NULL_VS_EMPTY_STRING`,
-missing `pipeline_version` / `policy_version`).
+easier in Python than in JSON Schema (empty string in extracted value fields ⇒
+`NULL_VS_EMPTY_STRING`, missing `pipeline_version` / `policy_version`).
 """
 from __future__ import annotations
 
@@ -92,7 +92,14 @@ def _refine_code(base_code: str, field_path: str, *, message: str) -> str:
 def _walk_empty_strings(
     node: Any, path: list[str], out: list[tuple[str, str]]
 ) -> None:
-    """Collect (field_path, value) for every empty-string leaf."""
+    """Collect empty-string leaves where ``""`` is being used as null.
+
+    The contract-set null discipline applies to extracted scalar value slots
+    such as ``vendor_candidate.phone.value``. It does not apply to evidence text
+    slots in ``preprocess_output``: ``block.text`` and ``raw_ocr_lines[].text``
+    are frozen as strings by the preprocess schema and may legitimately be
+    empty when layout/OCR geometry produces no contained text.
+    """
     if isinstance(node, dict):
         for k, v in node.items():
             safe_k = str(k).replace("~", "~0").replace("/", "~1")
@@ -100,7 +107,7 @@ def _walk_empty_strings(
     elif isinstance(node, list):
         for i, v in enumerate(node):
             _walk_empty_strings(v, path + [str(i)], out)
-    elif isinstance(node, str) and node == "":
+    elif isinstance(node, str) and node == "" and path and path[-1] == "value":
         out.append(("/" + "/".join(path), ""))
 
 

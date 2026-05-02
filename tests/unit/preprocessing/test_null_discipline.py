@@ -61,14 +61,20 @@ def test_no_nulls_anywhere_in_assembled_artifact(tmp_path):
 
 
 def test_ocr_failure_yields_empty_string_not_null(tmp_path, monkeypatch):
-    """When OCR fails on a page, raw_ocr_lines must be [] (empty array), any
-    block.text that survives from layout must be "" (empty string), never None."""
+    """When the engine crashes on a page, raw_ocr_lines must be [] (empty
+    array) and any block.text must be "" (empty string), never None."""
+    # V3 migration (FR-007): run_ocr_lines retired — the engine crash path is
+    # now exercised via `run_page` returning `([], [], [], [warning])` per its
+    # internal try/except contract.
     from ledgerlinc_ocr.preprocessing import ocr
 
-    def _fail_ocr(*args, **kwargs):
-        raise RuntimeError("simulated OCR failure")
+    def _fail_engine(image, page_number, width, height):
+        return [], [], [], [
+            f"page {page_number}: layout extraction failed: "
+            f"RuntimeError: simulated engine crash"
+        ]
 
-    monkeypatch.setattr(ocr, "run_ocr_lines", _fail_ocr)
+    monkeypatch.setattr(ocr, "run_page", _fail_engine)
 
     artifact = _run(tmp_path)
     page = artifact["pages"][0]
@@ -82,16 +88,13 @@ def test_ocr_failure_yields_empty_string_not_null(tmp_path, monkeypatch):
 
 def test_empty_page_still_has_empty_string_document_text(tmp_path, monkeypatch):
     """If every page comes back with zero blocks, document_text is "" not null."""
+    # V3 migration (FR-007): run_ocr_lines + run_layout merged into run_page.
     from ledgerlinc_ocr.preprocessing import ocr
 
-    def _empty_layout(image, page_number, width, height):
-        return [], [], []
+    def _empty_page(image, page_number, width, height):
+        return [], [], [], []
 
-    def _empty_ocr(image, page_number, width, height):
-        return [], []
-
-    monkeypatch.setattr(ocr, "run_layout", _empty_layout)
-    monkeypatch.setattr(ocr, "run_ocr_lines", _empty_ocr)
+    monkeypatch.setattr(ocr, "run_page", _empty_page)
 
     artifact = _run(tmp_path)
     assert artifact["document_text"] == ""

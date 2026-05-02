@@ -11,7 +11,7 @@ from jsonschema import Draft202012Validator
 from ledgerlinc_ocr.evidence_packet.errors import PacketInvalid, PreprocessInputInvalid
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_CONTRACT_ROOT = _REPO_ROOT / "contracts" / "stage1_vendor_identity" / "v1.1.0"
+_CONTRACT_ROOT = _REPO_ROOT / "contracts" / "stage1_vendor_identity" / "v1.2.0"
 _PACKET_SCHEMA_PATH = _CONTRACT_ROOT / "evidence_packet.schema.json"
 _PREPROCESS_SCHEMA_PATH = _CONTRACT_ROOT / "preprocess_output.schema.json"
 

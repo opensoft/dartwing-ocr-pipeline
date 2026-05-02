@@ -1,4 +1,9 @@
-"""End-to-end orchestration for the PDF preprocessing slice."""
+"""End-to-end orchestration for the PDF preprocessing slice.
+
+Single-engine per page (PPStructureV3 via `ocr.run_page`) with FR-003,
+FR-018, FR-019 defensive checks and FR-020 warning ordering. EngineInitError
+(FR-016) is NOT caught here — it propagates to the CLI for hard-fail exit.
+"""
 
 from __future__ import annotations
 
@@ -17,8 +22,11 @@ from ledgerlinc_ocr.preprocessing.version import (
     DPI,
     build_pipeline_version,
 )
+from ledgerlinc_ocr.preprocessing.warnings import build_warning, sort_warnings
 
 DOCUMENT_ID_RE = re.compile(r"^inv_\d{3}$")
+
+_TEXT_BEARING_BLOCK_TYPES = {"text", "title", "header", "footer"}
 
 
 @dataclass
@@ -53,9 +61,10 @@ def run(invocation: Invocation) -> Path:
     document_id = _derive_document_id(invocation.document_folder.name)
     pipeline_version = invocation.pipeline_version or build_pipeline_version()
 
+    # rasterize.rasterize_pdf is a page-at-a-time generator (FR-005a / R-011).
+    # ZeroPagePdfError is raised inside open_pdf() on the first next() iteration,
+    # so no separate "not rasters" guard is needed.
     rasters = rasterize.rasterize_pdf(pdf_path, dpi=DPI)
-    if not rasters:
-        raise InputRejectedError("PDF produced zero rasterized pages")
 
     pages: list[dict[str, Any]] = []
     tables: list[dict[str, Any]] = []
@@ -63,6 +72,7 @@ def run(invocation: Invocation) -> Path:
     all_lines: list[dict[str, Any]] = []
     max_skew = 0.0
     pages_with_output = 0
+    silent_empty_page_detected = False
 
     for pr in rasters:
         page_warnings: list[str] = []
@@ -87,30 +97,54 @@ def run(invocation: Invocation) -> Path:
             warnings_out.extend(page_warnings)
             continue
 
-        try:
-            lines, w_ocr = ocr.run_ocr_lines(pr.image, pr.page_number, pr.width, pr.height)
-            page_warnings.extend(w_ocr)
-            ocr_ok = True
-        except Exception as exc:
-            page_warnings.append(
-                f"page {pr.page_number}: OCR failed: {type(exc).__name__}: {exc}"
-            )
-            lines = []
-            ocr_ok = False
+        # Single V3 call producing both layout + OCR in one pass (FR-007, R-004).
+        # EngineInitError raised here propagates to the CLI (FR-016).
+        lines, blocks, page_tables, run_warnings = ocr.run_page(
+            pr.image, pr.page_number, pr.width, pr.height
+        )
+        page_warnings.extend(run_warnings)
 
-        try:
-            blocks, page_tables, w_layout = ocr.run_layout(
-                pr.image, pr.page_number, pr.width, pr.height
-            )
-            page_warnings.extend(w_layout)
-            layout_ok = True
-        except Exception as exc:
+        # FR-003: silent-empty-layout — lines produced but no blocks.
+        if len(lines) > 0 and len(blocks) == 0:
             page_warnings.append(
-                f"page {pr.page_number}: layout extraction failed: {type(exc).__name__}: {exc}"
+                build_warning(
+                    pr.page_number,
+                    "silent_empty_layout",
+                    f"OCR produced {len(lines)} lines but layout returned zero blocks",
+                )
             )
-            blocks = []
-            page_tables = []
-            layout_ok = False
+            silent_empty_page_detected = True
+
+        # FR-019: silent-empty-ocr — blocks produced but no OCR lines, AND at
+        # least one block is text-bearing (text/title/header/footer). Figure-
+        # and table-only pages legitimately have zero OCR lines.
+        text_bearing_blocks = [
+            b for b in blocks if b.get("block_type") in _TEXT_BEARING_BLOCK_TYPES
+        ]
+        if (
+            len(blocks) > 0
+            and len(lines) == 0
+            and len(text_bearing_blocks) > 0
+        ):
+            page_warnings.append(
+                build_warning(
+                    pr.page_number,
+                    "silent_empty_ocr",
+                    f"OCR returned zero lines despite {len(text_bearing_blocks)} text-type blocks",
+                )
+            )
+            silent_empty_page_detected = True
+
+        # FR-018: suspicious-single-block — multiple OCR lines but only one
+        # layout region. Warn, but do NOT downgrade status.
+        if len(lines) >= 2 and len(blocks) == 1:
+            page_warnings.append(
+                build_warning(
+                    pr.page_number,
+                    "suspicious_single_block",
+                    f"single block covers {len(lines)} OCR lines",
+                )
+            )
 
         if pr.rotation_snapped:
             page_warnings.append(
@@ -130,19 +164,36 @@ def run(invocation: Invocation) -> Path:
         tables.extend(page_tables)
         warnings_out.extend(page_warnings)
         all_lines.extend(lines)
-        if ocr_ok or layout_ok:
+        if lines or blocks:
             pages_with_output += 1
 
         if invocation.write_page_images:
             img_path = invocation.document_folder / f"page_{pr.page_number}.png"
             pr.image.save(img_path)
 
+        # FR-005a / R-011: release the page image before the next page is
+        # rasterized. The page-owned `lines`, `blocks`, `page_tables`, and
+        # warnings have already been copied into document-level accumulators.
+        try:
+            pr.image.close()
+        except Exception:
+            pass
+
     quality = compute_quality(all_lines, max_skew_deg=max_skew)
     ingestion_sources = build_ingestion_sources(
-        pages_total=len(pages), pages_with_paddleocr_output=pages_with_output
+        pages_total=len(pages),
+        pages_with_paddleocr_output=pages_with_output,
+        silent_empty_page_detected=silent_empty_page_detected,
     )
-    if ingestion_sources["paddleocr_vl"]["status"] == "failure":
+    if (
+        ingestion_sources["paddleocr_vl"]["status"] == "failure"
+        and pages_with_output == 0
+    ):
         warnings_out.append("ingestion_sources.paddleocr_vl: failure (all pages failed)")
+
+    # FR-020: sort the final warnings array (page-ascending, vocab-lexical within
+    # page, page-scoped non-categorized after categorized, aggregate last).
+    warnings_out = sort_warnings(warnings_out)
 
     art = artifact_mod.assemble(
         contract_set_version=CONTRACT_SET_VERSION,

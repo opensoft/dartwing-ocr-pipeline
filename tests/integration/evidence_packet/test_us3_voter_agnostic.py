@@ -15,7 +15,7 @@ _SCHEMA_PATH = (
     Path(__file__).resolve().parents[3]
     / "contracts"
     / "stage1_vendor_identity"
-    / "v1.1.0"
+    / "v1.2.0"
     / "evidence_packet.schema.json"
 )
 

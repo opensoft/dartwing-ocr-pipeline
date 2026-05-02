@@ -31,5 +31,5 @@ def test_assembly_runs_with_sockets_disabled(tmp_path, no_network):
         _FIXTURE_DIR / "with_regex_hits.json", folder / "preprocess_output.json"
     )
     packet = assemble_from_folder(folder)
-    assert packet["contract_set_version"] == "1.1.0"
+    assert packet["contract_set_version"] == "1.2.0"
     assert packet["candidate_vendor_signals"]["emails"]

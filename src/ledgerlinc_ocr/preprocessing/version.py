@@ -1,4 +1,4 @@
-"""Pipeline version string assembly (FR-004, FR-018, research Decision 8)."""
+"""Pipeline version string assembly (FR-004, FR-008, research R-007)."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from importlib import metadata
 from pathlib import Path
 
 DPI = 300
-CONTRACT_SET_VERSION = "1.0.0"
-SEMVER = "v0.1.0"
+CONTRACT_SET_VERSION = "1.2.0"
+SEMVER = "v0.2.0"
 SLICE_PREFIX = "stage1-preprocess"
 
 

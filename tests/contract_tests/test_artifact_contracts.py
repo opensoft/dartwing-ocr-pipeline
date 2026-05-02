@@ -5,6 +5,8 @@ expected violation_code).
 """
 from __future__ import annotations
 
+from copy import deepcopy
+import json
 from pathlib import Path
 
 import pytest
@@ -84,3 +86,24 @@ def test_empty_string_violation_names_the_offending_field(
     ]
     assert triggered
     assert any(v.field_path == "/vendor_candidate/phone/value" for v in triggered)
+
+
+def test_preprocess_evidence_text_allows_empty_strings(
+    good_fixtures_root: Path, tmp_path: Path
+) -> None:
+    """preprocess_output text slots are evidence strings, not nullable values."""
+    base = json.loads(
+        (good_fixtures_root / "preprocess_output.json").read_text(encoding="utf-8")
+    )
+    data = deepcopy(base)
+    data["pages"][0]["blocks"][0]["text"] = ""
+    data["pages"][0]["raw_ocr_lines"][0]["text"] = ""
+    data["document_text"] = ""
+    artifact_path = tmp_path / "preprocess_output_empty_text.json"
+    artifact_path.write_text(json.dumps(data), encoding="utf-8")
+
+    outcome = validate_artifact(artifact_path, ArtifactName.PREPROCESS_OUTPUT)
+
+    assert outcome.passed, [
+        (v.violation_code, v.field_path, v.reason) for v in outcome.violations
+    ]

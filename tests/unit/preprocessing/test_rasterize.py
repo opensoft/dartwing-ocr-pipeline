@@ -76,7 +76,8 @@ def test_metadata_fallback_minimum_one_when_unreadable():
 
 
 def test_rasterize_us1_at_300_dpi_produces_post_rotation_dims():
-    rasters = rasterize.rasterize_pdf(_us1_pdf())
+    # rasterize_pdf is a generator (FR-005a / R-011); materialize for assertions.
+    rasters = list(rasterize.rasterize_pdf(_us1_pdf()))
     assert len(rasters) == 1
     page = rasters[0]
     assert isinstance(page, rasterize.PageRaster)

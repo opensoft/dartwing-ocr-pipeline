@@ -55,4 +55,4 @@ def test_debug_readonly_folder_exit_5(tmp_path):
     # The library-level pure path still returns a valid packet — persistence
     # failure is not an assembly failure.
     packet = assemble_from_preprocess(fixture)
-    assert packet["contract_set_version"] == "1.1.0"
+    assert packet["contract_set_version"] == "1.2.0"

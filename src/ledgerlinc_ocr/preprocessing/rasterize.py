@@ -1,7 +1,15 @@
-"""Deterministic CPU-only PDF rasterization via pypdfium2 (FR-004, FR-005, FR-005a, FR-006)."""
+"""Deterministic CPU-only PDF rasterization via pypdfium2 (FR-004, FR-005, FR-005a, FR-006).
+
+Page-at-a-time streaming (FR-005a / research R-011): `rasterize_pdf` is a
+generator function. Each `PageRaster | PageRasterFailure` is yielded
+independently so that the pipeline consumer can finish OCR/layout work on one
+page before the next page is rasterized, bounding peak memory under PaddleOCR
+3.5's larger CPU-only model bundle.
+"""
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -99,9 +107,15 @@ def _metadata_fallback_dims(page) -> tuple[int, int]:
 
 def rasterize_pdf(
     pdf_path: Path, dpi: int = DPI
-) -> list[PageRaster | PageRasterFailure]:
+) -> Iterator[PageRaster | PageRasterFailure]:
+    """Yield one rasterized page at a time (FR-005a / R-011).
+
+    The consumer (`pipeline.run`) is expected to fully process and release
+    each page before iterating to the next — that is the entire point of the
+    streaming contract. A zero-page PDF raises `ZeroPagePdfError` inside
+    `open_pdf` on the first `next()`, before any page is yielded.
+    """
     doc = open_pdf(pdf_path)
-    pages: list[PageRaster | PageRasterFailure] = []
     try:
         scale = dpi / 72.0
         for idx in range(len(doc)):
@@ -109,14 +123,12 @@ def rasterize_pdf(
             try:
                 page = doc[idx]
             except Exception as exc:
-                pages.append(
-                    PageRasterFailure(
-                        page_number=page_number,
-                        width=FALLBACK_WIDTH,
-                        height=FALLBACK_HEIGHT,
-                        rotation_detected=FALLBACK_ROTATION,
-                        error=f"{type(exc).__name__}: {exc}",
-                    )
+                yield PageRasterFailure(
+                    page_number=page_number,
+                    width=FALLBACK_WIDTH,
+                    height=FALLBACK_HEIGHT,
+                    rotation_detected=FALLBACK_ROTATION,
+                    error=f"{type(exc).__name__}: {exc}",
                 )
                 continue
             try:
@@ -126,30 +138,25 @@ def rasterize_pdf(
                     bitmap = page.render(scale=scale, rotation=snapped_rotation)
                     pil_image = bitmap.to_pil().convert("RGB")
                     width, height = pil_image.size
-                    pages.append(
-                        PageRaster(
-                            page_number=page_number,
-                            width=int(width),
-                            height=int(height),
-                            rotation_detected=snapped_rotation,
-                            rotation_original=original_rotation,
-                            rotation_snapped=changed,
-                            image=pil_image,
-                        )
+                    yield PageRaster(
+                        page_number=page_number,
+                        width=int(width),
+                        height=int(height),
+                        rotation_detected=snapped_rotation,
+                        rotation_original=original_rotation,
+                        rotation_snapped=changed,
+                        image=pil_image,
                     )
                 except Exception as exc:
                     fb_w, fb_h = _metadata_fallback_dims(page)
-                    pages.append(
-                        PageRasterFailure(
-                            page_number=page_number,
-                            width=fb_w,
-                            height=fb_h,
-                            rotation_detected=FALLBACK_ROTATION,
-                            error=f"{type(exc).__name__}: {exc}",
-                        )
+                    yield PageRasterFailure(
+                        page_number=page_number,
+                        width=fb_w,
+                        height=fb_h,
+                        rotation_detected=FALLBACK_ROTATION,
+                        error=f"{type(exc).__name__}: {exc}",
                     )
             finally:
                 page.close()
     finally:
         doc.close()
-    return pages

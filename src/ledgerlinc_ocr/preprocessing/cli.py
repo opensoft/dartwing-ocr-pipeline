@@ -14,6 +14,7 @@ from ledgerlinc_ocr.preprocessing.errors import (
     EXIT_OK,
     EXIT_UNEXPECTED,
     ArtifactInvalidError,
+    EngineInitError,
     InputRejectedError,
 )
 
@@ -51,6 +52,20 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return EXIT_INPUT_REJECTED
+    except EngineInitError as exc:
+        payload: dict[str, object] = {
+            "status": "error",
+            "kind": "engine_init_failed",
+            "cause_class": exc.cause_class,
+            "cause_module": exc.cause_module,
+            "message": str(exc),
+        }
+        if exc.missing_weight is not None:
+            payload["missing_weight"] = exc.missing_weight
+        if exc.weight_hoster_url is not None:
+            payload["weight_hoster_url"] = exc.weight_hoster_url
+        print(json.dumps(payload), file=sys.stderr)
+        return EXIT_INTERNAL_ERROR
     except ArtifactInvalidError as exc:
         print(
             json.dumps({"status": "error", "kind": "artifact_invalid", "message": str(exc)}),

@@ -87,15 +87,35 @@ def test_ac3_rotation_warning_format(tmp_path, monkeypatch):
         ),
     ]
 
+    # V3 migration (FR-007): run_ocr_lines / run_layout retired; stub run_page.
     monkeypatch.setattr(rasterize, "rasterize_pdf", lambda pdf_path, dpi: fake_pages)
-    monkeypatch.setattr(ocr, "run_ocr_lines", lambda img, page, w, h: ([], []))
-    monkeypatch.setattr(ocr, "run_layout", lambda img, page, w, h: ([], [], []))
+    monkeypatch.setattr(ocr, "run_page", lambda img, page, w, h: ([], [], [], []))
 
     out = pipeline.run(pipeline.Invocation(document_folder=folder))
     art = json.loads(out.read_text(encoding="utf-8"))
 
     expected = "page 1: rotation 87° normalized to 90°"
     assert expected in art["warnings"], art["warnings"]
+
+
+def test_ac5_streaming_rasterize_lifecycle():
+    """FR-005a / R-011: `rasterize_pdf` streams pages one at a time instead of
+    returning a document-wide list. Verified structurally — a generator function
+    cannot materialize every PIL.Image in memory before OCR begins, which is
+    the memory-bound we need under PaddleOCR 3.5's larger CPU model bundle.
+
+    # OCR-text delta note (FR-013): this test exercises the streaming contract
+    # only; it does NOT assert against any OCR-text outputs, so PP-OCRv5 text
+    # shifts are not relevant here.
+    """
+    import inspect
+
+    from ledgerlinc_ocr.preprocessing import rasterize
+
+    assert inspect.isgeneratorfunction(rasterize.rasterize_pdf), (
+        "rasterize_pdf must be a generator function (FR-005a streaming lifecycle); "
+        "returning a list would materialize every page image before OCR begins"
+    )
 
 
 def test_ac4_document_text_concat(us2_three_page_artifact):
@@ -109,3 +129,14 @@ def test_ac4_document_text_concat(us2_three_page_artifact):
         per_page_texts.append("\n".join(b["text"] for b in blocks))
     expected = "\n\n".join(per_page_texts)
     assert doc_text == expected, (doc_text, expected)
+
+    doc_text_lc = doc_text.lower()
+    # OCR-text delta audit: PP-OCRv5 preserves the synthetic page-1 vendor token
+    # verbatim on this high-contrast fixture.
+    assert "alpha vendor llc" in doc_text_lc
+    # OCR-text delta audit: PP-OCRv5 preserves the landscape-page marker too,
+    # so a page-orientation change does not scramble page-2 text.
+    assert "landscape page two" in doc_text_lc
+    # OCR-text delta audit: PP-OCRv5 preserves the page-3 marker on the return
+    # to portrait orientation.
+    assert "gamma page three" in doc_text_lc
