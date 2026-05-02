@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.1.0/evidence_packet.schema.json",
+  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.2.0/evidence_packet.schema.json",
   "title": "evidence_packet",
   "description": "Deterministic, voter-ready, Trijunction-shaped evidence packet assembled from preprocess_output.json. Introduced in contract-set v1.1.0 (MINOR, additive).",
   "type": "object",
