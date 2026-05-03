@@ -21,6 +21,17 @@ def test_packaged_stub_loads_cleanly() -> None:
     assert extensions == {}
 
 
+def test_packaged_gemma_edge_e2b_loads_cleanly() -> None:
+    config, path, extensions = load_voter_config("gemma-edge-e2b")
+    assert config.voter_id == "gemma-4-e2b-edge@2026-04-test"
+    assert config.model_runtime.provider == "host_ollama"
+    assert config.model_runtime.model_name == "gemma-4-e2b"
+    assert config.ollama.model_tag == "gemma4:e2b"
+    assert config.prompt.template_path == "prompts/gemma_edge_extractor.md"
+    assert path.name == "gemma-edge-e2b.yaml"
+    assert extensions == {}
+
+
 def _write(tmp_path, body: str):
     p = tmp_path / "voter.yaml"
     p.write_text(textwrap.dedent(body).lstrip(), encoding="utf-8")
