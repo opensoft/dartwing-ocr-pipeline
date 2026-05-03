@@ -29,6 +29,65 @@ Together these three components form the "Trijunction Ingestion" layer.
 
 The output of this layer is the shared evidence packet for downstream extraction models.
 
+### Preprocessing Profiles
+
+Stage 1 needs two preprocessing runtime shapes under the same repository and
+artifact-contract discipline:
+
+- `full-structure`
+  - the full PPStructureV3 document stack
+  - produces OCR lines, reading order, layout blocks, table projections, and
+    document text
+  - used for canonical corpus baselines and full-evidence extraction grounding
+- `edge-ocr`
+  - a lightweight OCR-first scanner for the Jetson Nano Super edge target
+  - runs OCR on the Jetson GPU lane; CPU-only OCR fallback is not supported
+  - produces fast text evidence for first-pass edge scanning and triage
+  - must not fabricate layout blocks or table structure when the lightweight
+    engine did not observe them
+
+Both profiles are selected through pipeline/runtime profile configuration rather
+than split into separate repositories. The selected profile must be visible in
+`pipeline_version`, and normal pipeline runs have one canonical
+`preprocess_output.json` for the selected profile. Side-by-side comparisons use
+explicit run namespaces instead of keeping two canonical preprocessing artifacts
+in the same document folder.
+
+### End-To-End Runtime Stacks
+
+Stage 1 distinguishes preprocessing profiles from end-to-end runtime stacks:
+
+- `full-workstation`
+  - preprocessing: `full-structure` / `ppstructurev3@cpu`
+  - extraction: Gemma 4 E4B through the workstation Ollama GPU lane
+  - purpose: highest available local evidence quality for corpus baselines and
+    full validation runs
+- `cloud-workstation`
+  - target: workstation with local GPU cards
+  - preprocessing: full-structure evidence first, with Trijunction contributors
+    added as local workstation capabilities become available
+  - extraction: cloud-class voter set on local workstation model endpoints
+    rather than remote provider APIs
+  - purpose: test the future cloud solution locally before introducing a
+    provider-managed cloud deployment or fallback path
+- `edge-fast`
+  - target: Jetson Nano Super class hardware
+  - preprocessing: `edge-ocr@jetson`
+  - extraction: Gemma 4 E2B through the Jetson-local Ollama edge lane
+  - purpose: fast first-pass edge scanning with a smaller extraction model
+
+`cloud-workstation` and `edge-fast` still use the same downstream routing and
+final-payload contracts. Their selected preprocessing evidence, model set, and
+runtime lane must be visible through profile/runtime metadata so evaluator
+results are not confused with the `full-workstation` baseline.
+
+The edge-fast preprocessing path tries the small Paddle OCR scanner first. If
+deterministic quality gates fail, the profile may fall back to a larger Paddle
+scanner only when that fallback also runs on the Jetson GPU lane and records the
+fallback in metadata. If no Jetson GPU fallback is available, the document is
+sent to review or the full-workstation stack instead of running heavy OCR on
+CPU.
+
 ### 2. Triple-Model Ensemble Extraction
 
 The structured evidence from the Trijunction layer is then passed to three independent models.
@@ -44,12 +103,17 @@ Role:
 
 #### Model B
 
-- `Gemma 4 E4B` in edge contexts
+- `Gemma 4 E2B` in the `edge-fast` Jetson stack
+- `Gemma 4 E4B` in the `full-workstation` stack and larger edge contexts
 - `Gemma 4 (31B)` in cloud contexts
 
 Role:
 
 - second independent extraction perspective
+- for `edge-fast`, judge the OCR evidence packet into normalized
+  vendor-identity fields with evidence ids and confidence signals
+- never own OCR/layout, final routing, schema validation, or deterministic
+  explicit-vs-inferred company-name policy
 
 #### Model C
 
@@ -131,8 +195,9 @@ Stage 1 does not implement the full target architecture.
 Stage 1 remains intentionally narrow:
 
 - PDF input only
-- edge-oriented flow only
-- no cloud path implementation
+- local validation flow only: full-workstation, cloud-workstation, and edge-fast
+- no remote cloud provider path or deployed cloud fallback
+- local cloud-class workstation validation is allowed as a runtime stack
 - no line item extraction
 - no latency targets yet
 - vendor identity is the primary evaluation focus
@@ -144,6 +209,8 @@ Stage 1 should align to the target architecture in shape, even if it does not de
 For stage 1:
 
 - the pipeline should be designed around a shared evidence packet from preprocessing
+- preprocessing should support both a full-structure profile and a lightweight
+  edge-OCR profile behind a common pipeline contract
 - the code structure should allow multiple model voters later
 - the routing layer must remain deterministic and separate from model output
 
@@ -152,7 +219,7 @@ For stage 1:
 Stage 1 does not yet require:
 
 - full three-model production ensemble execution
-- cloud escalation implementation
+- remote cloud escalation implementation
 - investigator-agent integration
 - controller review workflow implementation
 
@@ -164,32 +231,31 @@ For stage 1, the recommended runtime split remains:
   - owns the test corpus, expected truth, evaluation, and orchestration
 - repo pipeline code
   - owns preprocessing, schema validation, extraction orchestration, routing logic, and output assembly
+  - owns preprocessing profile selection and warm worker/batch execution for
+    live preprocessing profiles
 - host `Ollama`
   - owns small-model inference through the already-proven ROCm path
+- workstation model endpoints
+  - own cloud-class local model validation for the `cloud-workstation` stack
+  - must remain local workstation infrastructure until a separate remote-cloud
+    change is approved
 
 ## Stage 1 Processing Flow
 
 1. A PDF test document is selected from the stage 1 corpus.
-2. The preprocessing stage builds the stage 1 evidence packet:
+2. The preprocessing stage builds the stage 1 evidence packet using the selected
+   preprocessing profile:
    - page images
    - OCR lines
    - reading order
    - layout blocks
    - tables when available
+   - for `edge-ocr`, layout and table slots must remain explicit and typed but
+     may be empty when the lightweight scanner did not produce that evidence
 3. The extraction stage produces structured vendor identity output.
 4. The routing layer decides whether the result is acceptable or requires manual review.
 5. The final structured payload is assembled.
 6. The evaluator compares the final payload against the human-labeled expected truth.
-
-### Stage 1 Preprocessing Engine
-
-Stage 1 preprocessing is implemented on top of `PaddleOCR 3.5`:
-
-- `PPStructureV3` — layout detection (PP-DocBlockLayout + PP-DocLayout_plus-L), table structure (SLANeXt_wired, SLANet_plus), cell detectors (RT-DETR-L)
-- `PP-OCRv5` — text recognition, invoked through V3's built-in OCR pass (no separate recognizer call)
-- CPU-only, single-threaded, `enable_mkldnn=False` for paddle 3.3.1 PIR/oneDNN bug avoidance and determinism (see spec `010-pp-structurev3-preprocessing`)
-
-This realizes the stage-1 subset of the `PaddleOCR-VL-1.5` Trijunction role above; Falcon OCR and Falcon Perception remain `not_implemented` at stage 1.
 
 ## Stage 1 Artifacts
 

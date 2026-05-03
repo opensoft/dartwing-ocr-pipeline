@@ -4,10 +4,12 @@ This document records how the repo supports Ollama during stage 1 and what has b
 
 ## Supported Runtime Paths
 
-The repo now supports two Ollama runtime paths:
+The repo now distinguishes local model runtime paths:
 
 - host Ollama in Ubuntu 24.04 WSL
 - optional Docker infrastructure container
+- Jetson-local Ollama for the edge-fast stack
+- workstation GPU model endpoints for `cloud-workstation` validation
 
 The host path remains the default because it is the only path that has been verified to use the AMD GPU on this workstation.
 
@@ -87,6 +89,37 @@ So the current local state should be treated as:
 - host Ollama = GPU-capable and usable
 - Docker container = functionally running but CPU-only
 
+## Jetson Edge Runtime Path
+
+The `edge-fast` stack targets Jetson Nano Super class hardware. Its extraction
+profile is `ollama@jetson` and its Gemma voter config is the smaller Gemma 4
+E2B edge profile.
+
+The Jetson lane is not the same as the optional CPU container lane:
+
+- OCR and model inference must use the Jetson GPU path.
+- CPU-only model inference is not an acceptable fallback for `ollama@jetson`.
+- If the Jetson-local endpoint or GPU path is unavailable, the runner should
+  fail fast or route the document to review/full-workstation processing rather
+  than silently changing lanes.
+- The proposed resolver is `--ollama-jetson-url` >
+  `OLLAMA_JETSON_BASE_URL` > the documented Jetson-local default.
+
+## Cloud-Workstation Runtime Path
+
+The `cloud-workstation` stack is the local test path for the future cloud
+solution. It runs cloud-class voters on workstation GPU hardware before the
+project introduces a remote cloud provider path.
+
+Rules for this lane:
+
+- It is local workstation validation, not remote cloud execution.
+- It must not require cloud-provider credentials or external provider APIs.
+- Required model endpoints must be checked before artifact writes.
+- Runtime metadata must identify the voter set and local workstation lane so
+  evaluator reports do not mix these results with `full-workstation` or
+  `edge-fast`.
+
 ## Production Container Path
 
 For production-style deployment, the repo now includes a native Linux ROCm compose file:
@@ -142,6 +175,10 @@ For stage 1 development:
 - use host Ollama as the working GPU path
 - keep the optional local container for API wiring and service topology
 - validate the production Ollama container on a native Linux ROCm host, not Docker Desktop on Windows
+- validate the `ollama@jetson` lane separately on the Jetson Nano Super target
+  before treating edge-fast timings as production-representative
+- validate `cloud-workstation` on the workstation GPU cards before planning
+  remote cloud fallback or provider-managed deployment
 
 ## Extractor timeout + no-retry convention
 
