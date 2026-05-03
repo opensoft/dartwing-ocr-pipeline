@@ -71,4 +71,3 @@ Use these values to author `expected.json` for each corresponding `source.pdf`. 
 - **website**: sendinvoice.co
 - **phone**: (775) 555-0109
 - **email**: accounting@fastmail.com
-
