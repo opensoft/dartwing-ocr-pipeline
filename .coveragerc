@@ -1,0 +1,12 @@
+[run]
+branch = True
+relative_files = True
+source =
+    src/ledgerlinc_ocr
+
+[report]
+show_missing = True
+skip_empty = True
+
+[xml]
+output = coverage.xml
