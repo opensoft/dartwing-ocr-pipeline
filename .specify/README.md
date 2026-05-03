@@ -1,6 +1,30 @@
-# Speckit Workflow
+# OpenSpec and Speckit Workflow
 
-This repository uses Speckit with Git worktrees for feature work.
+This repository uses OpenSpec for change governance and Speckit with Git
+worktrees for implementation work.
+
+## OpenSpec Role
+
+Use OpenSpec before implementation when a change affects project boundaries:
+
+- stage 1 artifact schemas or folder contracts
+- runtime/container/model orchestration
+- consensus, routing, review, or escalation policy
+- Jetson/edge deployment constraints
+- the development workflow itself
+
+OpenSpec captures intent, scope, and design decisions. Speckit remains the
+implementation system. Do not duplicate task lists between OpenSpec and Speckit:
+an OpenSpec change should hand off to exactly one Speckit feature under
+`specs/NNN-*` for implementation.
+
+Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec`
+is on `PATH`. Do not add OpenSpec to the lightweight LedgerLinc project
+container; that container remains focused on the pipeline runtime and local
+validation path.
+
+Skip OpenSpec for small implementation-only fixes where an existing Speckit
+artifact already defines the behavior.
 
 ## Default Model
 
@@ -98,6 +122,10 @@ cd <WORKTREE_PATH>                # or run /ct, then ct
 /speckit.taskstoissues            # optional
 /speckit.implement
 ```
+
+**After implementation:** open a PR, then run an agent-team review against that
+PR. Treat high-severity architecture or logic findings as blockers: fix them on
+the branch, commit the changes, and run review again before merge.
 
 ## `/ct`, `/ctp`, `ct`, `cta`, `ctc`, `ctg`, And `cts`
 
