@@ -106,7 +106,7 @@ In warm-corpus mode (`--documents-file`), `continue` records the failure on stde
 
 | Argument | Type | Default | Env Var | Notes |
 |----------|------|---------|---------|-------|
-| `--ollama-url URL` | string | `http://localhost:11434` | `OLLAMA_BASE_URL` | Existing GPU lane URL (renamed semantics: now lane-explicit). |
+| `--ollama-url URL` | string | `http://localhost:11434` | `OLLAMA_BASE_URL` | Flag and env var preserved verbatim from `002-cli-contract` v1.0.0 (no rename, no migration). Semantics tightened: this URL is now explicitly the GPU lane endpoint and is consumed only when the resolved extract profile is `ollama@gpu`. CPU and Jetson lanes have their own dedicated flags (rows below). |
 | `--ollama-cpu-url URL` | string | `http://localhost:11435` | `OLLAMA_CPU_BASE_URL` | NEW. CPU benchmark lane. |
 | `--ollama-jetson-url URL` | string | `http://jetson.local:11434` | `OLLAMA_JETSON_BASE_URL` | NEW. Jetson edge lane. Documented placeholder; operator must override on real hardware. |
 
@@ -215,9 +215,9 @@ The existing `ExitCode` enum is unchanged. The new failure stages this feature i
 | `arguments` (mutual-exclusion, unknown flag) | `10` `USAGE_ERROR` |
 | `prerequisite_validation` (missing prerequisite artifact) | `2` `INPUT_NOT_FOUND` |
 | `prerequisite_validation` (schema-invalid prerequisite artifact) | `4` `SCHEMA_VALIDATION_FAILURE` |
-| `prerequisite_validation` (`ensemble@workstation` deferred) | `10` `USAGE_ERROR` (treated as caller-side configuration error) |
+| `prerequisite_validation` (any in-slice `DeferredImplementationError`: `ensemble@workstation`, `edge-ocr@jetson`, `ollama@jetson`) | `10` `USAGE_ERROR` (treated as caller-side configuration error per R-013) |
 | `corpus_validation` (empty or unreadable `--documents-file`) | `10` `USAGE_ERROR` |
-| Per-document stage failures | Existing codes; surfaced per-document in warm mode. |
+| Per-document stage failures | Existing codes; surfaced per-document in warm mode. Severity ordering for warm-corpus aggregate exit code is pinned in research.md R-008. |
 
 ---
 

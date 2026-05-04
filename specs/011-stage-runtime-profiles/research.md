@@ -105,7 +105,22 @@ Resolution order: start from the preset's table; for each stage where the caller
 - Default in warm-corpus mode (`--documents-file`) is `continue`. Default in cold single-document mode (`--document-folder` / `--input`) is effectively `fail-fast` because there is only one document.
 - Accepted values: `continue` and `fail-fast` (canonical), with case-insensitive parse.
 - A failed document in `continue` mode emits a structured per-document failure record on stderr (same shape as today's `002` `StructuredFailureRecord`) and the run continues with the next document. After the last document, the `kind: "run_summary"` object on stdout reports `failure_count`, `success_count`, and per-document outcome rows.
-- Process exit code in warm-corpus + `continue` mode is `0` if and only if every document produced a schema-valid full-slice artifact set; otherwise the exit code is the highest-severity per-document failure code observed (matches existing `ExitCode` enum ordering).
+- Process exit code in warm-corpus + `continue` mode is `0` if and only if every document produced a schema-valid full-slice artifact set; otherwise the exit code is the highest-severity per-document failure code observed (per the severity table below).
+
+**Severity ordering** (highest severity wins; pinned here so the rule is testable without reading source):
+
+| Rank | `ExitCode` value | Integer | Severity intuition |
+|---:|---|---:|---|
+| 1 (highest) | `PROCESSING_FAILURE` | `1` | Stage-internal exception; represents an unhandled runtime failure inside an adapter. |
+| 2 | `SCHEMA_VALIDATION_FAILURE` | `4` | An artifact (input or output) failed contract-set validation. |
+| 3 | `OUTPUT_PATH_NOT_USABLE` | `7` | Destination folder not writable / not a directory. |
+| 4 | `OUTPUT_IN_USE` | `5` | Slice-output artifact already on disk and `--overwrite` was not passed. |
+| 5 | `INVALID_PDF` | `6` | Input PDF magic-byte check failed. |
+| 6 | `INPUT_NOT_FOUND` | `2` | Input PDF or required prerequisite artifact missing on disk. |
+| 7 (lowest non-zero) | `USAGE_ERROR` | `10` | Caller-side argument or configuration mistake; includes deferred-implementation fail-fast (R-013). |
+| n/a | `SUCCESS` | `0` | Document succeeded; not a failure code. |
+
+The "highest severity wins" rule is implemented by mapping each observed `ExitCode` to its rank above and selecting the minimum rank (i.e., the most severe). Cold single-document mode preserves the existing `002` exit-code behavior unchanged; the ranking only matters when aggregating multiple per-document outcomes in warm-corpus + `continue` mode.
 
 **Rationale**: Q2 of /speckit.clarify pinned the default; FR-028 mandates per-document failure context; the existing `StructuredFailureRecord` already serializes the right fields, so the corpus path reuses it without inventing a new failure format.
 
@@ -164,6 +179,8 @@ The run summary object shape (pinned here for the CLI contract):
 
 `schema_version` exists so the harness can detect future shape bumps without parsing the whole document. `profile_initialization_seconds` is keyed by stage so future warm-extract or warm-routing profiles can extend it without reshaping the object.
 
+**Phase-key absence policy**: An adapter that does not separately measure a phase (e.g., a stub callable that combines compute + write into a single span, or a stage that hard-fails before reaching a phase) MUST omit that phase key from `stages.<stage>` rather than emitting `0.0`. Consumers MUST treat an absent phase key as "not measured", never as zero. `total_seconds` is always present for any stage that started; it equals the sum of the phases the adapter chose to measure plus any unmeasured time. For a stage that fails mid-execution, only the phases that completed before the failure are emitted; `total_seconds` reflects entry-to-exit (including the failure path) and `failed_stage` in the per-document entry names the stage where execution stopped.
+
 **Rationale**: Q3 of /speckit.clarify pinned stdout + `kind: "run_summary"`. JSON-Lines is what the harness already parses for the per-document `002` record; reusing the format avoids a JSON-array wrapper that would couple per-document emission to end-of-run buffering and break streaming consumers.
 
 **Alternatives**:
@@ -218,7 +235,7 @@ Resolution: flag > env var > documented default. The selected URL is recorded in
 
 ## R-013: `ensemble@workstation` is name-only in this slice
 
-**Decision**: This slice adds `ensemble@workstation` to the closed-set extract-profile vocabulary so that argument validation accepts it and so `--stack-preset cloud-workstation` can expand to it. When `ensemble@workstation` is selected in this slice, the resolver immediately returns a single `MissingEndpointError` with stage `prerequisite_validation` and a message naming the unconfigured voter set ("`ensemble@workstation` requires voter endpoints; configuration is delivered in the secondary-lane slice (FR-034 step 4) - set the explicit per-stage profile or `--stack-preset` to a supported workstation preset"). No voter-config flags, env vars, or files are introduced in this feature.
+**Decision**: This slice adds `ensemble@workstation` to the closed-set extract-profile vocabulary so that argument validation accepts it and so `--stack-preset cloud-workstation` can expand to it. When `ensemble@workstation` is selected in this slice, the resolver immediately returns a single `MissingEndpointError` with stage `prerequisite_validation`, exit code `10` (`USAGE_ERROR` - treated as a caller-side configuration error), and a message naming the unconfigured voter set ("`ensemble@workstation` requires voter endpoints; configuration is delivered in the secondary-lane slice (FR-034 step 4) - set the explicit per-stage profile or `--stack-preset` to a supported workstation preset"). The same exit code applies uniformly to every `DeferredImplementationError` raised by an in-slice adapter (see R-014: `edge-ocr@jetson`, `ollama@jetson`, `ensemble@workstation`); they are all caller-side configuration errors in this slice. No voter-config flags, env vars, or files are introduced in this feature.
 
 **Rationale**: Q5 of /speckit.clarify chose deferral. FR-022A requires recognition + fail-fast naming. Implementing a real ensemble voter set without endpoint configuration in this slice would either (a) need a placeholder URL surface that must be redesigned in step 4 or (b) silently use the GPU lane's URL, both of which violate FR-018's no-silent-degradation rule.
 
@@ -266,6 +283,7 @@ The following are tracked here so they do not get rediscovered as gaps during /s
 
 - **`ensemble@workstation` endpoint configuration surface** - deferred to FR-034 step 4 per R-013 and spec Q5.
 - **Live `edge-ocr@jetson` and `ollama@jetson` implementation** - recognition only in this slice (R-014); live adapters land in step 4.
+- **FR-019 (Jetson-GPU-only for `edge-fast`) and FR-020 (`edge-ocr@jetson` lightweight-first + Jetson-GPU fallback rules) live-runtime semantics** - deferred to FR-034 step 4 alongside the live `edge-ocr@jetson` / `ollama@jetson` adapters. In this slice the no-CPU-fallback constraint is enforced *negatively* at argument validation (R-002 rejects `edge-ocr@cpu` and any heavy-OCR-on-CPU combination), but the *positive* runtime behavior - "attempt the lightweight Paddle OCR scanner first; conditionally fall back to a larger Paddle OCR stack only on the Jetson GPU lane; emit a review/escalation signal when no Jetson GPU fallback is available" - lives entirely in the live adapter that step 4 delivers. SC-007 is therefore also deferred end-to-end (see spec.md SC-007 deferral marker).
 - **`cloud-workstation` voter-set metadata schema** - pinned in run summary (R-009) but the artifact-metadata side (FR-022) for distinguishing stacks lives in the artifact contract amendment, not this slice.
 - **Architecture / ollama-runtime doc updates** (Q-Gate 3) - listed as a Phase 1 deliverable in plan.md and will be picked up by /speckit.tasks; the controller layer, `--documents-file` warm path, and CPU/Jetson Ollama lane env vars need to be reflected in `docs/stage1-vendor-identity/architecture.md` and `docs/stage1-vendor-identity/ollama-runtime.md`.
 
