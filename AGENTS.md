@@ -48,6 +48,8 @@ Use OpenSpec before implementation when work changes one of these boundaries:
 
 Use Speckit for feature worktrees, implementation planning, task breakdown, and code execution. Do not duplicate task lists between the two systems: an OpenSpec change should capture intent and design decisions, then hand off to exactly one Speckit feature under `specs/NNN-*` for implementation.
 
+Before running `/speckit.specify`, verify from the same shell/container with `git status -sb` and `git branch --show-current` that the checkout is on `main` with no unintended worktree changes. Never run `/speckit.specify` from a feature branch, cleanup branch, or existing Speckit worktree. If not on `main`, stop and switch to `main` only after preserving or committing any current work. This rule applies even when updating an existing feature spec.
+
 Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec` is on `PATH`. Do not add OpenSpec to the lightweight LedgerLinc project container; that container remains focused on the pipeline runtime and local validation path.
 
 Skip OpenSpec for small implementation-only fixes where an existing `specs/NNN-*` artifact already defines the behavior and no product or architecture decision is being made.
