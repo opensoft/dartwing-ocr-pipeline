@@ -4,6 +4,12 @@
 **CLI contract version**: 1.0.0
 **Frozen**: 2026-04-20
 
+> **Successor (active)**: `specs/011-stage-runtime-profiles/contracts/cli-contract.md`
+> v1.1.0 amends this surface with stage-profile flags, execution slicing,
+> warm-corpus mode, run-summary stdout emission, and additional Ollama
+> lane URL flags. The v1.0.0 baseline below is preserved for tests that
+> pin the original argument set; new work targets the v1.1.0 successor.
+
 This document defines the frozen command surface for the stage 1 one-document pipeline CLI. Changes to this surface require an amendment through the contract-set governance path (`contracts/stage1_vendor_identity/AMENDMENTS.md`).
 
 ---
