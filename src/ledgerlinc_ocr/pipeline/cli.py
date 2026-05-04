@@ -129,12 +129,14 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         choices=list(STAGES),
     )
-    # Failure policy (FR-028).
+    # Failure policy (FR-028). No argparse choices: case-insensitive /
+    # whitespace-tolerant parsing is owned by ``parse_on_failure`` in
+    # ``failure_policy.py`` so spellings like ``Continue`` / ``FAIL-FAST``
+    # are accepted per the 011 contract and unit tests.
     run.add_argument(
         "--on-failure",
         type=str,
         default=None,
-        choices=["continue", "fail-fast"],
     )
     # Ollama lane URL overrides (FR-015 / FR-016 / FR-017).
     run.add_argument("--ollama-url", type=str, default=None)
@@ -413,20 +415,21 @@ def _run_warm_corpus(
             "ids are derived per-folder"
         ))
 
-    # parse_documents_file lands in T030; until then we delegate to the
-    # corpus module which already exists from T007. The orchestration
-    # loop itself (T029) and run-summary emission (T032) are implemented
-    # in the US6 phase.
+    # Parse the documents-file into DocumentEntry pairs (raw token +
+    # resolved Path). The warm-corpus orchestration loop preserves
+    # entry.raw verbatim in per_document.folder so callers using
+    # relative corpus paths can correlate the run-summary back to the
+    # source file (Copilot review item 3).
     from ledgerlinc_ocr.pipeline.corpus_run import run_warm_corpus
 
     try:
-        documents = parse_documents_file(args.documents_file)
+        entries = parse_documents_file(args.documents_file)
     except CorpusParseError as exc:
         return int(_emit_usage_error(str(exc), stage="corpus_validation"))
 
     return run_warm_corpus(
         args=args,
-        documents=tuple(documents),
+        documents=tuple(entries),
         runner=runner,
     )
 

@@ -322,6 +322,28 @@ DEFERRED_LIVE_PROFILES: frozenset[tuple[Stage, str, str | None]] = frozenset({
 # stub-fallback entries by registering the real adapters in their place.
 _LIVE_REGISTRY: dict[tuple[Stage, str, str | None], AdapterFactory] = {}
 
+# Capability registry: (stage, implementation, lane) triples whose live
+# adapter is actually a real live adapter (not a stub-fallback wrapper).
+# Opt-in helpers below add to this set as they register real factories.
+# Consumers (notably ``corpus_run._maybe_register_warm_preprocess``) MUST
+# check this set, not just the resolved profile name, before triggering
+# heavy initialization paths -- otherwise a default warm-corpus run with
+# Paddle installed would pre-load PPStructureV3 even though the active
+# adapter is still the stub fallback.
+_LIVE_CAPABILITIES: set[tuple[Stage, str, str | None]] = set()
+
+
+def is_live_capable(
+    stage: Stage, implementation: str, lane: str | None
+) -> bool:
+    """True iff a real live adapter is registered for the triple.
+
+    Returns False when only the foundation-phase stub fallback is in
+    place (so warm-corpus and similar paths know to avoid heavy live
+    initialization).
+    """
+    return (stage, implementation, lane) in _LIVE_CAPABILITIES
+
 
 def _stub_fallback_factory(stage: Stage) -> AdapterFactory:
     """Return an AdapterFactory that hands back the stage's stub callable.
@@ -423,11 +445,15 @@ def _ollama_extract_factory(lane: str) -> Callable[["ResolvedRunPlan"], StageCal
         def adapter(
             invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
         ) -> dict[str, Any]:
+            # Forward invocation.pipeline_version so --pipeline-version is
+            # honored by edge_extraction_output.json the same way it is
+            # honored by the other stages (Copilot review item 5).
             out_path = extract_run(
                 folder_path=invocation.destination_folder,
                 voter_config=voter_config,
                 voter=voter,
                 template_path=template_path,
+                pipeline_version=invocation.pipeline_version,
             )
             return json.loads(out_path.read_text(encoding="utf-8"))
 
@@ -444,6 +470,7 @@ def register_ollama_gpu() -> None:
         lane="gpu",
         factory=_ollama_extract_factory("gpu"),
     )
+    _LIVE_CAPABILITIES.add(("extract", "ollama", "gpu"))
 
 
 def register_ollama_cpu() -> None:
@@ -454,6 +481,7 @@ def register_ollama_cpu() -> None:
         lane="cpu",
         factory=_ollama_extract_factory("cpu"),
     )
+    _LIVE_CAPABILITIES.add(("extract", "ollama", "cpu"))
 
 
 def _routing_rules_cpu_factory(plan: "ResolvedRunPlan") -> StageCallable:
@@ -587,6 +615,7 @@ def reset_live_registry() -> None:
     test starts from the same baseline as a fresh interpreter.
     """
     _LIVE_REGISTRY.clear()
+    _LIVE_CAPABILITIES.clear()
     _seed_default_stub_fallbacks()
 
 
@@ -604,6 +633,7 @@ def register_routing_rules_cpu() -> None:
         lane="cpu",
         factory=_routing_rules_cpu_factory,
     )
+    _LIVE_CAPABILITIES.add(("routing", "rules", "cpu"))
 
 
 def register_final_payload_assembler_cpu() -> None:
@@ -614,6 +644,7 @@ def register_final_payload_assembler_cpu() -> None:
         lane="cpu",
         factory=_final_payload_assembler_cpu_factory,
     )
+    _LIVE_CAPABILITIES.add(("final_payload", "assembler", "cpu"))
 
 # T031: ppstructurev3@cpu live adapter. Intentionally NOT registered at
 # module load. The PPStructureV3 engine rejects the minimal PDF used by
@@ -641,17 +672,25 @@ def register_ppstructurev3_cpu() -> None:
         lane="cpu",
         factory=_ppstructurev3_cpu_factory,
     )
+    _LIVE_CAPABILITIES.add(("preprocess", "ppstructurev3", "cpu"))
 
 
 __all__ = [
     "AdapterFactory",
+    "DEFERRED_LIVE_PROFILES",
     "DeferredImplementationError",
     "StageCallable",
     "default_extraction",
     "default_final_payload",
     "default_preprocess",
     "default_routing",
+    "is_live_capable",
+    "register_final_payload_assembler_cpu",
     "register_live_adapter",
+    "register_ollama_cpu",
+    "register_ollama_gpu",
+    "register_ppstructurev3_cpu",
+    "register_routing_rules_cpu",
     "reset_live_registry",
     "resolve_stage_callable",
 ]

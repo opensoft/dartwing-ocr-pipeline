@@ -194,12 +194,24 @@ Captured per-stage, per-document timing.
 
 **Per-stage phase keys** (R-009 informed by FR-027):
 
-- `preprocess`: `rasterize`, `infer`, `write` -> seconds in summary.
-- `extract`: `infer`, `write`.
-- `routing`: `compute`, `write`.
-- `final_payload`: `compute`, `write`.
+- `preprocess`: at minimum `infer`, `write` -> seconds in summary. The
+  upstream PPStructureV3 module bundles rasterization, layout
+  inference, and OCR inside a single ``run`` call; this slice folds
+  those into a single ``infer`` phase. A future adapter that exposes
+  rasterization timing separately MAY emit `rasterize` alongside
+  `infer` -- absent phase keys are interpreted as "not measured" per
+  R-009.
+- `extract`: at minimum `infer`, `write`.
+- `routing`: at minimum `compute`, `write`.
+- `final_payload`: at minimum `compute`, `write`.
 
-Adapters are responsible for measuring the appropriate phases; the registry coalesces missing phases into `total_ns`. Phase keys not listed above are tolerated (forward-compatibility for future adapters) and pass through to the run summary verbatim.
+The runner records the adapter-call duration as the stage's compute
+phase (`infer` for preprocess/extract, `compute` for routing/final_payload)
+and the subsequent disk write as `write`. Adapters that want finer
+phase resolution MAY add additional phase keys; the registry coalesces
+unmeasured time into `total_ns`. Phase keys not listed above are
+tolerated (forward-compatibility for future adapters) and pass through
+to the run summary verbatim.
 
 **Serialization** (R-015): `phases_ns[k]` and `total_ns` are converted to seconds at run-summary emission via `round(ns / 1e9, 6)`. Internal arithmetic stays in nanoseconds.
 

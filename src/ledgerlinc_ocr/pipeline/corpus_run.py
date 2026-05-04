@@ -26,15 +26,17 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from ledgerlinc_ocr.pipeline.corpus import WarmProfileRegistry
+from ledgerlinc_ocr.pipeline.corpus import DocumentEntry, WarmProfileRegistry
 from ledgerlinc_ocr.pipeline.exit_codes import ExitCode, StructuredFailureRecord
 from ledgerlinc_ocr.pipeline.path_resolution import derive_document_id
+from ledgerlinc_ocr.pipeline.pdf_check import is_pdf
 from ledgerlinc_ocr.pipeline.profiles import Stage
 from ledgerlinc_ocr.pipeline.runner import (
     CLIInvocation,
     ResolvedRunPlan,
     Runner,
 )
+from ledgerlinc_ocr.pipeline.stages import is_live_capable
 from ledgerlinc_ocr.pipeline.timing import (
     RunSummary,
     build_per_document_failure,
@@ -77,9 +79,15 @@ def _per_document_invocation(
 ) -> tuple[CLIInvocation | None, ExitCode | None, str]:
     """Build a CLIInvocation for one document folder.
 
+    Mirrors the cold-path filesystem checks (folder exists + is_dir,
+    source.pdf exists + is regular file + magic-byte PDF) so a missing
+    or non-PDF source.pdf in warm-corpus mode fails before any artifact
+    is written. Without these checks an all-stub default-preprocess
+    callable would happily emit success artifacts even when the
+    document folder lacks a usable PDF (Copilot review item 2).
+
     Returns (invocation, error_code, error_message). On success
-    error_code is None. On failure (e.g., un-derivable document_id),
-    invocation is None.
+    error_code is None.
     """
     if not folder.is_dir():
         return None, ExitCode.INPUT_NOT_FOUND, (
@@ -92,6 +100,18 @@ def _per_document_invocation(
             f"warm-corpus mode requires inv_XXX_<difficulty> folder names"
         )
     pdf_path = folder / "source.pdf"
+    if not pdf_path.exists():
+        return None, ExitCode.INPUT_NOT_FOUND, (
+            f"document folder missing source.pdf: {folder}"
+        )
+    if not pdf_path.is_file():
+        return None, ExitCode.INVALID_PDF, (
+            f"source.pdf is not a regular file: {pdf_path}"
+        )
+    if not is_pdf(pdf_path):
+        return None, ExitCode.INVALID_PDF, (
+            f"source.pdf failed magic-byte check: {pdf_path}"
+        )
     invocation = CLIInvocation(
         input_pdf=pdf_path,
         destination_folder=folder,
@@ -123,10 +143,15 @@ def _resolve_gpu_url(args: argparse.Namespace) -> str:
 def run_warm_corpus(
     *,
     args: argparse.Namespace,
-    documents: tuple[Path, ...],
+    documents: tuple[DocumentEntry, ...],
     runner: Runner | None,
 ) -> int:
-    """Drive the warm-corpus loop and return the aggregate process exit code."""
+    """Drive the warm-corpus loop and return the aggregate process exit code.
+
+    ``documents`` is a tuple of ``DocumentEntry`` (raw token + resolved
+    Path); the raw token is echoed verbatim into per_document.folder
+    while filesystem operations use the resolved absolute path.
+    """
     from ledgerlinc_ocr.pipeline.cli import _build_resolved_plan, _emit_failure, _emit_stdout_summary
 
     # Build a synthetic placeholder invocation purely so plan resolution
@@ -148,10 +173,11 @@ def run_warm_corpus(
         ollama_cpu_url=args.ollama_cpu_url,
         ollama_jetson_url=args.ollama_jetson_url,
     )
+    resolved_paths = tuple(entry.resolved for entry in documents)
     plan, code, msg = _build_resolved_plan(
         args,
         invocation=placeholder_inv,
-        documents=documents,
+        documents=resolved_paths,
         warm_corpus=True,
     )
     if plan is None:
@@ -172,9 +198,11 @@ def run_warm_corpus(
     succeeded = 0
     failed = 0
 
-    for folder in documents:
+    for entry in documents:
+        folder_raw = entry.raw
+        folder_resolved = entry.resolved
         invocation, code, msg = _per_document_invocation(
-            base=args, folder=folder
+            base=args, folder=folder_resolved
         )
         if invocation is None:
             failed += 1
@@ -187,7 +215,7 @@ def run_warm_corpus(
             per_document_records.append(
                 build_per_document_failure(
                     document_id=None,
-                    folder=str(folder),
+                    folder=folder_raw,
                     failed_stage="corpus_validation",
                     exit_code=int(code),
                     message=msg,
@@ -212,7 +240,7 @@ def run_warm_corpus(
             documents=plan.documents,
         )
 
-        result = runner.run_plan(per_doc_plan, folder=folder)
+        result = runner.run_plan(per_doc_plan, folder=folder_resolved)
         observed_exit_codes.append(result.exit_code)
         if result.exit_code == ExitCode.SUCCESS:
             succeeded += 1
@@ -224,7 +252,7 @@ def run_warm_corpus(
             per_document_records.append(
                 build_per_document_success(
                     document_id=invocation.document_id,
-                    folder=str(folder),
+                    folder=folder_raw,
                     timings=result.timings,
                 )
             )
@@ -243,7 +271,7 @@ def run_warm_corpus(
             per_document_records.append(
                 build_per_document_failure(
                     document_id=invocation.document_id,
-                    folder=str(folder),
+                    folder=folder_raw,
                     failed_stage=result.stage,
                     exit_code=int(result.exit_code),
                     message=result.message,
@@ -282,9 +310,15 @@ def _maybe_register_warm_preprocess(
 ) -> None:
     """Register a warm-instance factory for the live preprocessing profile.
 
-    Only fires when (a) the preprocess stage is in the slice and (b) the
-    selected preprocess profile is live (not stub) and (c) its live
-    adapter is actually registered (i.e., not falling back to stub).
+    Fires only when ALL of these hold (Copilot review item 1):
+      (a) preprocess is inside the executed slice;
+      (b) the selected preprocess profile is live (not stub);
+      (c) the live adapter for the (impl, lane) triple is **actually a
+          real live adapter**, not a foundation-phase stub-fallback
+          wrapper. This is checked via ``stages.is_live_capable`` --
+          opting into a real adapter (e.g., ``register_ppstructurev3_cpu``)
+          flips the capability bit; default warm-corpus runs that still
+          rely on the stub fallback do not pre-load PPStructureV3.
 
     The factory wraps ``preprocessing.ocr._get_engine`` so calling
     ``initialize()`` constructs PPStructureV3 once. SC-009 is honored
@@ -298,22 +332,33 @@ def _maybe_register_warm_preprocess(
         return
     if (profile.implementation, profile.lane) != ("ppstructurev3", "cpu"):
         return
+    # Capability gate: only warm-init when a real live adapter is
+    # registered, not when the seeded stub fallback is in place.
+    if not is_live_capable("preprocess", profile.implementation, profile.lane):
+        return
 
     class _PPStructureV3WarmInstance:
         def initialize(self) -> None:
+            # Bare except blocks below are intentional: warm-init runs
+            # before the per-document loop and must never abort the
+            # whole corpus run on a setup-time hiccup. Failures are
+            # converted to a per-document PROCESSING_FAILURE later.
             try:
                 from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
-            except Exception:
+            except ImportError:
                 # Live ppstructurev3 import failed -- the adapter will
-                # fall back to stub, so warm init is a no-op.
+                # surface the error per-document via the runner.
                 return
             try:
                 _ocr_mod._get_engine()  # type: ignore[attr-defined]
-            except Exception:
-                # Engine init failed -- propagate to per-document run
-                # rather than aborting the registry. Per-doc PROCESSING_FAILURE
-                # surfaces to the user via stderr.
-                pass
+            except Exception as exc:  # noqa: BLE001 -- contract: see comment
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "PPStructureV3 warm init raised; deferring to per-doc"
+                    " runtime: %s",
+                    exc,
+                )
 
         def close(self) -> None:
             return None
@@ -347,10 +392,16 @@ def _warm_initialize_live_preprocess(
             implementation=profile.implementation,
             lane=profile.lane,
         )
-    except Exception:
+    except Exception as exc:  # noqa: BLE001 -- intentional: see comment
         # If init fails here, surface as a corpus-validation failure on
         # the per-document loop side rather than aborting the run.
-        pass
+        # Per-doc PROCESSING_FAILURE will fire when the adapter is
+        # invoked. Logged at WARN so the operator can correlate.
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "warm-preprocess pre-loop initialization raised: %s", exc
+        )
 
 
 __all__ = ["run_warm_corpus"]

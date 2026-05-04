@@ -7,7 +7,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Callable, Protocol
 
 from ledgerlinc_ocr.pipeline.profiles import Stage, StageProfile
 
@@ -16,12 +16,31 @@ class CorpusParseError(ValueError):
     """Raised when --documents-file cannot be parsed (missing, empty, etc.)."""
 
 
-def parse_documents_file(path: Path) -> list[Path]:
+@dataclass(frozen=True)
+class DocumentEntry:
+    """One per-document folder reference parsed from --documents-file.
+
+    ``raw`` preserves the verbatim token (post-strip) as written in the
+    file so the warm-corpus run summary can echo it in
+    ``per_document[].folder``. ``resolved`` is the absolute Path used
+    for filesystem operations. The two MUST stay paired so consumers can
+    correlate summary entries back to the originating documents-file
+    line, especially when the harness uses relative corpus paths.
+    """
+
+    raw: str
+    resolved: Path
+
+
+def parse_documents_file(path: Path) -> list[DocumentEntry]:
     """Read a UTF-8 text file, strip blanks and ``#``-comments, resolve paths.
 
-    Paths inside the file resolve relative to the file's parent directory
-    (R-007). Duplicates are preserved in order; deduplication is a harness
-    concern. An empty corpus (zero non-comment lines) is rejected.
+    Returns a list of ``DocumentEntry`` pairs preserving both the raw
+    token (verbatim post-strip) and the absolute resolved path. Paths
+    inside the file resolve relative to the file's parent directory
+    (R-007). Duplicates are preserved in order; deduplication is a
+    harness concern. An empty corpus (zero non-comment lines) is
+    rejected.
     """
     if not path.exists() or not path.is_file():
         raise CorpusParseError(
@@ -35,21 +54,21 @@ def parse_documents_file(path: Path) -> list[Path]:
         ) from exc
 
     base = path.parent.resolve()
-    folders: list[Path] = []
+    entries: list[DocumentEntry] = []
     for raw_line in text.split("\n"):
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
         candidate = Path(line)
         resolved = candidate if candidate.is_absolute() else (base / candidate)
-        folders.append(resolved.resolve())
+        entries.append(DocumentEntry(raw=line, resolved=resolved.resolve()))
 
-    if not folders:
+    if not entries:
         raise CorpusParseError(
             f"empty-corpus: --documents-file {str(path)!r} contains no "
             f"document folders (after blank/comment strip)"
         )
-    return folders
+    return entries
 
 
 class WarmInstance(Protocol):
@@ -126,17 +145,32 @@ class WarmProfileRegistry:
         }
 
     def close(self) -> None:
-        """Close every warmed instance unconditionally; swallow per-instance errors."""
+        """Close every warmed instance unconditionally; swallow per-instance errors.
+
+        Bare ``except Exception`` is intentional and scoped: ``close()``
+        is invoked unconditionally during corpus-run shutdown (success,
+        failure, fail-fast abort). Letting any per-instance close-time
+        error propagate would mask the run's primary outcome and skip
+        sibling instances. Per-instance errors are logged at WARN by
+        callers that care; here we MUST clean up the registry.
+        """
+        import logging
+
+        log = logging.getLogger(__name__)
         for instance in list(self.instances.values()):
             try:
                 instance.close()
-            except Exception:  # noqa: BLE001 -- close() must not propagate
-                pass
+            except Exception as exc:  # noqa: BLE001 -- contract: see docstring
+                log.warning(
+                    "warm-instance close() raised; continuing: %s",
+                    exc,
+                )
         self.instances.clear()
 
 
 __all__ = [
     "CorpusParseError",
+    "DocumentEntry",
     "WarmInstance",
     "WarmProfileRegistry",
     "parse_documents_file",

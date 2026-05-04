@@ -95,7 +95,7 @@ python -m ledgerlinc_ocr.pipeline run \
     --routing-profile stub
 ```
 
-Expected exit code `2` (`INPUT_NOT_FOUND`); stderr carries a structured failure record naming `preprocess_output.json` (or `edge_extraction_output.json`, depending on which is missing first) as the unmet prerequisite.
+Expected exit code `11` (`INPUT_NOT_FOUND`) when the prerequisite is missing, or `30` (`SCHEMA_VALIDATION_FAILURE`) when it exists but does not validate against the installed contract set; stderr carries a structured failure record with stage `prerequisite_validation` naming `preprocess_output.json` (or `edge_extraction_output.json`, depending on which is missing first) as the unmet prerequisite.
 
 ---
 
@@ -238,7 +238,7 @@ python -m ledgerlinc_ocr.pipeline run \
     --overwrite
 ```
 
-Expected exit code `10` (`USAGE_ERROR`) with stderr stage `prerequisite_validation` and a message naming `ensemble@workstation` and the FR-034 step 4 deferral. No artifacts are written. The same fail-fast applies to `--extract-profile ensemble@workstation` directly.
+Expected exit code `10` (`USAGE_ERROR`); stderr's structured failure record uses the canonical stage name (`extraction` for `ensemble@workstation` / `ollama@jetson`, `preprocess` for `edge-ocr@jetson`) and the message names the offending profile and the FR-034 step 4 deferral. No artifacts are written. The same fail-fast applies to `--extract-profile ensemble@workstation` directly.
 
 ---
 
@@ -265,15 +265,17 @@ A successful warm corpus run prints exactly one entry under `init` (keyed by `pr
 
 | Symptom | Likely stage in failure record | Likely exit code |
 |---|---|---|
-| `--input` and `--documents-file` both passed | `arguments` | `10` |
-| `--documents-file` points at a missing path | `corpus_validation` | `10` |
-| `--documents-file` parses to zero documents | `corpus_validation` | `10` |
-| `--start-at extract` but no `preprocess_output.json` in folder | `prerequisite_validation` | `2` |
-| `--start-at routing` and `edge_extraction_output.json` is malformed | `prerequisite_validation` | `4` |
-| `--extract-profile gemma` (unknown implementation) | `arguments` | `10` |
-| `--routing-profile rules@gpu` (unsupported lane) | `arguments` | `10` |
-| `--extract-profile ensemble@workstation` inside the slice | `prerequisite_validation` | `10` |
-| Reserved artifact already present without `--overwrite`, inside slice | `input_validation` | `5` (existing `OUTPUT_IN_USE`) |
+| `--input` and `--documents-file` both passed | `arguments` | `10` `USAGE_ERROR` |
+| `--documents-file` points at a missing path | `corpus_validation` | `10` `USAGE_ERROR` |
+| `--documents-file` parses to zero documents | `corpus_validation` | `10` `USAGE_ERROR` |
+| `--start-at extract` but no `preprocess_output.json` in folder | `prerequisite_validation` | `11` `INPUT_NOT_FOUND` |
+| `--start-at routing` and `edge_extraction_output.json` is malformed | `prerequisite_validation` | `30` `SCHEMA_VALIDATION_FAILURE` |
+| `--extract-profile gemma` (unknown implementation) | `arguments` | `10` `USAGE_ERROR` |
+| `--routing-profile rules@gpu` (unsupported lane) | `arguments` | `10` `USAGE_ERROR` |
+| `--extract-profile ensemble@workstation` inside the slice | `extraction` (canonical stage name) | `10` `USAGE_ERROR` |
+| `--extract-profile ollama@jetson` inside the slice | `extraction` | `10` `USAGE_ERROR` |
+| `--preprocess-profile edge-ocr@jetson` inside the slice | `preprocess` | `10` `USAGE_ERROR` |
+| Reserved artifact already present without `--overwrite`, inside slice | `input_validation` | `13` `OUTPUT_IN_USE` |
 
 For continue-through-failures runs in warm-corpus mode, each per-document failure produces a `StructuredFailureRecord` line on stderr; the process exit code reflects the highest-severity per-document failure.
 

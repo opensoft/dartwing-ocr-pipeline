@@ -80,7 +80,9 @@ def test_warm_corpus_stub_run(tmp_path: Path, capsys: pytest.CaptureFixture[str]
     assert len(per_doc) == 3
     for entry, folder in zip(per_doc, folders):
         assert entry["status"] == "success"
-        assert entry["folder"] == str(folder)
+        # Folder echoes the raw token from --documents-file, not the
+        # resolved absolute path (Copilot review item 3).
+        assert entry["folder"] == folder.name
         assert entry["document_id"] == folder.name.split("_")[0] + "_" + folder.name.split("_")[1]
     # Each document's folder has all four canonical artifacts.
     for folder in folders:

@@ -69,8 +69,17 @@ def run(
     voter_config: VoterConfig,
     voter: VoterAdapter,
     template_path: Path,
+    *,
+    pipeline_version: str | None = None,
 ) -> Path:
-    """Extract one document. Returns the path to the written artifact."""
+    """Extract one document. Returns the path to the written artifact.
+
+    ``pipeline_version`` is optional: when None, ``build_pipeline_version()``
+    supplies the package default. Callers (notably the 011 controller's
+    extract adapter) pass ``--pipeline-version`` through here so the
+    written artifact stamps the user-supplied value, matching how the
+    other stage modules honor pipeline-version overrides.
+    """
 
     folder = Path(folder_path)
     if not folder.is_dir():
@@ -97,7 +106,8 @@ def run(
         )
 
     now = datetime.now(UTC)
-    pipeline_version = build_pipeline_version()
+    if pipeline_version is None:
+        pipeline_version = build_pipeline_version()
 
     rendered = render_prompt(packet, template_path, voter_config)
     raw = voter.call(rendered, voter_config)

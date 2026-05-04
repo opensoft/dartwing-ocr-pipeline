@@ -52,6 +52,27 @@ def test_explicit_value_overrides_default_in_cold_mode():
     assert p.mode == "continue"
 
 
+def test_argparse_does_not_block_case_insensitive_input():
+    """Copilot review item 11: --on-failure must reach parse_on_failure
+    regardless of casing/whitespace, so tolerant parsing applies.
+    """
+    from ledgerlinc_ocr.pipeline.cli import _build_parser
+
+    parser = _build_parser()
+    # ``Continue`` (capitalized) is rejected by the old argparse choices
+    # but is valid case-insensitive input for parse_on_failure.
+    args = parser.parse_args(["run", "--input", "/x", "--on-failure", "Continue"])
+    assert args.on_failure == "Continue"
+    # parse_on_failure normalizes it.
+    p = parse_on_failure(args.on_failure, warm_corpus=True)
+    assert p.mode == "continue"
+
+    # Same for FAIL-FAST.
+    args = parser.parse_args(["run", "--input", "/x", "--on-failure", "FAIL-FAST"])
+    assert args.on_failure == "FAIL-FAST"
+    assert parse_on_failure(args.on_failure, warm_corpus=True).mode == "fail-fast"
+
+
 def test_failure_policy_is_immutable():
     p = FailurePolicy(mode="continue")
     with pytest.raises(Exception):  # frozen dataclass -> FrozenInstanceError

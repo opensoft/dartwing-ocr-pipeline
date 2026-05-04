@@ -199,6 +199,21 @@ _STAGE_SEQUENCE: tuple[tuple[str, str], ...] = (
     ("final_structured_payload.json", "final_payload"),
 )
 
+# Per-stage compute-phase key vocabulary (R-009 / FR-027). The runner
+# measures the adapter call as the stage's compute phase and the
+# subsequent disk write as ``write``. For ``preprocess`` specifically,
+# the upstream PPStructureV3 module bundles rasterization, layout
+# inference, and OCR inside a single ``run`` call -- the contract
+# folds those into ``infer`` for this slice; future adapters that
+# split rasterize/infer can record both phase keys without breaking
+# consumers (R-009 phase-key absence policy).
+_STAGE_COMPUTE_PHASE: dict[Stage, str] = {
+    "preprocess": "infer",
+    "extract": "infer",
+    "routing": "compute",
+    "final_payload": "compute",
+}
+
 
 __all__ = [
     "CLIInvocation",
@@ -405,17 +420,19 @@ class Runner:
                     plan=plan,
                 )
 
+            compute_phase_key = _STAGE_COMPUTE_PHASE[stage]
             with measure_total(stage_timing):
-                try:
-                    payload = stage_callable(invocation, produced)
-                except Exception as exc:  # noqa: BLE001 -- contract: convert to failure
-                    return RunResult(
-                        exit_code=_classify_stage_exception(exc),
-                        artifacts_written=artifacts_written,
-                        stage=failure_stage_name,
-                        message=str(exc) or type(exc).__name__,
-                        timings=timings,
-                    )
+                with measure_phase(stage_timing, compute_phase_key):
+                    try:
+                        payload = stage_callable(invocation, produced)
+                    except Exception as exc:  # noqa: BLE001 -- contract: convert to failure
+                        return RunResult(
+                            exit_code=_classify_stage_exception(exc),
+                            artifacts_written=artifacts_written,
+                            stage=failure_stage_name,
+                            message=str(exc) or type(exc).__name__,
+                            timings=timings,
+                        )
                 with measure_phase(stage_timing, "write"):
                     dest = document_folder / filename
                     try:

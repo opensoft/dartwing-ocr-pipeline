@@ -83,7 +83,7 @@ When `--stack-preset` is combined with explicit `--<stage>-profile` flags, the e
 
 **Validation** (R-004): Both bounds default to a full-pipeline slice. `--start-at` must not be later than `--stop-after`; otherwise `USAGE_ERROR`.
 
-**Prerequisite-artifact validation** (FR-010, R-005): When `--start-at` is later than `preprocess`, every upstream artifact required by the start stage MUST already exist in the destination folder and validate against the installed contract set. Failures emit a structured failure record with stage `prerequisite_validation` and exit code `2` (`INPUT_NOT_FOUND`) for missing files or `4` (`SCHEMA_VALIDATION_FAILURE`) for invalid files; no downstream artifact is written.
+**Prerequisite-artifact validation** (FR-010, R-005): When `--start-at` is later than `preprocess`, every upstream artifact required by the start stage MUST already exist in the destination folder and validate against the installed contract set. Failures emit a structured failure record with stage `prerequisite_validation` and exit code `11` (`INPUT_NOT_FOUND`) for missing files or `30` (`SCHEMA_VALIDATION_FAILURE`) for invalid files; no downstream artifact is written.
 
 | Start stage | Required prerequisite artifacts |
 |---|---|
@@ -110,7 +110,7 @@ In warm-corpus mode (`--documents-file`), `continue` records the failure on stde
 | `--ollama-cpu-url URL` | string | `http://localhost:11435` | `OLLAMA_CPU_BASE_URL` | NEW. CPU benchmark lane. |
 | `--ollama-jetson-url URL` | string | `http://jetson.local:11434` | `OLLAMA_JETSON_BASE_URL` | NEW. Jetson edge lane. Documented placeholder; operator must override on real hardware. |
 
-Resolution order for each lane: flag > env var > documented default (R-012). The selected URL appears in run-summary metadata.
+Resolution order for each lane: flag > env var > documented default (R-012). The lane URL itself is consumed by the live extract adapter; it is not surfaced in run-summary metadata in this slice.
 
 ### Existing options (unchanged from `002`)
 
@@ -213,9 +213,9 @@ The existing `ExitCode` enum is unchanged. The new failure stages this feature i
 | Stage | Exit code |
 |---|---|
 | `arguments` (mutual-exclusion, unknown flag) | `10` `USAGE_ERROR` |
-| `prerequisite_validation` (missing prerequisite artifact) | `2` `INPUT_NOT_FOUND` |
-| `prerequisite_validation` (schema-invalid prerequisite artifact) | `4` `SCHEMA_VALIDATION_FAILURE` |
-| `prerequisite_validation` (any in-slice `DeferredImplementationError`: `ensemble@workstation`, `edge-ocr@jetson`, `ollama@jetson`) | `10` `USAGE_ERROR` (treated as caller-side configuration error per R-013) |
+| `prerequisite_validation` (missing prerequisite artifact) | `11` `INPUT_NOT_FOUND` |
+| `prerequisite_validation` (schema-invalid prerequisite artifact) | `30` `SCHEMA_VALIDATION_FAILURE` |
+| Canonical stage name (`preprocess` / `extraction`) when an in-slice profile raises `DeferredImplementationError` (`ensemble@workstation`, `edge-ocr@jetson`, `ollama@jetson`) | `10` `USAGE_ERROR` (treated as caller-side configuration error per R-013). The stage name in the failure record matches the runner's canonical stage name, not `prerequisite_validation`. |
 | `corpus_validation` (empty or unreadable `--documents-file`) | `10` `USAGE_ERROR` |
 | Per-document stage failures | Existing codes; surfaced per-document in warm mode. Severity ordering for warm-corpus aggregate exit code is pinned in research.md R-008. |
 

@@ -11,6 +11,7 @@ import pytest
 
 from ledgerlinc_ocr.pipeline.corpus import (
     CorpusParseError,
+    DocumentEntry,
     WarmProfileRegistry,
     parse_documents_file,
 )
@@ -20,7 +21,7 @@ from ledgerlinc_ocr.pipeline.corpus import (
 # parse_documents_file (R-007)
 # ---------------------------------------------------------------------------
 
-def test_parse_documents_file_returns_resolved_paths_in_order(tmp_path: Path):
+def test_parse_documents_file_returns_entries_in_order(tmp_path: Path):
     docs_file = tmp_path / "corpus.txt"
     (tmp_path / "inv_001_easy").mkdir()
     (tmp_path / "inv_002_easy").mkdir()
@@ -30,7 +31,21 @@ def test_parse_documents_file_returns_resolved_paths_in_order(tmp_path: Path):
         encoding="utf-8",
     )
     result = parse_documents_file(docs_file)
-    assert [p.name for p in result] == ["inv_001_easy", "inv_002_easy"]
+    assert all(isinstance(e, DocumentEntry) for e in result)
+    assert [e.resolved.name for e in result] == ["inv_001_easy", "inv_002_easy"]
+
+
+def test_parse_documents_file_preserves_raw_token_verbatim(tmp_path: Path):
+    """Item 3: per_document[].folder must echo the original token, not resolve."""
+    sub = tmp_path / "harness"
+    sub.mkdir()
+    docs_file = sub / "list.txt"
+    (sub / "inv_007_hard").mkdir()
+    docs_file.write_text("inv_007_hard\n", encoding="utf-8")
+    result = parse_documents_file(docs_file)
+    assert result[0].raw == "inv_007_hard"
+    # Resolved path is still absolute for filesystem ops.
+    assert result[0].resolved.is_absolute()
 
 
 def test_parse_documents_file_strips_blank_lines(tmp_path: Path):
@@ -52,7 +67,7 @@ def test_parse_documents_file_strips_hash_comments(tmp_path: Path):
     )
     result = parse_documents_file(docs_file)
     assert len(result) == 1
-    assert result[0].name == "inv_001_easy"
+    assert result[0].resolved.name == "inv_001_easy"
 
 
 def test_parse_documents_file_resolves_relative_to_file_parent(tmp_path: Path):
@@ -64,7 +79,8 @@ def test_parse_documents_file_resolves_relative_to_file_parent(tmp_path: Path):
     target.mkdir()
     docs_file.write_text("inv_007_hard\n", encoding="utf-8")
     result = parse_documents_file(docs_file)
-    assert result[0] == target.resolve()
+    assert result[0].resolved == target.resolve()
+    assert result[0].raw == "inv_007_hard"
 
 
 def test_parse_documents_file_preserves_duplicates_in_order(tmp_path: Path):
@@ -79,7 +95,7 @@ def test_parse_documents_file_preserves_duplicates_in_order(tmp_path: Path):
     )
     result = parse_documents_file(docs_file)
     assert len(result) == 3
-    assert all(p.name == "inv_001_easy" for p in result)
+    assert all(e.resolved.name == "inv_001_easy" for e in result)
 
 
 def test_parse_documents_file_rejects_missing_file(tmp_path: Path):
@@ -108,7 +124,9 @@ def test_parse_documents_file_supports_absolute_paths(tmp_path: Path):
     target.mkdir()
     docs_file.write_text(f"{target}\n", encoding="utf-8")
     result = parse_documents_file(docs_file)
-    assert result[0] == target.resolve()
+    assert result[0].resolved == target.resolve()
+    # Absolute paths in --documents-file remain verbatim in the raw token.
+    assert result[0].raw == str(target)
 
 
 # ---------------------------------------------------------------------------
