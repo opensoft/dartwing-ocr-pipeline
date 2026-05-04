@@ -1,17 +1,40 @@
-# Feature Specification: Stage Runtime Profiles
+# Feature Specification: Stage Runtime Profiles / Root Master Controller
 
 **Feature Branch**: `011-stage-runtime-profiles`
 **Created**: 2026-04-22
+**Updated**: 2026-05-04
 **Status**: Draft
-**Input**: User description: "Wire the top-level pipeline CLI to support per-stage stub vs named live backends, support CPU/GPU lane selection where meaningful, preserve the same top-level `python -m ledgerlinc_ocr.pipeline run` entrypoint, allow running any contiguous slice of the four stage-1 artifacts independently for testing and performance work, define the Jetson Nano Super edge stack as a GPU-only OCR/model lane, add a cloud-workstation stack for testing the future cloud solution on local workstation GPU hardware, and make corpus/live preprocessing runs use a warm profile instance instead of rebuilding the model stack once per document."
+**Input**: User description: "Make feature 011 the root/master controller for the stage 1 pipeline. The controller's purpose is to enable faster harness testing - it is not the harness itself. It owns stage-profile resolution, execution slicing, prerequisite validation, overwrite scoping, stage lifecycle, warm profile reuse, and per-run timing metadata that the harness consumes. The harness still owns corpus selection, repeated benchmark runs, scoring, evaluation, and report generation. Preserve the top-level commands `python -m ledgerlinc_ocr.pipeline run` and `ledgerlinc-pipeline run`. Add per-stage profile flags `--preprocess-profile`, `--extract-profile`, `--routing-profile`, `--final-payload-profile`, and execution-slice flags `--start-at` and `--stop-after` over `preprocess`, `extract`, `routing`, `final_payload`. Profile grammar is `stub` or `<implementation>@<lane>`. Default full-run profiles are `ppstructurev3@cpu`, `ollama@gpu`, `rules@cpu`, `assembler@cpu`. Stage 1 supported profiles include preprocess `stub` / `ppstructurev3@cpu` / `edge-ocr@jetson`; extract `stub` / `ollama@gpu` / `ollama@cpu` / `ollama@jetson` / `ensemble@workstation`; routing `stub` / `rules@cpu`; final payload `stub` / `assembler@cpu`. `edge-ocr@jetson`, `ollama@jetson`, `ensemble@workstation`, `cloud-workstation`, and `edge-fast` are supported contract targets, but their implementation must be sequenced after the warm `ppstructurev3@cpu` slice. Implementation priority is: (1) thin controller foundation - profile parsing, profile validation, `--start-at`/`--stop-after`, overwrite scoping, prerequisite-artifact validation; (2) warm `ppstructurev3@cpu` preprocessing for corpus/harness use, initializing once per process and processing multiple document folders through the warmed instance, preserving standard per-folder artifacts and exposing timing metadata that separates one-time initialization from per-document rasterization, page inference, artifact writing, and total time; (3) keep explicit `stub` profiles and injected stage callables working for deterministic network-free contract tests; (4) only after that expand into full real defaults and secondary runtime lanes. No artifact schema changes. No new persisted benchmark artifact. No remote cloud-provider calls or credentials. No separate repository for edge OCR. A normal per-document folder still has exactly one canonical set of the four stage artifacts."
+
+## Controller Scope And Boundary With The Harness
+
+This feature is the **root/master controller** for stage 1 - the orchestration layer that the harness drives. The controller's value is making real and mixed stub/live runs reproducible and fast enough for harness-driven testing without changing artifact contracts.
+
+The controller owns:
+
+- stage-profile resolution (per-stage profile flags and the `--stack-preset` convenience expansion)
+- execution slicing (`--start-at` / `--stop-after`) and prerequisite-artifact validation
+- overwrite scoping limited to the selected execution slice
+- stage lifecycle, including warm profile initialization and reuse across documents
+- per-run timing metadata that separates one-time profile initialization from per-document rasterization, prediction/inference, artifact writing, and total time
+
+The controller does **not** own:
+
+- corpus selection or expected-truth labeling
+- repeated benchmark loops, scoring, evaluation, or report generation
+- new persisted benchmark artifacts
+- remote cloud-provider integration or credentialed cloud fallback
+- a second repository for the edge OCR scanner
+
+The harness consumes the controller's run timing metadata and per-document failure context to produce its corpus reports.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Run The Top-Level Pipeline Through Real Default Profiles (Priority: P1)
+### User Story 1 - Run The Top-Level Pipeline Through Real Default Profiles (Priority: P2)
 
 A harness or pipeline developer wants the existing top-level `python -m ledgerlinc_ocr.pipeline run` entrypoint to execute the real stage-1 pipeline by default, instead of the current all-stub runner. They should not have to change the command shape just to move from contract-only stub runs to real preprocessing, model extraction, routing, and final payload assembly.
 
-**Why this priority**: This is the whole point of the feature. Until the default top-level runner executes real stage implementations, the harness cannot use the frozen pipeline entrypoint as the real end-to-end path.
+**Why this priority**: This is the eventual goal of the controller, but it lands after the thin foundation, the warm `ppstructurev3@cpu` corpus path, and the preserved stub seams. Wiring real defaults too early would block the faster-testing slices that this feature exists to enable.
 
 **Independent Test**: Invoke `python -m ledgerlinc_ocr.pipeline run --document-folder <folder>` with no stage-profile overrides on a valid per-document folder. Verify that all four stage artifacts are produced through non-stub implementations, with the same filenames and artifact schemas already defined for stage 1.
 
@@ -28,7 +51,7 @@ A harness or pipeline developer wants the existing top-level `python -m ledgerli
 
 A developer needs to test one part of the pipeline in isolation, or run a mixed stub/live composition while developing downstream slices. They need to select the implementation profile for each of the four stages and also choose where the run should start and stop, so the runner can reuse already-written upstream artifacts instead of always recomputing the whole pipeline.
 
-**Why this priority**: Independent stage bring-up, regression isolation, and mixed stub/live development are first-order needs in this repo. Without slice control, the only way to test one stage is to bypass the top-level runner entirely.
+**Why this priority**: This is the thin controller foundation that every later slice depends on (profile parsing, profile validation, `--start-at`/`--stop-after`, overwrite scoping, and prerequisite-artifact validation). Without slice control, the only way to test one stage is to bypass the top-level runner entirely.
 
 **Independent Test**: On a folder with a valid `preprocess_output.json`, run `python -m ledgerlinc_ocr.pipeline run --document-folder <folder> --start-at extract --stop-after extract --extract-profile ollama@gpu`. Verify that only `edge_extraction_output.json` is rewritten, that preprocessing is treated as a prerequisite rather than re-run, and that the selected extraction profile is honored.
 
@@ -42,11 +65,11 @@ A developer needs to test one part of the pipeline in isolation, or run a mixed 
 
 ---
 
-### User Story 3 - Compare Workstation And Jetson Lanes For Supported Live Stages (Priority: P2)
+### User Story 3 - Compare Workstation And Jetson Lanes For Supported Live Stages (Priority: P3)
 
 A developer or harness operator wants to compare performance across live runtime lanes without changing the pipeline entrypoint. They need the same stage profile syntax to express workstation CPU/GPU lanes and the Jetson Nano Super edge GPU lane where the underlying implementation supports them, while unsupported combinations fail clearly before the run starts.
 
-**Why this priority**: The repo already distinguishes host GPU Ollama from the optional CPU container lane, and the edge stack now has its own Jetson GPU lane. Folding lane selection into the top-level runner makes end-to-end and slice-level performance comparisons possible without bespoke scripts per stage forever.
+**Why this priority**: The contract surface for these lanes (`ollama@cpu`, `ollama@jetson`, `edge-ocr@jetson`, `ensemble@workstation`) is part of this feature so profile validation can reject unsupported combinations from day one, but their *implementation* is sequenced after the warm `ppstructurev3@cpu` slice. Lane comparisons are not part of the first faster-testing increment.
 
 **Independent Test**: Run the same extraction-only slice against the same folder with `--extract-profile ollama@gpu`, `--extract-profile ollama@cpu`, and `--extract-profile ollama@jetson`. Verify that all runs preserve the same artifact contract while resolving different runtime lanes, and that invalid lane combinations such as `rules@gpu` are rejected before any artifact writes.
 
@@ -61,11 +84,11 @@ A developer or harness operator wants to compare performance across live runtime
 
 ---
 
-### User Story 4 - Preserve Contract-Test Seams While Expanding The CLI Surface (Priority: P3)
+### User Story 4 - Preserve Contract-Test Seams While Expanding The CLI Surface (Priority: P1)
 
-A pipeline developer still needs the same fast, deterministic stub seams that made `002-cli-contract` testable without network or model dependencies. This feature must preserve that ability even though the default top-level runner becomes real and the CLI surface grows.
+A pipeline developer still needs the same fast, deterministic stub seams that made `002-cli-contract` testable without network or model dependencies. This feature must preserve that ability even though the CLI surface grows and live profiles are added.
 
-**Why this priority**: If expanding the runner makes contract tests depend on Ollama or Paddle, the repository loses a major quality gate. The new default behavior cannot erase the test seam.
+**Why this priority**: Stub profiles and injected stage callables are the only way to keep contract and unit tests fast and network-free while the controller foundation and warm preprocessing slice are landing. If expanding the runner makes contract tests depend on Ollama or Paddle, the repository loses a major quality gate before the real defaults are even wired up.
 
 **Independent Test**: Run the existing CLI-contract test suite with explicit stub profile flags or injected stage callables. Verify that tests remain Ollama-free and deterministic while the top-level runner supports real profiles for normal runs.
 
@@ -77,7 +100,7 @@ A pipeline developer still needs the same fast, deterministic stub seams that ma
 
 ---
 
-### User Story 5 - Test Cloud-Class Stack On Workstation GPUs (Priority: P2)
+### User Story 5 - Test Cloud-Class Stack On Workstation GPUs (Priority: P3)
 
 A developer wants to test the future cloud solution on local workstation GPU
 cards before any provider-managed cloud deployment or fallback exists. They need
@@ -85,10 +108,7 @@ a named stack and profile value that run the larger voter set locally while
 preserving the same stage artifacts, deterministic routing policy, and harness
 comparison path.
 
-**Why this priority**: The project needs cloud-solution evidence before adding
-remote infrastructure. Testing cloud-class models locally lets the team measure
-quality and consensus behavior without introducing cloud credentials, provider
-APIs, or a second artifact contract.
+**Why this priority**: `cloud-workstation` is part of the controller's supported contract surface so profile validation, stack-preset expansion, and metadata are correct from day one, but its implementation lands after the warm `ppstructurev3@cpu` slice. The project needs cloud-solution evidence before adding remote infrastructure, but not before the faster-testing slice is unblocked.
 
 **Independent Test**: Run the same document once with `full-workstation` and
 once with `cloud-workstation`. Verify both runs emit the same four canonical
@@ -123,10 +143,7 @@ selected live preprocessing profile once, processes many document folders
 through that warmed profile, and still preserves per-document artifact
 isolation and failure reporting.
 
-**Why this priority**: Corpus tests currently take hours because the live
-preprocessing stack is rebuilt for each document. Runtime profiles are not
-useful for production-style validation unless the selected live profile can stay
-warm across many documents.
+**Why this priority**: This is the first concrete enabler the controller exists to deliver - a warm `ppstructurev3@cpu` corpus path that makes harness-driven testing tractable. Corpus tests currently take hours because the live preprocessing stack is rebuilt for each document. Runtime profiles are not useful for harness-driven validation unless the selected live profile can stay warm across many documents.
 
 **Independent Test**: Stage at least three valid per-document folders and run
 the warm corpus execution path with `ppstructurev3@cpu`. Verify that the selected
@@ -224,6 +241,14 @@ be invoked with stub profiles without loading live OCR/model dependencies.
 - **FR-030**: This feature MUST NOT add a new benchmark artifact or move benchmark ownership from the harness into the pipeline. The harness remains responsible for multi-run timing capture and reporting; the pipeline exposes enough per-run timing detail for the harness to consume.
 - **FR-031**: The runner MUST surface enough stage/profile context in human-readable error messages that an operator can tell which stage failed and which profile had been selected, without requiring code inspection.
 - **FR-032**: The contract amendment for this feature MUST update the documented CLI argument set, quickstart examples, and test expectations that currently enforce the `002` frozen argument list.
+- **FR-033**: The controller's responsibilities are scoped to stage-profile resolution, execution slicing, prerequisite-artifact validation, overwrite scoping, stage lifecycle (including warm profile initialization and reuse), and per-run timing metadata that the harness consumes. The controller MUST NOT take ownership of corpus selection, repeated benchmark loops, scoring, evaluation, or report generation; those remain harness responsibilities.
+- **FR-034**: Implementation sequencing MUST land the controller in this order, and slices later in the order MUST NOT block slices earlier in the order:
+  1. Thin controller foundation: profile parsing, profile validation, `--start-at` / `--stop-after`, overwrite scoping, prerequisite-artifact validation, with explicit `stub` profiles and injected stage callables preserved.
+  2. Warm `ppstructurev3@cpu` preprocessing for corpus and harness use, including warm initialization, multi-folder processing through the warmed instance, preserved per-folder artifacts, and per-run timing metadata that separates one-time initialization from per-document rasterization, page inference, artifact writing, and total time.
+  3. Wiring of full default real runs to `ppstructurev3@cpu`, `ollama@gpu`, `rules@cpu`, and `assembler@cpu`.
+  4. Secondary lanes and stacks: `ollama@cpu`, `ollama@jetson`, `edge-ocr@jetson`, `ensemble@workstation`, `cloud-workstation`, and `edge-fast`.
+- **FR-035**: `edge-ocr@jetson`, `ollama@jetson`, `ensemble@workstation`, `cloud-workstation`, and `edge-fast` are supported contract targets in this feature - profile validation, stack-preset expansion, and metadata MUST recognize them - but their live implementation MUST be sequenced after the warm `ppstructurev3@cpu` slice in FR-034.
+- **FR-036**: This feature MUST NOT introduce a new persisted benchmark artifact, MUST NOT add remote cloud-provider calls or credential handling, MUST NOT split the edge OCR scanner into a separate repository, and MUST NOT permit more than one canonical set of the four stage artifacts to coexist in a single per-document folder for one selected run.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -260,10 +285,13 @@ be invoked with stub profiles without loading live OCR/model dependencies.
 
 ## Assumptions
 
+- This feature is the **root/master controller** for stage 1. Its purpose is to enable faster harness-driven testing; it is not the harness itself.
+- The harness remains the owner of corpus selection, repeated benchmark loops, scoring, evaluation, JSONL logs, and run-summary reporting. The controller exposes only the execution controls and per-run timing metadata that those harness workflows consume.
 - This feature is intentionally a CLI contract amendment to `002-cli-contract`; updating the argument set and its tests is in scope.
-- The current stage-1 live implementation inventory is limited to real preprocessing, real single-voter extraction, deterministic routing code, and deterministic final-payload assembly. Remote cloud execution remains out of scope, but local cloud-class workstation validation is now part of the runtime-profile plan.
+- Implementation is sequenced per FR-034: thin controller foundation, then warm `ppstructurev3@cpu` preprocessing for corpus/harness use, then real default profiles, then secondary lanes and stacks (`ollama@cpu`, `ollama@jetson`, `edge-ocr@jetson`, `ensemble@workstation`, `cloud-workstation`, `edge-fast`). Earlier slices ship without waiting on later ones.
+- Stub profiles and injected stage callables remain a first-class seam through every slice, including after real defaults are wired up, so that contract and unit tests remain deterministic and network-free.
+- The current stage-1 live implementation inventory is limited to real preprocessing, real single-voter extraction, deterministic routing code, and deterministic final-payload assembly. Remote cloud execution remains out of scope, but local cloud-class workstation validation is part of the runtime-profile contract surface and lands in the secondary-lane slice.
 - The full-structure PPStructureV3 preprocessing profile remains CPU-only in stage 1. The lightweight edge preprocessing profile is a separate Jetson GPU lane and is not a CPU fallback for PPStructureV3.
-- The harness remains the owner of benchmark loops, JSONL logs, and run-summary reporting. This feature only makes the top-level runner selectable enough to support those workflows.
 - Warm corpus execution is required because cold per-document live preprocessing
   is known to rebuild expensive model stacks and is not representative of the
   intended corpus or production-style execution path.
@@ -271,5 +299,6 @@ be invoked with stub profiles without loading live OCR/model dependencies.
 - The `cloud-workstation` lane is separate from the default `ollama@gpu` lane:
   it may use multiple local workstation model endpoints, but it still remains
   local validation rather than remote cloud execution.
-- The edge target is Jetson Nano Super class hardware; exact JetPack, Paddle, and model-serving packaging choices remain implementation details for the edge profile.
+- The edge target is Jetson Nano Super class hardware; exact JetPack, Paddle, and model-serving packaging choices remain implementation details for the edge profile. The edge OCR scanner stays in this repository under the same profile grammar; it is not split into a separate repository.
 - Routing and final-payload assembly remain deterministic in-process code paths and therefore expose only `@cpu` profiles in stage 1.
+- A normal per-document folder still contains exactly one canonical set of the four stage artifacts (`preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, `final_structured_payload.json`) for one selected run. Side-by-side profile comparisons are a harness-level concern handled via run namespaces, not a controller feature.
