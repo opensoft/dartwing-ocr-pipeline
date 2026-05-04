@@ -28,6 +28,16 @@ The controller does **not** own:
 
 The harness consumes the controller's run timing metadata and per-document failure context to produce its corpus reports.
 
+## Clarifications
+
+### Session 2026-05-04
+
+- Q: How is warm corpus mode invoked through the existing `python -m ledgerlinc_ocr.pipeline run` entrypoint? -> A: `--documents-file <path>` on `run`, one per-document folder path per line; mutually exclusive with `--document-folder`.
+- Q: What is the default failure policy for warm corpus runs when the caller does not specify one? -> A: Default is continue-through-failures; fail-fast is opt-in via `--on-failure fail-fast`.
+- Q: Where is the warm corpus run timing summary emitted so the harness can consume it? -> A: Single end-of-run JSON object on stdout, after all per-document records, distinguished by `kind: "run_summary"`.
+- Q: What concrete stage profiles does each `--stack-preset` value expand to? -> A: `full-workstation` -> `ppstructurev3@cpu` / `ollama@gpu` / `rules@cpu` / `assembler@cpu`; `cloud-workstation` -> `ppstructurev3@cpu` / `ensemble@workstation` / `rules@cpu` / `assembler@cpu`; `edge-fast` -> `edge-ocr@jetson` / `ollama@jetson` / `rules@cpu` / `assembler@cpu`. Explicit per-stage `--*-profile` flags override the preset on a per-stage basis.
+- Q: Does this feature pin the CLI/env surface for `ensemble@workstation` voter endpoints, or defer it to the secondary-lane slice? -> A: Defer concrete endpoint flags/env-vars to the secondary-lane slice (FR-034 step 4); this feature only requires profile validation to recognize `ensemble@workstation` as a known value and to fail fast with a named missing-endpoint error when it is selected without configured endpoints.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Run The Top-Level Pipeline Through Real Default Profiles (Priority: P2)
@@ -145,12 +155,14 @@ isolation and failure reporting.
 
 **Why this priority**: This is the first concrete enabler the controller exists to deliver - a warm `ppstructurev3@cpu` corpus path that makes harness-driven testing tractable. Corpus tests currently take hours because the live preprocessing stack is rebuilt for each document. Runtime profiles are not useful for harness-driven validation unless the selected live profile can stay warm across many documents.
 
-**Independent Test**: Stage at least three valid per-document folders and run
-the warm corpus execution path with `ppstructurev3@cpu`. Verify that the selected
-preprocessing profile is initialized once for the process, that all selected
-folders receive their normal stage artifacts, that a run summary reports one
-profile initialization plus per-document timings, and that the same command can
-be invoked with stub profiles without loading live OCR/model dependencies.
+**Independent Test**: Stage at least three valid per-document folders, write
+their paths into a `documents.txt` file (one folder path per line), and run
+`python -m ledgerlinc_ocr.pipeline run --documents-file documents.txt --preprocess-profile ppstructurev3@cpu`.
+Verify that the selected preprocessing profile is initialized once for the
+process, that all listed folders receive their normal stage artifacts, that a run
+summary reports one profile initialization plus per-document timings, and that
+the same command can be invoked with stub profiles without loading live
+OCR/model dependencies.
 
 **Acceptance Scenarios**:
 
@@ -195,6 +207,10 @@ be invoked with stub profiles without loading live OCR/model dependencies.
   path.
 - A caller mixes a stub upstream stage with a live downstream stage; downstream behavior must be defined in terms of schema-valid upstream artifacts rather than assumptions about artifact richness.
 - A caller runs `--start-at final_payload --stop-after final_payload`; the runner must treat `routing_decision.json` as the required input artifact and avoid touching earlier stage outputs.
+- A caller passes both `--documents-file` and `--document-folder`; argument validation must reject the combination before any stage runs.
+- A caller passes `--documents-file` pointing to a missing or unreadable file; the CLI must fail before any artifact writes and name the unreadable input.
+- A caller passes `--documents-file` whose listed folders include missing or non-folder paths; per-document failure reporting must record those entries with stage/profile context per the selected failure policy.
+- A caller passes `--documents-file` containing only blank lines or `#`-prefixed comments after stripping; the CLI must fail with a clear empty-corpus message rather than silently completing a no-op run.
 
 ## Requirements *(mandatory)*
 
@@ -204,7 +220,12 @@ be invoked with stub profiles without loading live OCR/model dependencies.
 - **FR-002**: This feature amends the frozen `002-cli-contract` surface by adding stage-profile and execution-slice flags while preserving the existing top-level command name, four artifact filenames, artifact schemas, stdout success summary shape, and stderr failure-record shape.
 - **FR-003**: The CLI MUST add one optional profile flag for each stage: `--preprocess-profile`, `--extract-profile`, `--routing-profile`, and `--final-payload-profile`.
 - **FR-004**: The CLI MUST add two optional execution-slice flags: `--start-at` and `--stop-after`. Their allowed values are `preprocess`, `extract`, `routing`, and `final_payload`. Both bounds are inclusive. The default slice is `preprocess` through `final_payload`.
-- **FR-004A**: The CLI SHOULD add an optional `--stack-preset` convenience flag. Allowed values are `full-workstation`, `cloud-workstation`, and `edge-fast`. A preset expands to concrete stage profiles, and the resolved stage-profile values remain the source of truth for execution and metadata.
+- **FR-004A**: The CLI SHOULD add an optional `--stack-preset` convenience flag. Allowed values are `full-workstation`, `cloud-workstation`, and `edge-fast`. The presets MUST expand to the following concrete stage profiles:
+  - `full-workstation` -> preprocess `ppstructurev3@cpu`, extract `ollama@gpu`, routing `rules@cpu`, final payload `assembler@cpu`.
+  - `cloud-workstation` -> preprocess `ppstructurev3@cpu`, extract `ensemble@workstation`, routing `rules@cpu`, final payload `assembler@cpu`.
+  - `edge-fast` -> preprocess `edge-ocr@jetson`, extract `ollama@jetson`, routing `rules@cpu`, final payload `assembler@cpu`.
+
+  Explicit per-stage `--preprocess-profile` / `--extract-profile` / `--routing-profile` / `--final-payload-profile` flags MUST override the preset on a per-stage basis. The resolved stage-profile values - not the preset name - remain the source of truth for execution and metadata, but run metadata MUST also record the originating preset name (when one was supplied) so the harness can distinguish stacks per FR-022 / SC-007 / SC-008.
 - **FR-005**: Stage-profile values MUST use named implementation profiles, not a generic `real` keyword. The accepted value grammar is either `stub` or `<implementation>@<lane>`.
 - **FR-006**: The stage-1 supported profile set is:
   - preprocess: `stub`, `ppstructurev3@cpu`, `edge-ocr@jetson`
@@ -231,12 +252,13 @@ be invoked with stub profiles without loading live OCR/model dependencies.
 - **FR-020**: The `edge-ocr@jetson` profile MUST attempt the lightweight Paddle OCR scanner first. If profile-owned quality gates fail, it MAY fall back to a larger Paddle OCR/layout scanner only when that fallback also runs on the Jetson GPU lane and the fallback is recorded in profile metadata. If a Jetson GPU fallback is unavailable, the run MUST return a review/escalation signal rather than running the heavy OCR stack on CPU.
 - **FR-021**: The `cloud-workstation` stack target is local workstation GPU hardware. It MUST run cloud-class voter behavior on local workstation model endpoints and MUST NOT call external cloud-provider APIs or require provider credentials.
 - **FR-022**: The `cloud-workstation` stack MUST use full-structure evidence initially and `ensemble@workstation` for extraction. The selected voter set, model runtimes, and stack name MUST be visible in artifact metadata or run metadata so evaluator reports can separate it from `full-workstation` and `edge-fast`.
-- **FR-023**: The runner MUST support a warm corpus or worker execution mode for live stage profiles. In that mode, the selected live preprocessing profile MUST be initialized once per process and reused across all selected document folders in the run.
+- **FR-022A**: This feature MUST recognize `ensemble@workstation` as a valid extract-stage profile value during argument validation, MUST permit `--stack-preset cloud-workstation` to expand to it, and MUST fail fast - before any artifact writes - with a named missing-endpoint error when `ensemble@workstation` is selected without the endpoints required by its voter set being configured. The concrete CLI flags, environment variables, and configuration file shape that supply those endpoint URLs are deferred to the secondary-lane slice (FR-034 step 4) and MUST NOT be frozen by this feature.
+- **FR-023**: The runner MUST support a warm corpus execution mode for live stage profiles, invoked via a new `--documents-file <path>` flag on `python -m ledgerlinc_ocr.pipeline run` (and the equivalent `ledgerlinc-pipeline run`). The file MUST contain one per-document folder path per line; blank lines and lines beginning with `#` MUST be ignored. `--documents-file` MUST be mutually exclusive with `--document-folder`, and providing both MUST be rejected during argument validation. In warm-corpus mode, the selected live preprocessing profile MUST be initialized once per process and reused across all listed document folders in the run.
 - **FR-024**: Warm execution MUST apply at minimum to live preprocessing profiles, including `ppstructurev3@cpu` and future `edge-ocr@jetson`. The design MAY later reuse the same lifecycle for live extraction profiles, but this feature's hard performance requirement is to avoid rebuilding the preprocessing stack once per document.
 - **FR-025**: The one-document command remains a supported cold debugging path. Corpus or harness-driven live preprocessing runs MUST use warm execution by default and MUST NOT shell out to a fresh live preprocessing process per document unless the caller explicitly requests cold-per-document benchmarking.
 - **FR-026**: Warm corpus execution MUST preserve per-document artifact isolation. Each document folder still receives only the standard selected-run artifacts, and no stage artifact schema or filename changes are allowed.
-- **FR-027**: Warm corpus execution MUST report a run summary that separates one-time live profile initialization timing from per-document timings for rasterization, prediction/inference, artifact writing, and total document processing. This timing summary is run metadata, not a new persisted stage artifact.
-- **FR-028**: Warm corpus execution MUST support per-document failure reporting. A failure in one document MUST identify the failed stage/profile and MUST NOT corrupt artifacts for other documents. The runner MAY support a fail-fast option, but continue-through-failures MUST be available for corpus diagnostics.
+- **FR-027**: Warm corpus execution MUST report a run summary that separates one-time live profile initialization timing from per-document timings for rasterization, prediction/inference, artifact writing, and total document processing. The summary MUST be emitted as a single JSON object on stdout after all per-document records have been written, MUST carry a `kind: "run_summary"` discriminator field so the harness can distinguish it from per-document success/failure records, and MUST NOT be persisted as a stage artifact or as a new on-disk file in this feature. Per-document stdout records preserve their existing `002-cli-contract` shape; the run summary is additive on the same stream.
+- **FR-028**: Warm corpus execution MUST support per-document failure reporting. A failure in one document MUST identify the failed stage/profile and MUST NOT corrupt artifacts for other documents. The default failure policy for warm corpus runs (`--documents-file`) MUST be continue-through-failures, so that one bad document does not throw away the warmed profile or block diagnostics for the remaining documents. Fail-fast MUST be opt-in via `--on-failure fail-fast`; the explicit `--on-failure continue` form MUST also be accepted for symmetry. Cold single-document runs (`--document-folder`) are unaffected by `--on-failure` and continue to surface a single document's failure on the existing exit-code path.
 - **FR-029**: This feature MUST NOT change the persisted artifact schemas. `preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, and `final_structured_payload.json` remain the same contract-defined files.
 - **FR-030**: This feature MUST NOT add a new benchmark artifact or move benchmark ownership from the harness into the pipeline. The harness remains responsible for multi-run timing capture and reporting; the pipeline exposes enough per-run timing detail for the harness to consume.
 - **FR-031**: The runner MUST surface enough stage/profile context in human-readable error messages that an operator can tell which stage failed and which profile had been selected, without requiring code inspection.
