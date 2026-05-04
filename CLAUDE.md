@@ -41,6 +41,7 @@ source /home/brett/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline/.specify/sh
 ```
 - After `/speckit.specify`, run `/ct` for the jump target or `/ctp` for full worktree details
 - Run `ct` to actually change the shell into that worktree
+- `cta` opens an existing Speckit worktree. If the desired `NNN-*` worktree does not exist yet, run `/speckit.specify` from `main` first; do not use `cta` to infer or create the feature.
 
 ## OpenSpec and Speckit Workflow
 
@@ -56,6 +57,8 @@ Use OpenSpec before implementation when work changes one of these boundaries:
 Use Speckit for feature worktrees, implementation planning, task breakdown, and code execution. Do not duplicate task lists between the two systems: an OpenSpec change should capture intent and design decisions, then hand off to exactly one Speckit feature under `specs/NNN-*` for implementation.
 
 Before running `/speckit.specify`, verify from the same shell/container with `git status -sb` and `git branch --show-current` that the checkout is on `main` with no unintended worktree changes. Never run `/speckit.specify` from a feature branch, cleanup branch, or existing Speckit worktree. If not on `main`, stop and switch to `main` only after preserving or committing any current work. This rule applies even when updating an existing feature spec.
+
+Do not pre-create Codex-prefixed branches for Speckit features. The normal Codex `codex/` branch prefix applies to ad hoc Codex work, but Speckit features must let the `/speckit.specify` `before_specify` hook create the feature branch/worktree using the canonical `NNN-feature-name` form. After specify creates that worktree, run follow-on Speckit commands (`/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`) from the generated worktree, not from `main` and not from an unrelated older worktree selected by `cta`.
 
 Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec` is on `PATH`. Do not add OpenSpec to the lightweight LedgerLinc project container; that container remains focused on the pipeline runtime and local validation path.
 
