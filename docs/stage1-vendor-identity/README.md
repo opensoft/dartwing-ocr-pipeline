@@ -6,8 +6,8 @@ Stage 1 is intentionally narrow:
 
 - input type is PDF only
 - focus is vendor identification, not line items
-- edge path only
-- no cloud escalation implementation yet
+- local validation stacks only: full-workstation, cloud-workstation, and edge-fast
+- no remote cloud escalation implementation yet
 - no latency targets yet
 - evaluation is against a curated 20-document real-world test set
 
@@ -17,6 +17,10 @@ Stage 1 is intentionally narrow:
   - product requirements for the stage 1 OCR/model pipeline itself
 - `prd-test-harness.md`
   - product requirements for the stage 1 evaluation and orchestration harness
+- `prd-stage-runtime-profiles.md`
+  - product requirements for amending the top-level pipeline CLI so the same entrypoint can run real or stubbed stage profiles and stage slices; also records the shared profile direction for `ppstructurev3@cpu` full-workstation preprocessing, `cloud-workstation` local GPU validation, and future `edge-ocr@jetson` edge preprocessing
+- `prd-ppstructurev3-migration.md`
+  - product requirements for the full-structure preprocessing profile migration from PaddleOCR 2.10 to PPStructureV3 / PP-OCRv5
 - `ollama-runtime.md`
   - how host Ollama and optional containerized Ollama fit into the stage 1 architecture
 - `../../docker/compose.ollama-rocm-linux.yml`

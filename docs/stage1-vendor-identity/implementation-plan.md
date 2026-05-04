@@ -39,13 +39,19 @@ Stage 1 will use:
   - for preprocessing, schema validation, extraction orchestration, routing, and output assembly
 - host `Ollama`
   - for local-model inference through the already-working ROCm path
+- workstation GPU model endpoints
+  - for testing the future cloud solution locally before remote cloud deployment
+    exists
 
-Stage 1 will not introduce a separate model-serving container yet.
+Stage 1 will not require a production service boundary yet. Local model
+endpoints for workstation validation may run as host processes while contracts
+stabilize.
 
 Reason:
 
 - host Ollama with ROCm has already been proven to use the AMD GPU
-- adding another runtime boundary before the contracts are stable would add unnecessary complexity
+- adding a remote or production-grade runtime boundary before the contracts are
+  stable would add unnecessary complexity
 
 ## PyTorch Placement Decision
 
@@ -114,6 +120,7 @@ Once the schema and CLI contracts are stable, the following can move in parallel
 - prompt preparation for additional voters
 - evaluator and reporting implementation
 - local benchmark support for host GPU versus container CPU
+- cloud-workstation voter-set validation on local workstation GPU hardware
 - native Linux production ROCm deployment assets
 
 The full three-voter ensemble should not block the first end-to-end single-document milestone.
@@ -196,17 +203,24 @@ Target ingestion contributors:
 
 ## Model Invocation Decision
 
-Stage 1 edge extraction should call host Ollama over HTTP.
+Stage 1 extraction should call the selected Ollama lane over HTTP:
+full-workstation runs use host Ollama, cloud-workstation runs use local
+workstation model endpoints, and edge-fast uses the Jetson-local lane.
 
 The extraction layer should be built as a multi-voter-capable interface, even if the earliest milestone starts with a smaller subset.
 
 Target voter roles:
 
 - Qwen-family voter
-- `Gemma 4 E4B` voter
+- `Gemma 4 E4B` full-workstation voter
+- cloud-class workstation voter set for local testing of the future cloud
+  solution
+- `Gemma 4 E2B` edge-fast Jetson voter
 - Phi-4 Mini third-vote judge
 
-Model selection should be recorded in code configuration rather than left implicit. For stage 1, the Gemma edge slot is `Gemma 4 E4B`.
+Model selection should be recorded in code configuration rather than left
+implicit. For stage 1, the full-workstation Gemma slot is `Gemma 4 E4B`; the
+edge-fast Jetson slot is `Gemma 4 E2B`.
 
 ## Routing Decision
 
@@ -224,6 +238,10 @@ The long-term target architecture also includes:
 - unanimous field agreement
 - 2-of-3 majority override
 - split-decision escalation
+
+The cloud-workstation path should exercise the long-term cloud-style voter set
+locally, but routing remains deterministic code. It is not allowed to make a
+model the final arbiter just because the model is larger.
 
 Rules already defined elsewhere remain authoritative:
 
@@ -249,7 +267,7 @@ Normalization rules and pass gates are defined in `scoring.md`.
 
 The first implementation pass should not attempt:
 
-- cloud path
+- remote cloud provider path or deployed cloud fallback
 - multi-model ensemble logic
 - line item extraction
 - service deployment

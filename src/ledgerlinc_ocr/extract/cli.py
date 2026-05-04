@@ -32,7 +32,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--voter",
         required=True,
-        help="Voter name (e.g., 'gemma-edge', 'stub') resolved against the packaged configs.",
+        help=(
+            "Voter name (e.g., 'gemma-edge', 'gemma-edge-e2b', 'stub') "
+            "resolved against the packaged configs."
+        ),
     )
     parser.add_argument(
         "--voter-config",

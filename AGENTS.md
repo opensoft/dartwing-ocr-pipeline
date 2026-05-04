@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Repository Purpose
 
-Step 2 of the LedgerLinc AP Clerk Agent: an OCR + field-extraction + structuring pipeline for invoice PDFs. The repo currently holds one prototype script (`step2_ocr_ensemble.py`) plus the full design docs, schemas, and PRDs for the real stage 1 implementation that has not been written yet. Most non-trivial work starts by reading `docs/stage1-vendor-identity/` and `.specify/memory/constitution.md`, then translating those contracts into code.
+Step 2 of the LedgerLinc AP Clerk Agent: an OCR + field-extraction + structuring pipeline for invoice PDFs. The repo currently holds one prototype script (`step2_ocr_ensemble.py`) plus the full design docs, schemas, and PRDs for the real stage 1 implementation that has not been written yet. Most non-trivial work starts by reading `docs/stage1-vendor-identity/`, `.specify/memory/constitution.md`, and the active OpenSpec/Speckit artifacts, then translating those contracts into code.
 
 ## Commands
 
@@ -35,6 +35,23 @@ docker compose -f docker/compose.ollama-rocm-linux.yml up -d
 
 There is no test suite, linter, or build system configured yet.
 
+## OpenSpec and Speckit Workflow
+
+Use OpenSpec as the change-governance layer and Speckit as the implementation layer.
+
+Use OpenSpec before implementation when work changes one of these boundaries:
+- stage 1 artifact schemas or folder contracts
+- runtime/container/model orchestration
+- consensus, routing, review, or escalation policy
+- Jetson/edge deployment constraints
+- the development workflow itself
+
+Use Speckit for feature worktrees, implementation planning, task breakdown, and code execution. Do not duplicate task lists between the two systems: an OpenSpec change should capture intent and design decisions, then hand off to exactly one Speckit feature under `specs/NNN-*` for implementation.
+
+Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec` is on `PATH`. Do not add OpenSpec to the lightweight LedgerLinc project container; that container remains focused on the pipeline runtime and local validation path.
+
+Skip OpenSpec for small implementation-only fixes where an existing `specs/NNN-*` artifact already defines the behavior and no product or architecture decision is being made.
+
 ## Architecture
 
 ### Target architecture (long-term)
@@ -47,7 +64,7 @@ Three layers, documented in `docs/stage1-vendor-identity/architecture.md`:
 
 ### Stage 1 slice (what gets built first)
 
-Stage 1 is intentionally narrow — **PDF input only**, **vendor identity only**, **edge path only**, no line items, no cloud escalation, no latency gate. A single-voter baseline is acceptable as long as the code shape is ensemble-ready (shared evidence packet, pluggable voters, deterministic routing).
+Stage 1 is intentionally narrow — **PDF input only**, **vendor identity only**, local validation stacks only, no line items, no remote cloud escalation, no latency gate. A single-voter baseline is acceptable as long as the code shape is ensemble-ready (shared evidence packet, pluggable voters, deterministic routing). The cloud solution is tested first as `cloud-workstation` on local workstation GPU hardware, not as a provider-managed cloud path.
 
 ### The four artifacts (stable JSON contracts)
 
@@ -66,7 +83,7 @@ From the constitution (`.specify/memory/constitution.md`):
 
 - **Pipeline code** owns preprocessing, extraction orchestration, consensus, routing, final payload.
 - **Test harness** (separate concern — see `prd-test-harness.md`) owns corpus, expected truth, evaluation, reporting.
-- **Host Ollama over HTTP** owns model inference for stage 1. Do not embed model runtime into the pipeline container.
+- **Selected local model runtime over HTTP** owns model inference for stage 1. Full-workstation uses host Ollama, cloud-workstation uses local workstation GPU model endpoints, and edge-fast uses Jetson-local Ollama. Do not embed model runtime into the pipeline container.
 - On this workstation only host Ollama is GPU-capable. The optional `ollama` Docker service on WSL is CPU-only — HIP cannot see the AMD GPU inside Docker Desktop. Treat the native Linux ROCm compose file as the production path, not the WSL container. Details: `docs/stage1-vendor-identity/ollama-runtime.md` and `docs/ollama-rocm-wsl-gfx1151-fix.md`.
 
 ### Non-negotiable rules
@@ -89,6 +106,7 @@ From the constitution (`.specify/memory/constitution.md`):
 - `docs/stage1-vendor-identity/dataset-layout.md` — per-document folder structure and `challenge_tags`
 - `docs/stage1-vendor-identity/ollama-runtime.md` — host vs. container Ollama, WSL caveats
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
+- `openspec/README.md` — OpenSpec/Speckit split and handoff policy
 
 ## Active Technologies
 - Python 3.12 (matches `.devcontainer/Dockerfile` base image) + `jsonschema >= 4.22` (Draft 2020-12 validator); `pydantic >= 2.7` for the structured-report model and typed CLI results; Python stdlib (`argparse`, `json`, `pathlib`, `dataclasses`). No PyTorch, no PaddleOCR, no network dependencies for this slice. (001-freeze-schemas-folder-contracts)

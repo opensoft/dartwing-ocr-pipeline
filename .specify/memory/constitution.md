@@ -66,10 +66,11 @@ The repository must support:
 - per-field and overall scoring
 - comparison across runtime modes where useful
 
-On the current workstation, two local benchmark lanes are explicitly supported:
+On the current workstation, local benchmark/validation lanes are explicitly supported:
 
 - host Ollama with ROCm GPU
 - optional Ollama container as a CPU-only benchmark lane
+- cloud-class workstation validation on local GPU hardware
 
 ## Stage 1 Scope Constraints
 
@@ -78,7 +79,9 @@ Until explicitly amended, stage 1 remains intentionally narrow:
 - PDF input only
 - vendor identity focus only
 - no line item extraction
-- no cloud execution path
+- no remote cloud execution or provider-managed fallback path
+- local cloud-class workstation validation is allowed when it uses the same
+  artifact contracts and keeps remote deployment concerns out of the pipeline
 - no latency target as a release gate
 - minimal review output only: whether review is required and why
 
@@ -100,17 +103,19 @@ The following gates apply to work in this repository:
 4. Pipeline code changes must be verifiable through at least one concrete local execution path.
 5. Runtime/container changes must verify both container health and model reachability, and must distinguish local WSL behavior from native Linux production assumptions.
 6. Evaluation changes must preserve comparison against human-labeled `expected.json` truth files.
-7. Every `/speckit.specify` and `/speckit.plan` artifact must be consistent with `docs/stage1-vendor-identity/architecture.md`. Deviations are permitted but must be declared in the artifact with a one-line reason, and must not block the long-term target architecture described there.
+7. Every OpenSpec and Speckit artifact must be consistent with `docs/stage1-vendor-identity/architecture.md`. Deviations are permitted but must be declared in the artifact with a one-line reason, and must not block the long-term target architecture described there.
 
 ## Development Workflow
 
 Expected workflow for non-trivial work:
 
-1. Define or update the product boundary in the relevant PRD.
-2. Update architecture or schema documentation if the contract changes.
-3. Implement code in the pipeline or harness layer without blurring responsibilities.
-4. Validate the affected runtime path.
-5. Record any local-versus-production differences in repo documentation.
+1. Use OpenSpec to capture change intent and design decisions when the work affects schemas, runtime/model orchestration, deterministic policy, edge deployment constraints, or this workflow.
+2. Define or update the product boundary in the relevant PRD.
+3. Update architecture or schema documentation if the contract changes.
+4. Use Speckit to create the implementation worktree, plan the work, and execute tasks.
+5. Implement code in the pipeline or harness layer without blurring responsibilities.
+6. Validate the affected runtime path.
+7. Record any local-versus-production differences in repo documentation.
 
 Schema changes, routing changes, and runtime changes are not complete until the documentation and the implementation match.
 
@@ -141,7 +146,9 @@ Supporting project documents:
 
 ## Amendment History
 
+- **1.2.0 (2026-04-30)** — Added OpenSpec as the change-governance layer while keeping Speckit as the implementation worktree/task layer. Updated Quality Gate #7 to apply to both OpenSpec and Speckit artifacts. Reason: capture architecture, schema, runtime, model-orchestration, and workflow decisions before implementation without replacing the existing Speckit feature history.
+- **1.3.0 (2026-05-01)** — Clarified that stage 1 excludes remote cloud execution while allowing cloud-class workstation validation on local GPU hardware. Reason: test the future cloud solution locally before introducing provider-managed deployment or fallback.
 - **1.1.0 (2026-04-22)** — Added Quality Gate #7 requiring `/speckit.specify` and `/speckit.plan` artifacts to be consistent with `architecture.md`, with declared justification for any deviation. Reason: keep spec and plan work anchored to the long-term target architecture so narrow stage 1 slices do not drift from it.
 - **1.0.0 (2026-04-12)** — Initial ratification.
 
-**Version**: 1.1.0 | **Ratified**: 2026-04-12 | **Last Amended**: 2026-04-22
+**Version**: 1.3.0 | **Ratified**: 2026-04-12 | **Last Amended**: 2026-05-01

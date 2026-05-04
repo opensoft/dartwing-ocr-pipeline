@@ -10,9 +10,12 @@ build/
 *.egg-info/
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
 
 # 010 FR-022 / R-015: debug page images are an opt-in developer tool (enabled
 # only via `ledgerlinc-preprocess --write-page-images`); never committed.
 tests/stage1_vendor_identity/inv_*/page_*.png
 
+# Per-developer Claude Code settings
+.claude/settings.local.json

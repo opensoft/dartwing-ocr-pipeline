@@ -6,6 +6,11 @@ This PRD defines the product requirements for migrating the stage 1 PDF preproce
 
 It is specifically about the trijunction-ingestion layer in `src/ledgerlinc_ocr/preprocessing/`. It does not change the extraction, consensus, routing, or evaluator layers — those layers consume `preprocess_output.json` and are unaffected as long as the artifact contract stays intact.
 
+This PRD owns the **full-structure** preprocessing profile. A separate
+follow-up feature may add a lightweight `edge-ocr` profile, but that profile
+must plug into the same repository, profile-selection mechanism, and artifact
+contract discipline described in `prd-stage-runtime-profiles.md`.
+
 ## Problem Statement
 
 The default PPStructure layout detector bundled with PaddleOCR 2.10 for `lang='en'` is `picodet_lcnet_x1_0_fgd_layout_infer`, trained on **PubLayNet**. PubLayNet has five classes — Text, Title, List, Table, Figure — drawn from academic paper layouts. When this detector is run on a real invoice (e.g. `tests/stage1_vendor_identity/inv_001_easy/source.pdf`), it returns zero regions. OCR lines are still produced, but every page's `blocks` array is empty and `document_text` collapses to `""`.
@@ -28,6 +33,10 @@ A probe on inv_001 confirmed the root cause and narrowed fixes:
 ## Goal
 
 Replace the stage 1 preprocessing engine with PPStructureV3 so layout detection behaves correctly on invoice-style documents, surface a warning when the layout detector still returns zero regions on pages that have OCR lines, and keep the existing `preprocess_output.json` artifact contract intact for downstream consumers.
+
+The delivered profile from this migration is the canonical full-evidence
+profile for corpus baselines. It is optimized for layout/table grounding and
+contract fidelity, not for the fastest possible first-pass OCR scan.
 
 ## Users and Stakeholders
 
@@ -54,14 +63,21 @@ Included:
 - Regenerate the `preprocess_output.json` baseline for every `inv_XXX_<difficulty>/` document in `tests/stage1_vendor_identity/`, because OCR text and confidences will shift under PP-OCRv5. Record the V3 baseline as the new expected output.
 - Update affected documentation: `docs/stage1-vendor-identity/architecture.md`, `docs/stage1-vendor-identity/ollama-runtime.md` (if it references PaddleOCR versions), `specs/003-pdf-preprocessing/research.md` (add a V3 migration decision entry), and the preprocessing quickstart.
 - Update `pipeline_version` string in `preprocess_output.json` to reflect the new engine (current format: `stage1-preprocess-v0.1.0+paddleocr2.10.0.0000000.dpi300`).
+- Keep the implementation shape compatible with future preprocessing profiles by isolating engine-specific logic behind preprocessing-owned call sites. This PRD does not require implementing the profile abstraction, but it must not make a later `edge-ocr` profile require a second repository.
 
 Explicitly out of scope:
 
 - The ~500 MB of additional model weights (PP-DocBlockLayout, PP-DocLayout_plus-L, PP-OCRv5 server det/rec, SLANeXt_wired, SLANet_plus, RT-DETR-L cell detectors) will download on first run, as today. No devcontainer-side model prefetch is in scope for this slice.
 - Changes to the `preprocess_output.json` schema itself. Block types, quality, ingestion_sources, tables, and document_text stay as defined in `contracts/stage1_vendor_identity/v1.0.0/`. If V3 produces block content we'd like to capture (e.g. Markdown-style `block_content`), that requires an AMENDMENTS entry and is deferred.
 - Turning on V3's doc-orientation, dewarping, textline-orientation, formula, seal, or chart modules. All stay off in this slice to keep inference deterministic and cheap.
+- Implementing the lightweight `edge-ocr@jetson` preprocessing profile. That is
+  a follow-up profile feature targeting the Jetson Nano Super GPU lane, not a
+  CPU-only scanner.
+- Splitting preprocessing engines into separate repositories.
 - Evaluator or extractor changes.
-- GPU / ROCm inference path. CPU-only, matching today.
+- GPU / ROCm inference path for the PPStructureV3 full-structure profile.
+  CPU-only, matching today. The separate lightweight edge profile is specified
+  as `edge-ocr@jetson` in the runtime-profile PRD.
 
 ## Constraints
 
@@ -90,6 +106,8 @@ Non-functional:
 - **Paddle 3.3.1 PIR/oneDNN bug on PP-DocBlockLayout.** Confirmed during the probe. Mitigation: `enable_mkldnn=False`. Risk: slower inference. Acceptable for stage 1 CPU-only corpus-size workloads.
 - **Output quality regression on specific invoices.** PP-OCRv5 may transcribe certain fonts/layouts worse than PP-OCRv4 on a given sample. Mitigation: regenerate the corpus baseline and review any delta against the human-labeled `expected.json`.
 - **Disk footprint.** Additional ~500 MB of model weights land in `~/.paddlex/official_models/`. Mitigation: document in `ollama-runtime.md` / preprocessing quickstart so devs don't get surprised.
+- **Process-per-document runtime looks worse than production-style warm runtime.** The full PPStructureV3 stack is expensive to construct even when model files are cached. Mitigation: record cold single-document timing for this migration, then use the runtime-profile follow-up to add warm corpus/worker execution that initializes the selected preprocessing profile once per process.
+- **Full-stack profile confused with lightweight edge scanning.** PPStructureV3 is the full-structure profile, not the future lightweight Jetson scanner. Mitigation: profile names and `pipeline_version` must distinguish full-structure and edge-OCR outputs.
 - **Version drift.** `paddleocr>=3.5,<4` is broader than the current `<3`. Patch bumps inside 3.x could re-trigger the oneDNN bug or change default models. Mitigation: pin `paddleocr==3.5.0` and `paddlex[ocr]==3.5.1` exactly in `requirements.txt`; keep the looser bound in `pyproject.toml` for libraries that depend on us.
 - **Silent regressions in the extractor.** The extractor consumes `document_text` and `blocks`. A change in block ordering or block-text concatenation could surface as field-level regressions in `edge_extraction_output.json`. Mitigation: once V3 is in, run the full pipeline end-to-end on the corpus and diff vendor-identity outcomes against the evaluator summary.
 

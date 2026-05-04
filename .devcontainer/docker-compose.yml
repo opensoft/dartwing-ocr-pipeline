@@ -3,7 +3,6 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile
-    container_name: ledgerlinc-ocr-pipeline
     working_dir: /workspace
     command: sleep infinity
     environment:

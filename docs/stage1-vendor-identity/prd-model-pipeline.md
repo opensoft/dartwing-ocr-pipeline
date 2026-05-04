@@ -12,8 +12,9 @@ This PRD covers:
 
 - PDF ingestion
 - Trijunction preprocessing
+- preprocessing runtime profiles, including full-structure and lightweight edge-OCR paths
 - OCR, layout, and perception evidence extraction
-- multi-voter edge-model extraction
+- multi-voter local-model extraction
 - deterministic consensus logic
 - deterministic routing decision
 - final structured payload generation
@@ -38,7 +39,7 @@ The current repository only contains a prototype script. It does not yet support
 Build a working edge-side vendor identity pipeline that:
 
 - accepts PDF invoices
-- builds a structured evidence packet from ingestion
+- builds a structured evidence packet from ingestion using the selected preprocessing profile
 - extracts vendor identity fields
 - distinguishes explicit from inferred company names
 - supports multiple model votes in the target architecture
@@ -66,22 +67,28 @@ Included:
 - PDF input only
 - one-document processing flow
 - Trijunction-oriented preprocessing and evidence assembly
-- edge-model extraction using host Ollama
+- two preprocessing runtime shapes in one repo:
+  - full-structure evidence generation
+  - lightweight Jetson Nano Super edge-OCR scanning
+- model extraction through the selected local runtime lane
 - vendor identity extraction
 - decomposed postal address extraction
 - typed tax ID extraction
 - website, phone, and email extraction
 - consensus-ready extraction architecture
+- cloud-class workstation validation before remote cloud deployment
 - deterministic review routing
 - final structured payload output
 
 Explicitly out of scope:
 
-- cloud path implementation
-- actual cloud fallback execution
+- remote cloud provider path implementation
+- actual provider-managed cloud fallback execution
 - line item extraction
 - latency or throughput optimization
 - production deployment topology
+- separate repository ownership for the lightweight edge-OCR scanner
+- multiple canonical preprocessing artifacts in the same per-document folder
 - UI implementation for review workflows
 - investigator-agent enrichment
 
@@ -96,26 +103,37 @@ Explicitly out of scope:
    - `PaddleOCR-VL-1.5`
    - `Falcon OCR`
    - `Falcon Perception`
-5. The pipeline must call edge models through host Ollama over HTTP.
-6. The model extraction stage must produce `edge_extraction_output` aligned to the documented schema.
-7. The implementation must be organized so multiple voters can be executed against the same evidence packet.
-8. The pipeline must support a consensus layer that can eventually evaluate:
+5. The preprocessing layer must support named runtime profiles so the same repository can run:
+   - a full document-structure profile for layout, table, reading-order, and corpus-baseline work
+   - a lightweight edge-OCR profile for fast first-pass scanning on the Jetson Nano Super GPU lane
+6. The selected preprocessing profile must be encoded in `pipeline_version` or equivalent profile metadata visible to downstream consumers.
+7. A lightweight edge-OCR profile must not fabricate layout blocks or table structure; absent profile-dependent evidence must remain explicit, typed, and schema-valid.
+8. The edge-fast OCR and model inference path must run on the Jetson GPU lane; CPU-only heavy OCR or CPU-only model inference is not an acceptable fallback for that stack.
+9. The pipeline must call models through the selected local HTTP model endpoint, depending on the selected runtime profile.
+10. The model extraction stage must produce `edge_extraction_output` aligned to the documented schema.
+11. The implementation must be organized so multiple voters can be executed against the same evidence packet.
+12. The pipeline must support a consensus layer that can eventually evaluate:
    - unanimous agreement
    - 2-of-3 majority agreement
    - split decisions
-9. The pipeline must extract vendor identity fields at minimum:
+13. The pipeline must extract vendor identity fields at minimum:
    - company name
    - decomposed address
    - typed tax IDs
    - website
    - phone
    - email
-10. The pipeline must preserve whether the company name was explicitly present or inferred.
-11. The pipeline must allow a best-guess company name when no explicit company name is present.
-12. The pipeline must create a deterministic `routing_decision` artifact.
-13. The pipeline must create a `final_structured_payload` artifact for downstream use.
-14. The pipeline must store missing fields as `null`, not empty strings.
-15. The pipeline must support processing one document end to end from source PDF to final payload.
+14. The pipeline must preserve whether the company name was explicitly present or inferred.
+15. The pipeline must allow a best-guess company name when no explicit company name is present.
+16. Gemma 4 E2B in the edge-fast stack must act as an evidence judge/extractor: read OCR evidence, propose normalized vendor-identity fields, cite evidence ids, and return confidence signals.
+17. Gemma 4 E2B must not perform OCR/layout work, own schema validation, override explicit-vs-inferred company-name provenance, or make the final routing decision.
+18. The cloud-workstation stack must run cloud-class voters on local workstation GPU endpoints so cloud-model behavior can be evaluated before a remote cloud provider path exists.
+19. The cloud-workstation stack must not require provider credentials, external cloud APIs, or a deployed cloud fallback service.
+20. The pipeline must create a deterministic `routing_decision` artifact.
+21. The pipeline must create a `final_structured_payload` artifact for downstream use.
+22. The pipeline must store missing fields as `null`, not empty strings.
+23. The pipeline must support processing one document end to end from source PDF to final payload.
+24. Corpus or worker execution must be able to initialize a selected live preprocessing profile once and process multiple document folders without re-importing and reconstructing the same model stack per document.
 
 ### Review and Decision Requirements
 
@@ -145,14 +163,52 @@ The implementation should also remain compatible with later addition of:
 
 The schema definitions in `schemas.md` are the current stage 1 contract baseline.
 
+### Runtime Stack Presets
+
+The pipeline should support named stack presets as convenience wrappers around
+explicit stage profiles:
+
+- `full-workstation`
+  - full-structure preprocessing
+  - Gemma 4 E4B extraction on the workstation GPU lane
+  - deterministic routing and final payload assembly
+- `cloud-workstation`
+  - target: workstation with local GPU cards
+  - full-structure preprocessing first, with Trijunction-local contributors
+    added as those components become available
+  - cloud-class voter set on local workstation model endpoints
+  - deterministic consensus, routing, and final payload assembly
+- `edge-fast`
+  - target: Jetson Nano Super class hardware
+  - lightweight edge-OCR preprocessing on the Jetson GPU lane
+  - Gemma 4 E2B extraction on the Jetson-local edge lane
+  - deterministic routing and final payload assembly
+
+All stacks emit the same four artifact filenames for a selected run. The
+selected stack and model runtime must be visible in artifact metadata so
+evaluation reports can separate `cloud-workstation` and `edge-fast` results
+from `full-workstation` results.
+
+`cloud-workstation` is the test path for the future cloud solution. It is local
+workstation execution of cloud-class models, not a remote provider integration.
+It must not require cloud credentials or call external provider APIs in this
+stage.
+
+The edge-fast stack uses small Paddle OCR first. A larger Paddle fallback is
+allowed only when it also runs on the Jetson GPU lane and the fallback is
+recorded in runtime metadata; otherwise the document must be reviewed or moved
+to the full-workstation stack rather than running heavy OCR on CPU.
+
 ## Non-Functional Requirements
 
 1. The stage 1 code should start as a Python module and CLI, not a service.
 2. The implementation should remain compatible with the lightweight devcontainer setup in this repo.
 3. The pipeline should not require PyTorch unless a chosen implementation component truly depends on it.
-4. The pipeline should use host Ollama rather than embedding model runtime into the pipeline container for stage 1.
+4. The full-workstation path should use host Ollama rather than embedding model runtime into the pipeline container for stage 1; cloud-workstation may use local workstation model endpoints, but not remote provider APIs.
 5. The code should be structured so a later API wrapper can be added without rewriting core logic.
 6. The code should be structured so additional model voters can be added without rewriting preprocessing or routing.
+7. The code should be structured so additional preprocessing profiles can be added without rewriting artifact assembly, validation, extraction, or routing.
+8. The single-document CLI remains a supported debugging shape, but production-style and corpus execution should use warm profile instances rather than launching one process per document.
 
 ## Dependencies
 
@@ -160,8 +216,9 @@ Required stage 1 dependencies include:
 
 - a PDF rasterization path
 - OCR/layout tooling
+- profile-selectable preprocessing engines
 - a Trijunction-ready evidence packet structure
-- host Ollama available at the configured base URL
+- selected local model endpoint available at the configured base URL
 - schema validation models
 
 Operational dependency:
@@ -181,15 +238,17 @@ These items block downstream work and must be respected in order:
    - `final_structured_payload`
 2. PDF rasterization path
    - required before real OCR or preprocessing
-3. deterministic preprocessing and evidence packet assembly
+3. deterministic preprocessing profile contract
+   - required so full-structure and edge-OCR outputs are distinguishable but still safe for downstream consumers
+4. deterministic preprocessing and evidence packet assembly
    - required before any voter can run consistently
-4. model adapter interface
+5. model adapter interface
    - required before single-voter extraction or future ensemble work
-5. normalized extraction output
+6. normalized extraction output
    - required before deterministic routing or consensus comparison
-6. routing decision logic
+7. routing decision logic
    - required before final payload assembly
-7. final payload contract
+8. final payload contract
    - required before the harness can score real outputs
 
 ### Orthogonal Or Low-Coupled Work
@@ -198,9 +257,11 @@ These can proceed without blocking the core first slice once the contracts are s
 
 - native Linux ROCm production deployment assets
 - local CPU versus GPU benchmark wiring
+- cloud-workstation voter-set validation on local GPU hardware
+- edge-OCR Jetson profile implementation once the full-structure profile contract is stable
 - prompt iteration for additional voters
 - future service wrapper design
-- later cloud-path planning
+- later remote cloud-path planning
 
 ## Recommended Delivery Order
 
@@ -209,13 +270,17 @@ The recommended implementation order for the model pipeline is:
 1. freeze the schema models and output path conventions
 2. build the CLI skeleton for one-document processing
 3. implement PDF rasterization and deterministic preprocessing
-4. assemble the evidence packet
-5. implement a single-voter model adapter over host Ollama
-6. produce `edge_extraction_output`
-7. implement deterministic routing
-8. assemble `final_structured_payload`
-9. add multi-voter normalization and consensus logic
-10. add production-facing runtime wrappers and deployment assets
+4. implement the full-structure preprocessing profile and regenerate baselines
+5. add preprocessing profile selection and warm corpus/worker execution
+6. add the lightweight edge-OCR preprocessing profile
+7. assemble the evidence packet
+8. implement a single-voter model adapter over host Ollama
+9. produce `edge_extraction_output`
+10. implement deterministic routing
+11. assemble `final_structured_payload`
+12. add `cloud-workstation` voter-set validation on local workstation GPUs
+13. add multi-voter normalization and consensus logic
+14. add production-facing runtime wrappers and deployment assets
 
 This order is intentional:
 
@@ -233,13 +298,19 @@ After the schema and CLI contract are stable, the following work can happen in p
 - CLI entry point
 - PDF rasterization
 - preprocessing
+- preprocessing profile abstraction
+- warm corpus/worker execution for live preprocessing profiles
 - evidence packet assembly
 
 This is the critical path.
 
 ### Workstream B: Model And Prompt Preparation
 
-- use `Gemma 4 E4B` as the stage 1 Gemma edge voter
+- use `Gemma 4 E4B` as the stage 1 full-workstation Gemma voter
+- use `Gemma 4 E2B` as the smaller Jetson edge-fast extractor profile once the
+  lightweight preprocessing profile exists
+- define the `cloud-workstation` voter set for local workstation GPU testing of
+  the future cloud solution
 - choose the initial Qwen stage 1 variant
 - define per-voter prompt strategy
 - define normalized extraction shape for future consensus
@@ -270,6 +341,8 @@ Stage 1 pipeline success means:
 3. Missing-name cases are represented correctly as inferred and review-required.
 4. The pipeline structure is ready for multiple voters and consensus logic.
 5. The pipeline is stable enough to be exercised by the test harness across the 20-document corpus.
+6. The preprocessing layer can run the full-structure and edge-OCR profiles from the same repository and distinguish their outputs through profile metadata.
+7. Corpus preprocessing can run without reconstructing the selected live preprocessing stack once per document.
 
 ## Acceptance Criteria
 
@@ -284,16 +357,18 @@ The model pipeline is acceptable for stage 1 when:
 3. The routing decision is deterministic and not delegated to the model.
 4. Inferred-name behavior follows the documented rules.
 5. The pipeline is callable from the external test harness without requiring code changes.
+6. A developer can choose between the full-structure and edge-OCR preprocessing profiles without changing artifact consumers or repository boundaries.
 
 ## Assumptions
 
 The following assumptions are currently baked into this draft:
 
-- stage 1 uses host Ollama over HTTP
+- stage 1 uses local model endpoints over HTTP: host Ollama for full-workstation, workstation GPU endpoints for cloud-workstation, and Jetson-local Ollama for edge-fast
 - stage 1 is PDF-only
+- full-structure preprocessing remains the default profile until the edge-OCR profile has evaluator evidence
 - stage 1 focuses on vendor identity, not line items
 - stage 1 uses a minimal review policy
-- cloud escalation remains a future path, not a delivered feature in this stage
+- remote cloud escalation remains a future path, not a delivered feature in this stage
 - the long-term architecture uses a three-model ensemble with Phi-4 Mini as the third vote
 
 ## Risks
@@ -302,11 +377,15 @@ The following assumptions are currently baked into this draft:
 2. Model prompts may drift from schema requirements without strict validation.
 3. Inferred company names may appear plausible but still be wrong without explicit provenance tracking.
 4. The chosen PDF rasterization approach may affect OCR performance materially.
-5. Ensemble disagreement handling may become complex if voter outputs are not normalized consistently.
+5. A lightweight edge-OCR profile may omit evidence that downstream extraction previously assumed came from full-structure preprocessing.
+6. Process-per-document execution may hide production performance characteristics by repeatedly rebuilding model stacks.
+7. Ensemble disagreement handling may become complex if voter outputs are not normalized consistently.
 
 ## Open Questions
 
 1. In stage 1, do we execute the full three-voter ensemble immediately, or ship a single-voter baseline with ensemble-ready interfaces?
-2. Which exact local Qwen variant is the intended stage 1 runtime choice alongside `Gemma 4 E4B`?
+2. Which exact local Qwen variant is the intended stage 1 runtime choice alongside `Gemma 4 E4B` on the full-workstation stack?
 3. Which PDF rasterization library should be standardized for the stage 1 implementation?
 4. Should invoice header fields remain emitted in stage 1 even though the evaluation focus is vendor identity?
+5. Which lightweight Paddle OCR engine/package should back the first `edge-ocr@jetson` preprocessing profile?
+6. Does the edge-OCR profile emit the same `preprocess_output.json` schema with empty layout/table evidence, or does it require a contract amendment for profile-dependent fields?

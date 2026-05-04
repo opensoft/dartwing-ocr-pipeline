@@ -14,6 +14,7 @@ This PRD covers:
 - expected-truth storage
 - per-document test folder layout
 - pipeline invocation for evaluation
+- pipeline profile selection for comparison runs
 - output comparison
 - scoring and reporting
 - optional preservation of per-voter outputs when ensemble mode is enabled
@@ -23,6 +24,7 @@ This PRD does not cover:
 - OCR or model extraction internals
 - routing logic internals
 - PDF preprocessing internals
+- preprocessing engine implementation or profile ownership
 - downstream accounting or CRM integrations
 
 Those belong to `prd-model-pipeline.md`.
@@ -66,6 +68,8 @@ Included:
 - labeled expected truth per document
 - notes for human reviewers
 - pipeline invocation for one or many documents
+- optional comparison of supported preprocessing profiles, such as
+  full-structure versus edge-OCR outputs, when the pipeline exposes them
 - evaluator outputs
 - run summary reporting
 
@@ -106,6 +110,9 @@ Optional future artifacts:
 
 - per-voter raw outputs
 - consensus-specific artifacts
+- profile-comparison outputs under explicit run namespaces, such as
+  `runs/full-structure/preprocess_output.json` and
+  `runs/edge-ocr/preprocess_output.json`
 
 ## Labeling Requirements
 
@@ -207,9 +214,69 @@ The test harness is acceptable for stage 1 when:
 
 ## Runtime Boundary
 
-For stage 1, the harness is expected to run from the development bench environment and call the repo pipeline code plus host Ollama.
+For stage 1, the harness is expected to run from the development bench environment and call the repo pipeline code plus the selected local model runtime: host Ollama for `full-workstation`, workstation GPU endpoints for `cloud-workstation`, or Jetson-local Ollama for `edge-fast`.
 
 The harness is not itself the model runtime.
+
+## Benchmark Helper
+
+Stage 1 benchmark comparison between the GPU and CPU Ollama lanes is handled by a harness-side helper script:
+
+- `scripts/benchmark_ollama_lanes.py`
+
+The helper is intentionally folder-oriented, not PDF-path-oriented:
+
+- required input: `--folder tests/stage1_vendor_identity/inv_XXX_<difficulty>`
+- required lane selector: `--lane gpu|cpu|both`
+- optional output log: `--output <jsonl-path>`
+
+Lane mapping on this workstation:
+
+- `gpu` means host Ollama on `http://host.docker.internal:11434`
+- `cpu` means the optional `ledgerlinc-ollama` container on `http://host.docker.internal:11435`
+- `cloud-workstation` means local workstation GPU model endpoints selected by
+  the runtime-profile runner, not a remote cloud provider
+
+The helper runs the real stage CLIs in sequence against a temporary copy of the document folder:
+
+1. `python -m ledgerlinc_ocr.preprocessing --document-folder <temp-folder>`
+2. `python -m ledgerlinc_ocr.extract --folder <temp-folder> --voter gemma-edge`
+
+It does **not** call `python -m ledgerlinc_ocr.pipeline` for stage 1 benchmarking, because the top-level pipeline CLI is still the frozen contract/stub runner rather than the fully wired vertical slice.
+
+That two-command helper represents the current full-workstation path. Once the
+runtime-profile runner owns stack selection, edge-fast runs should use
+`edge-ocr@jetson` plus the Gemma 4 E2B voter config (`gemma-edge-e2b`) on the
+Jetson-local model lane.
+
+When the top-level runtime-profile runner exists, benchmark helpers should move
+to that entrypoint and pass explicit stage profiles. For preprocessing profile
+comparisons, the harness may run both `ppstructurev3@cpu` and
+`edge-ocr@jetson` against temporary copies or explicit run namespaces, but it
+must not write two canonical `preprocess_output.json` files into the same
+committed document folder. The edge run is expected to execute OCR and model
+inference on the Jetson Nano Super GPU lane, not on a CPU-only fallback path.
+
+The harness should also support a `cloud-workstation` run namespace for testing
+the future cloud solution on local workstation GPU cards. That run uses
+full-structure evidence and the `ensemble@workstation` extraction profile, but
+it remains local validation: no cloud-provider credentials, remote APIs, or
+provider-managed fallback are part of this harness path.
+
+The helper must capture benchmark metadata per run:
+
+- script `started_at` and `finished_at` in UTC ISO-8601
+- per-lane `started_at` and `finished_at`
+- `preprocess_elapsed_s`
+- selected preprocessing profile, when profile selection is available
+- `extract_elapsed_s`
+- `elapsed_total_s`
+- lane name and resolved Ollama URL
+- folder path and derived `document_id`
+- subprocess exit codes
+- extraction artifact `status` when produced
+
+The helper leaves the committed corpus untouched by benchmarking on a temp copy. The optional JSONL output is append-only so repeated runs can be compared later by lane.
 
 ## Dependency Map
 
@@ -286,6 +353,10 @@ This depends on stable output contracts, but not on the entire corpus being labe
 - compare host GPU versus container CPU runs
 - capture run metadata
 - summarize relative runtime behavior
+- use `scripts/benchmark_ollama_lanes.py` as the stage 1 entry point for one-document lane comparisons
+- compare preprocessing profiles once both full-structure and edge-OCR profiles
+  are available, using run namespaces or temp copies rather than mutating the
+  committed corpus in place
 
 This can start once the one-document runner and evaluation output format exist.
 
