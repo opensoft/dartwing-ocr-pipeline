@@ -41,6 +41,7 @@ source /home/brett/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline/.specify/sh
 ```
 - After `/speckit.specify`, run `/ct` for the jump target or `/ctp` for full worktree details
 - Run `ct` to actually change the shell into that worktree
+- `cta` opens an existing Speckit worktree. If the desired `NNN-*` worktree does not exist yet, run `/speckit.specify` from `main` first; do not use `cta` to infer or create the feature.
 
 ## OpenSpec and Speckit Workflow
 
@@ -54,6 +55,10 @@ Use OpenSpec before implementation when work changes one of these boundaries:
 - the development workflow itself
 
 Use Speckit for feature worktrees, implementation planning, task breakdown, and code execution. Do not duplicate task lists between the two systems: an OpenSpec change should capture intent and design decisions, then hand off to exactly one Speckit feature under `specs/NNN-*` for implementation.
+
+Before running `/speckit.specify`, verify from the same shell/container with `git status -sb` and `git branch --show-current` that the checkout is on `main` with no unintended worktree changes. Never run `/speckit.specify` from a feature branch, cleanup branch, or existing Speckit worktree. If not on `main`, stop and switch to `main` only after preserving or committing any current work. This rule applies even when updating an existing feature spec.
+
+Do not pre-create Codex-prefixed branches for Speckit features. The normal Codex `codex/` branch prefix applies to ad hoc Codex work, but Speckit features must let the `/speckit.specify` `before_specify` hook create the feature branch/worktree using the canonical `NNN-feature-name` form. After specify creates that worktree, run follow-on Speckit commands (`/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`) from the generated worktree, not from `main` and not from an unrelated older worktree selected by `cta`.
 
 Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec` is on `PATH`. Do not add OpenSpec to the lightweight LedgerLinc project container; that container remains focused on the pipeline runtime and local validation path.
 
@@ -172,6 +177,8 @@ The stage 1 artifact shapes and the per-document folder contract are now enforce
 - Filesystem only. Reads `<per-doc-folder>/edge_extraction_output.json` and `<per-doc-folder>/routing_decision.json`. Writes `<per-doc-folder>/final_structured_payload.json`. Trace block references `source.pdf` and `preprocess_output.json` by relative path but does not read them. (009-final-payload)
 - Python 3.12 (devcontainer base image, matches 001/002/003/004/005/006/007) (010-pp-structurev3-preprocessing)
 - Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network at steady state; first-run warm-up downloads ~500 MB of weights from `paddlepaddle.bj.bcebos.com` / `paddlex` hosters. (010-pp-structurev3-preprocessing)
+- Python 3.12 (matches `.devcontainer/Dockerfile` base image and existing `ledgerlinc-ocr` package pinned in `pyproject.toml`) + no new third-party dependencies; reuses declared `jsonschema`, `pydantic`, `httpx`, `PyYAML`, and Python stdlib. (011-stage-runtime-profiles)
+- Filesystem only. Reads `--documents-file` plus per-document prerequisite artifacts, writes selected canonical artifacts into each per-document folder, and emits one final stdout `kind: "run_summary"` line. No database, no new persisted artifact, no remote cloud calls. (011-stage-runtime-profiles)
 
 ## Recent Changes
 - 005-single-voter-extraction: Stage 1 single-voter edge extractor landed under `src/ledgerlinc_ocr/extract/`. CLI: `ledgerlinc-extract`. Host-Ollama HTTP (httpx, no retries) + pluggable `VoterAdapter` Protocol + deterministic 8-step reconciliation → schema-valid `edge_extraction_output.json`. See `specs/005-single-voter-extraction/quickstart.md`.

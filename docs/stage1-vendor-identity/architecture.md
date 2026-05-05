@@ -240,6 +240,34 @@ For stage 1, the recommended runtime split remains:
   - must remain local workstation infrastructure until a separate remote-cloud
     change is approved
 
+## Stage 1 Controller (Feature 011)
+
+The pipeline package's `python -m ledgerlinc_ocr.pipeline run` entrypoint
+is the stage 1 root/master controller. It owns:
+
+- per-stage profile resolution (`--preprocess-profile`,
+  `--extract-profile`, `--routing-profile`, `--final-payload-profile`)
+  and the `--stack-preset` convenience expansion (`full-workstation`,
+  `cloud-workstation`, `edge-fast`)
+- execution slicing (`--start-at` / `--stop-after`) with
+  prerequisite-artifact validation against the installed contract set
+- overwrite scoping limited to the selected execution slice
+- the warm-corpus execution mode invoked via `--documents-file <path>`,
+  which initializes each live preprocessing profile exactly once per
+  process and reuses the warmed instance across documents
+- per-run timing metadata, including a single end-of-run JSON object on
+  stdout carrying `kind: "run_summary"` so the harness can distinguish
+  it from per-document `002-cli-contract` records
+
+The controller does NOT own corpus selection, repeated benchmark loops,
+scoring, evaluation, or report generation; those remain harness
+responsibilities. See `specs/011-stage-runtime-profiles/spec.md`
+(FR-033) and `specs/011-stage-runtime-profiles/contracts/cli-contract.md`
+for the authoritative scope.
+
+The four canonical artifact filenames and JSON Schemas are unchanged
+(FR-029); 011 is a CLI-surface amendment only.
+
 ## Stage 1 Processing Flow
 
 1. A PDF test document is selected from the stage 1 corpus.

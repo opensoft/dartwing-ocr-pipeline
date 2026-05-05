@@ -1,9 +1,19 @@
-"""T041: live argparse parser exposes exactly the frozen argument set."""
+"""Amended argument-set test: pre-011 (frozen 002) + 011 amendment surface.
+
+The 002 contract froze the original 11 flags; the 011 contract amendment
+adds 11 new flags (per-stage profile, stack preset, slice, documents-file,
+on-failure, CPU/Jetson Ollama lane URLs). This test asserts the union
+without permitting silent drift in either direction.
+
+Spec FR-002, FR-003, FR-004, FR-004A, FR-016, FR-017, FR-023, FR-028.
+Contract: specs/011-stage-runtime-profiles/contracts/cli-contract.md.
+"""
 from __future__ import annotations
 
 from ledgerlinc_ocr.pipeline.cli import _build_parser
 
-_EXPECTED = {
+# Frozen 002 surface -- preserved verbatim by FR-002.
+_FROZEN_002 = {
     "--input",
     "--document-folder",
     "--output-dir",
@@ -17,17 +27,33 @@ _EXPECTED = {
     "--timeout",
 }
 
+# 011 amendment surface (FR-003 / FR-004 / FR-004A / FR-016 / FR-017 /
+# FR-023 / FR-028).
+_AMENDMENT_011 = {
+    "--preprocess-profile",
+    "--extract-profile",
+    "--routing-profile",
+    "--final-payload-profile",
+    "--stack-preset",
+    "--start-at",
+    "--stop-after",
+    "--documents-file",
+    "--on-failure",
+    "--ollama-cpu-url",
+    "--ollama-jetson-url",
+}
 
-def test_run_subparser_exposes_exactly_frozen_arguments():
+_EXPECTED = _FROZEN_002 | _AMENDMENT_011
+
+
+def _collect_run_subparser_flags() -> set[str]:
     parser = _build_parser()
-    # Locate the `run` subparser.
     run = None
     for action in parser._actions:
         if hasattr(action, "choices") and action.choices and "run" in action.choices:
             run = action.choices["run"]
             break
     assert run is not None, "run subcommand missing"
-
     flags: set[str] = set()
     for action in run._actions:
         if action.dest == "help":
@@ -35,5 +61,25 @@ def test_run_subparser_exposes_exactly_frozen_arguments():
         for opt in action.option_strings:
             if opt.startswith("--"):
                 flags.add(opt)
+    return flags
 
-    assert flags == _EXPECTED, f"mismatch: extra={flags - _EXPECTED}, missing={_EXPECTED - flags}"
+
+def test_run_subparser_exposes_exactly_frozen_plus_amendment_arguments():
+    flags = _collect_run_subparser_flags()
+    extra = flags - _EXPECTED
+    missing = _EXPECTED - flags
+    assert flags == _EXPECTED, f"mismatch: extra={extra}, missing={missing}"
+
+
+def test_frozen_002_subset_present_unchanged():
+    """FR-002: every 002 flag MUST still be accepted."""
+    flags = _collect_run_subparser_flags()
+    missing_002 = _FROZEN_002 - flags
+    assert not missing_002, f"002 flags removed by 011: {missing_002}"
+
+
+def test_amendment_011_subset_present():
+    """FR-003 / FR-004 / FR-004A / FR-016 / FR-017 / FR-023 / FR-028."""
+    flags = _collect_run_subparser_flags()
+    missing_011 = _AMENDMENT_011 - flags
+    assert not missing_011, f"011 amendment flags missing: {missing_011}"

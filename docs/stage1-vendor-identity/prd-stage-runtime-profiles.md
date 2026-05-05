@@ -43,6 +43,9 @@ The desired end state is:
   remote cloud deployment exists
 - the edge-fast stack uses the Jetson GPU lane for OCR and model inference, with no silent CPU fallback for heavy work
 - callers can run any contiguous slice of the four-stage pipeline without recomputing upstream stages
+- corpus and harness-driven live preprocessing runs can reuse a warmed
+  preprocessing profile instance instead of rebuilding PPStructureV3 once per
+  document
 
 ## Scope
 
@@ -70,6 +73,36 @@ Explicitly out of scope:
 - workstation GPU/ROCm preprocessing for the PPStructureV3 full-structure profile
 - a second repository for the edge OCR scanner
 - allowing two canonical `preprocess_output.json` files in the same document folder at the same time
+
+## Implementation Priority
+
+The first implementation increment should optimize the testing loop without
+changing the artifact contracts. That means 011 should start with the smallest
+root/master controller surface that enables a warm `ppstructurev3@cpu` corpus
+path, then expand into the full runtime-profile matrix.
+
+Recommended implementation order:
+
+1. Add the thin controller foundation: profile parsing, profile validation,
+   stage-slice parsing, overwrite scoping, and prerequisite-artifact validation.
+   Keep explicit `stub` profiles and injected stage callables working so
+   contract tests remain fast and deterministic.
+2. Add warm preprocessing execution for corpus and harness use: initialize the
+   selected live preprocessing profile once per process, process many
+   per-document folders through that warmed instance, preserve normal
+   per-folder artifacts, and expose run metadata that separates one-time
+   initialization time from per-document work.
+3. Wire the default top-level one-document run to named non-stub profiles:
+   `ppstructurev3@cpu`, `ollama@gpu`, `rules@cpu`, and `assembler@cpu`.
+4. Add secondary lane and stack support after the faster feedback loop exists:
+   `ollama@cpu`, `ollama@jetson`, `ensemble@workstation`,
+   `cloud-workstation`, and `edge-fast`.
+
+This sequencing treats warm preprocessing as an enabling optimization inside
+the controller feature, not as a separate side script. The harness still owns
+corpus selection, repeated benchmark runs, scoring, and reports; the controller
+owns stage selection, execution slicing, profile lifecycle, and per-run timing
+metadata needed by the harness.
 
 ## Recommended Interface Shape
 
@@ -237,9 +270,11 @@ use cases:
 
 - initialize the selected live preprocessing profile once per process
 - process many document folders through that warmed profile
-- halt on the first document failure when running a baseline-regeneration sweep
-- record enough per-document timing detail to separate model initialization,
-  rasterization, page inference, and artifact writing
+- support both fail-fast baseline regeneration and continue-through-failures
+  corpus diagnostics, with failed documents reported by stage and profile
+- expose enough per-run and per-document timing detail to separate one-time
+  profile initialization, rasterization, page inference, artifact writing, and
+  total document time
 
 The single-document CLI remains useful for local debugging and isolated failure
 tests, but it is not the expected production serving shape for full-stack OCR.
@@ -265,8 +300,14 @@ The change is orchestration-level: the top-level pipeline runner becomes configu
 4. Extraction can be switched between CPU and GPU lanes through stage-profile selection, with no schema or path changes.
 5. Invalid stage-profile combinations fail before any artifact write.
 6. A follow-up preprocessing-profile feature can add `edge-ocr@jetson` without changing repositories, artifact filenames, or downstream stage boundaries.
-7. Corpus preprocessing can run through a warm process that initializes the selected preprocessing stack once and then processes multiple document folders.
-8. A `cloud-workstation` stack can run the future cloud-style voter set on local workstation GPUs without introducing remote cloud execution, provider credentials, or artifact schema changes.
+7. The first 011 implementation slice can run at least a small corpus through a
+   warm `ppstructurev3@cpu` preprocessing process that initializes the selected
+   preprocessing stack once and then processes multiple document folders.
+8. Warm preprocessing metadata separates one-time profile initialization from
+   per-document rasterization, page inference, artifact writing, and total
+   document time so the harness can produce faster and more meaningful corpus
+   reports.
+9. A `cloud-workstation` stack can run the future cloud-style voter set on local workstation GPUs without introducing remote cloud execution, provider credentials, or artifact schema changes.
 
 ## Risks And Mitigations
 
@@ -274,7 +315,9 @@ The change is orchestration-level: the top-level pipeline runner becomes configu
   Mitigation: treat this as an explicit amendment to `002-cli-contract`, not an undocumented extension.
 
 - **Risk: benchmark concerns leak into the pipeline layer.**
-  Mitigation: keep timing capture and summary reporting in the harness; the pipeline only exposes stage and lane selection.
+  Mitigation: keep benchmark loops, scoring, and report generation in the
+  harness; the pipeline exposes only execution controls and per-run timing
+  metadata needed by those reports.
 
 - **Risk: unsupported live/stub mixes create unclear behavior.**
   Mitigation: define slice prerequisites and overwrite rules explicitly in the feature spec before implementation.

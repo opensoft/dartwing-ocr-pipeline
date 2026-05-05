@@ -24,6 +24,16 @@ def tmp_pdf_bytes() -> bytes:
     return MINIMAL_PDF_BYTES
 
 
+@pytest.fixture(autouse=True)
+def offline_stage_registry_for_unit_tests():
+    """Keep pipeline unit tests on explicit offline stage fallbacks."""
+    from ledgerlinc_ocr.pipeline import stages as stages_mod
+
+    stages_mod.reset_live_registry(stub_fallback_only=True)
+    yield
+    stages_mod.reset_live_registry()
+
+
 @pytest.fixture
 def tmp_pdf_file(tmp_path: Path) -> Path:
     p = tmp_path / "sample.pdf"

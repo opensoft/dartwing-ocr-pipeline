@@ -1,28 +1,44 @@
-"""Default stub stage callables.
+"""Default stub stage callables and the profile->adapter registry.
 
 Each stub writes a minimal schema-valid artifact for its stage. Real model
-inference is a downstream feature; the CLI contract only cares that the four
-artifacts exist in the right place with the right shape.
+inference is wired in by user-story phases (US6 ppstructurev3@cpu, US1
+ollama@gpu / rules@cpu / assembler@cpu, US3 ollama@cpu, etc.) by registering
+live adapters for the matching ``(stage, implementation, lane)`` triples.
 
 Stage signatures
 ----------------
 Every stage callable takes `(invocation: CLIInvocation, artifacts_so_far: dict)`
-and returns a dict matching its v1.0.0 artifact schema. The runner writes the
-returned dict to disk under the reserved filename and advances.
+and returns either a dict matching its v1.2.0 artifact schema or a
+``StageRunOutput`` for adapters that already wrote their canonical artifact.
+The runner writes plain dicts and trusts ``StageRunOutput`` paths that already
+exist.
 
 Schema-invalidity toggle
 ------------------------
 The runner passes through injected stage callables verbatim, so tests can swap
 in a stub that writes an intentionally invalid artifact to exercise
 SCHEMA_VALIDATION_FAILURE.
+
+Adapter registry (Research R-014)
+---------------------------------
+``resolve_stage_callable(stage, profile, plan)`` looks up a callable for a
+resolved ``StageProfile``. Stub profiles always resolve to the stub callables
+in this module. Live profiles consult ``_LIVE_REGISTRY``; user-story phases
+register live adapters there. Unregistered live triples raise
+``DeferredImplementationError`` (R-013): argument validation accepts the
+profile but execution fails fast with a named missing-implementation error.
 """
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
+
+from ledgerlinc_ocr.pipeline.profiles import Stage, StageProfile
+
+_SOURCE_PDF = "source.pdf"
 
 if TYPE_CHECKING:
-    from ledgerlinc_ocr.pipeline.runner import CLIInvocation
+    from ledgerlinc_ocr.pipeline.runner import CLIInvocation, ResolvedRunPlan
 
 
 def _now_iso() -> str:
@@ -37,7 +53,7 @@ def default_preprocess(
         "pipeline_version": invocation.pipeline_version,
         "document_id": invocation.document_id,
         "source_type": "pdf",
-        "source_file": "source.pdf",
+        "source_file": _SOURCE_PDF,
         "page_count": 1,
         "pages": [
             {
@@ -249,9 +265,430 @@ def default_final_payload(
             "secondary_identifiers_found": [],
         },
         "trace": {
-            "source_file": "source.pdf",
+            "source_file": _SOURCE_PDF,
             "preprocess_output_file": "preprocess_output.json",
             "edge_extraction_output_file": "edge_extraction_output.json",
             "routing_decision_file": "routing_decision.json",
         },
     }
+
+
+# --- Profile -> adapter registry (Research R-014) -----------------------
+
+
+class DeferredImplementationError(RuntimeError):
+    """Raised by adapters whose live implementation is sequenced for FR-034 step 4.
+
+    The CLI dispatch layer maps this to ``ExitCode.USAGE_ERROR`` (10) per
+    Research R-013: the user selected a recognized profile but its live
+    runtime is not part of this slice. The error message MUST name the
+    profile and reference FR-034 step 4 so an operator can tell which
+    stage/profile failed without code inspection (Spec FR-031).
+    """
+
+
+# Type alias for a stage callable invoked by the runner. The concrete return
+# type includes ``StageRunOutput`` from ``runner.py``; keep this alias broad to
+# avoid a runtime import cycle in the registry module.
+StageCallable = Callable[["CLIInvocation", dict[str, Any]], Any]
+
+# Type alias for an adapter factory. Adapters are registered as factories
+# that take the resolved ``ResolvedRunPlan`` (so they can read lane URLs,
+# pipeline_version, etc.) and return a ``StageCallable`` for the runner.
+AdapterFactory = Callable[["ResolvedRunPlan"], StageCallable]
+
+
+# Stub callables -- one per stage. ``stub`` profiles always resolve to these.
+_STUB_REGISTRY: dict[Stage, StageCallable] = {
+    "preprocess": default_preprocess,
+    "extract": default_extraction,
+    "routing": default_routing,
+    "final_payload": default_final_payload,
+}
+
+# Profiles whose live implementation is sequenced for FR-034 step 4 (the
+# secondary-lane slice). Selecting these profiles in this slice triggers
+# a deterministic ``DeferredImplementationError`` -- the live adapter
+# does not "fall back" to the stub callable. Per Spec FR-035 + Research
+# R-013 / R-014.
+DEFERRED_LIVE_PROFILES: frozenset[tuple[Stage, str, str | None]] = frozenset({
+    ("preprocess", "edge-ocr", "jetson"),
+    ("extract", "ollama", "jetson"),
+    ("extract", "ensemble", "workstation"),
+})
+
+# Live adapter registry. Keys are ``(stage, implementation, lane)`` triples
+# from ``profiles.SUPPORTED_PROFILES``. The default no-flag path registers
+# the in-slice real adapters at module load. Tests can request
+# ``stub_fallback_only`` through ``reset_live_registry`` when they need a
+# fully offline registry baseline.
+_LIVE_REGISTRY: dict[tuple[Stage, str, str | None], AdapterFactory] = {}
+
+# Capability registry: (stage, implementation, lane) triples whose registered
+# adapter is a real live adapter, not a stub-fallback wrapper. Consumers
+# (notably ``corpus_run._maybe_register_warm_preprocess``) check this set
+# before triggering heavy initialization paths.
+_LIVE_CAPABILITIES: set[tuple[Stage, str, str | None]] = set()
+
+
+def is_live_capable(
+    stage: Stage, implementation: str, lane: str | None
+) -> bool:
+    """True iff a real live adapter is registered for the triple.
+
+    Returns False when only a test-only stub fallback is in place so
+    warm-corpus and similar paths avoid heavy live initialization.
+    """
+    return (stage, implementation, lane) in _LIVE_CAPABILITIES
+
+
+def _stub_fallback_factory(stage: Stage) -> AdapterFactory:
+    """Return an AdapterFactory that hands back the stage's stub callable."""
+    stub = _STUB_REGISTRY[stage]
+
+    def _factory(_plan: "ResolvedRunPlan") -> StageCallable:
+        return stub
+
+    return _factory
+
+
+def _seed_default_stub_fallbacks() -> None:
+    """Register offline stub fallbacks for default live triples."""
+    for stage, impl, lane in [
+        ("preprocess", "ppstructurev3", "cpu"),
+        ("extract", "ollama", "gpu"),
+        ("extract", "ollama", "cpu"),
+        ("routing", "rules", "cpu"),
+        ("final_payload", "assembler", "cpu"),
+    ]:
+        _LIVE_REGISTRY[(stage, impl, lane)] = _stub_fallback_factory(stage)
+
+
+_seed_default_stub_fallbacks()
+
+
+# ---------------------------------------------------------------------------
+# Live adapters (T031, T039-T041, T046, T051): each wraps an existing
+# per-stage module's entry point per Research R-014. They are registered
+# at module load so a no-flag run of the CLI dispatches to them.
+# ---------------------------------------------------------------------------
+
+
+def _ppstructurev3_cpu_factory(_plan: "ResolvedRunPlan") -> StageCallable:
+    """T031: live (preprocess, ppstructurev3, cpu) adapter wrapping
+    ``ledgerlinc_ocr.preprocessing.pipeline.run``.
+
+    Construction is per-call: PPStructureV3 init happens inside the
+    upstream module the first time ``run()`` is invoked. Warm-corpus
+    callers should reuse the warmed engine via ``WarmProfileRegistry``;
+    cold one-off callers pay the init cost once.
+    """
+    import json
+    from ledgerlinc_ocr.preprocessing.pipeline import (
+        Invocation as PreInvocation,
+        run as preprocessing_run,
+    )
+
+    def adapter(
+        invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
+    ) -> Any:
+        out_path = preprocessing_run(
+            PreInvocation(
+                document_folder=invocation.destination_folder,
+                source_file=_SOURCE_PDF,
+                pipeline_version=invocation.pipeline_version,
+            )
+        )
+        from ledgerlinc_ocr.pipeline.runner import StageRunOutput
+
+        return StageRunOutput(
+            payload=json.loads(out_path.read_text(encoding="utf-8")),
+            artifact_path=out_path,
+        )
+
+    return adapter
+
+
+def _ollama_extract_factory(lane: str) -> Callable[["ResolvedRunPlan"], StageCallable]:
+    """T039 / T046: live (extract, ollama, <lane>) adapter wrapping
+    ``ledgerlinc_ocr.extract.pipeline.run``.
+
+    Loads the default voter config from the on-disk YAML in
+    ``src/ledgerlinc_ocr/extract/voters/configs/gemma-edge.yaml`` and
+    instantiates an ``OllamaVoter`` against the lane URL resolved by
+    ``OllamaLaneEndpoints.for_lane(lane)``. The chosen lane URL is
+    passed via the env-var ``OLLAMA_BASE_URL`` because OllamaVoter reads
+    it from there if no ``base_url`` is supplied; we explicitly pass
+    ``base_url`` so the env is not relied on at call time.
+    """
+    import json
+    import os
+    from pathlib import Path
+
+    from ledgerlinc_ocr.extract.config import load_voter_config
+    from ledgerlinc_ocr.extract.pipeline import run as extract_run
+    from ledgerlinc_ocr.extract.voters.ollama import OllamaVoter
+
+    def factory(plan: "ResolvedRunPlan") -> StageCallable:
+        url = plan.ollama_endpoints.for_lane(lane)
+        voter_config, voter_config_path, _extensions = load_voter_config(
+            "gemma-edge",
+        )
+        # Resolve template_path relative to the voter config file.
+        template_path = (
+            voter_config_path.parent / voter_config.prompt.template_path
+        ).resolve()
+        voter = OllamaVoter(base_url=url)
+
+        def adapter(
+            invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
+        ) -> Any:
+            # Forward invocation.pipeline_version so --pipeline-version is
+            # honored by edge_extraction_output.json the same way it is
+            # honored by the other stages (Copilot review item 5).
+            out_path = extract_run(
+                folder_path=invocation.destination_folder,
+                voter_config=voter_config,
+                voter=voter,
+                template_path=template_path,
+                pipeline_version=invocation.pipeline_version,
+            )
+            from ledgerlinc_ocr.pipeline.runner import StageRunOutput
+
+            return StageRunOutput(
+                payload=json.loads(out_path.read_text(encoding="utf-8")),
+                artifact_path=out_path,
+            )
+
+        return adapter
+
+    return factory
+
+
+def register_ollama_gpu() -> None:
+    """Register the live (extract, ollama, gpu) adapter."""
+    register_live_adapter(
+        stage="extract",
+        implementation="ollama",
+        lane="gpu",
+        factory=_ollama_extract_factory("gpu"),
+    )
+    _LIVE_CAPABILITIES.add(("extract", "ollama", "gpu"))
+
+
+def register_ollama_cpu() -> None:
+    """Register the optional live (extract, ollama, cpu) adapter."""
+    register_live_adapter(
+        stage="extract",
+        implementation="ollama",
+        lane="cpu",
+        factory=_ollama_extract_factory("cpu"),
+    )
+    _LIVE_CAPABILITIES.add(("extract", "ollama", "cpu"))
+
+
+def _routing_rules_cpu_factory(plan: "ResolvedRunPlan") -> StageCallable:
+    """T040: live (routing, rules, cpu) adapter wrapping
+    ``ledgerlinc_ocr.router.pipeline.run``. Pure-deterministic, no init cost.
+    """
+    from ledgerlinc_ocr.router.pipeline import run as router_run
+
+    def adapter(
+        invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
+    ) -> Any:
+        path, artifact = router_run(
+            invocation.destination_folder,
+            pipeline_version=invocation.pipeline_version,
+            policy_version=invocation.policy_version,
+        )
+        from ledgerlinc_ocr.pipeline.runner import StageRunOutput
+
+        return StageRunOutput(payload=artifact, artifact_path=path)
+
+    return adapter
+
+
+def _final_payload_assembler_cpu_factory(_plan: "ResolvedRunPlan") -> StageCallable:
+    """T041: live (final_payload, assembler, cpu) adapter wrapping
+    ``ledgerlinc_ocr.assembler.pipeline.run``.
+    """
+    import json
+    from ledgerlinc_ocr.assembler.pipeline import (
+        Invocation as AssInvocation,
+        run as assembler_run,
+    )
+
+    def adapter(
+        invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
+    ) -> Any:
+        out_path = assembler_run(
+            AssInvocation(
+                document_folder=invocation.destination_folder,
+                pipeline_version=invocation.pipeline_version,
+            )
+        )
+        from ledgerlinc_ocr.pipeline.runner import StageRunOutput
+
+        return StageRunOutput(
+            payload=json.loads(out_path.read_text(encoding="utf-8")),
+            artifact_path=out_path,
+        )
+
+    return adapter
+
+
+# Note: the default GPU extract adapter is registered at module load for US1.
+# CPU extraction remains opt-in via ``register_ollama_cpu`` for the lane-
+# comparison slice.
+
+
+def register_live_adapter(
+    *,
+    stage: Stage,
+    implementation: str,
+    lane: str | None,
+    factory: AdapterFactory,
+) -> None:
+    """Register a live adapter factory for ``(stage, implementation, lane)``.
+
+    Idempotent: registering the same triple twice replaces the prior
+    factory (used by tests that swap in fakes).
+    """
+    _LIVE_REGISTRY[(stage, implementation, lane)] = factory
+
+
+def _make_deferred_callable(
+    stage: Stage, profile: StageProfile
+) -> StageCallable:
+    """Return a callable that hard-fails with a DeferredImplementationError."""
+    raw = profile.raw_value
+
+    def _adapter(
+        invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
+    ) -> dict[str, Any]:
+        # Live implementation deferred (Research R-013 / R-014; Spec FR-035).
+        # The message names the profile and the deferral so the operator
+        # can route the request correctly per Spec FR-031.
+        if raw == "ensemble@workstation":
+            detail = (
+                "ensemble@workstation requires voter endpoints; configuration "
+                "is delivered in the secondary-lane slice (FR-034 step 4) -- "
+                "set the explicit per-stage profile or --stack-preset to a "
+                "supported workstation preset"
+            )
+        else:
+            detail = (
+                f"{raw} live adapter is sequenced for FR-034 step 4 "
+                f"(see specs/011-stage-runtime-profiles/research.md R-014); "
+                f"select a supported in-slice profile for this stage"
+            )
+        raise DeferredImplementationError(detail)
+
+    return _adapter
+
+
+def resolve_stage_callable(
+    *,
+    stage: Stage,
+    profile: StageProfile,
+    plan: "ResolvedRunPlan",
+) -> StageCallable:
+    """Resolve a ``StageProfile`` to the runner-facing callable.
+
+    Resolution order (R-013 / R-014):
+      * stub profiles -> ``_STUB_REGISTRY``
+      * deferred live profiles (Spec FR-035) -> a callable that raises
+        ``DeferredImplementationError`` with the profile name and the
+        FR-034 step 4 deferral note (per Spec FR-031)
+      * other live profiles with a registered factory -> factory(plan)
+      * other live profiles with no registered factory -> a callable
+        that raises ``DeferredImplementationError``
+    """
+    if profile.kind == "stub":
+        return _STUB_REGISTRY[stage]
+
+    key = (stage, profile.implementation, profile.lane)
+    if key in DEFERRED_LIVE_PROFILES:
+        return _make_deferred_callable(stage, profile)
+    factory = _LIVE_REGISTRY.get(key)
+    if factory is None:
+        return _make_deferred_callable(stage, profile)
+    return factory(plan)
+
+
+def _register_default_live_adapters() -> None:
+    register_ppstructurev3_cpu()
+    register_ollama_gpu()
+    register_routing_rules_cpu()
+    register_final_payload_assembler_cpu()
+
+
+def reset_live_registry(*, stub_fallback_only: bool = False) -> None:
+    """Test helper: drop registered adapters and restore the default registry.
+
+    ``stub_fallback_only=True`` gives unit tests a fully offline baseline
+    while production defaults remain the real in-slice adapters.
+    """
+    _LIVE_REGISTRY.clear()
+    _LIVE_CAPABILITIES.clear()
+    _seed_default_stub_fallbacks()
+    if not stub_fallback_only:
+        _register_default_live_adapters()
+
+
+def register_routing_rules_cpu() -> None:
+    """Register the live (routing, rules, cpu) adapter."""
+    register_live_adapter(
+        stage="routing",
+        implementation="rules",
+        lane="cpu",
+        factory=_routing_rules_cpu_factory,
+    )
+    _LIVE_CAPABILITIES.add(("routing", "rules", "cpu"))
+
+
+def register_final_payload_assembler_cpu() -> None:
+    """Register the live (final_payload, assembler, cpu) adapter."""
+    register_live_adapter(
+        stage="final_payload",
+        implementation="assembler",
+        lane="cpu",
+        factory=_final_payload_assembler_cpu_factory,
+    )
+    _LIVE_CAPABILITIES.add(("final_payload", "assembler", "cpu"))
+
+# The ppstructurev3 factory is registered by default and exported so tests can
+# reset/re-register it without reaching into private helpers.
+def register_ppstructurev3_cpu() -> None:
+    """Register the live ppstructurev3@cpu adapter."""
+    register_live_adapter(
+        stage="preprocess",
+        implementation="ppstructurev3",
+        lane="cpu",
+        factory=_ppstructurev3_cpu_factory,
+    )
+    _LIVE_CAPABILITIES.add(("preprocess", "ppstructurev3", "cpu"))
+
+
+_register_default_live_adapters()
+
+
+__all__ = [
+    "AdapterFactory",
+    "DEFERRED_LIVE_PROFILES",
+    "DeferredImplementationError",
+    "StageCallable",
+    "default_extraction",
+    "default_final_payload",
+    "default_preprocess",
+    "default_routing",
+    "is_live_capable",
+    "register_final_payload_assembler_cpu",
+    "register_live_adapter",
+    "register_ollama_cpu",
+    "register_ollama_gpu",
+    "register_ppstructurev3_cpu",
+    "register_routing_rules_cpu",
+    "reset_live_registry",
+    "resolve_stage_callable",
+]

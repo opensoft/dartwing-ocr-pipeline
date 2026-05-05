@@ -191,3 +191,31 @@ and live outside this pipeline.
 - **No retries**: any `ConnectError`, `ConnectTimeout`, `ReadTimeout`, or other `TransportError` surfaces as `OllamaUnreachable` → exit code 3. `model not found` payloads surface as `OllamaModelUnavailable` → exit code 4. See `specs/005-single-voter-extraction/research.md §R-001` (httpx, no retries) and `§R-002` (timeout).
 
 Rationale: deterministic failure shape is more valuable than opportunistic retry masking. Downstream orchestration (or a human operator) is free to rerun the extractor; the pipeline itself never papers over transport instability.
+
+## Per-Lane Ollama URL Resolution (Feature 011)
+
+The stage 1 controller distinguishes three Ollama runtime lanes for the
+extract stage. Each lane has its own CLI flag, environment variable,
+and documented default; resolution order is **flag > env > default**:
+
+| Lane | Flag | Env Var | Default URL |
+|---|---|---|---|
+| `gpu` | `--ollama-url` | `OLLAMA_BASE_URL` | `http://localhost:11434` |
+| `cpu` | `--ollama-cpu-url` | `OLLAMA_CPU_BASE_URL` | `http://localhost:11435` |
+| `jetson` | `--ollama-jetson-url` | `OLLAMA_JETSON_BASE_URL` | `http://jetson.local:11434` |
+
+The CPU default port `11435` matches the optional CPU container
+convention (`docker compose --profile ollama up -d`). The Jetson default
+is a placeholder; operators must override it on real hardware. WSL
+caveats already documented above remain in effect -- only host Ollama
+exposes the AMD GPU.
+
+The controller selects a lane from the resolved extract profile
+(`ollama@gpu` / `ollama@cpu` / `ollama@jetson`); changing lanes does
+not change artifact filenames or schemas (FR-014). The `ollama@jetson`
+lane is recognized at argument validation but its live execution is
+deferred to FR-034 step 4. See
+`specs/011-stage-runtime-profiles/contracts/cli-contract.md` for the
+full CLI surface and
+`specs/011-stage-runtime-profiles/research.md` R-012 for the lane
+resolution rationale.
