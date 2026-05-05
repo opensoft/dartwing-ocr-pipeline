@@ -14,6 +14,9 @@ from pathlib import Path
 
 import pytest
 
+_PLACEHOLDER_OLLAMA_URL = "https://placeholder.invalid"
+_PLACEHOLDER_DOCUMENTS = (Path("placeholder"),)
+
 
 @pytest.fixture(autouse=True)
 def reset_registry():
@@ -65,7 +68,7 @@ def test_default_run_with_stub_fallback_does_not_warm_init():
         pipeline_version=args.pipeline_version,
         policy_version=args.policy_version,
         contract_set_version=args.contract_set_version,
-        ollama_url="http://placeholder",
+        ollama_url=_PLACEHOLDER_OLLAMA_URL,
         log_level=args.log_level,
         timeout=args.timeout,
         ollama_cpu_url=None,
@@ -74,7 +77,7 @@ def test_default_run_with_stub_fallback_does_not_warm_init():
     plan, _, msg = _build_resolved_plan(
         args,
         invocation=placeholder,
-        documents=(Path("/tmp/placeholder"),),
+        documents=_PLACEHOLDER_DOCUMENTS,
         warm_corpus=True,
     )
     assert plan is not None, f"plan resolution failed: {msg}"
@@ -107,7 +110,7 @@ def test_explicit_register_ppstructurev3_cpu_unlocks_warm_init():
         pipeline_version=args.pipeline_version,
         policy_version=args.policy_version,
         contract_set_version=args.contract_set_version,
-        ollama_url="http://placeholder",
+        ollama_url=_PLACEHOLDER_OLLAMA_URL,
         log_level=args.log_level,
         timeout=args.timeout,
         ollama_cpu_url=None,
@@ -116,7 +119,7 @@ def test_explicit_register_ppstructurev3_cpu_unlocks_warm_init():
     plan, _, _ = _build_resolved_plan(
         args,
         invocation=placeholder,
-        documents=(Path("/tmp/placeholder"),),
+        documents=_PLACEHOLDER_DOCUMENTS,
         warm_corpus=True,
     )
     assert plan is not None
@@ -153,7 +156,7 @@ def test_failed_warm_init_is_not_cached_as_success(monkeypatch: pytest.MonkeyPat
         pipeline_version=args.pipeline_version,
         policy_version=args.policy_version,
         contract_set_version=args.contract_set_version,
-        ollama_url="http://placeholder",
+        ollama_url=_PLACEHOLDER_OLLAMA_URL,
         log_level=args.log_level,
         timeout=args.timeout,
         ollama_cpu_url=None,
@@ -162,7 +165,7 @@ def test_failed_warm_init_is_not_cached_as_success(monkeypatch: pytest.MonkeyPat
     plan, _, _ = _build_resolved_plan(
         args,
         invocation=placeholder,
-        documents=(Path("/tmp/placeholder"),),
+        documents=_PLACEHOLDER_DOCUMENTS,
         warm_corpus=True,
     )
     assert plan is not None

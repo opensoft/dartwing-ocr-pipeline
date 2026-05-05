@@ -12,7 +12,7 @@ from typing import Iterable, Literal
 
 from ledgerlinc_ocr.pipeline.profiles import STAGES, Stage
 from ledgerlinc_ocr.validator.artifact import validate_artifact
-from ledgerlinc_ocr.validator.loader import load_contract_set
+from ledgerlinc_ocr.validator.loader import ContractSet, load_contract_set
 from ledgerlinc_ocr.validator.report import ArtifactName
 
 ARTIFACT_FILENAME_BY_STAGE: dict[Stage, str] = {
@@ -125,28 +125,44 @@ def check_prerequisites(
             return PrerequisiteCheckResult(
                 ok=False, missing_artifact=filename
             )
-        try:
-            outcome = validate_artifact(
-                path,
-                _FILENAME_TO_ARTIFACT_NAME[filename],
-                contract_set=contract_set,
-            )
-        except (OSError, json.JSONDecodeError) as exc:
-            return PrerequisiteCheckResult(
-                ok=False,
-                invalid_artifact=filename,
-                invalid_reason=f"$: cannot read or parse artifact: {exc}",
-            )
-        if not outcome.passed:
-            first = outcome.violations[0] if outcome.violations else None
-            field = first.field_path if first else "$"
-            reason = first.reason if first else "schema validation failed"
-            return PrerequisiteCheckResult(
-                ok=False,
-                invalid_artifact=filename,
-                invalid_reason=f"{field}: {reason}",
-            )
+        failure = _validate_prerequisite_artifact(
+            path=path,
+            filename=filename,
+            contract_set=contract_set,
+        )
+        if failure is not None:
+            return failure
     return PrerequisiteCheckResult(ok=True)
+
+
+def _validate_prerequisite_artifact(
+    *,
+    path: Path,
+    filename: str,
+    contract_set: ContractSet,
+) -> PrerequisiteCheckResult | None:
+    try:
+        outcome = validate_artifact(
+            path,
+            _FILENAME_TO_ARTIFACT_NAME[filename],
+            contract_set=contract_set,
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        return PrerequisiteCheckResult(
+            ok=False,
+            invalid_artifact=filename,
+            invalid_reason=f"$: cannot read or parse artifact: {exc}",
+        )
+    if outcome.passed:
+        return None
+    first = outcome.violations[0] if outcome.violations else None
+    field = first.field_path if first else "$"
+    reason = first.reason if first else "schema validation failed"
+    return PrerequisiteCheckResult(
+        ok=False,
+        invalid_artifact=filename,
+        invalid_reason=f"{field}: {reason}",
+    )
 
 
 def existing_outputs_in_slice(
