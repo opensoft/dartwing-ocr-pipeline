@@ -88,3 +88,58 @@ def test_warm_corpus_non_pdf_source_reports_invalid_pdf(
     assert record["exit_code"] == int(ExitCode.INVALID_PDF)
     # No artifacts produced.
     assert not (folder / "preprocess_output.json").exists()
+
+
+def test_warm_corpus_document_path_file_reports_output_path_not_usable(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    """Existing non-directory corpus entries mirror cold output-path handling."""
+    docs_file = tmp_path / "corpus.txt"
+    path = tmp_path / "inv_002_easy"
+    path.write_text("not a directory", encoding="utf-8")
+    docs_file.write_text(path.name + "\n", encoding="utf-8")
+
+    code = main([
+        "run",
+        "--documents-file", str(docs_file),
+        "--preprocess-profile", "stub",
+        "--extract-profile", "stub",
+        "--routing-profile", "stub",
+        "--final-payload-profile", "stub",
+    ])
+
+    from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
+    assert code == int(ExitCode.OUTPUT_PATH_NOT_USABLE)
+    summary = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    record = summary["per_document"][0]
+    assert record["document_id"] == "inv_002"
+    assert record["exit_code"] == int(ExitCode.OUTPUT_PATH_NOT_USABLE)
+    assert "not a directory" in record["message"]
+
+
+def test_warm_corpus_unwritable_folder_reports_output_path_not_usable(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Warm-corpus validates destination writability before stage execution."""
+    from ledgerlinc_ocr.pipeline import corpus_run as corpus_run_mod
+    from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
+
+    docs_file, _folder = _build_corpus(tmp_path, with_pdf=True)
+    monkeypatch.setattr(corpus_run_mod.os, "access", lambda _p, _mode: False)
+
+    code = main([
+        "run",
+        "--documents-file", str(docs_file),
+        "--preprocess-profile", "stub",
+        "--extract-profile", "stub",
+        "--routing-profile", "stub",
+        "--final-payload-profile", "stub",
+    ])
+
+    assert code == int(ExitCode.OUTPUT_PATH_NOT_USABLE)
+    summary = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    record = summary["per_document"][0]
+    assert record["exit_code"] == int(ExitCode.OUTPUT_PATH_NOT_USABLE)
+    assert "not writable" in record["message"]

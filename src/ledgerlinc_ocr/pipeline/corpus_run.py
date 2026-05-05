@@ -22,9 +22,10 @@ highest-severity per-document exit code observed.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from ledgerlinc_ocr.pipeline.corpus import DocumentEntry, WarmProfileRegistry
 from ledgerlinc_ocr.pipeline.exit_codes import ExitCode, StructuredFailureRecord
@@ -89,9 +90,13 @@ def _per_document_invocation(
     Returns (invocation, error_code, error_message). On success
     error_code is None.
     """
-    if not folder.is_dir():
+    if not folder.exists():
         return None, ExitCode.INPUT_NOT_FOUND, (
             f"document folder does not exist: {folder}"
+        )
+    if not folder.is_dir():
+        return None, ExitCode.OUTPUT_PATH_NOT_USABLE, (
+            f"document path is not a directory: {folder}"
         )
     document_id = derive_document_id(folder.name)
     if document_id is None:
@@ -111,6 +116,10 @@ def _per_document_invocation(
     if not is_pdf(pdf_path):
         return None, ExitCode.INVALID_PDF, (
             f"source.pdf failed magic-byte check: {pdf_path}"
+        )
+    if not os.access(folder, os.W_OK):
+        return None, ExitCode.OUTPUT_PATH_NOT_USABLE, (
+            f"document folder is not writable: {folder}"
         )
     invocation = CLIInvocation(
         input_pdf=pdf_path,
@@ -196,7 +205,15 @@ def run_warm_corpus(
     runner = runner if runner is not None else Runner()
     registry = WarmProfileRegistry.empty()
     _maybe_register_warm_preprocess(registry, plan)
-    _warm_initialize_live_preprocess(registry, plan)
+    warm_init_failure = _warm_initialize_live_preprocess(registry, plan)
+    if warm_init_failure is not None:
+        return _emit_warm_init_failure_summary(
+            documents=documents,
+            plan=plan,
+            registry=registry,
+            message=warm_init_failure,
+            emit_failure=_emit_failure,
+        )
 
     per_document_records: list[dict[str, Any]] = []
     observed_exit_codes: list[ExitCode] = []
@@ -310,6 +327,52 @@ def run_warm_corpus(
     return int(_aggregate_exit_code(observed_exit_codes))
 
 
+def _emit_warm_init_failure_summary(
+    *,
+    documents: tuple[DocumentEntry, ...],
+    plan: ResolvedRunPlan,
+    registry: WarmProfileRegistry,
+    message: str,
+    emit_failure: Callable[[StructuredFailureRecord], None],
+) -> int:
+    first = documents[0]
+    emit_failure(
+        StructuredFailureRecord.for_code(
+            ExitCode.PROCESSING_FAILURE,
+            stage="preprocess",
+            message=message,
+        )
+    )
+    summary = RunSummary(
+        stack_preset=plan.stack_preset_name,
+        resolved_profiles={
+            stage: profile.raw_value
+            for stage, profile in plan.profiles.items()
+        },
+        execution_slice={
+            "start_at": plan.slice_.start_at,
+            "stop_after": plan.slice_.stop_after,
+        },
+        on_failure=plan.failure_policy.mode,
+        documents_total=len(documents),
+        documents_succeeded=0,
+        documents_failed=1,
+        profile_initialization_seconds=registry.initialization_seconds(),
+        per_document=[
+            build_per_document_failure(
+                document_id=_document_id_for_failure(first.resolved),
+                folder=first.raw,
+                failed_stage="preprocess",
+                exit_code=int(ExitCode.PROCESSING_FAILURE),
+                message=message,
+            )
+        ],
+    )
+    emit_run_summary(summary)
+    registry.close()
+    return int(ExitCode.PROCESSING_FAILURE)
+
+
 def _maybe_register_warm_preprocess(
     registry: WarmProfileRegistry, plan: ResolvedRunPlan
 ) -> None:
@@ -358,19 +421,19 @@ def _maybe_register_warm_preprocess(
 
 def _warm_initialize_live_preprocess(
     registry: WarmProfileRegistry, plan: ResolvedRunPlan
-) -> None:
+) -> str | None:
     """If a warm-preprocess factory was registered, trigger initialization
     once before the per-document loop so the run-summary records the
     one-time init cost separately from per-document timings (FR-027).
     """
     if "preprocess" not in plan.slice_.stages_in_slice:
-        return
+        return None
     profile = plan.profiles["preprocess"]
     if profile.kind != "live":
-        return
+        return None
     key = ("preprocess", profile.implementation, profile.lane)
     if key not in registry.factories:
-        return
+        return None
     try:
         registry.get_or_initialize(
             stage="preprocess",
@@ -378,15 +441,14 @@ def _warm_initialize_live_preprocess(
             lane=profile.lane,
         )
     except Exception as exc:  # noqa: BLE001 -- intentional: see comment
-        # If init fails here, surface as a corpus-validation failure on
-        # the per-document loop side rather than aborting the run.
-        # Per-doc PROCESSING_FAILURE will fire when the adapter is
-        # invoked. Logged at WARN so the operator can correlate.
         import logging
 
+        message = str(exc) or type(exc).__name__
         logging.getLogger(__name__).warning(
-            "warm-preprocess pre-loop initialization raised: %s", exc
+            "warm-preprocess pre-loop initialization raised: %s", message
         )
+        return message
+    return None
 
 
 __all__ = ["run_warm_corpus"]

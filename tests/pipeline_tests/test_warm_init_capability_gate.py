@@ -8,6 +8,7 @@ pre-loading PPStructureV3.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import types
 from pathlib import Path
@@ -172,10 +173,60 @@ def test_failed_warm_init_is_not_cached_as_success(monkeypatch: pytest.MonkeyPat
 
     registry = WarmProfileRegistry.empty()
     corpus_run_mod._maybe_register_warm_preprocess(registry, plan)
-    corpus_run_mod._warm_initialize_live_preprocess(registry, plan)
+    message = corpus_run_mod._warm_initialize_live_preprocess(registry, plan)
 
+    assert message == "engine unavailable"
     assert registry.instances == {}
     assert registry.initialization_timings_ns == {}
+
+
+def test_failed_warm_init_aborts_once_before_document_loop(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """A setup-time PPStructureV3 failure is reported once, not per document."""
+    from ledgerlinc_ocr.pipeline import stages as stages_mod
+    from ledgerlinc_ocr.pipeline.cli import main
+    from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
+
+    stages_mod.register_ppstructurev3_cpu()
+    calls = 0
+
+    def boom():
+        nonlocal calls
+        calls += 1
+        raise RuntimeError("engine unavailable")
+
+    fake_ocr = types.ModuleType("ledgerlinc_ocr.preprocessing.ocr")
+    fake_ocr._get_engine = boom
+    monkeypatch.setitem(sys.modules, "ledgerlinc_ocr.preprocessing.ocr", fake_ocr)
+
+    docs_file = tmp_path / "corpus.txt"
+    folders = [tmp_path / "inv_001_easy", tmp_path / "inv_002_easy"]
+    for folder in folders:
+        folder.mkdir()
+        (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%%EOF\n")
+    docs_file.write_text("\n".join(folder.name for folder in folders), encoding="utf-8")
+
+    code = main([
+        "run",
+        "--documents-file", str(docs_file),
+        "--preprocess-profile", "ppstructurev3@cpu",
+        "--extract-profile", "stub",
+        "--routing-profile", "stub",
+        "--final-payload-profile", "stub",
+    ])
+
+    assert code == int(ExitCode.PROCESSING_FAILURE)
+    captured = capsys.readouterr()
+    summary = json.loads(captured.out.strip().splitlines()[-1])
+    assert calls == 1
+    assert summary["documents_succeeded"] == 0
+    assert summary["documents_failed"] == 1
+    assert summary["per_document"][0]["failed_stage"] == "preprocess"
+    assert not (folders[0] / "preprocess_output.json").exists()
+    assert not (folders[1] / "preprocess_output.json").exists()
 
 
 def test_is_live_capable_default_state():

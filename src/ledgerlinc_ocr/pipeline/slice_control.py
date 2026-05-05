@@ -172,7 +172,18 @@ def existing_outputs_in_slice(
     return [
         filename
         for filename in slice_.output_artifacts
-        if (folder / filename).exists()
+        if (folder / filename).is_file()
+    ]
+
+
+def unusable_outputs_in_slice(
+    folder: Path, slice_: ExecutionSlice
+) -> list[str]:
+    """Reserved output paths that exist but are not regular files."""
+    return [
+        filename
+        for filename in slice_.output_artifacts
+        if (folder / filename).exists() and not (folder / filename).is_file()
     ]
 
 
@@ -183,5 +194,6 @@ __all__ = [
     "SliceError",
     "check_prerequisites",
     "existing_outputs_in_slice",
+    "unusable_outputs_in_slice",
     "parse_slice",
 ]

@@ -18,6 +18,7 @@ from ledgerlinc_ocr.pipeline.slice_control import (
     check_prerequisites,
     existing_outputs_in_slice,
     parse_slice,
+    unusable_outputs_in_slice,
 )
 
 
@@ -153,6 +154,14 @@ def test_existing_outputs_in_slice_only_reports_slice_outputs(tmp_path: Path):
 def test_existing_outputs_returns_empty_when_nothing_present(tmp_path: Path):
     s = parse_slice(start_at="preprocess", stop_after="final_payload")
     assert existing_outputs_in_slice(tmp_path, s) == []
+
+
+def test_directory_output_path_is_unusable_not_existing_output(tmp_path: Path):
+    (tmp_path / "preprocess_output.json").mkdir()
+    s = parse_slice(start_at="preprocess", stop_after="preprocess")
+
+    assert existing_outputs_in_slice(tmp_path, s) == []
+    assert unusable_outputs_in_slice(tmp_path, s) == ["preprocess_output.json"]
 
 
 # ---------------------------------------------------------------------------

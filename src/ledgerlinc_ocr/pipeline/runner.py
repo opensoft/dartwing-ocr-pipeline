@@ -36,6 +36,7 @@ from ledgerlinc_ocr.pipeline.slice_control import (
     ExecutionSlice,
     check_prerequisites,
     existing_outputs_in_slice,
+    unusable_outputs_in_slice,
 )
 from ledgerlinc_ocr.pipeline.timing import (
     DocumentTimings,
@@ -346,6 +347,19 @@ class Runner:
         plan: ResolvedRunPlan,
         timings: DocumentTimings,
     ) -> RunResult | None:
+        unusable = unusable_outputs_in_slice(folder, plan.slice_)
+        if unusable:
+            first = unusable[0]
+            return RunResult(
+                exit_code=ExitCode.OUTPUT_PATH_NOT_USABLE,
+                artifacts_written=[],
+                stage="input_validation",
+                message=(
+                    f"Reserved artifact path is not a regular file: "
+                    f"{folder / first}"
+                ),
+                timings=timings,
+            )
         if invocation.overwrite:
             return None
         existing = existing_outputs_in_slice(folder, plan.slice_)

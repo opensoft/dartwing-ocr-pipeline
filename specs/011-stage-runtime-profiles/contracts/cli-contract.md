@@ -72,7 +72,7 @@ When `--stack-preset` is combined with explicit `--<stage>-profile` flags, the e
 - `(stage, implementation, lane)` is not in the closed vocabulary above (e.g. `ppstructurev3@gpu`, `edge-ocr@cpu`, `rules@gpu`, `ensemble@cloud`, unknown implementation names).
 - `stub@cpu` / `stub@gpu` (stub is lane-less).
 - `--stack-preset` value is not in the closed preset list.
-- `--extract-profile ensemble@workstation` is selected inside the execution slice - accepted by argument validation, then rejected at prerequisite-validation time with a structured `MissingEndpointError` naming the deferral to FR-034 step 4 (R-013).
+- `--extract-profile ensemble@workstation` is selected inside the execution slice - accepted by argument validation, then rejected before artifact writes with a structured failure at the canonical `extraction` stage naming the deferral to FR-034 step 4 (R-013).
 
 ### Execution-slice flags (NEW - FR-004)
 

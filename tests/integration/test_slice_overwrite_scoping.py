@@ -99,6 +99,29 @@ def test_in_slice_artifact_present_blocks_without_overwrite(tmp_path: Path, caps
     assert "preprocess_output.json" in record["message"]
 
 
+def test_in_slice_directory_artifact_path_reports_unusable(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    folder = tmp_path / "inv_007_easy"
+    folder.mkdir()
+    (folder / "source.pdf").write_bytes(MINIMAL_PDF_BYTES)
+    (folder / "preprocess_output.json").mkdir()
+
+    code = main([
+        "run",
+        "--document-folder", str(folder),
+        "--start-at", "preprocess",
+        "--stop-after", "preprocess",
+        "--preprocess-profile", "stub",
+        "--overwrite",
+    ])
+
+    assert code == 14
+    record = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert record["exit_code_name"] == "OUTPUT_PATH_NOT_USABLE"
+    assert "preprocess_output.json" in record["message"]
+
+
 def test_overwrite_replaces_only_slice_outputs(tmp_path: Path):
     """With --overwrite, the slice replaces only its output artifacts;
     out-of-slice artifacts MUST remain untouched.

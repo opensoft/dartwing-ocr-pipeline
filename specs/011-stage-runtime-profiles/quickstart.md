@@ -106,15 +106,15 @@ Use case: harness-driven multi-document run that initializes PPStructureV3 exact
 ### 3a. Prepare a documents file
 
 ```bash
-cat > /tmp/corpus.txt <<'EOF'
+cat > /tmp/corpus.txt <<EOF
 # stage 1 vendor-identity smoke set
-tests/stage1_vendor_identity/inv_001_easy
-tests/stage1_vendor_identity/inv_002_easy
-tests/stage1_vendor_identity/inv_003_easy
+$PWD/tests/stage1_vendor_identity/inv_001_easy
+$PWD/tests/stage1_vendor_identity/inv_002_easy
+$PWD/tests/stage1_vendor_identity/inv_003_easy
 EOF
 ```
 
-The file is UTF-8, one folder per line, blank/`#`-comment lines ignored after stripping. Paths inside the file resolve relative to the file's parent directory (R-007). Edit the list to point at any subset of the 20-document corpus.
+The file is UTF-8, one folder per line, blank/`#`-comment lines ignored after stripping. Paths inside the file resolve relative to the file's parent directory (R-007), so this example writes absolute paths with `$PWD` because the file itself lives under `/tmp`. Edit the list to point at any subset of the 20-document corpus.
 
 ### 3b. Run with stub profiles first (Paddle-free smoke test)
 
