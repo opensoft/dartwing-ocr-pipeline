@@ -115,7 +115,7 @@
 
 - [X] T023 [P] Update 012 quickstart if implementation flags differ in `specs/012-pipeline-harness-integration/quickstart.md`
 - [X] T024 Run focused evaluator and integration tests for 012
-- [ ] T025 Commit implementation and test changes for 012
+- [X] T025 Commit implementation and test changes for 012
 
 ---
 
