@@ -129,6 +129,13 @@ def test_parse_documents_file_supports_absolute_paths(tmp_path: Path):
     assert result[0].raw == str(target)
 
 
+def test_parse_documents_file_rejects_relative_parent_traversal(tmp_path: Path):
+    docs_file = tmp_path / "corpus.txt"
+    docs_file.write_text("../outside\n", encoding="utf-8")
+    with pytest.raises(CorpusParseError, match="parent traversal"):
+        parse_documents_file(docs_file)
+
+
 # ---------------------------------------------------------------------------
 # WarmProfileRegistry (R-011) -- one-shot init invariant
 # ---------------------------------------------------------------------------

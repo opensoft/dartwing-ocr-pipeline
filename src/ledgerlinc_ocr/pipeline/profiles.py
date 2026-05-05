@@ -17,6 +17,10 @@ ProfileKind = Literal["stub", "live"]
 
 STAGES: tuple[Stage, ...] = ("preprocess", "extract", "routing", "final_payload")
 
+PPSTRUCTUREV3_CPU = "ppstructurev3@cpu"
+RULES_CPU = "rules@cpu"
+ASSEMBLER_CPU = "assembler@cpu"
+
 # (stage, implementation, lane | None) — ``lane=None`` only for ``stub``.
 SUPPORTED_PROFILES: frozenset[tuple[Stage, str, str | None]] = frozenset({
     # preprocess
@@ -38,31 +42,31 @@ SUPPORTED_PROFILES: frozenset[tuple[Stage, str, str | None]] = frozenset({
 })
 
 DEFAULT_PROFILES: dict[Stage, str] = {
-    "preprocess": "ppstructurev3@cpu",
+    "preprocess": PPSTRUCTUREV3_CPU,
     "extract": "ollama@gpu",
-    "routing": "rules@cpu",
-    "final_payload": "assembler@cpu",
+    "routing": RULES_CPU,
+    "final_payload": ASSEMBLER_CPU,
 }
 
 StackPresetName = Literal["full-workstation", "cloud-workstation", "edge-fast"]
 STACK_PRESETS: dict[StackPresetName, dict[Stage, str]] = {
     "full-workstation": {
-        "preprocess": "ppstructurev3@cpu",
+        "preprocess": PPSTRUCTUREV3_CPU,
         "extract": "ollama@gpu",
-        "routing": "rules@cpu",
-        "final_payload": "assembler@cpu",
+        "routing": RULES_CPU,
+        "final_payload": ASSEMBLER_CPU,
     },
     "cloud-workstation": {
-        "preprocess": "ppstructurev3@cpu",
+        "preprocess": PPSTRUCTUREV3_CPU,
         "extract": "ensemble@workstation",
-        "routing": "rules@cpu",
-        "final_payload": "assembler@cpu",
+        "routing": RULES_CPU,
+        "final_payload": ASSEMBLER_CPU,
     },
     "edge-fast": {
         "preprocess": "edge-ocr@jetson",
         "extract": "ollama@jetson",
-        "routing": "rules@cpu",
-        "final_payload": "assembler@cpu",
+        "routing": RULES_CPU,
+        "final_payload": ASSEMBLER_CPU,
     },
 }
 

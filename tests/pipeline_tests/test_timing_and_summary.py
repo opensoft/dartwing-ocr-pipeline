@@ -51,8 +51,8 @@ def test_to_seconds_map_six_decimal_rounding_and_phase_suffix():
     )
     out = timing.to_seconds_map()
     assert out["rasterize_seconds"] == round(123_456_789 / 1e9, 6)
-    assert out["infer_seconds"] == 1.0
-    assert out["total_seconds"] == 2.5
+    assert out["infer_seconds"] == pytest.approx(1.0)
+    assert out["total_seconds"] == pytest.approx(2.5)
 
 
 def test_phase_keys_omitted_when_not_measured():
@@ -62,7 +62,7 @@ def test_phase_keys_omitted_when_not_measured():
     # No phase ever recorded -> only total_seconds present.
     assert "infer_seconds" not in out
     assert "write_seconds" not in out
-    assert out["total_seconds"] == 1.0
+    assert out["total_seconds"] == pytest.approx(1.0)
 
 
 def test_measure_total_still_records_when_block_raises():
@@ -171,7 +171,7 @@ def test_per_document_success_record_shape():
     )
     assert rec["status"] == "success"
     assert rec["document_id"] == "inv_001"
-    assert rec["stages"]["preprocess"]["total_seconds"] == 1.0
+    assert rec["stages"]["preprocess"]["total_seconds"] == pytest.approx(1.0)
 
 
 def test_per_document_failure_record_shape_omits_stages_when_none():
@@ -200,4 +200,4 @@ def test_per_document_failure_record_includes_partial_timings_when_present():
         timings=docs,
     )
     assert "stages" in rec
-    assert rec["stages"]["preprocess"]["total_seconds"] == 0.5
+    assert rec["stages"]["preprocess"]["total_seconds"] == pytest.approx(0.5)

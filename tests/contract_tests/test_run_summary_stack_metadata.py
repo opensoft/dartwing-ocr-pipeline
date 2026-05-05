@@ -64,7 +64,7 @@ def test_cloud_workstation_run_summary_records_preset_and_resolved_profiles(
     """
     from ledgerlinc_ocr.pipeline.cli import main
 
-    docs_file, folders = _stage_preprocessed_corpus(tmp_path, n=1)
+    docs_file, _ = _stage_preprocessed_corpus(tmp_path, n=1)
     code = main([
         "run",
         "--documents-file", str(docs_file),

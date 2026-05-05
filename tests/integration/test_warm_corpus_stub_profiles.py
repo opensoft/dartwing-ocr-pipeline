@@ -97,7 +97,7 @@ def test_warm_corpus_stub_run(tmp_path: Path, capsys: pytest.CaptureFixture[str]
 
 def test_warm_corpus_per_document_records_match_002_shape(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
     """R-009: per-document stdout records keep the existing 002 shape (no kind field)."""
-    docs_file, folders = _stage_three_folders(tmp_path)
+    docs_file, _ = _stage_three_folders(tmp_path)
     code = main([
         "run",
         "--documents-file", str(docs_file),

@@ -70,7 +70,7 @@ def test_default_run_with_stub_fallback_does_not_warm_init():
         ollama_cpu_url=None,
         ollama_jetson_url=None,
     )
-    plan, code, msg = _build_resolved_plan(
+    plan, _, msg = _build_resolved_plan(
         args,
         invocation=placeholder,
         documents=(Path("/tmp/placeholder"),),
@@ -112,7 +112,7 @@ def test_explicit_register_ppstructurev3_cpu_unlocks_warm_init():
         ollama_cpu_url=None,
         ollama_jetson_url=None,
     )
-    plan, code, msg = _build_resolved_plan(
+    plan, _, _ = _build_resolved_plan(
         args,
         invocation=placeholder,
         documents=(Path("/tmp/placeholder"),),

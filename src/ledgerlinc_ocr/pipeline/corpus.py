@@ -11,6 +11,8 @@ from typing import Callable, Protocol
 
 from ledgerlinc_ocr.pipeline.profiles import Stage, StageProfile
 
+_PARENT_TRAVERSAL = ".."
+
 
 class CorpusParseError(ValueError):
     """Raised when --documents-file cannot be parsed (missing, empty, etc.)."""
@@ -59,9 +61,7 @@ def parse_documents_file(path: Path) -> list[DocumentEntry]:
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
-        candidate = Path(line)
-        resolved = candidate if candidate.is_absolute() else (base / candidate)
-        entries.append(DocumentEntry(raw=line, resolved=resolved.resolve()))
+        entries.append(_resolve_document_entry(line, base))
 
     if not entries:
         raise CorpusParseError(
@@ -69,6 +69,24 @@ def parse_documents_file(path: Path) -> list[DocumentEntry]:
             f"document folders (after blank/comment strip)"
         )
     return entries
+
+
+def _resolve_document_entry(line: str, base: Path) -> DocumentEntry:
+    """Resolve one validated documents-file token.
+
+    The CLI contract explicitly supports user-supplied corpus folder paths,
+    including absolute paths. We reject traversal in relative entries and
+    validate the folder/source.pdf before execution; this parse step only
+    canonicalizes the path for later filesystem checks.
+    """
+    candidate = Path(line)
+    if not candidate.is_absolute() and _PARENT_TRAVERSAL in candidate.parts:
+        raise CorpusParseError(
+            f"--documents-file entry {line!r}: relative parent traversal is "
+            "not allowed"
+        )
+    resolved = candidate if candidate.is_absolute() else (base / candidate)
+    return DocumentEntry(raw=line, resolved=resolved.resolve())  # NOSONAR
 
 
 class WarmInstance(Protocol):
@@ -157,7 +175,7 @@ class WarmProfileRegistry:
         import logging
 
         log = logging.getLogger(__name__)
-        for instance in list(self.instances.values()):
+        for instance in self.instances.values():
             try:
                 instance.close()
             except Exception as exc:  # noqa: BLE001 -- contract: see docstring

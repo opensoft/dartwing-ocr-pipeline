@@ -33,6 +33,8 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from ledgerlinc_ocr.pipeline.profiles import Stage, StageProfile
 
+_SOURCE_PDF = "source.pdf"
+
 if TYPE_CHECKING:
     from ledgerlinc_ocr.pipeline.runner import CLIInvocation, ResolvedRunPlan
 
@@ -49,7 +51,7 @@ def default_preprocess(
         "pipeline_version": invocation.pipeline_version,
         "document_id": invocation.document_id,
         "source_type": "pdf",
-        "source_file": "source.pdf",
+        "source_file": _SOURCE_PDF,
         "page_count": 1,
         "pages": [
             {
@@ -261,7 +263,7 @@ def default_final_payload(
             "secondary_identifiers_found": [],
         },
         "trace": {
-            "source_file": "source.pdf",
+            "source_file": _SOURCE_PDF,
             "preprocess_output_file": "preprocess_output.json",
             "edge_extraction_output_file": "edge_extraction_output.json",
             "routing_decision_file": "routing_decision.json",
@@ -402,7 +404,7 @@ def _ppstructurev3_cpu_factory(_plan: "ResolvedRunPlan") -> StageCallable:
         out_path = preprocessing_run(
             PreInvocation(
                 document_folder=invocation.destination_folder,
-                source_file="source.pdf",
+                source_file=_SOURCE_PDF,
                 pipeline_version=invocation.pipeline_version,
             )
         )
