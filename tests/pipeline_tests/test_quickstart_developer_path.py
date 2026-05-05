@@ -19,7 +19,7 @@ def test_quickstart_section_2_document_folder(
     code = main(["run", "--document-folder", str(folder)])
     assert code == 0
     payload = json.loads(capsys.readouterr().out.strip())
-    assert payload["document_id"] == "inv_001"
+    assert payload["document_id"] == "inv_001_easy"
     assert set(payload["artifacts"].keys()) == set(RESERVED_ARTIFACT_NAMES)
 
 

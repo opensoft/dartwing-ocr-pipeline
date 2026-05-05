@@ -24,7 +24,7 @@ from ledgerlinc_ocr.preprocessing.version import (
 )
 from ledgerlinc_ocr.preprocessing.warnings import build_warning, sort_warnings
 
-DOCUMENT_ID_RE = re.compile(r"^inv_\d{3}$")
+DOCUMENT_ID_RE = re.compile(r"^inv_\d{3}(?:_(easy|medium|hard|missing_name))?$")
 
 _TEXT_BEARING_BLOCK_TYPES = {"text", "title", "header", "footer"}
 
@@ -38,12 +38,12 @@ class Invocation:
 
 
 def _derive_document_id(folder_name: str) -> str:
-    match = re.match(r"^(inv_\d{3})(?:_.*)?$", folder_name)
-    if not match:
+    if not DOCUMENT_ID_RE.match(folder_name):
         raise InputRejectedError(
-            f"folder name {folder_name!r} does not match pattern inv_XXX[_<difficulty>]"
+            f"folder name {folder_name!r} does not match pattern "
+            f"inv_XXX or inv_XXX_<difficulty>"
         )
-    return match.group(1)
+    return folder_name
 
 
 def _validate_input(invocation: Invocation) -> Path:

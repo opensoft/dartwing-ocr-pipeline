@@ -59,10 +59,10 @@ def test_dest_output_dir_overrides(tmp_path: Path):
 @pytest.mark.parametrize(
     "folder_name,expected",
     [
-        ("inv_001_easy", "inv_001"),
-        ("inv_042_medium", "inv_042"),
-        ("inv_007_hard", "inv_007"),
-        ("inv_999_missing_name", "inv_999"),
+        ("inv_001_easy", "inv_001_easy"),
+        ("inv_042_medium", "inv_042_medium"),
+        ("inv_007_hard", "inv_007_hard"),
+        ("inv_999_missing_name", "inv_999_missing_name"),
     ],
 )
 def test_derive_document_id_matches(folder_name: str, expected: str):

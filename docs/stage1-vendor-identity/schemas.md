@@ -36,7 +36,7 @@ Purpose:
 
 ```json
 {
-  "document_id": "inv_001",
+  "document_id": "inv_001_easy",
   "source_type": "pdf",
   "source_file": "source.pdf",
   "page_count": 2,
@@ -102,7 +102,7 @@ Purpose:
 
 ```json
 {
-  "document_id": "inv_001",
+  "document_id": "inv_001_easy",
   "pipeline_version": "stage1-edge-v0.1",
   "processed_at": "2026-04-12T13:15:00Z",
   "model_runtime": {
@@ -245,7 +245,7 @@ Purpose:
 
 ```json
 {
-  "document_id": "inv_001",
+  "document_id": "inv_001_easy",
   "pipeline_version": "stage1-edge-v0.1",
   "processed_at": "2026-04-12T13:15:02Z",
   "status": "success",
@@ -301,7 +301,7 @@ Purpose:
 
 ```json
 {
-  "document_id": "inv_001",
+  "document_id": "inv_001_easy",
   "pipeline_version": "stage1-edge-v0.1",
   "processed_at": "2026-04-12T13:15:00Z",
   "document_type": "invoice",
@@ -402,7 +402,7 @@ Purpose:
 
 ```json
 {
-  "document_id": "inv_001",
+  "document_id": "inv_001_easy",
   "difficulty": "easy",
   "challenge_tags": [
     "explicit_company_name",
@@ -449,7 +449,7 @@ Purpose:
 
 ```json
 {
-  "document_id": "inv_001",
+  "document_id": "inv_001_easy",
   "difficulty": "easy",
   "challenge_tags": [
     "explicit_company_name",
@@ -548,12 +548,12 @@ Purpose:
   },
   "documents": [
     {
-      "document_id": "inv_001",
+      "document_id": "inv_001_easy",
       "overall_passed": true,
       "field_accuracy": 0.93
     },
     {
-      "document_id": "inv_016",
+      "document_id": "inv_016_missing_name",
       "overall_passed": false,
       "field_accuracy": 0.67
     }

@@ -52,8 +52,8 @@ def test_evaluator_corpus_run_pipeline_uses_warm_stub_path(tmp_path: Path) -> No
     root = tmp_path / "corpus"
     root.mkdir()
     docs = (
-        _stage_doc(root, "inv_001_easy", "inv_001"),
-        _stage_doc(root, "inv_002_medium", "inv_002"),
+        _stage_doc(root, "inv_001_easy", "inv_001_easy"),
+        _stage_doc(root, "inv_002_medium", "inv_002_medium"),
     )
 
     result = _run(
@@ -77,3 +77,7 @@ def test_evaluator_corpus_run_pipeline_uses_warm_stub_path(tmp_path: Path) -> No
     for folder in docs:
         assert (folder / "evaluation_document.json").is_file()
         assert (folder / "final_structured_payload.json").is_file()
+        final_payload = json.loads(
+            (folder / "final_structured_payload.json").read_text(encoding="utf-8")
+        )
+        assert final_payload["document_id"] == folder.name

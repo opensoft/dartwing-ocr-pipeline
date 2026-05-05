@@ -48,7 +48,7 @@ def test_cold_mode_stdout_exactly_one_line_no_kind_field(
     record = json.loads(out_lines[0])
     assert "kind" not in record
     assert "schema_version" not in record
-    assert record["document_id"] == "inv_001"
+    assert record["document_id"] == "inv_001_easy"
 
 
 def test_cold_mode_with_on_failure_flag_is_no_op(

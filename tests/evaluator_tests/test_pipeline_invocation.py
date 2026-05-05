@@ -11,8 +11,10 @@ from ledgerlinc_ocr.evaluator.pipeline_invocation import (
     PipelinePreparationRequest,
     build_pipeline_command,
     format_corpus_preparation_report,
+    format_preparation_error,
     parse_pipeline_run_summary,
     run_corpus_preparation,
+    run_document_preparation,
 )
 
 
@@ -171,3 +173,48 @@ def test_run_corpus_preparation_parses_successes_and_failures(monkeypatch) -> No
     report = format_corpus_preparation_report(outcome)
     assert "total=2 succeeded=1 failed=1" in report
     assert "preprocess=1.25s" in report
+
+
+def test_document_preparation_surfaces_structured_missing_dependency(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    stderr = json.dumps(
+        {
+            "stage": "preprocess",
+            "message": (
+                "missing runtime dependency for selected profile "
+                "ppstructurev3@cpu: PIL"
+            ),
+        }
+    )
+
+    def fake_run(command, *, capture_output, text):
+        assert capture_output is True
+        assert text is True
+        return subprocess.CompletedProcess(
+            command,
+            returncode=20,
+            stdout="",
+            stderr=stderr + "\n",
+        )
+
+    monkeypatch.setattr(
+        "ledgerlinc_ocr.evaluator.pipeline_invocation.subprocess.run",
+        fake_run,
+    )
+    request = PipelinePreparationRequest(
+        target="document",
+        path=tmp_path / "inv_001_easy",
+        contract_set_version="1.1.0",
+        overwrite=True,
+        stack_preset="full-workstation",
+    )
+
+    outcome = run_document_preparation(request)
+    message = format_preparation_error(outcome)
+
+    assert outcome.return_code == 20
+    assert "missing runtime dependency" in message
+    assert "ppstructurev3@cpu" in message
+    assert "Traceback" not in message

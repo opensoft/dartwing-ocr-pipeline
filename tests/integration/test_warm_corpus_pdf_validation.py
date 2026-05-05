@@ -57,7 +57,7 @@ def test_warm_corpus_missing_source_pdf_reports_failure(
     assert summary["documents_succeeded"] == 0
     record = summary["per_document"][0]
     assert record["status"] == "failure"
-    assert record["document_id"] == "inv_001"
+    assert record["document_id"] == "inv_001_easy"
     assert record["failed_stage"] == "corpus_validation"
     assert "source.pdf" in record["message"]
     # No stub success artifacts must have been emitted for this folder.
@@ -84,7 +84,7 @@ def test_warm_corpus_non_pdf_source_reports_invalid_pdf(
     summary = json.loads(out[-1])
     record = summary["per_document"][0]
     assert record["status"] == "failure"
-    assert record["document_id"] == "inv_001"
+    assert record["document_id"] == "inv_001_easy"
     assert record["exit_code"] == int(ExitCode.INVALID_PDF)
     # No artifacts produced.
     assert not (folder / "preprocess_output.json").exists()
@@ -112,7 +112,7 @@ def test_warm_corpus_document_path_file_reports_output_path_not_usable(
     assert code == int(ExitCode.OUTPUT_PATH_NOT_USABLE)
     summary = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     record = summary["per_document"][0]
-    assert record["document_id"] == "inv_002"
+    assert record["document_id"] == "inv_002_easy"
     assert record["exit_code"] == int(ExitCode.OUTPUT_PATH_NOT_USABLE)
     assert "not a directory" in record["message"]
 
