@@ -48,6 +48,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default=CONTRACT_SET_VERSION,
         help=f"Contract set version (default: {CONTRACT_SET_VERSION})",
     )
+    _add_pipeline_preparation_arguments(doc, corpus=False)
     format_group = doc.add_mutually_exclusive_group()
     format_group.add_argument(
         "--text",
@@ -75,6 +76,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default=CONTRACT_SET_VERSION,
         help=f"Contract set version (default: {CONTRACT_SET_VERSION})",
     )
+    _add_pipeline_preparation_arguments(corpus, corpus=True)
     corpus.add_argument(
         "--no-lazy",
         action="store_true",
@@ -100,8 +102,52 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _add_pipeline_preparation_arguments(
+    parser: argparse.ArgumentParser, *, corpus: bool
+) -> None:
+    group = parser.add_argument_group("pipeline preparation")
+    group.add_argument(
+        "--run-pipeline",
+        action="store_true",
+        help="Run the stage 1 pipeline before evaluation.",
+    )
+    group.add_argument(
+        "--pipeline-overwrite",
+        action="store_true",
+        help="Pass --overwrite to the pipeline preparation step.",
+    )
+    if corpus:
+        group.add_argument(
+            "--pipeline-on-failure",
+            choices=("continue", "fail-fast"),
+            default="continue",
+            help="Warm corpus pipeline failure policy (default: continue).",
+        )
+    group.add_argument("--stack-preset", default=None)
+    group.add_argument("--preprocess-profile", default=None)
+    group.add_argument("--extract-profile", default=None)
+    group.add_argument("--routing-profile", default=None)
+    group.add_argument("--final-payload-profile", default=None)
+    group.add_argument("--start-at", default=None)
+    group.add_argument("--stop-after", default=None)
+    group.add_argument("--ollama-url", default=None)
+    group.add_argument("--ollama-cpu-url", default=None)
+    group.add_argument("--ollama-jetson-url", default=None)
+    group.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="Pipeline per-stage timeout in seconds.",
+    )
+
+
 def _handle_document(args: argparse.Namespace) -> int:
     from ledgerlinc_ocr.evaluator.document import evaluate_document
+
+    if args.run_pipeline:
+        prep_code = _prepare_document_for_evaluation(args)
+        if prep_code != EXIT_OK:
+            return prep_code
 
     outcome = evaluate_document(
         args.folder, contract_set_version=args.contract_set_version
@@ -171,11 +217,18 @@ def _handle_document(args: argparse.Namespace) -> int:
 def _handle_corpus(args: argparse.Namespace) -> int:
     from ledgerlinc_ocr.evaluator.corpus import evaluate_corpus
 
+    document_folders = None
+    if args.run_pipeline:
+        prep_code, document_folders = _prepare_corpus_for_evaluation(args)
+        if prep_code != EXIT_OK:
+            return prep_code
+
     outcome = evaluate_corpus(
         args.root,
         contract_set_version=args.contract_set_version,
         lazy=not args.no_lazy,
         refresh=args.refresh,
+        document_folders=document_folders,
     )
     assert outcome.md_output_path is not None
     # The rendered Markdown already ends with a single trailing newline;
@@ -183,6 +236,78 @@ def _handle_corpus(args: argparse.Namespace) -> int:
     md_text = outcome.md_output_path.read_text(encoding="utf-8")
     sys.stdout.write(md_text)
     return EXIT_OK
+
+
+def _pipeline_request(
+    *,
+    target: str,
+    path: Path,
+    args: argparse.Namespace,
+) -> "PipelinePreparationRequest":
+    from ledgerlinc_ocr.evaluator.pipeline_invocation import (
+        PipelinePreparationRequest,
+    )
+
+    return PipelinePreparationRequest(
+        target=target,
+        path=path,
+        contract_set_version=args.contract_set_version,
+        overwrite=args.pipeline_overwrite,
+        stack_preset=args.stack_preset,
+        preprocess_profile=args.preprocess_profile,
+        extract_profile=args.extract_profile,
+        routing_profile=args.routing_profile,
+        final_payload_profile=args.final_payload_profile,
+        start_at=args.start_at,
+        stop_after=args.stop_after,
+        ollama_url=args.ollama_url,
+        ollama_cpu_url=args.ollama_cpu_url,
+        ollama_jetson_url=args.ollama_jetson_url,
+        timeout=args.timeout,
+        on_failure=getattr(args, "pipeline_on_failure", None),
+    )
+
+
+def _prepare_document_for_evaluation(args: argparse.Namespace) -> int:
+    from ledgerlinc_ocr.evaluator.pipeline_invocation import (
+        format_preparation_error,
+        run_document_preparation,
+    )
+
+    request = _pipeline_request(target="document", path=args.folder, args=args)
+    outcome = run_document_preparation(request)
+    if outcome.ok:
+        return EXIT_OK
+    print(format_preparation_error(outcome), file=sys.stderr)
+    return EXIT_HARD_ERROR
+
+
+def _prepare_corpus_for_evaluation(
+    args: argparse.Namespace,
+) -> tuple[int, tuple[Path, ...] | None]:
+    from ledgerlinc_ocr.evaluator.corpus import list_document_folders
+    from ledgerlinc_ocr.evaluator.pipeline_invocation import (
+        format_corpus_preparation_report,
+        format_preparation_error,
+        run_corpus_preparation,
+    )
+
+    folders = tuple(list_document_folders(args.root))
+    request = _pipeline_request(target="corpus", path=args.root, args=args)
+    outcome = run_corpus_preparation(request, folders)
+    report = format_corpus_preparation_report(outcome)
+    if report:
+        print(report, file=sys.stderr)
+    if args.pipeline_on_failure == "fail-fast" and not outcome.ok:
+        print(format_preparation_error(outcome), file=sys.stderr)
+        return EXIT_HARD_ERROR, None
+    if not outcome.prepared_folders:
+        print(
+            "pipeline preparation produced no evaluatable document folders",
+            file=sys.stderr,
+        )
+        return EXIT_HARD_ERROR, None
+    return EXIT_OK, outcome.prepared_folders
 
 
 def main(argv: Sequence[str] | None = None) -> int:

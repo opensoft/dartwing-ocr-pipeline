@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -10,6 +11,18 @@ from pathlib import Path
 import pytest
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+MINIMAL_PDF_BYTES = (
+    b"%PDF-1.4\n"
+    b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+    b"2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\n"
+    b"xref\n0 3\n"
+    b"0000000000 65535 f \n"
+    b"0000000009 00000 n \n"
+    b"0000000053 00000 n \n"
+    b"trailer<</Size 3/Root 1 0 R>>\n"
+    b"startxref\n100\n%%EOF\n"
+)
 
 
 def _run(
@@ -21,6 +34,19 @@ def _run(
         text=True,
         cwd=cwd,
     )
+
+
+def _stage_pipeline_document(tmp_path: Path) -> Path:
+    folder = tmp_path / "inv_001_easy"
+    shutil.copytree(FIXTURES / "all_match", folder)
+    (folder / "source.pdf").write_bytes(MINIMAL_PDF_BYTES)
+    (folder / "final_structured_payload.json").unlink()
+    (folder / "evaluation_document.json").unlink()
+    expected_path = folder / "expected.json"
+    expected = json.loads(expected_path.read_text(encoding="utf-8"))
+    expected["document_id"] = "inv_001"
+    expected_path.write_text(json.dumps(expected, indent=2), encoding="utf-8")
+    return folder
 
 
 # ---- Help surface ---------------------------------------------------------
@@ -37,12 +63,14 @@ def test_evaluate_document_help_exits_zero() -> None:
     assert result.returncode == 0
     assert "--json" in result.stdout
     assert "--text" in result.stdout
+    assert "--run-pipeline" in result.stdout
 
 
 def test_evaluate_corpus_help_exits_zero() -> None:
     result = _run(["evaluate", "corpus", "--help"])
     assert result.returncode == 0
     assert "--no-lazy" in result.stdout
+    assert "--run-pipeline" in result.stdout
 
 
 # ---- Exit code 0: clean completion ----------------------------------------
@@ -54,6 +82,30 @@ def test_evaluate_document_clean_exit_zero(tmp_path: Path) -> None:
     result = _run(["evaluate", "document", str(folder)])
     assert result.returncode == 0, result.stderr
     assert (folder / "evaluation_document.json").is_file()
+
+
+def test_evaluate_document_run_pipeline_clean_exit_zero(tmp_path: Path) -> None:
+    folder = _stage_pipeline_document(tmp_path)
+
+    result = _run(
+        [
+            "evaluate",
+            "document",
+            str(folder),
+            "--run-pipeline",
+            "--pipeline-overwrite",
+        ]
+    )
+
+    assert result.returncode == 0, result.stderr
+    for name in (
+        "preprocess_output.json",
+        "edge_extraction_output.json",
+        "routing_decision.json",
+        "final_structured_payload.json",
+        "evaluation_document.json",
+    ):
+        assert (folder / name).is_file()
 
 
 def test_evaluate_corpus_clean_exit_zero(tmp_path: Path) -> None:

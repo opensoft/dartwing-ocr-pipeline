@@ -6,6 +6,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Iterable
 
 from ledgerlinc_ocr.evaluator.compare import FieldResult
 from ledgerlinc_ocr.evaluator.document import DocumentEvaluation, evaluate_document
@@ -377,6 +378,7 @@ def evaluate_corpus(
     contract_set_version: str | None = None,
     lazy: bool = True,
     refresh: bool = False,
+    document_folders: Iterable[Path] | None = None,
 ) -> "RunSummaryOutcome":  # type: ignore[name-defined]  # noqa: F821
     """Evaluate every per-document folder under `root` and write
     `evaluation_run_summary.json` (FR-015–FR-017).
@@ -402,7 +404,12 @@ def evaluate_corpus(
     root = Path(root)
     pinned = contract_set_version or CONTRACT_SET_VERSION
 
-    folders = list_document_folders(root)
+    if document_folders is None:
+        folders = list_document_folders(root)
+    else:
+        folders = [Path(folder) for folder in document_folders]
+        if not folders:
+            raise EmptyCorpusError("no prepared document folders available to evaluate")
 
     evaluations: list[DocumentEvaluation] = []
     per_document_outcomes: list[DocumentEvaluationOutcome] = []

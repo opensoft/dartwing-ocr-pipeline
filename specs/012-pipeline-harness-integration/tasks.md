@@ -11,8 +11,8 @@
 
 **Purpose**: Add the harness-side invocation seam without changing evaluator behavior yet.
 
-- [ ] T001 Create the subprocess pipeline invocation module in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
-- [ ] T002 [P] Add focused unit tests for command construction and run-summary parsing in `tests/evaluator_tests/test_pipeline_invocation.py`
+- [X] T001 Create the subprocess pipeline invocation module in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
+- [X] T002 [P] Add focused unit tests for command construction and run-summary parsing in `tests/evaluator_tests/test_pipeline_invocation.py`
 
 ---
 
@@ -20,9 +20,9 @@
 
 **Purpose**: Wire shared CLI arguments and corpus subset support needed by all user stories.
 
-- [ ] T003 Add shared evaluator CLI pipeline-preparation arguments in `src/ledgerlinc_ocr/evaluator/cli.py`
-- [ ] T004 Extend `evaluate_corpus` with an internal optional document-folder subset in `src/ledgerlinc_ocr/evaluator/corpus.py`
-- [ ] T005 [P] Preserve the evaluator import barrier coverage in `tests/evaluator_tests/test_import_barrier.py`
+- [X] T003 Add shared evaluator CLI pipeline-preparation arguments in `src/ledgerlinc_ocr/evaluator/cli.py`
+- [X] T004 Extend `evaluate_corpus` with an internal optional document-folder subset in `src/ledgerlinc_ocr/evaluator/corpus.py`
+- [X] T005 [P] Preserve the evaluator import barrier coverage in `tests/evaluator_tests/test_import_barrier.py`
 
 **Checkpoint**: Foundation ready - user story implementation can begin.
 
@@ -36,13 +36,13 @@
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Add document pipeline-preparation CLI integration test in `tests/evaluator_tests/test_cli.py`
-- [ ] T007 [P] [US1] Add document preparation failure test in `tests/evaluator_tests/test_pipeline_invocation.py`
+- [X] T006 [P] [US1] Add document pipeline-preparation CLI integration test in `tests/evaluator_tests/test_cli.py`
+- [X] T007 [P] [US1] Add document preparation failure test in `tests/evaluator_tests/test_pipeline_invocation.py`
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Invoke the pipeline before document evaluation when `--run-pipeline` is set in `src/ledgerlinc_ocr/evaluator/cli.py`
-- [ ] T009 [US1] Map pipeline preparation failures to evaluator hard-error code `3` with clear stderr messages in `src/ledgerlinc_ocr/evaluator/cli.py`
+- [X] T008 [US1] Invoke the pipeline before document evaluation when `--run-pipeline` is set in `src/ledgerlinc_ocr/evaluator/cli.py`
+- [X] T009 [US1] Map pipeline preparation failures to evaluator hard-error code `3` with clear stderr messages in `src/ledgerlinc_ocr/evaluator/cli.py`
 
 **Checkpoint**: User Story 1 is independently functional.
 
@@ -56,14 +56,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T010 [P] [US2] Add corpus warm preparation integration test in `tests/integration/test_evaluator_pipeline_harness.py`
-- [ ] T011 [P] [US2] Add continue-through-failures corpus test in `tests/evaluator_tests/test_pipeline_invocation.py`
+- [X] T010 [P] [US2] Add corpus warm preparation integration test in `tests/integration/test_evaluator_pipeline_harness.py`
+- [X] T011 [P] [US2] Add continue-through-failures corpus test in `tests/evaluator_tests/test_pipeline_invocation.py`
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Discover corpus folders and invoke warm pipeline preparation through a temporary documents file in `src/ledgerlinc_ocr/evaluator/cli.py`
-- [ ] T013 [US2] Evaluate only successfully prepared folders after continue-mode preparation in `src/ledgerlinc_ocr/evaluator/corpus.py`
-- [ ] T014 [US2] Report preparation counts and failures to stderr without changing corpus Markdown stdout in `src/ledgerlinc_ocr/evaluator/cli.py`
+- [X] T012 [US2] Discover corpus folders and invoke warm pipeline preparation through a temporary documents file in `src/ledgerlinc_ocr/evaluator/cli.py`
+- [X] T013 [US2] Evaluate only successfully prepared folders after continue-mode preparation in `src/ledgerlinc_ocr/evaluator/corpus.py`
+- [X] T014 [US2] Report preparation counts and failures to stderr without changing corpus Markdown stdout in `src/ledgerlinc_ocr/evaluator/cli.py`
 
 **Checkpoint**: User Stories 1 and 2 are independently functional.
 
@@ -77,13 +77,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T015 [P] [US3] Add stub-default command construction tests in `tests/evaluator_tests/test_pipeline_invocation.py`
-- [ ] T016 [P] [US3] Add explicit stack/profile passthrough tests in `tests/evaluator_tests/test_pipeline_invocation.py`
+- [X] T015 [P] [US3] Add stub-default command construction tests in `tests/evaluator_tests/test_pipeline_invocation.py`
+- [X] T016 [P] [US3] Add explicit stack/profile passthrough tests in `tests/evaluator_tests/test_pipeline_invocation.py`
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Implement stub-safe default profile selection in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
-- [ ] T018 [US3] Implement stack preset, per-stage profile, slice, endpoint, timeout, and overwrite passthrough in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
+- [X] T017 [US3] Implement stub-safe default profile selection in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
+- [X] T018 [US3] Implement stack preset, per-stage profile, slice, endpoint, timeout, and overwrite passthrough in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
 
 **Checkpoint**: User Stories 1, 2, and 3 are functional.
 
@@ -97,13 +97,13 @@
 
 ### Tests for User Story 4
 
-- [ ] T019 [P] [US4] Add warm metadata parsing tests in `tests/evaluator_tests/test_pipeline_invocation.py`
-- [ ] T020 [P] [US4] Add CLI stderr metadata test in `tests/integration/test_evaluator_pipeline_harness.py`
+- [X] T019 [P] [US4] Add warm metadata parsing tests in `tests/evaluator_tests/test_pipeline_invocation.py`
+- [X] T020 [P] [US4] Add CLI stderr metadata test in `tests/integration/test_evaluator_pipeline_harness.py`
 
 ### Implementation for User Story 4
 
-- [ ] T021 [US4] Parse warm run summary metadata in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
-- [ ] T022 [US4] Print preparation metadata to stderr from corpus CLI handling in `src/ledgerlinc_ocr/evaluator/cli.py`
+- [X] T021 [US4] Parse warm run summary metadata in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
+- [X] T022 [US4] Print preparation metadata to stderr from corpus CLI handling in `src/ledgerlinc_ocr/evaluator/cli.py`
 
 **Checkpoint**: All user stories are functional.
 
@@ -113,8 +113,8 @@
 
 **Purpose**: Documentation and validation.
 
-- [ ] T023 [P] Update 012 quickstart if implementation flags differ in `specs/012-pipeline-harness-integration/quickstart.md`
-- [ ] T024 Run focused evaluator and integration tests for 012
+- [X] T023 [P] Update 012 quickstart if implementation flags differ in `specs/012-pipeline-harness-integration/quickstart.md`
+- [X] T024 Run focused evaluator and integration tests for 012
 - [ ] T025 Commit implementation and test changes for 012
 
 ---
