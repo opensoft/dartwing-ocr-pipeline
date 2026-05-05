@@ -123,16 +123,59 @@ def _add_pipeline_preparation_arguments(
             default="continue",
             help="Warm corpus pipeline failure policy (default: continue).",
         )
-    group.add_argument("--stack-preset", default=None)
-    group.add_argument("--preprocess-profile", default=None)
-    group.add_argument("--extract-profile", default=None)
-    group.add_argument("--routing-profile", default=None)
-    group.add_argument("--final-payload-profile", default=None)
-    group.add_argument("--start-at", default=None)
-    group.add_argument("--stop-after", default=None)
-    group.add_argument("--ollama-url", default=None)
-    group.add_argument("--ollama-cpu-url", default=None)
-    group.add_argument("--ollama-jetson-url", default=None)
+    group.add_argument(
+        "--stack-preset",
+        default=None,
+        help=(
+            "Pipeline stack preset to run before evaluation. If omitted with "
+            "--run-pipeline and no explicit stage profiles, all stages use stub."
+        ),
+    )
+    group.add_argument(
+        "--preprocess-profile",
+        default=None,
+        help="Pipeline preprocessing profile passed through to the controller.",
+    )
+    group.add_argument(
+        "--extract-profile",
+        default=None,
+        help="Pipeline extraction profile passed through to the controller.",
+    )
+    group.add_argument(
+        "--routing-profile",
+        default=None,
+        help="Pipeline routing profile passed through to the controller.",
+    )
+    group.add_argument(
+        "--final-payload-profile",
+        default=None,
+        help="Pipeline final-payload profile passed through to the controller.",
+    )
+    group.add_argument(
+        "--start-at",
+        default=None,
+        help="First pipeline stage to run before evaluation.",
+    )
+    group.add_argument(
+        "--stop-after",
+        default=None,
+        help="Last pipeline stage to run before evaluation.",
+    )
+    group.add_argument(
+        "--ollama-url",
+        default=None,
+        help="GPU Ollama endpoint forwarded to pipeline preparation.",
+    )
+    group.add_argument(
+        "--ollama-cpu-url",
+        default=None,
+        help="CPU Ollama endpoint forwarded to pipeline preparation.",
+    )
+    group.add_argument(
+        "--ollama-jetson-url",
+        default=None,
+        help="Jetson Ollama endpoint forwarded to pipeline preparation.",
+    )
     group.add_argument(
         "--timeout",
         type=int,

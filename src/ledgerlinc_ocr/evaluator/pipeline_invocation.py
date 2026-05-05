@@ -50,8 +50,9 @@ class PipelinePreparationRequest:
 
     @property
     def uses_stub_defaults(self) -> bool:
-        return not any(
-            (
+        return all(
+            value is None
+            for value in (
                 self.stack_preset,
                 self.preprocess_profile,
                 self.extract_profile,

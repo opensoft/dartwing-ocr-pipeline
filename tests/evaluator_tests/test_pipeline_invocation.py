@@ -53,7 +53,7 @@ def test_build_document_command_preserves_explicit_stack_and_profiles(
         overwrite=True,
         stack_preset="full-workstation",
         extract_profile="ollama@cpu",
-        ollama_cpu_url="http://host.docker.internal:11435",
+        ollama_cpu_url="https://ollama-cpu.example.invalid",
         timeout=30,
     )
 
@@ -65,9 +65,25 @@ def test_build_document_command_preserves_explicit_stack_and_profiles(
     assert command[command.index("--extract-profile") + 1] == "ollama@cpu"
     assert "--preprocess-profile" not in command
     assert command[command.index("--ollama-cpu-url") + 1] == (
-        "http://host.docker.internal:11435"
+        "https://ollama-cpu.example.invalid"
     )
     assert command[command.index("--timeout") + 1] == "30"
+
+
+def test_empty_profile_string_is_passed_to_pipeline_for_rejection(
+    tmp_path: Path,
+) -> None:
+    request = PipelinePreparationRequest(
+        target="document",
+        path=tmp_path / "inv_001_easy",
+        contract_set_version="1.1.0",
+        extract_profile="",
+    )
+
+    command = build_pipeline_command(request)
+
+    assert "--preprocess-profile" not in command
+    assert command[command.index("--extract-profile") + 1] == ""
 
 
 def test_parse_pipeline_run_summary_returns_last_summary_line() -> None:
@@ -104,12 +120,12 @@ def test_run_corpus_preparation_parses_successes_and_failures(monkeypatch) -> No
         "per_document": [
             {
                 "document_id": "inv_001",
-                "folder": "/tmp/inv_001_easy",
+                "folder": "build/evaluator/inv_001_easy",
                 "status": "success",
             },
             {
                 "document_id": "inv_002",
-                "folder": "/tmp/inv_002_easy",
+                "folder": "build/evaluator/inv_002_easy",
                 "status": "failure",
                 "failed_stage": "preprocess",
                 "exit_code": 11,
@@ -135,18 +151,21 @@ def test_run_corpus_preparation_parses_successes_and_failures(monkeypatch) -> No
     )
     request = PipelinePreparationRequest(
         target="corpus",
-        path=Path("/tmp/corpus"),
+        path=Path("build/evaluator/corpus"),
         contract_set_version="1.1.0",
         on_failure="continue",
     )
 
     outcome = run_corpus_preparation(
         request,
-        [Path("/tmp/inv_001_easy"), Path("/tmp/inv_002_easy")],
+        [
+            Path("build/evaluator/inv_001_easy"),
+            Path("build/evaluator/inv_002_easy"),
+        ],
     )
 
     assert outcome.return_code == 11
-    assert outcome.prepared_folders == (Path("/tmp/inv_001_easy"),)
+    assert outcome.prepared_folders == (Path("build/evaluator/inv_001_easy"),)
     assert len(outcome.failed_documents) == 1
     assert outcome.failed_documents[0].failed_stage == "preprocess"
     report = format_corpus_preparation_report(outcome)
