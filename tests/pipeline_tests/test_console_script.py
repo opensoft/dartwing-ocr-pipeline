@@ -35,5 +35,5 @@ def test_console_script_matches_module_invocation(
     )
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout.strip())
-    assert payload["document_id"] == "inv_001"
+    assert payload["document_id"] == "inv_001_easy"
     assert payload["decision"] == "edge_accept"

@@ -1,10 +1,21 @@
 """T047: folder-layout contract — required files, conditional notes.md, reserved names."""
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
+
+import pytest
 
 from ledgerlinc_ocr.validator import validate_folder
 from ledgerlinc_ocr.validator.report import Severity, ViolationCode
+
+
+@pytest.fixture(autouse=True)
+def _pdf_readability_is_not_under_test(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "ledgerlinc_ocr.validator.folder._check_source_pdf_readable",
+        lambda _path, *, target: [],
+    )
 
 
 def test_good_folder_passes(good_fixtures_root: Path) -> None:
@@ -14,6 +25,34 @@ def test_good_folder_passes(good_fixtures_root: Path) -> None:
         (v.violation_code, v.field_path, v.reason) for v in outcome.violations
     ]
     assert outcome.counts.warning == 0
+
+
+def test_expected_document_id_must_match_full_folder_name(
+    good_fixtures_root: Path,
+    tmp_path: Path,
+) -> None:
+    source = good_fixtures_root / "folders" / "inv_001_easy"
+    folder = tmp_path / "inv_001_easy"
+
+    shutil.copytree(source, folder)
+    expected = folder / "expected.json"
+    expected.write_text(
+        expected.read_text(encoding="utf-8").replace(
+            '"document_id": "inv_001_easy"',
+            '"document_id": "inv_001"',
+        ),
+        encoding="utf-8",
+    )
+
+    outcome = validate_folder(folder)
+
+    assert outcome.passed is False
+    offenders = [
+        v for v in outcome.violations
+        if v.field_path == "/expected.json#/document_id"
+    ]
+    assert offenders
+    assert "full folder name" in offenders[0].expected
 
 
 def test_missing_notes_on_hard_fails(bad_fixtures_root: Path) -> None:

@@ -1,6 +1,6 @@
 {
   "contract_set_version": "1.0.0",
-  "document_id": "inv_004",
+  "document_id": "inv_004_easy",
   "difficulty": "easy",
   "challenge_tags": ["explicit_company_name"],
   "expected_review": {

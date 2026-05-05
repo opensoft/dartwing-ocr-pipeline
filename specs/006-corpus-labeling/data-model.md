@@ -31,7 +31,7 @@ Filesystem directory that aggregates the 20 per-document folders.
   - 20 folders total (FR-001, SC-002).
   - Difficulty distribution: exactly 5/5/5/5 across `easy`/`medium`/`hard`/`missing_name` (FR-001).
   - Numeric prefixes contiguous from `001` through `020` with no gaps (FR-002).
-  - `document_id` derived from folder names is unique across the corpus (FR-002).
+  - `document_id` derived from folder names equals the full folder name and is unique across the corpus (FR-002).
 - **Validator**: `validate_corpus()` in `src/ledgerlinc_ocr/validator/corpus.py`.
 
 ### 2. DocumentFolder
@@ -46,7 +46,7 @@ One real-world invoice's on-disk home.
 - **Forbidden at ship time**:
   - Reserved generated filenames: `preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, `final_structured_payload.json`, `evaluation_document.json`.
   - Ensemble-reserved: `votes/` subdirectory and `consensus_output.json` file.
-- **Derived value**: `document_id` = the folder name with its `_<difficulty>` suffix stripped (e.g., `inv_007_hard/` → `document_id = "inv_007"`).
+- **Derived value**: `document_id` = the full folder name (e.g., `inv_007_hard/` -> `document_id = "inv_007_hard"`).
 
 ### 3. SourcePDF
 
@@ -69,7 +69,7 @@ Hand-authored ground truth for one document.
 | Key | Type | Notes |
 |-----|------|-------|
 | `contract_set_version` | string matching `^\d+\.\d+\.\d+$` | Must equal `"1.0.0"` in this feature (FR-004). |
-| `document_id` | non-empty string | Equals the folder's `inv_NNN` prefix (FR-005). |
+| `document_id` | non-empty string | Equals the full folder name (FR-005). |
 | `difficulty` | enum (`easy` / `medium` / `hard` / `missing_name`) | Must equal the folder-name suffix (FR-005). |
 | `challenge_tags` | array of unique strings, closed vocabulary | 18 allowed values per schema (FR-006); coverage rules in FR-015 / FR-016. |
 | `expected_review` | object with `manual_review_required` (bool) + `review_reason` (string / null) | Missing-name docs: `true` + `"company_name_inferred"` (FR-008). |

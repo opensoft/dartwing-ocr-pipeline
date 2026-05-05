@@ -225,6 +225,32 @@ _STAGE_COMPUTE_PHASE: dict[Stage, str] = {
 }
 
 
+def _format_stage_exception(
+    exc: Exception, *, profile: StageProfile | None = None
+) -> str:
+    if isinstance(exc, ModuleNotFoundError):
+        missing = exc.name or str(exc) or type(exc).__name__
+        suffix = (
+            f" for selected profile {profile.raw_value}"
+            if profile is not None else ""
+        )
+        return (
+            f"missing runtime dependency{suffix}: {missing}. "
+            f"Install the selected live runtime dependencies or use stub profiles."
+        )
+    if isinstance(exc, ImportError):
+        suffix = (
+            f" for selected profile {profile.raw_value}"
+            if profile is not None else ""
+        )
+        return (
+            f"could not import runtime dependency{suffix}: "
+            f"{str(exc) or type(exc).__name__}. "
+            f"Install the selected live runtime dependencies or use stub profiles."
+        )
+    return str(exc) or type(exc).__name__
+
+
 def _prerequisite_failure(check: Any, timings: DocumentTimings) -> RunResult:
     if check.missing_artifact is not None:
         return RunResult(
@@ -442,9 +468,18 @@ class Runner:
         invocation = plan.cli_invocation
         failure_stage_name = _STAGE_FAILURE_NAMES[stage]
         stage_timing = timings.get_or_create(stage)
-        stage_callable = self._resolve_callable_for_stage(
-            stage=stage, filename=filename, plan=plan
-        )
+        try:
+            stage_callable = self._resolve_callable_for_stage(
+                stage=stage, filename=filename, plan=plan
+            )
+        except Exception as exc:  # noqa: BLE001 -- contract: convert to failure
+            return RunResult(
+                exit_code=_classify_stage_exception(exc),
+                artifacts_written=artifacts_written,
+                stage=failure_stage_name,
+                message=_format_stage_exception(exc, profile=plan.profiles[stage]),
+                timings=timings,
+            )
 
         with measure_total(stage_timing):
             with measure_phase(stage_timing, _STAGE_COMPUTE_PHASE[stage]):
@@ -455,7 +490,9 @@ class Runner:
                         exit_code=_classify_stage_exception(exc),
                         artifacts_written=artifacts_written,
                         stage=failure_stage_name,
-                        message=str(exc) or type(exc).__name__,
+                        message=_format_stage_exception(
+                            exc, profile=plan.profiles[stage]
+                        ),
                         timings=timings,
                     )
             if isinstance(output, StageRunOutput):

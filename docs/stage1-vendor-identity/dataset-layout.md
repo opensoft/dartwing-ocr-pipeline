@@ -75,6 +75,18 @@ Allowed values:
 - `hard`
 - `missing_name`
 
+## `document_id`
+
+The stage 1 corpus `document_id` is the full per-document folder name, including the difficulty suffix.
+
+Examples:
+
+- folder `inv_001_easy/` -> `document_id` `"inv_001_easy"`
+- folder `inv_011_hard/` -> `document_id` `"inv_011_hard"`
+- folder `inv_016_missing_name/` -> `document_id` `"inv_016_missing_name"`
+
+The numeric prefix alone, such as `"inv_001"`, is not the corpus `document_id`.
+
 ## `challenge_tags`
 
 **Frozen at contract-set version `1.0.0`.** The validator rejects any `challenge_tags` value outside this closed vocabulary. Additions require the amendment path (`contracts/stage1_vendor_identity/AMENDMENTS.md`) and a contract-set version bump.

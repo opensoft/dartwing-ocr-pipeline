@@ -224,6 +224,26 @@ def validate_folder(
         d = expected_doc.get("difficulty")
         if isinstance(d, str):
             difficulty = d
+        expected_document_id = expected_doc.get("document_id")
+        if (
+            matched
+            and isinstance(expected_document_id, str)
+            and expected_document_id != folder.name
+        ):
+            findings.append(
+                Violation(
+                    severity=Severity.ERROR,
+                    target=target,
+                    field_path="/expected.json#/document_id",
+                    violation_code=ViolationCode.FOLDER_NAME_INVALID,
+                    reason=(
+                        f"expected.json document_id {expected_document_id!r} "
+                        f"does not match folder name {folder.name!r}."
+                    ),
+                    expected="stage 1 document_id equals the full folder name",
+                    source_file=str(folder / "expected.json"),
+                )
+            )
     # Fall back on folder-name suffix if expected.json is missing or bad
     if difficulty is None:
         difficulty = difficulty_from_name

@@ -44,7 +44,7 @@ def _stage_pipeline_document(tmp_path: Path) -> Path:
     (folder / "evaluation_document.json").unlink()
     expected_path = folder / "expected.json"
     expected = json.loads(expected_path.read_text(encoding="utf-8"))
-    expected["document_id"] = "inv_001"
+    expected["document_id"] = "inv_001_easy"
     expected_path.write_text(json.dumps(expected, indent=2), encoding="utf-8")
     return folder
 
@@ -106,6 +106,14 @@ def test_evaluate_document_run_pipeline_clean_exit_zero(tmp_path: Path) -> None:
         "evaluation_document.json",
     ):
         assert (folder / name).is_file()
+    final_payload = json.loads(
+        (folder / "final_structured_payload.json").read_text(encoding="utf-8")
+    )
+    evaluation = json.loads(
+        (folder / "evaluation_document.json").read_text(encoding="utf-8")
+    )
+    assert final_payload["document_id"] == "inv_001_easy"
+    assert evaluation["document_id"] == "inv_001_easy"
 
 
 def test_evaluate_corpus_clean_exit_zero(tmp_path: Path) -> None:

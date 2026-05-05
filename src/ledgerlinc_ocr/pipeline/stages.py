@@ -421,15 +421,13 @@ def _ollama_extract_factory(lane: str) -> Callable[["ResolvedRunPlan"], StageCal
     it from there if no ``base_url`` is supplied; we explicitly pass
     ``base_url`` so the env is not relied on at call time.
     """
-    import json
-    import os
-    from pathlib import Path
-
-    from ledgerlinc_ocr.extract.config import load_voter_config
-    from ledgerlinc_ocr.extract.pipeline import run as extract_run
-    from ledgerlinc_ocr.extract.voters.ollama import OllamaVoter
-
     def factory(plan: "ResolvedRunPlan") -> StageCallable:
+        import json
+
+        from ledgerlinc_ocr.extract.config import load_voter_config
+        from ledgerlinc_ocr.extract.pipeline import run as extract_run
+        from ledgerlinc_ocr.extract.voters.ollama import OllamaVoter
+
         url = plan.ollama_endpoints.for_lane(lane)
         voter_config, voter_config_path, _extensions = load_voter_config(
             "gemma-edge",

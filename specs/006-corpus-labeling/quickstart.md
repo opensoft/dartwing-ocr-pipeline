@@ -80,7 +80,7 @@ Create `tests/stage1_vendor_identity/inv_007_hard/expected.json` following this 
 ```json
 {
   "contract_set_version": "1.0.0",
-  "document_id": "inv_007",
+  "document_id": "inv_007_hard",
   "difficulty": "hard",
   "challenge_tags": [
     "explicit_company_name",
@@ -122,7 +122,7 @@ Create `tests/stage1_vendor_identity/inv_007_hard/expected.json` following this 
 ### Field rules (summary)
 
 - `contract_set_version`: always `"1.0.0"` in this release.
-- `document_id`: equals the folder's `inv_NNN` prefix, no suffix.
+- `document_id`: equals the full folder name, including the difficulty suffix.
 - `difficulty`: equals the folder-name suffix.
 - `challenge_tags`: closed vocabulary of 18 values. Include `explicit_company_name` for every non-missing doc and `missing_company_name` for every missing-name doc. Nothing else is invariant, but see FR-015 for the critical-tags coverage requirement across the corpus.
 - `expected_review.manual_review_required`: `true` only for missing-name docs (or other reviewer-identified ambiguity); `review_reason` then equals `"company_name_inferred"`.

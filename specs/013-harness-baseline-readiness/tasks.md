@@ -11,9 +11,9 @@
 
 **Purpose**: Confirm the starting failure modes and locate the exact surfaces that must change.
 
-- [ ] T001 Inventory active `document_id` rule references in `docs/stage1-vendor-identity/`, `specs/006-corpus-labeling/`, `src/ledgerlinc_ocr/pipeline/path_resolution.py`, and `tests/`.
-- [ ] T002 [P] Reproduce the committed-corpus document mismatch with evaluator `--run-pipeline` against a temporary copy of `tests/stage1_vendor_identity/inv_001_easy`.
-- [ ] T003 [P] Reproduce the real-profile missing-dependency failure shape through the evaluator or pipeline CLI using `tests/stage1_vendor_identity/inv_001_easy`.
+- [X] T001 Inventory active `document_id` rule references in `docs/stage1-vendor-identity/`, `specs/006-corpus-labeling/`, `src/ledgerlinc_ocr/pipeline/path_resolution.py`, and `tests/`.
+- [X] T002 [P] Reproduce the committed-corpus document mismatch with evaluator `--run-pipeline` against a temporary copy of `tests/stage1_vendor_identity/inv_001_easy`.
+- [X] T003 [P] Reproduce the real-profile missing-dependency failure shape through the evaluator or pipeline CLI using `tests/stage1_vendor_identity/inv_001_easy`.
 
 ---
 
@@ -21,9 +21,9 @@
 
 **Purpose**: Establish the single ID rule and avoid schema/runtime boundary drift before story work.
 
-- [ ] T004 Identify all pipeline call sites that consume `derive_document_id()` in `src/ledgerlinc_ocr/pipeline/cli.py` and `src/ledgerlinc_ocr/pipeline/corpus_run.py`.
-- [ ] T005 Ensure `src/ledgerlinc_ocr/pipeline/cli.py` and `src/ledgerlinc_ocr/pipeline/corpus_run.py` continue to use the shared path-resolution helper instead of local numeric-prefix parsing.
-- [ ] T006 Confirm no artifact schema files under `contracts/` or `docs/stage1-vendor-identity/schemas.md` require a schema version change.
+- [X] T004 Identify all pipeline call sites that consume `derive_document_id()` in `src/ledgerlinc_ocr/pipeline/cli.py` and `src/ledgerlinc_ocr/pipeline/corpus_run.py`.
+- [X] T005 Ensure `src/ledgerlinc_ocr/pipeline/cli.py` and `src/ledgerlinc_ocr/pipeline/corpus_run.py` continue to use the shared path-resolution helper instead of local numeric-prefix parsing.
+- [X] T006 Confirm no artifact schema files under `contracts/` or `docs/stage1-vendor-identity/schemas.md` require a schema version change.
 
 **Checkpoint**: The repository has one implementation source for deriving the stage 1 corpus `document_id`.
 
@@ -37,15 +37,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Update path-resolution unit coverage in `tests/pipeline_tests/test_path_resolution.py` for `inv_001_easy -> inv_001_easy` and invalid folder rejection.
-- [ ] T008 [P] [US1] Add evaluator document-mode smoke coverage in `tests/evaluator_tests/test_cli.py` using an unmodified copy of `tests/stage1_vendor_identity/inv_001_easy`.
-- [ ] T009 [P] [US1] Add warm/corpus preparation coverage in `tests/integration/test_evaluator_pipeline_harness.py` proving committed folders keep full folder-name IDs.
+- [X] T007 [P] [US1] Update path-resolution unit coverage in `tests/pipeline_tests/test_path_resolution.py` for `inv_001_easy -> inv_001_easy` and invalid folder rejection.
+- [X] T008 [P] [US1] Add evaluator document-mode smoke coverage in `tests/evaluator_tests/test_cli.py` using an unmodified copy of `tests/stage1_vendor_identity/inv_001_easy`.
+- [X] T009 [P] [US1] Add warm/corpus preparation coverage in `tests/integration/test_evaluator_pipeline_harness.py` proving committed folders keep full folder-name IDs.
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Update `src/ledgerlinc_ocr/pipeline/path_resolution.py` tests and implementation so generated pipeline artifacts use full folder-name IDs.
-- [ ] T011 [US1] Update any affected assertions in `tests/pipeline_tests/` and `tests/evaluator_tests/` that assumed numeric-prefix IDs for corpus folder runs.
-- [ ] T012 [US1] Validate US1 with `PYTHONPATH=src python -m pytest tests/pipeline_tests/test_path_resolution.py tests/evaluator_tests/test_cli.py tests/integration/test_evaluator_pipeline_harness.py`.
+- [X] T010 [US1] Update `src/ledgerlinc_ocr/pipeline/path_resolution.py` tests and implementation so generated pipeline artifacts use full folder-name IDs.
+- [X] T011 [US1] Update any affected assertions in `tests/pipeline_tests/` and `tests/evaluator_tests/` that assumed numeric-prefix IDs for corpus folder runs.
+- [X] T012 [US1] Validate US1 with `PYTHONPATH=src python -m pytest tests/pipeline_tests/test_path_resolution.py tests/evaluator_tests/test_cli.py tests/integration/test_evaluator_pipeline_harness.py`.
 
 **Checkpoint**: User Story 1 is complete and independently testable.
 
@@ -59,13 +59,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Add or update corpus labeling/validator assertions in `tests/contract_tests/test_folder_contract.py` so full folder-name labels are the expected contract.
+- [X] T013 [P] [US2] Add or update corpus labeling/validator assertions in `tests/contract_tests/test_folder_contract.py` so full folder-name labels are the expected contract.
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Update `docs/stage1-vendor-identity/dataset-layout.md`, `docs/stage1-vendor-identity/labeling-guide.md`, and any relevant `docs/stage1-vendor-identity/schemas.md` examples to consistently describe the full folder-name ID rule without changing schemas.
-- [ ] T015 [US2] Update conflicting active Speckit artifacts in `specs/006-corpus-labeling/spec.md` and `specs/006-corpus-labeling/data-model.md` to remove numeric-prefix-only guidance.
-- [ ] T016 [US2] Validate US2 with targeted `rg` checks plus `PYTHONPATH=src python -m pytest tests/contract_tests/test_folder_contract.py tests/pipeline_tests/test_path_resolution.py`.
+- [X] T014 [US2] Update `docs/stage1-vendor-identity/dataset-layout.md`, `docs/stage1-vendor-identity/labeling-guide.md`, and any relevant `docs/stage1-vendor-identity/schemas.md` examples to consistently describe the full folder-name ID rule without changing schemas.
+- [X] T015 [US2] Update conflicting active Speckit artifacts in `specs/006-corpus-labeling/spec.md` and `specs/006-corpus-labeling/data-model.md` to remove numeric-prefix-only guidance.
+- [X] T016 [US2] Validate US2 with targeted `rg` checks plus `PYTHONPATH=src python -m pytest tests/contract_tests/test_folder_contract.py tests/pipeline_tests/test_path_resolution.py`.
 
 **Checkpoint**: User Story 2 is complete and independently testable.
 
@@ -79,15 +79,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T017 [P] [US3] Add runner coverage in `tests/pipeline_tests/test_stage_failure_labels.py` for a live adapter factory raising `ModuleNotFoundError`.
-- [ ] T018 [P] [US3] Add evaluator coverage in `tests/evaluator_tests/test_cli.py` proving missing-dependency preparation errors omit raw tracebacks.
+- [X] T017 [P] [US3] Add runner coverage in `tests/pipeline_tests/test_stage_failure_labels.py` for a live adapter factory raising `ModuleNotFoundError`.
+- [X] T018 [P] [US3] Add evaluator coverage in `tests/evaluator_tests/test_pipeline_invocation.py` proving missing-dependency preparation errors omit raw tracebacks.
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Update `src/ledgerlinc_ocr/pipeline/runner.py` so stage callable resolution errors are converted to `RunResult` failures with the correct stage and exit code.
-- [ ] T020 [US3] Add concise missing-dependency/profile formatting in `src/ledgerlinc_ocr/pipeline/runner.py` while preserving stub-safe imports.
-- [ ] T021 [US3] Verify `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py` surfaces the structured pipeline failure without new traceback handling changes.
-- [ ] T022 [US3] Validate US3 with `PYTHONPATH=src python -m pytest tests/pipeline_tests/test_stage_failure_labels.py tests/evaluator_tests/test_cli.py`.
+- [X] T019 [US3] Update `src/ledgerlinc_ocr/pipeline/runner.py` so stage callable resolution errors are converted to `RunResult` failures with the correct stage and exit code.
+- [X] T020 [US3] Add concise missing-dependency/profile formatting in `src/ledgerlinc_ocr/pipeline/runner.py` while preserving stub-safe imports.
+- [X] T021 [US3] Verify `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py` surfaces the structured pipeline failure without new traceback handling changes.
+- [X] T022 [US3] Validate US3 with `PYTHONPATH=src python -m pytest tests/pipeline_tests/test_stage_failure_labels.py tests/evaluator_tests/test_pipeline_invocation.py`.
 
 **Checkpoint**: User Story 3 is complete and independently testable.
 
@@ -97,10 +97,10 @@
 
 **Purpose**: Final validation across the feature contract.
 
-- [ ] T023 Run the quickstart document smoke from `specs/013-harness-baseline-readiness/quickstart.md` in `py-bench`.
-- [ ] T024 Run `PYTHONPATH=src python -m pytest tests/pipeline_tests/test_path_resolution.py tests/pipeline_tests/test_stage_failure_labels.py tests/evaluator_tests/test_cli.py tests/integration/test_evaluator_pipeline_harness.py` in `py-bench`.
-- [ ] T025 Verify no JSON schema files under `contracts/` or `docs/stage1-vendor-identity/schemas.md` were modified and generated artifacts retain existing filenames.
-- [ ] T026 Review `specs/013-harness-baseline-readiness/spec.md`, `plan.md`, `tasks.md`, and checklists for consistency before PR creation.
+- [X] T023 Run the quickstart document smoke from `specs/013-harness-baseline-readiness/quickstart.md` in `py-bench`.
+- [X] T024 Run `PYTHONPATH=src python -m pytest tests/pipeline_tests/test_path_resolution.py tests/pipeline_tests/test_stage_failure_labels.py tests/evaluator_tests/test_cli.py tests/evaluator_tests/test_pipeline_invocation.py tests/integration/test_evaluator_pipeline_harness.py tests/integration/test_warm_corpus_stub_profiles.py tests/integration/test_warm_corpus_pdf_validation.py tests/contract_tests/test_folder_contract.py` in `py-bench`.
+- [X] T025 Verify no JSON schema files under `contracts/` or `docs/stage1-vendor-identity/schemas.md` were modified and generated artifacts retain existing filenames.
+- [X] T026 Review `specs/013-harness-baseline-readiness/spec.md`, `plan.md`, `tasks.md`, and checklists for consistency before PR creation.
 
 ---
 
@@ -132,7 +132,7 @@
 
 ```text
 Task: "Add runner coverage in tests/pipeline_tests/test_stage_failure_labels.py for a live adapter factory raising ModuleNotFoundError."
-Task: "Add evaluator or CLI coverage in tests/evaluator_tests/test_cli.py or tests/integration/test_evaluator_pipeline_harness.py proving missing-dependency preparation errors omit raw tracebacks."
+Task: "Add evaluator coverage in tests/evaluator_tests/test_pipeline_invocation.py proving missing-dependency preparation errors omit raw tracebacks."
 ```
 
 ## Implementation Strategy

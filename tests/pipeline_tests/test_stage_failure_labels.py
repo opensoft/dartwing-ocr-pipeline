@@ -9,6 +9,10 @@ import pytest
 
 from ledgerlinc_ocr.pipeline.cli import main
 from ledgerlinc_ocr.pipeline.runner import Runner
+from ledgerlinc_ocr.pipeline.stages import (
+    register_live_adapter,
+    reset_live_registry,
+)
 
 
 def _boom(stage_name: str):
@@ -44,3 +48,42 @@ def test_stage_failure_labels(
     rec = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
     assert rec["stage"] == stage_name
     assert len(rec["artifacts_written"]) == expected_count
+
+
+def test_stage_resolution_missing_dependency_is_structured(
+    tmp_document_folder: Callable[..., Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def broken_factory(_plan: object):
+        raise ModuleNotFoundError("No module named 'PIL'", name="PIL")
+
+    register_live_adapter(
+        stage="preprocess",
+        implementation="ppstructurev3",
+        lane="cpu",
+        factory=broken_factory,
+    )
+    try:
+        folder = tmp_document_folder(1, "easy")
+        code = main([
+            "run",
+            "--document-folder", str(folder),
+            "--overwrite",
+            "--preprocess-profile", "ppstructurev3@cpu",
+            "--extract-profile", "stub",
+            "--routing-profile", "stub",
+            "--final-payload-profile", "stub",
+        ])
+    finally:
+        reset_live_registry()
+
+    captured = capsys.readouterr()
+    assert code == 20
+    assert "Traceback" not in captured.err
+    rec = json.loads(captured.err.strip().splitlines()[-1])
+    assert rec["stage"] == "preprocess"
+    assert (
+        "missing runtime dependency for selected profile ppstructurev3@cpu"
+        in rec["message"]
+    )
+    assert "PIL" in rec["message"]

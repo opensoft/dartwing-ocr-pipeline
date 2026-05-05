@@ -29,7 +29,7 @@ def test_stdout_is_single_json_line(
         "review_reason",
         "artifacts",
     }
-    assert payload["document_id"] == "inv_001"
+    assert payload["document_id"] == "inv_001_easy"
     assert payload["decision"] == "edge_accept"
     assert payload["manual_review_required"] is False
     assert payload["review_reason"] is None

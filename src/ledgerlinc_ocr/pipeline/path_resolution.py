@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-_FOLDER_NAME_RE = re.compile(r"^(inv_\d{3})_(easy|medium|hard|missing_name)$")
+_FOLDER_NAME_RE = re.compile(r"^inv_\d{3}_(easy|medium|hard|missing_name)$")
 
 
 class PathResolutionError(ValueError):
@@ -51,4 +51,4 @@ def derive_document_id(dest_folder_name: str) -> str | None:
     m = _FOLDER_NAME_RE.match(dest_folder_name)
     if not m:
         return None
-    return m.group(1)
+    return dest_folder_name

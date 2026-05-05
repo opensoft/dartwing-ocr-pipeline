@@ -37,7 +37,7 @@ def test_overwrite_replaces(
     assert code == 0
     data = json.loads(artifact.read_text())
     assert "sentinel" not in data
-    assert data["document_id"] == "inv_001"
+    assert data["document_id"] == "inv_001_easy"
 
 
 def test_non_reserved_files_never_touched(

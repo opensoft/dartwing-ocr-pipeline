@@ -1,6 +1,6 @@
 {
   "contract_set_version": "1.0.0",
-  "document_id": "inv_003",
+  "document_id": "inv_003_hard",
   "difficulty": "hard",
   "challenge_tags": ["dense_header", "remit_to_differs_from_vendor"],
   "expected_review": {
