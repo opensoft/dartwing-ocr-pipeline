@@ -5,6 +5,12 @@
 **Status**: Draft  
 **Input**: User description: "Make the merged stage 1 harness-controller path ready to run against the committed corpus before adding benchmark helpers. Resolve the document_id mismatch between committed expected.json labels that use full folder names like inv_001_easy and the pipeline controller output that currently derives inv_001, update the authoritative docs/specs/code so one rule is enforced consistently, add a smoke test proving evaluator --run-pipeline works on an unmodified committed corpus document, and replace real full-workstation dependency tracebacks such as missing PIL with clear preflight/operator errors. Keep artifact schemas unchanged and preserve the evaluator/pipeline runtime boundary."
 
+## Clarifications
+
+### Session 2026-05-05
+
+- Q: Which `document_id` rule is authoritative for stage 1 corpus documents? -> A: Use the full corpus folder name, such as `inv_001_easy`, as the shared `document_id`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Evaluate A Committed Corpus Document Without Edits (Priority: P1)
@@ -63,7 +69,7 @@ A developer can attempt a real `full-workstation` harness run and receive an ope
 ### Functional Requirements
 
 - **FR-001**: The project MUST define one authoritative stage 1 corpus `document_id` rule across docs, specs, validator expectations, pipeline path resolution, and evaluator behavior.
-- **FR-002**: The selected `document_id` rule MUST be compatible with the committed `tests/stage1_vendor_identity/*/expected.json` labels unless a deliberate migration updates all labels in the same feature.
+- **FR-002**: Stage 1 corpus `document_id` values MUST use the full corpus folder name, such as `inv_001_easy`, and remain compatible with the committed `tests/stage1_vendor_identity/*/expected.json` labels.
 - **FR-003**: The evaluator `--run-pipeline` document path MUST work on at least one unmodified committed corpus document in stub-safe mode.
 - **FR-004**: The evaluator `--run-pipeline` corpus path MUST be able to prepare and evaluate committed corpus folders without document-id mismatch caused by controller-derived IDs.
 - **FR-005**: The feature MUST preserve existing artifact schemas and filenames.
@@ -92,7 +98,7 @@ A developer can attempt a real `full-workstation` harness run and receive an ope
 
 ## Assumptions
 
-- The current committed corpus labels use full folder names as `document_id`; this feature should either preserve that rule or explicitly migrate all labels and docs.
+- The current committed corpus labels use full folder names as `document_id`; this feature preserves that rule instead of migrating labels.
 - Benchmark/rerun helpers should wait until the committed corpus can run through the merged harness-controller path.
 - Real OCR/model dependency installation is environment setup, not the responsibility of this feature.
 - This feature may update old Speckit documentation when it conflicts with current corpus labeling, but it should not rewrite completed feature history beyond what is necessary to remove active ambiguity.
