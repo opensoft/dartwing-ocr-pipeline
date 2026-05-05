@@ -117,6 +117,8 @@ From the constitution (`.specify/memory/constitution.md`):
 - Filesystem only. JSON artifacts on disk. No database. No model weights. No network calls. (001-freeze-schemas-folder-contracts)
 - Python 3.12 + Python stdlib (`argparse`, `json`, `pathlib`, `subprocess`, `sys`, `tempfile`, `dataclasses`); existing `pydantic`/`jsonschema` evaluator dependencies remain unchanged (012-pipeline-harness-integration)
 - Filesystem-only JSON artifacts in per-document folders and corpus roots (012-pipeline-harness-integration)
+- Python 3.12 + Python stdlib, `pytest`, existing `jsonschema` validation stack; no new runtime dependency (013-harness-baseline-readiness)
+- Filesystem JSON artifacts only (013-harness-baseline-readiness)
 
 ## Recent Changes
 - 001-freeze-schemas-folder-contracts: Added Python 3.12 (matches `.devcontainer/Dockerfile` base image) + `jsonschema >= 4.22` (Draft 2020-12 validator); `pydantic >= 2.7` for the structured-report model and typed CLI results; Python stdlib (`argparse`, `json`, `pathlib`, `dataclasses`). No PyTorch, no PaddleOCR, no network dependencies for this slice.
