@@ -85,6 +85,29 @@ def test_invalid_prerequisite_exits_schema_validation_failure(
     assert not (folder / "routing_decision.json").exists()
 
 
+def test_malformed_prerequisite_json_exits_schema_validation_failure(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    """Unreadable/malformed prerequisite artifacts return a structured failure."""
+    folder = _empty_folder(tmp_path)
+    (folder / "preprocess_output.json").write_text("{", encoding="utf-8")
+
+    code = main([
+        "run",
+        "--document-folder", str(folder),
+        "--start-at", "extract",
+        "--stop-after", "extract",
+        "--extract-profile", "stub",
+    ])
+
+    assert code == 30
+    record = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert record["stage"] == "prerequisite_validation"
+    assert "preprocess_output.json" in record["message"]
+    assert "cannot read or parse artifact" in record["message"]
+    assert not (folder / "edge_extraction_output.json").exists()
+
+
 def test_missing_extraction_prereq_named_in_message(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
     """--start-at extract with no preprocess_output.json: message names the unmet prerequisite."""
     folder = _empty_folder(tmp_path)

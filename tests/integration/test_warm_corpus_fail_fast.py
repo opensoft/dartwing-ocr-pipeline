@@ -27,7 +27,7 @@ MINIMAL_PDF_BYTES = (
 
 def test_fail_fast_stops_after_first_failure(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
     docs_file = tmp_path / "corpus.txt"
-    bad = tmp_path / "no_pdf_here"
+    bad = tmp_path / "inv_998_easy"
     bad.mkdir()
     # Note: NO source.pdf in `bad` -- runner will fail with INPUT_NOT_FOUND.
     later = tmp_path / "inv_999_easy"
@@ -60,4 +60,5 @@ def test_fail_fast_stops_after_first_failure(tmp_path: Path, capsys: pytest.Capt
     per_doc = summary["per_document"]
     assert len(per_doc) == 1
     assert per_doc[0]["status"] == "failure"
+    assert per_doc[0]["document_id"] == "inv_998"
     assert summary["on_failure"] == "fail-fast"

@@ -156,8 +156,8 @@ Expected:
 Add a deliberately-broken folder to the file and rerun:
 
 ```bash
-mkdir -p /tmp/inv_broken && echo "not a pdf" > /tmp/inv_broken/source.pdf
-echo "/tmp/inv_broken" >> /tmp/corpus.txt
+mkdir -p /tmp/inv_999_easy && echo "not a pdf" > /tmp/inv_999_easy/source.pdf
+echo "/tmp/inv_999_easy" >> /tmp/corpus.txt
 
 python -m ledgerlinc_ocr.pipeline run \
     --documents-file /tmp/corpus.txt \
@@ -169,7 +169,7 @@ python -m ledgerlinc_ocr.pipeline run \
 
 Expected:
 
-- Three per-document success records on stdout, one structured failure record on stderr for `/tmp/inv_broken`.
+- Three per-document success records on stdout, one structured failure record on stderr for `/tmp/inv_999_easy`.
 - One `kind: "run_summary"` line with `documents_total: 4`, `documents_succeeded: 3`, `documents_failed: 1`, and a `per_document` entry of status `failure` for the broken folder naming the failed stage and exit code.
 - Process exit code: the highest-severity per-document exit code observed (non-zero), per R-008.
 

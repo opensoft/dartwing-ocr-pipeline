@@ -42,7 +42,7 @@ def _stage_full_artifacts(tmp_path: Path, name: str = "inv_004_easy") -> Path:
 
 
 def test_stop_after_preprocess_with_downstream_artifacts_present_succeeds_no_overwrite(
-    tmp_path: Path,
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ):
     """Positive overwrite scoping (R-006): downstream artifacts that exist on
     disk MUST NOT trigger OUTPUT_IN_USE for a slice that does not write them.
@@ -72,6 +72,10 @@ def test_stop_after_preprocess_with_downstream_artifacts_present_succeeds_no_ove
     assert (folder / "edge_extraction_output.json").read_bytes() == extract_before
     assert (folder / "routing_decision.json").read_bytes() == routing_before
     assert (folder / "final_structured_payload.json").read_bytes() == final_before
+    record = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert record["decision"] is None
+    assert record["manual_review_required"] is False
+    assert record["review_reason"] is None
 
 
 def test_in_slice_artifact_present_blocks_without_overwrite(tmp_path: Path, capsys: pytest.CaptureFixture[str]):

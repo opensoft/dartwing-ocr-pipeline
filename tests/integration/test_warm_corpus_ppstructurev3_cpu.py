@@ -24,10 +24,7 @@ CORPUS_ROOT = REPO_ROOT / "tests" / "stage1_vendor_identity"
 
 @pytest.fixture(autouse=True)
 def opt_in_live_ppstructurev3():
-    """US6 opt-in: register the live ppstructurev3@cpu adapter for this
-    test only and revert at teardown so other tests keep their
-    stub-fallback behavior.
-    """
+    """Ensure the live ppstructurev3@cpu adapter is registered for this test."""
     from ledgerlinc_ocr.pipeline import stages as stages_mod
 
     stages_mod.register_ppstructurev3_cpu()

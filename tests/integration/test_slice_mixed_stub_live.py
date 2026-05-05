@@ -1,14 +1,10 @@
-"""US2 Acceptance Scenario 3: mixed stub upstream + non-stub downstream.
+"""US2 Acceptance Scenario 3: mixed injected/stub stage selection.
 
 Spec User Story 2 Acceptance Scenario 3.
 
-In this slice ('foundation' phase), 'live' adapters for the FR-007
-defaults fall back to the stub callable until US6/US1 land their real
-adapters. The behavior under verification here is *the seam*: a caller
-can mix --preprocess-profile stub (explicit) with the default
---extract-profile (which resolves to ollama@gpu, currently a
-stub-fallback) and the run still produces schema-valid downstream
-artifacts derived from the stub preprocess output.
+The behavior under verification here is *the seam*: a caller can mix an
+explicit stub upstream stage with explicit downstream stage profiles and
+still produce schema-valid artifacts from the injected/stub inputs.
 """
 from __future__ import annotations
 
@@ -32,7 +28,7 @@ MINIMAL_PDF_BYTES = (
 )
 
 
-def test_mixed_stub_upstream_and_default_downstream(tmp_path: Path):
+def test_mixed_explicit_stub_upstream_and_downstream(tmp_path: Path):
     folder = tmp_path / "inv_007_easy"
     folder.mkdir()
     (folder / "source.pdf").write_bytes(MINIMAL_PDF_BYTES)
@@ -40,7 +36,9 @@ def test_mixed_stub_upstream_and_default_downstream(tmp_path: Path):
         "run",
         "--document-folder", str(folder),
         "--preprocess-profile", "stub",
-        # Other stages keep their FR-007 defaults (currently stub-fallbacks).
+        "--extract-profile", "stub",
+        "--routing-profile", "stub",
+        "--final-payload-profile", "stub",
     ])
     assert code == 0
     # All four artifacts produced and schema-valid.

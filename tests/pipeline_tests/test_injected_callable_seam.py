@@ -18,6 +18,7 @@ from ledgerlinc_ocr.pipeline.runner import (
     CLIInvocation,
     Runner,
     RunResult,
+    StageRunOutput,
 )
 
 
@@ -116,6 +117,39 @@ def test_injected_callable_seam_works_alongside_slice_control(tmp_path: Path):
     )
     assert code == 0
     assert extract_calls == [1]
+
+
+def test_stage_run_output_skips_runner_rewrite(tmp_path: Path):
+    """Adapters that already wrote their artifact are not rewritten by Runner."""
+    from ledgerlinc_ocr.pipeline.stages import default_preprocess
+
+    folder = _stage_folder(tmp_path, "inv_009_easy")
+    written = ""
+
+    def already_written_preprocess(
+        invocation: CLIInvocation, artifacts: dict
+    ) -> StageRunOutput:
+        nonlocal written
+        payload = default_preprocess(invocation, artifacts)
+        out_path = invocation.destination_folder / "preprocess_output.json"
+        written = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        out_path.write_text(written, encoding="utf-8")
+        return StageRunOutput(payload=payload, artifact_path=out_path)
+
+    runner = Runner(preprocess=already_written_preprocess)
+    code = main(
+        [
+            "run",
+            "--document-folder", str(folder),
+            "--stop-after", "preprocess",
+            "--preprocess-profile", "stub",
+            "--overwrite",
+        ],
+        runner=runner,
+    )
+
+    assert code == 0
+    assert (folder / "preprocess_output.json").read_text(encoding="utf-8") == written
 
 
 def test_pre011_runner_run_seam_still_works(tmp_path: Path):

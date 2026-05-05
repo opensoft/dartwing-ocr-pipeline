@@ -146,7 +146,7 @@ def build_per_document_success(
 
 def build_per_document_failure(
     *,
-    document_id: str | None,
+    document_id: str,
     folder: str,
     failed_stage: str,
     exit_code: int,

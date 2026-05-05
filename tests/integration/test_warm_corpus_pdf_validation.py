@@ -57,6 +57,7 @@ def test_warm_corpus_missing_source_pdf_reports_failure(
     assert summary["documents_succeeded"] == 0
     record = summary["per_document"][0]
     assert record["status"] == "failure"
+    assert record["document_id"] == "inv_001"
     assert record["failed_stage"] == "corpus_validation"
     assert "source.pdf" in record["message"]
     # No stub success artifacts must have been emitted for this folder.
@@ -83,6 +84,7 @@ def test_warm_corpus_non_pdf_source_reports_invalid_pdf(
     summary = json.loads(out[-1])
     record = summary["per_document"][0]
     assert record["status"] == "failure"
+    assert record["document_id"] == "inv_001"
     assert record["exit_code"] == int(ExitCode.INVALID_PDF)
     # No artifacts produced.
     assert not (folder / "preprocess_output.json").exists()

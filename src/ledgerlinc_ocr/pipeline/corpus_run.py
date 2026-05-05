@@ -140,6 +140,11 @@ def _resolve_gpu_url(args: argparse.Namespace) -> str:
     return "http://localhost:11434"
 
 
+def _document_id_for_failure(folder: Path) -> str:
+    """Return the best string identifier available for a corpus-validation failure."""
+    return derive_document_id(folder.name) or folder.name
+
+
 def run_warm_corpus(
     *,
     args: argparse.Namespace,
@@ -214,7 +219,7 @@ def run_warm_corpus(
             )
             per_document_records.append(
                 build_per_document_failure(
-                    document_id=None,
+                    document_id=_document_id_for_failure(folder_resolved),
                     folder=folder_raw,
                     failed_stage="corpus_validation",
                     exit_code=int(code),
@@ -314,11 +319,8 @@ def _maybe_register_warm_preprocess(
       (a) preprocess is inside the executed slice;
       (b) the selected preprocess profile is live (not stub);
       (c) the live adapter for the (impl, lane) triple is **actually a
-          real live adapter**, not a foundation-phase stub-fallback
-          wrapper. This is checked via ``stages.is_live_capable`` --
-          opting into a real adapter (e.g., ``register_ppstructurev3_cpu``)
-          flips the capability bit; default warm-corpus runs that still
-          rely on the stub fallback do not pre-load PPStructureV3.
+          real live adapter**, not a test-only stub-fallback wrapper.
+          This is checked via ``stages.is_live_capable``.
 
     The factory wraps ``preprocessing.ocr._get_engine`` so calling
     ``initialize()`` constructs PPStructureV3 once. SC-009 is honored
@@ -332,33 +334,16 @@ def _maybe_register_warm_preprocess(
         return
     if (profile.implementation, profile.lane) != ("ppstructurev3", "cpu"):
         return
-    # Capability gate: only warm-init when a real live adapter is
-    # registered, not when the seeded stub fallback is in place.
+    # Capability gate: only warm-init when a real live adapter is registered,
+    # not when the test-only stub fallback is in place.
     if not is_live_capable("preprocess", profile.implementation, profile.lane):
         return
 
     class _PPStructureV3WarmInstance:
         def initialize(self) -> None:
-            # Bare except blocks below are intentional: warm-init runs
-            # before the per-document loop and must never abort the
-            # whole corpus run on a setup-time hiccup. Failures are
-            # converted to a per-document PROCESSING_FAILURE later.
-            try:
-                from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
-            except ImportError:
-                # Live ppstructurev3 import failed -- the adapter will
-                # surface the error per-document via the runner.
-                return
-            try:
-                _ocr_mod._get_engine()  # type: ignore[attr-defined]
-            except Exception as exc:  # noqa: BLE001 -- contract: see comment
-                import logging
+            from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
 
-                logging.getLogger(__name__).warning(
-                    "PPStructureV3 warm init raised; deferring to per-doc"
-                    " runtime: %s",
-                    exc,
-                )
+            _ocr_mod._get_engine()  # type: ignore[attr-defined]
 
         def close(self) -> None:
             return None

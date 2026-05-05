@@ -72,6 +72,7 @@ def test_continue_through_failures_default(tmp_path: Path, capsys: pytest.Captur
     assert per_doc[0]["status"] == "success"
     assert per_doc[1]["status"] == "failure"
     assert per_doc[2]["status"] == "success"
+    assert per_doc[1]["document_id"] == invalid.name
 
     # The bad document's failure record on stderr names the failed stage.
     assert err_lines, "expected at least one structured failure record on stderr"

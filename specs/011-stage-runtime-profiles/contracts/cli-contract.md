@@ -121,7 +121,7 @@ Resolution order for each lane: flag > env var > documented default (R-012). The
 | `--overwrite` | flag | `false` | Replace existing reserved artifact files **inside the selected slice** (semantics tightened by R-006). |
 | `--pipeline-version VER` | string | Package default | Stamped into pipeline-versioned artifacts. |
 | `--policy-version VER` | string | `stage1-baseline-v0` | Stamped into `routing_decision`. |
-| `--contract-set-version VER` | string | Installed latest | Must name an installed version. |
+| `--contract-set-version VER` | string | `1.0.0` | Must name an installed version. |
 | `--log-level LEVEL` | string | `warning` | One of `error`, `warning`, `info`, `debug`. |
 | `--timeout SECONDS` | integer | `300` | Per-stage wall-clock timeout. |
 

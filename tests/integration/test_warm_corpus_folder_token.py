@@ -94,3 +94,4 @@ def test_per_document_failure_record_also_echoes_raw_token(
     record = summary["per_document"][0]
     assert record["status"] == "failure"
     assert record["folder"] == "inv_003_easy"
+    assert record["document_id"] == "inv_003"

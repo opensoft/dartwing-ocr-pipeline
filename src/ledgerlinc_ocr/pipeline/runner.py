@@ -107,7 +107,7 @@ class CLIInvocation:
     ollama_jetson_url: str | None = None
 
 
-StageCallable = Callable[[CLIInvocation, dict[str, Any]], dict[str, Any]]
+StageCallable = Callable[[CLIInvocation, dict[str, Any]], Any]
 
 
 RunMode = Literal["cold_single_document", "warm_corpus"]
@@ -137,8 +137,8 @@ def make_default_plan(invocation: CLIInvocation) -> ResolvedRunPlan:
     """Wrap a legacy ``CLIInvocation`` in a default cold-mode run plan.
 
     Used by tests and the legacy single-document call site (``Runner.run``
-    accepting a bare invocation) to keep behavior identical to pre-011
-    when no per-stage profile flags or stack preset is supplied.
+    accepting a bare invocation) to apply the current default profiles when no
+    per-stage profile flags or stack preset is supplied.
     """
     profiles: dict[Stage, StageProfile] = {
         stage: parse_profile(stage, raw)
@@ -190,6 +190,15 @@ class RunResult:
     message: str = ""
     routing_decision: dict[str, Any] | None = None
     timings: DocumentTimings | None = None
+
+
+@dataclass(frozen=True)
+class StageRunOutput:
+    """Stage adapter result for adapters that already wrote their artifact."""
+
+    payload: dict[str, Any]
+    artifact_path: Path
+    already_written: bool = True
 
 
 _STAGE_SEQUENCE: tuple[tuple[str, str], ...] = (
@@ -247,6 +256,7 @@ __all__ = [
     "RunResult",
     "Runner",
     "StageCallable",
+    "StageRunOutput",
     "make_default_plan",
 ]
 
@@ -425,7 +435,7 @@ class Runner:
         with measure_total(stage_timing):
             with measure_phase(stage_timing, _STAGE_COMPUTE_PHASE[stage]):
                 try:
-                    payload = stage_callable(invocation, produced)
+                    output = stage_callable(invocation, produced)
                 except Exception as exc:  # noqa: BLE001 -- contract: convert to failure
                     return RunResult(
                         exit_code=_classify_stage_exception(exc),
@@ -434,21 +444,38 @@ class Runner:
                         message=str(exc) or type(exc).__name__,
                         timings=timings,
                     )
-            with measure_phase(stage_timing, "write"):
+            if isinstance(output, StageRunOutput):
+                payload = output.payload
+                dest = output.artifact_path
+                already_written = output.already_written
+            else:
+                payload = output
                 dest = folder / filename
-                try:
-                    dest.write_text(
-                        json.dumps(payload, indent=2, ensure_ascii=False),
-                        encoding="utf-8",
-                    )
-                except OSError as exc:
+                already_written = False
+            if already_written:
+                if not dest.exists():
                     return RunResult(
                         exit_code=ExitCode.PROCESSING_FAILURE,
                         artifacts_written=artifacts_written,
                         stage=failure_stage_name,
-                        message=f"failed to write {filename}: {exc}",
+                        message=f"stage reported written artifact missing: {dest}",
                         timings=timings,
                     )
+            else:
+                with measure_phase(stage_timing, "write"):
+                    try:
+                        dest.write_text(
+                            json.dumps(payload, indent=2, ensure_ascii=False),
+                            encoding="utf-8",
+                        )
+                    except OSError as exc:
+                        return RunResult(
+                            exit_code=ExitCode.PROCESSING_FAILURE,
+                            artifacts_written=artifacts_written,
+                            stage=failure_stage_name,
+                            message=f"failed to write {filename}: {exc}",
+                            timings=timings,
+                        )
         produced[filename] = payload
         artifacts_written.append(dest.resolve())
         return None
@@ -481,12 +508,14 @@ class Runner:
 
     @staticmethod
     def _load_routing_payload(
-        *, folder: Path, produced: dict[str, Any]
+        *, folder: Path, plan: ResolvedRunPlan, produced: dict[str, Any]
     ) -> dict[str, Any] | None:
         routing_filename = "routing_decision.json"
         if routing_filename in produced:
             return produced[routing_filename]
 
+        if routing_filename not in plan.slice_.prerequisite_artifacts:
+            return None
         routing_path = folder / routing_filename
         if not routing_path.exists():
             return None
@@ -580,7 +609,7 @@ class Runner:
         # pre-existing artifact so cold callers that ran a partial slice
         # still get a useful summary.
         routing_payload = self._load_routing_payload(
-            folder=document_folder, produced=produced
+            folder=document_folder, plan=plan, produced=produced
         )
 
         return RunResult(

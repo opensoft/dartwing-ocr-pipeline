@@ -8,8 +8,10 @@ live adapters for the matching ``(stage, implementation, lane)`` triples.
 Stage signatures
 ----------------
 Every stage callable takes `(invocation: CLIInvocation, artifacts_so_far: dict)`
-and returns a dict matching its v1.2.0 artifact schema. The runner writes the
-returned dict to disk under the reserved filename and advances.
+and returns either a dict matching its v1.2.0 artifact schema or a
+``StageRunOutput`` for adapters that already wrote their canonical artifact.
+The runner writes plain dicts and trusts ``StageRunOutput`` paths that already
+exist.
 
 Schema-invalidity toggle
 ------------------------
@@ -285,8 +287,10 @@ class DeferredImplementationError(RuntimeError):
     """
 
 
-# Type alias for a stage callable invoked by the runner.
-StageCallable = Callable[["CLIInvocation", dict[str, Any]], dict[str, Any]]
+# Type alias for a stage callable invoked by the runner. The concrete return
+# type includes ``StageRunOutput`` from ``runner.py``; keep this alias broad to
+# avoid a runtime import cycle in the registry module.
+StageCallable = Callable[["CLIInvocation", dict[str, Any]], Any]
 
 # Type alias for an adapter factory. Adapters are registered as factories
 # that take the resolved ``ResolvedRunPlan`` (so they can read lane URLs,
@@ -314,24 +318,16 @@ DEFERRED_LIVE_PROFILES: frozenset[tuple[Stage, str, str | None]] = frozenset({
 })
 
 # Live adapter registry. Keys are ``(stage, implementation, lane)`` triples
-# from ``profiles.SUPPORTED_PROFILES``. User-story phases populate this
-# table in their respective tasks (T031 ppstructurev3@cpu, T039 ollama@gpu,
-# T040 rules@cpu, T041 assembler@cpu, T046 ollama@cpu). Until those
-# tasks land, the non-deferred live triples are pre-populated with
-# stub-fallback factories so cold-mode CLI calls with no profile flags
-# (which resolve to FR-007's default profiles) remain runnable end-to-end
-# from the foundation phase. T042 (US1 verification) removes the last
-# stub-fallback entries by registering the real adapters in their place.
+# from ``profiles.SUPPORTED_PROFILES``. The default no-flag path registers
+# the in-slice real adapters at module load. Tests can request
+# ``stub_fallback_only`` through ``reset_live_registry`` when they need a
+# fully offline registry baseline.
 _LIVE_REGISTRY: dict[tuple[Stage, str, str | None], AdapterFactory] = {}
 
-# Capability registry: (stage, implementation, lane) triples whose live
-# adapter is actually a real live adapter (not a stub-fallback wrapper).
-# Opt-in helpers below add to this set as they register real factories.
-# Consumers (notably ``corpus_run._maybe_register_warm_preprocess``) MUST
-# check this set, not just the resolved profile name, before triggering
-# heavy initialization paths -- otherwise a default warm-corpus run with
-# Paddle installed would pre-load PPStructureV3 even though the active
-# adapter is still the stub fallback.
+# Capability registry: (stage, implementation, lane) triples whose registered
+# adapter is a real live adapter, not a stub-fallback wrapper. Consumers
+# (notably ``corpus_run._maybe_register_warm_preprocess``) check this set
+# before triggering heavy initialization paths.
 _LIVE_CAPABILITIES: set[tuple[Stage, str, str | None]] = set()
 
 
@@ -340,19 +336,14 @@ def is_live_capable(
 ) -> bool:
     """True iff a real live adapter is registered for the triple.
 
-    Returns False when only the foundation-phase stub fallback is in
-    place (so warm-corpus and similar paths know to avoid heavy live
-    initialization).
+    Returns False when only a test-only stub fallback is in place so
+    warm-corpus and similar paths avoid heavy live initialization.
     """
     return (stage, implementation, lane) in _LIVE_CAPABILITIES
 
 
 def _stub_fallback_factory(stage: Stage) -> AdapterFactory:
-    """Return an AdapterFactory that hands back the stage's stub callable.
-
-    Used to seed the live registry for non-deferred FR-007 default
-    triples until each user-story phase lands its real adapter.
-    """
+    """Return an AdapterFactory that hands back the stage's stub callable."""
     stub = _STUB_REGISTRY[stage]
 
     def _factory(_plan: "ResolvedRunPlan") -> StageCallable:
@@ -362,7 +353,7 @@ def _stub_fallback_factory(stage: Stage) -> AdapterFactory:
 
 
 def _seed_default_stub_fallbacks() -> None:
-    """Register stub-fallback factories for FR-007 default live triples."""
+    """Register offline stub fallbacks for default live triples."""
     for stage, impl, lane in [
         ("preprocess", "ppstructurev3", "cpu"),
         ("extract", "ollama", "gpu"),
@@ -400,7 +391,7 @@ def _ppstructurev3_cpu_factory(_plan: "ResolvedRunPlan") -> StageCallable:
 
     def adapter(
         invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
-    ) -> dict[str, Any]:
+    ) -> Any:
         out_path = preprocessing_run(
             PreInvocation(
                 document_folder=invocation.destination_folder,
@@ -408,7 +399,12 @@ def _ppstructurev3_cpu_factory(_plan: "ResolvedRunPlan") -> StageCallable:
                 pipeline_version=invocation.pipeline_version,
             )
         )
-        return json.loads(out_path.read_text(encoding="utf-8"))
+        from ledgerlinc_ocr.pipeline.runner import StageRunOutput
+
+        return StageRunOutput(
+            payload=json.loads(out_path.read_text(encoding="utf-8")),
+            artifact_path=out_path,
+        )
 
     return adapter
 
@@ -446,7 +442,7 @@ def _ollama_extract_factory(lane: str) -> Callable[["ResolvedRunPlan"], StageCal
 
         def adapter(
             invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
-        ) -> dict[str, Any]:
+        ) -> Any:
             # Forward invocation.pipeline_version so --pipeline-version is
             # honored by edge_extraction_output.json the same way it is
             # honored by the other stages (Copilot review item 5).
@@ -457,7 +453,12 @@ def _ollama_extract_factory(lane: str) -> Callable[["ResolvedRunPlan"], StageCal
                 template_path=template_path,
                 pipeline_version=invocation.pipeline_version,
             )
-            return json.loads(out_path.read_text(encoding="utf-8"))
+            from ledgerlinc_ocr.pipeline.runner import StageRunOutput
+
+            return StageRunOutput(
+                payload=json.loads(out_path.read_text(encoding="utf-8")),
+                artifact_path=out_path,
+            )
 
         return adapter
 
@@ -465,7 +466,7 @@ def _ollama_extract_factory(lane: str) -> Callable[["ResolvedRunPlan"], StageCal
 
 
 def register_ollama_gpu() -> None:
-    """US1 opt-in: register the live (extract, ollama, gpu) adapter."""
+    """Register the live (extract, ollama, gpu) adapter."""
     register_live_adapter(
         stage="extract",
         implementation="ollama",
@@ -476,7 +477,7 @@ def register_ollama_gpu() -> None:
 
 
 def register_ollama_cpu() -> None:
-    """US3 opt-in: register the live (extract, ollama, cpu) adapter."""
+    """Register the optional live (extract, ollama, cpu) adapter."""
     register_live_adapter(
         stage="extract",
         implementation="ollama",
@@ -494,13 +495,15 @@ def _routing_rules_cpu_factory(plan: "ResolvedRunPlan") -> StageCallable:
 
     def adapter(
         invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
-    ) -> dict[str, Any]:
-        _, artifact = router_run(
+    ) -> Any:
+        path, artifact = router_run(
             invocation.destination_folder,
             pipeline_version=invocation.pipeline_version,
             policy_version=invocation.policy_version,
         )
-        return artifact
+        from ledgerlinc_ocr.pipeline.runner import StageRunOutput
+
+        return StageRunOutput(payload=artifact, artifact_path=path)
 
     return adapter
 
@@ -517,24 +520,26 @@ def _final_payload_assembler_cpu_factory(_plan: "ResolvedRunPlan") -> StageCalla
 
     def adapter(
         invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
-    ) -> dict[str, Any]:
+    ) -> Any:
         out_path = assembler_run(
             AssInvocation(
                 document_folder=invocation.destination_folder,
                 pipeline_version=invocation.pipeline_version,
             )
         )
-        return json.loads(out_path.read_text(encoding="utf-8"))
+        from ledgerlinc_ocr.pipeline.runner import StageRunOutput
+
+        return StageRunOutput(
+            payload=json.loads(out_path.read_text(encoding="utf-8")),
+            artifact_path=out_path,
+        )
 
     return adapter
 
 
-# Note: extract live adapter (T039 / T046) is intentionally not registered
-# in the foundation phase. The extract module requires a VoterAdapter +
-# VoterConfig + prompt template, which are loaded from on-disk YAML. The
-# US1/US3 phases will wire those when they land. Until then, ollama@gpu
-# / ollama@cpu fall back to the stub callable seeded by
-# ``_seed_default_stub_fallbacks``.
+# Note: the default GPU extract adapter is registered at module load for US1.
+# CPU extraction remains opt-in via ``register_ollama_cpu`` for the lane-
+# comparison slice.
 
 
 def register_live_adapter(
@@ -611,24 +616,28 @@ def resolve_stage_callable(
     return factory(plan)
 
 
-def reset_live_registry() -> None:
-    """Test helper: drop every registered live adapter (including the
-    foundation-phase stub fallbacks) and re-seed the defaults so a fresh
-    test starts from the same baseline as a fresh interpreter.
+def _register_default_live_adapters() -> None:
+    register_ppstructurev3_cpu()
+    register_ollama_gpu()
+    register_routing_rules_cpu()
+    register_final_payload_assembler_cpu()
+
+
+def reset_live_registry(*, stub_fallback_only: bool = False) -> None:
+    """Test helper: drop registered adapters and restore the default registry.
+
+    ``stub_fallback_only=True`` gives unit tests a fully offline baseline
+    while production defaults remain the real in-slice adapters.
     """
     _LIVE_REGISTRY.clear()
     _LIVE_CAPABILITIES.clear()
     _seed_default_stub_fallbacks()
+    if not stub_fallback_only:
+        _register_default_live_adapters()
 
 
-# Foundation-phase policy (US1 / T042 will overwrite this): every live
-# default profile stays in stub-fallback mode. Pre-existing pipeline
-# tests were written assuming all-stub default behavior; flipping the
-# defaults to live adapters is FR-034 step 3 / US1's job, not part of
-# the foundation. Tests that need real routing / assembler / preprocess
-# behavior must opt in via the helpers below.
 def register_routing_rules_cpu() -> None:
-    """US1 opt-in: register the live (routing, rules, cpu) adapter."""
+    """Register the live (routing, rules, cpu) adapter."""
     register_live_adapter(
         stage="routing",
         implementation="rules",
@@ -639,7 +648,7 @@ def register_routing_rules_cpu() -> None:
 
 
 def register_final_payload_assembler_cpu() -> None:
-    """US1 opt-in: register the live (final_payload, assembler, cpu) adapter."""
+    """Register the live (final_payload, assembler, cpu) adapter."""
     register_live_adapter(
         stage="final_payload",
         implementation="assembler",
@@ -648,26 +657,10 @@ def register_final_payload_assembler_cpu() -> None:
     )
     _LIVE_CAPABILITIES.add(("final_payload", "assembler", "cpu"))
 
-# T031: ppstructurev3@cpu live adapter. Intentionally NOT registered at
-# module load. The PPStructureV3 engine rejects the minimal PDF used by
-# the pre-011 pipeline test fixtures; auto-registering the live adapter
-# would break those tests. US6's warm-corpus integration test
-# (test_warm_corpus_ppstructurev3_cpu.py) registers the adapter
-# explicitly via ``register_live_adapter`` at fixture setup time and
-# uses a real corpus PDF. Foundation-phase callers see the stub
-# fallback for ``ppstructurev3@cpu`` until that explicit registration
-# happens.
-
-# The ppstructurev3 factory is exported (via ``register_ppstructurev3_cpu``)
-# so US6 fixtures can opt in without reaching into the module's private
-# helpers.
+# The ppstructurev3 factory is registered by default and exported so tests can
+# reset/re-register it without reaching into private helpers.
 def register_ppstructurev3_cpu() -> None:
-    """US6 opt-in: register the live ppstructurev3@cpu adapter.
-
-    Call this from a test fixture or a CLI bootstrap that has already
-    verified PPStructureV3 dependencies are installed and the input PDFs
-    are real (not the minimal-fixture PDF).
-    """
+    """Register the live ppstructurev3@cpu adapter."""
     register_live_adapter(
         stage="preprocess",
         implementation="ppstructurev3",
@@ -675,6 +668,9 @@ def register_ppstructurev3_cpu() -> None:
         factory=_ppstructurev3_cpu_factory,
     )
     _LIVE_CAPABILITIES.add(("preprocess", "ppstructurev3", "cpu"))
+
+
+_register_default_live_adapters()
 
 
 __all__ = [

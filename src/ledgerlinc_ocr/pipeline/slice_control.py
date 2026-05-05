@@ -5,6 +5,7 @@ Spec FR-004 / FR-009 / FR-010 / FR-011. Research R-004 / R-005 / R-006.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Literal
@@ -124,11 +125,18 @@ def check_prerequisites(
             return PrerequisiteCheckResult(
                 ok=False, missing_artifact=filename
             )
-        outcome = validate_artifact(
-            path,
-            _FILENAME_TO_ARTIFACT_NAME[filename],
-            contract_set=contract_set,
-        )
+        try:
+            outcome = validate_artifact(
+                path,
+                _FILENAME_TO_ARTIFACT_NAME[filename],
+                contract_set=contract_set,
+            )
+        except (OSError, json.JSONDecodeError) as exc:
+            return PrerequisiteCheckResult(
+                ok=False,
+                invalid_artifact=filename,
+                invalid_reason=f"$: cannot read or parse artifact: {exc}",
+            )
         if not outcome.passed:
             first = outcome.violations[0] if outcome.violations else None
             field = first.field_path if first else "$"
