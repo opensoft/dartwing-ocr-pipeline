@@ -226,6 +226,7 @@ def test_warm_registry_close_invokes_every_warmed_instance():
 def test_warm_registry_close_swallows_per_instance_errors():
     class _Boom:
         def initialize(self) -> None:
+            # No setup needed; this fake only exercises close-time failure handling.
             pass
 
         def close(self) -> None:
