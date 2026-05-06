@@ -34,6 +34,15 @@ _PRE_FEATURE_RE = re.compile(
     r"^stage1-preprocess-v\d+\.\d+\.\d+\+paddleocr"
     r"\d+\.\d+\.\d+\.[0-9a-f]{7}\.dpi\d+$"
 )
+# Permissive regex (forward-compat tolerance) — matches the post-feature
+# shape with any single trailing dot-segment, including unrecognized
+# lane segments like `.npu0` or `.jetson1`. Compiled at module scope so
+# it is built once at import time rather than once per parse_lane_segment
+# call. Used only by parse_lane_segment's forward-compat fallback branch.
+_PERMISSIVE_PIPELINE_VERSION_RE = re.compile(
+    r"^stage1-preprocess-v\d+\.\d+\.\d+\+paddleocr"
+    r"\d+\.\d+\.\d+\.[0-9a-f]{7}\.dpi\d+\.[A-Za-z0-9_]+$"
+)
 
 
 def build_pipeline_version(
@@ -96,12 +105,10 @@ def parse_lane_segment(pipeline_version: str) -> tuple[str, Optional[int]]:
     # Forward-compat tolerance: looks like a pipeline_version but the
     # trailing segment is unrecognized (e.g. `.npu0`, `.jetson1`).
     # Permit the prefix to match the pre-feature shape with any extra
-    # trailing dot-segment (single segment, no embedded dots).
-    permissive = re.compile(
-        r"^stage1-preprocess-v\d+\.\d+\.\d+\+paddleocr"
-        r"\d+\.\d+\.\d+\.[0-9a-f]{7}\.dpi\d+\.[A-Za-z0-9_]+$"
-    )
-    if permissive.match(pipeline_version):
+    # trailing dot-segment (single segment, no embedded dots). The regex
+    # is precompiled at module scope (`_PERMISSIVE_PIPELINE_VERSION_RE`)
+    # so this branch does not re-compile on every call.
+    if _PERMISSIVE_PIPELINE_VERSION_RE.match(pipeline_version):
         return ("unknown", None)
     raise ValueError(f"malformed pipeline_version: {pipeline_version!r}")
 

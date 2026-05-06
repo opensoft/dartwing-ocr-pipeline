@@ -27,8 +27,23 @@ from ledgerlinc_ocr.preprocessing.preflight import (
 )
 
 
+class _UsageErrorParser(argparse.ArgumentParser):
+    """ArgumentParser whose usage errors exit with code 1 per Contracts §1.
+
+    argparse's default `error()` calls `self.exit(2, ...)`, but the FR-001
+    contract reserves exit code 2 for internal classifier crashes. Override
+    `error()` to exit 1 instead. `--help` is handled by argparse internally
+    via `SystemExit(0)` (it does NOT route through `error()`), so help
+    output continues to exit 0.
+    """
+
+    def error(self, message: str) -> None:  # type: ignore[override]
+        self.print_usage(sys.stderr)
+        self.exit(1, f"{self.prog}: error: {message}\n")
+
+
 def _build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
+    p = _UsageErrorParser(
         prog="python -m ledgerlinc_ocr.preprocessing.preflight",
         description=(
             "Paddle GPU preflight diagnostic (feature 014). Classifies the "

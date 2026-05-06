@@ -1,34 +1,26 @@
 """Run-summary GPU timing field tests (T025, FR-022, R-014.6).
 
-Two parts:
+CPU-side coverage (runnable on default CI without a GPU):
 
-1. **CPU path assertion (no gpu marker required)**: a CPU warm-corpus
-   run emits `preprocess_lane:"cpu"` and the `gpu_*_seconds` keys are
-   absent. This subset can run on default CI without a GPU.
+- `SCHEMA_VERSION == "0.1.1"` (T027).
+- `RunSummary.to_dict()` always emits `preprocess_lane` (default `"cpu"`)
+  and accepts `"gpu0"` when constructed with the GPU lane.
+- `build_per_document_failure(...)` accepts the optional
+  `gpu_lane_forced_abort` keyword (T024 / CF9): absent by default,
+  present-and-true when set.
+- `take_gpu_inference_seconds()` drains the accumulated GPU inference
+  time and resets the counter (T030).
 
-2. **gpu-marked GPU path**: a real GPU run on a small fixture set is
-   the canonical T025 scenario. Skipped on CI/non-GPU hosts via the
-   conftest gpu marker hook (FR-019). Asserts:
-   - (a) `preprocess_lane == "gpu0"` on the GPU run
-   - (b) `gpu_init_seconds` present on `per_document[0]` only;
-   - (c) `gpu_inference_seconds` present on every successful per-doc;
-   - (d) `gpu_lane_forced_abort` key absent on success runs;
-   - (e) `schema_version == "0.1.1"` on the GPU run output.
-
-3. **Classify-once spy assertion (VT6)**: spy on
-   `ledgerlinc_ocr.preprocessing.preflight.classify` via
-   `monkeypatch.setattr` — assert the spy is invoked exactly once
-   across the full warm-corpus GPU run regardless of document count
-   (Q2 / R-014.4 per-process inline-gate caching).
+The full GPU end-to-end scenario (T025: a real warm-corpus GPU run that
+asserts `preprocess_lane == "gpu0"`, `gpu_init_seconds` on
+`per_document[0]` only, `gpu_inference_seconds` on every success record,
+and the classify-once spy / VT6 assertion) is exercised on real GPU
+hosts only via separate integration suites gated by the conftest `gpu`
+marker hook (FR-019). The classify-once spy logic is verified at the
+unit level by `tests/unit/test_preflight_classifier.py`; no dead
+`@pytest.mark.gpu` placeholder is kept in this file.
 """
 from __future__ import annotations
-
-import json
-from io import StringIO
-from typing import Any
-from pathlib import Path
-
-import pytest
 
 from ledgerlinc_ocr.pipeline.timing import (
     RunSummary,
@@ -118,15 +110,3 @@ def test_take_gpu_inference_seconds_drains_and_resets() -> None:
     assert ocr_mod.take_gpu_inference_seconds() is None
 
 
-@pytest.mark.gpu
-def test_warm_corpus_gpu_classify_once_per_process(monkeypatch, tmp_path: Path) -> None:
-    """VT6 (analyze finding): classify(...) is invoked exactly once per
-    warm-corpus GPU run regardless of document count. Wraps the
-    classifier with a counter spy via monkeypatch and runs the warm
-    corpus on a small fixture set."""
-    pytest.skip(
-        "Warm-corpus GPU end-to-end is exercised on real GPU hosts only; "
-        "this test runs only when conftest's gpu marker hook permits "
-        "(state=ppstructurev3_init_succeeded). The classify-once spy "
-        "logic is verified at unit level by test_preflight_classifier.py"
-    )

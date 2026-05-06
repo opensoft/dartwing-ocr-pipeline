@@ -167,47 +167,43 @@ def test_no_init_on_success_path_sets_skipped_reason(monkeypatch) -> None:
     assert r.evidence.ppstructurev3_init_seconds is None
     assert r.evidence.ppstructurev3_init_error is None
     # Recommendation explicitly says step 6 was not exercised.
-    assert "not exercised" in r.recommendation or "not exercised" in r.recommendation
+    assert "not exercised" in r.recommendation
 
 
 # VT3: conftest defensive-import fallback simulation
 def test_conftest_defensive_fallback_synthesizes_sentinel_on_import_error(
     monkeypatch,
 ) -> None:
-    """Simulate the conftest's defensive `try/except Exception` path by
-    monkeypatching the preflight module to raise on import. Conftest
+    """Exercise the conftest's defensive `try/except Exception` path by
+    forcing `from ledgerlinc_ocr.preprocessing.preflight import classify`
+    to raise, then invoking the conftest helper directly. The helper
     must synthesize a sentinel readout-shaped object with
-    `state == "paddle_not_installed"` per T009's documented default,
-    and a recommendation that names the import failure. This test
-    exercises the same fallback logic the conftest uses, but inside a
-    test rather than at collection time (the collection-time exercise
-    is in T035)."""
-    import importlib
+    `state.value == "paddle_not_installed"` per T009's documented
+    default, and a recommendation that names the import failure.
+    """
+    # Re-bind the module attribute to None so the next `from … import classify`
+    # raises, mirroring a missing-or-broken preflight module. Using
+    # `monkeypatch.setitem(sys.modules, …, None)` makes Python raise
+    # `ImportError("import of ledgerlinc_ocr.preprocessing.preflight halted; …")`
+    # on attribute resolution from the cached `None` entry — the same
+    # observable shape the conftest's `try/except Exception` is written to
+    # absorb.
+    monkeypatch.setitem(
+        sys.modules, "ledgerlinc_ocr.preprocessing.preflight", None
+    )
 
-    # Pretend the preflight module is unavailable by force-deleting it
-    # from sys.modules and patching the import to raise.
-    monkeypatch.delitem(sys.modules, "ledgerlinc_ocr.preprocessing.preflight", raising=False)
+    # Bypass the conftest helper's own module-level cache so the
+    # defensive `try/except` branch actually runs in this test. Import
+    # locally so the test does not depend on conftest being imported
+    # at module scope.
+    import tests.conftest as conftest_mod
 
-    real_import = __builtins__["__import__"] if isinstance(__builtins__, dict) else __builtins__.__import__  # type: ignore[index]
+    monkeypatch.setattr(conftest_mod, "_CACHED_READOUT", None, raising=False)
 
-    def patched_import(name, *args, **kwargs):
-        if name == "ledgerlinc_ocr.preprocessing.preflight" or name.endswith("preprocessing.preflight"):
-            raise ImportError("simulated preflight import failure")
-        return real_import(name, *args, **kwargs)
+    readout = conftest_mod._load_preflight_readout()
 
-    # Replicate the conftest fallback inline (this is T009's logic).
-    try:
-        importlib.import_module("ledgerlinc_ocr.preprocessing.preflight_does_not_exist_xyz")
-        sentinel_state = "ppstructurev3_init_succeeded"
-        recommendation = ""
-    except Exception as exc:  # noqa: BLE001
-        sentinel_state = "paddle_not_installed"
-        recommendation = (
-            f"preflight import failed: {type(exc).__name__}: {str(exc)[:200]}"
-        )
-
-    assert sentinel_state == "paddle_not_installed"
-    assert "preflight import failed" in recommendation
+    assert readout.state.value == "paddle_not_installed"
+    assert "preflight import failed" in readout.recommendation
 
 
 def test_recommendation_for_skipped_init_mentions_not_exercised(monkeypatch) -> None:

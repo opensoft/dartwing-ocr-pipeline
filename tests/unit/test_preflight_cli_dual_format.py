@@ -163,9 +163,6 @@ def test_exit_code_mapping_per_fr001_state(state, expected_exit, monkeypatch) ->
 def test_internal_classifier_crash_exits_2(monkeypatch) -> None:
     """Per Contracts §1.Exit codes: an unhandled internal classifier
     error returns exit code 2, with the stderr error format."""
-    def _crash(**_):
-        raise RuntimeError("boom")
-
     with patch("ledgerlinc_ocr.preprocessing.preflight_cli.classify", side_effect=RuntimeError("boom")):
         rc, _, err = _run_cli(monkeypatch, ["--quiet"])
     assert rc == 2
@@ -174,17 +171,19 @@ def test_internal_classifier_crash_exits_2(monkeypatch) -> None:
 
 
 def test_argparse_error_exits_1(monkeypatch) -> None:
-    """An unrecognized argument should produce exit code 1 (argparse default)."""
+    """Per Contracts §1.Exit codes: an unrecognized argument is a usage
+    error and MUST exit 1 (not argparse's default 2 — exit 2 is reserved
+    for internal classifier crashes per the FR-001 contract)."""
     with pytest.raises(SystemExit) as excinfo:
         preflight_cli.main(["--bogus"])
-    assert excinfo.value.code == 2 or excinfo.value.code == 1  # argparse uses 2 for usage errors
+    assert excinfo.value.code == 1
 
 
 def test_quiet_omits_text_section_but_keeps_json(monkeypatch) -> None:
     """Per Contracts §1.Stdout shape: --quiet suppresses the human-readable
     text section but always emits the trailing JSON line."""
     _patch_versions_absent(monkeypatch)
-    rc, out, _ = _run_cli(monkeypatch, ["--quiet"])
+    _, out, _ = _run_cli(monkeypatch, ["--quiet"])
     assert "[preflight] state:" not in out
     assert out.startswith("{")
     assert json.loads(out.rstrip("\n"))["kind"] == "preflight_readout"
