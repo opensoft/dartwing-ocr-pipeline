@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 import re
 import warnings as _std_warnings
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 from PIL import Image
@@ -50,6 +50,49 @@ PPSTRUCTURE_LABEL_TO_BLOCK_TYPE: dict[str, str] = {
 ALLOWED_BLOCK_TYPES = {"text", "title", "table", "figure", "header", "footer"}
 
 _ENGINE: Any = None
+# Feature 014 (T008 / CF4): records the device the singleton _ENGINE was
+# bound with on first construction; _get_engine raises RuntimeError on
+# any subsequent call requesting a different device (single-device per
+# process). None means no engine is constructed yet.
+_ENGINE_DEVICE: Optional[str] = None
+# Feature 014 (T030): accumulator for per-page GPU inference time, in
+# nanoseconds. Read by callers (corpus_run.py / single-doc pipeline.py)
+# to populate `gpu_inference_seconds` on the per-document timing record.
+# Process-scoped; tests can clear via reset_gpu_inference_ns().
+_GPU_INFERENCE_NS_TOTAL: int = 0
+_GPU_INFERENCE_PAGES: int = 0
+
+
+def _record_gpu_inference_ns(ns: int) -> None:
+    """T030: accumulate the elapsed GPU inference time on a single
+    `engine.predict` call into the module-level counter."""
+    global _GPU_INFERENCE_NS_TOTAL, _GPU_INFERENCE_PAGES
+    if ns > 0:
+        _GPU_INFERENCE_NS_TOTAL += ns
+        _GPU_INFERENCE_PAGES += 1
+
+
+def take_gpu_inference_seconds() -> Optional[float]:
+    """T030: drain the accumulator. Returns the cumulative GPU inference
+    time in seconds (six-decimal rounded) and resets the counter, OR
+    None if no GPU inference has been recorded since the last call.
+    Callers (corpus_run.py / preprocessing/cli.py) call this once per
+    document to populate `gpu_inference_seconds` on that document's
+    timing record."""
+    global _GPU_INFERENCE_NS_TOTAL, _GPU_INFERENCE_PAGES
+    if _GPU_INFERENCE_PAGES == 0:
+        return None
+    seconds = round(_GPU_INFERENCE_NS_TOTAL / 1e9, 6)
+    _GPU_INFERENCE_NS_TOTAL = 0
+    _GPU_INFERENCE_PAGES = 0
+    return seconds
+
+
+def reset_gpu_inference_ns() -> None:
+    """Test-only: clear the accumulator without draining."""
+    global _GPU_INFERENCE_NS_TOTAL, _GPU_INFERENCE_PAGES
+    _GPU_INFERENCE_NS_TOTAL = 0
+    _GPU_INFERENCE_PAGES = 0
 _PADDLE_SEEDED = False
 
 
@@ -117,13 +160,37 @@ def _classify_engine_init_exception(exc: Exception) -> tuple[str | None, str | N
     return missing, hoster
 
 
-def _get_engine() -> Any:
+def _get_engine(device: Optional[str] = None) -> Any:
     """Lazy singleton PPStructureV3 constructor (research R-001). Raises
     `EngineInitError` with structured cause on any init-time exception (FR-016).
+
+    Feature 014 (T008 / CF4): accepts an optional `device` parameter.
+    When the singleton is unconstructed and `device` is None, defaults
+    to ``"cpu"`` for backward compatibility with feature-010 callers.
+    When `device` is explicitly supplied and the singleton is already
+    constructed for a different device, raises ``RuntimeError`` rather
+    than silently returning the wrong-device engine — this is the
+    single-device-per-process invariant. When `device` is None and the
+    singleton already exists, returns the singleton regardless of its
+    bound device (callers without device knowledge defer to whatever
+    the warm initializer constructed). CPU determinism settings
+    (``cpu_threads=1, enable_mkldnn=False``) are preserved on the CPU
+    path per FR-017 / SC-006.
     """
-    global _ENGINE
+    global _ENGINE, _ENGINE_DEVICE
     if _ENGINE is not None:
+        if (
+            device is not None
+            and _ENGINE_DEVICE is not None
+            and _ENGINE_DEVICE != device
+        ):
+            raise RuntimeError(
+                f"PPStructureV3 engine already constructed for "
+                f"device={_ENGINE_DEVICE!r}; refusing to rebuild for "
+                f"device={device!r} (singleton-per-process)"
+            )
         return _ENGINE
+    effective_device = device if device is not None else "cpu"
     _seed_paddle_once()
     try:
         from paddleocr import PPStructureV3  # type: ignore[import-not-found]
@@ -139,9 +206,10 @@ def _get_engine() -> Any:
                 use_chart_recognition=False,
                 cpu_threads=1,
                 enable_mkldnn=False,
-                device="cpu",
+                device=effective_device,
                 lang="en",
             )
+            _ENGINE_DEVICE = effective_device
     except Exception as exc:
         missing_weight, hoster_url = _classify_engine_init_exception(exc)
         raise EngineInitError(
@@ -474,6 +542,7 @@ def run_page(
     page_number: int,
     width: int,
     height: int,
+    device: str = "cpu",
 ) -> tuple[
     list[dict[str, Any]],
     list[dict[str, Any]],
@@ -488,10 +557,23 @@ def run_page(
       as a free-form `"page N: layout extraction failed: ..."` warning; the
       caller handles FR-003 / FR-018 / FR-019 detection against the returned
       lines / blocks lengths.
+    - Feature 014 (T008/T021): the `device` parameter is forwarded to
+      `_get_engine(device)` on the first call per process; subsequent
+      calls within the same process must use the same device or the
+      singleton guard raises `RuntimeError` (CF4 single-device-per-process).
     """
-    engine = _get_engine()
+    engine = _get_engine(device=device)
     warnings_out: list[str] = []
     np_img = np.array(image)
+    # Feature 014 (T030): capture per-page GPU inference time when the
+    # device is a GPU. The value is accumulated into a module-level
+    # counter `_GPU_INFERENCE_NS_TOTAL` that callers (corpus_run.py) can
+    # read and emit as `gpu_inference_seconds` on the per-document timing
+    # entry. CPU runs do not record this counter.
+    import time as _time
+
+    _is_gpu_run = isinstance(device, str) and device.startswith("gpu")
+    _gpu_start_ns = _time.monotonic_ns() if _is_gpu_run else 0
     try:
         with _std_warnings.catch_warnings():
             _std_warnings.simplefilter("ignore")
@@ -501,6 +583,10 @@ def run_page(
             f"page {page_number}: layout extraction failed: {type(exc).__name__}: {exc}"
         )
         return [], [], [], warnings_out
+    finally:
+        # T030: accumulate GPU inference time (only on GPU runs).
+        if _is_gpu_run:
+            _record_gpu_inference_ns(_time.monotonic_ns() - _gpu_start_ns)
 
     result: Any = None
     iterable = results if isinstance(results, (list, tuple)) else [results]

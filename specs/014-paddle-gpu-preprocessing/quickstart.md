@@ -128,12 +128,12 @@ attempting `PPStructureV3(...)`. The JSON payload's
 Once preflight returns `ppstructurev3_init_succeeded`:
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.preprocessing.cli \
+.venv/bin/python -m ledgerlinc_ocr.pipeline run \
     --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
     --document-id inv_001_easy \
+    --output-dir tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu \
-    --start-at preprocess --stop-after preprocess \
-    --output-dir tests/stage1_vendor_identity/inv_001_easy
+    --start-at preprocess --stop-after preprocess
 ```
 
 Verify:
@@ -162,12 +162,12 @@ write:
 ```bash
 .venv/bin/pip uninstall -y paddlepaddle
 .venv/bin/pip install paddlepaddle==<cpu-pinned>
-.venv/bin/python -m ledgerlinc_ocr.preprocessing.cli \
+.venv/bin/python -m ledgerlinc_ocr.pipeline run \
     --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
     --document-id inv_001_easy \
+    --output-dir tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu \
-    --start-at preprocess --stop-after preprocess \
-    --output-dir tests/stage1_vendor_identity/inv_001_easy
+    --start-at preprocess --stop-after preprocess
 echo "exit: $?"
 # Expected stderr: error: --preprocess-profile=ppstructurev3@gpu: paddle_cpu_only; ...
 # Expected exit:   11
@@ -183,13 +183,13 @@ Reuse a small corpus run to capture both lanes:
 
 ```bash
 # CPU run (default)
-.venv/bin/python -m ledgerlinc_ocr.pipeline \
+.venv/bin/python -m ledgerlinc_ocr.pipeline run \
     --documents-file tests/stage1_vendor_identity/_documents.txt \
     --start-at preprocess --stop-after preprocess \
     > /tmp/run_summary_cpu.jsonl
 
 # GPU run
-.venv/bin/python -m ledgerlinc_ocr.pipeline \
+.venv/bin/python -m ledgerlinc_ocr.pipeline run \
     --documents-file tests/stage1_vendor_identity/_documents.txt \
     --preprocess-profile ppstructurev3@gpu \
     --start-at preprocess --stop-after preprocess \
@@ -236,32 +236,58 @@ input and confirm byte-stability:
 
 ```bash
 rm -f tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json
-.venv/bin/python -m ledgerlinc_ocr.preprocessing.cli \
+.venv/bin/python -m ledgerlinc_ocr.pipeline run \
     --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
     --document-id inv_001_easy \
-    --start-at preprocess --stop-after preprocess \
-    --output-dir tests/stage1_vendor_identity/inv_001_easy
+    --output-dir tests/stage1_vendor_identity/inv_001_easy \
+    --start-at preprocess --stop-after preprocess
 sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json | tee /tmp/sha_run1
 
 rm -f tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json
-.venv/bin/python -m ledgerlinc_ocr.preprocessing.cli \
+.venv/bin/python -m ledgerlinc_ocr.pipeline run \
     --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
     --document-id inv_001_easy \
-    --start-at preprocess --stop-after preprocess \
-    --output-dir tests/stage1_vendor_identity/inv_001_easy
+    --output-dir tests/stage1_vendor_identity/inv_001_easy \
+    --start-at preprocess --stop-after preprocess
 sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json | tee /tmp/sha_run2
 
 diff /tmp/sha_run1 /tmp/sha_run2 && echo "byte-stable ✓"
 ```
 
 Both runs MUST produce identical SHA-256 sums. Any difference is a
-regression of FR-017.
+regression of FR-017. This manual `sha256sum` procedure is the
+canonical operator-facing byte-stability check.
 
-This manual procedure is the same gate enforced by
-`tests/pipeline_tests/test_pipeline_version_cpu_byte_stable.py` (Tasks
-T031). Once the test exists, running it manually is optional — the
-test is the canonical CI gate, and the manual procedure above is
-useful for ad-hoc debugging when the test fails.
+The companion test file
+`tests/pipeline_tests/test_pipeline_version_cpu_byte_stable.py` (T031)
+contains two tests with strictly disjoint runtime behavior:
+
+- A fast default-CI test (`test_cpu_lane_segment_default_args`) that
+  asserts `build_pipeline_version()` (default kwargs) emits a string
+  ending with `.cpu` and that `parse_lane_segment(...)` round-trips to
+  `("cpu", None)`. This runs on every default `.venv/bin/pytest`
+  invocation. No Paddle, no PDF.
+- A live byte-of-the-artifact regression guard
+  (`test_cpu_byte_stability_repeat_runs`) that runs the real
+  PPStructureV3 CPU pipeline twice on
+  `tests/stage1_vendor_identity/inv_001_easy/source.pdf` and asserts
+  byte-stability via SHA-256. This test is **opt-in**: it skips
+  unless the environment variable `LEDGERLINC_LIVE_REGRESSION=1` is
+  set, because constructing PPStructureV3 on a real PDF has been
+  observed to OOM-kill the test process in the bench environment.
+  Default CI (`.venv/bin/pytest` with no env vars or flags) skips it
+  with a documented reason and never imports Paddle.
+
+To run the live byte-stability test deliberately:
+
+```bash
+LEDGERLINC_LIVE_REGRESSION=1 .venv/bin/pytest \
+    tests/pipeline_tests/test_pipeline_version_cpu_byte_stable.py -q
+```
+
+If the live test fails (or you want a finer-grained diff than a
+single SHA mismatch), fall back to the manual `sha256sum` procedure
+above for ad-hoc debugging.
 
 ---
 
