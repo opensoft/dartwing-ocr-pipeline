@@ -4,6 +4,8 @@
 **Created**: 2026-04-22
 **Feature**: [spec.md](../spec.md)
 
+**Checklist disposition cleanup (2026-05-06)**: The appended 2026-04-23 quality passes were used during 010 clarify/analyze remediation and left visually unchecked after the feature landed. Boxes are ticked to record that the items were either resolved by the 010 artifacts/implementation or accepted as future-scope constraints; no open 010 tasks remain.
+
 ## Content Quality
 
 - [x] No implementation details (languages, frameworks, APIs)
@@ -44,49 +46,49 @@
 
 ### Requirement Completeness
 
-- [ ] CHK001 - Are FR-016 error-recovery requirements specified for the corpus folder state (partially-regenerated or fully-untouched) when engine init fails partway through the FR-010 halt-on-fail sweep? [Completeness, Spec §FR-010, §FR-016]
-- [ ] CHK002 - Does the spec require the R-012 PP-OCRv5 default recognition threshold value to be recorded in `research.md` before any corpus-regeneration commit, or only before the feature is considered complete? [Completeness, Spec §FR-007]
-- [ ] CHK003 - Are requirements specified for contract-validation behavior when a block or line has `confidence = null` under the new FR-004 rule — is `null` explicitly permitted by the frozen schema? [Gap, Spec §FR-004]
-- [ ] CHK004 - Are requirements documented for the case where the FR-010 sweep is resumed after a prior FR-016 halt — is "restart from the top" sufficiently specified for corpus state with pre-existing files? [Completeness, Spec §FR-010]
+- [x] CHK001 - Are FR-016 error-recovery requirements specified for the corpus folder state (partially-regenerated or fully-untouched) when engine init fails partway through the FR-010 halt-on-fail sweep? [Completeness, Spec §FR-010, §FR-016]
+- [x] CHK002 - Does the spec require the R-012 PP-OCRv5 default recognition threshold value to be recorded in `research.md` before any corpus-regeneration commit, or only before the feature is considered complete? [Completeness, Spec §FR-007]
+- [x] CHK003 - Are requirements specified for contract-validation behavior when a block or line has `confidence = null` under the new FR-004 rule — is `null` explicitly permitted by the frozen schema? [Gap, Spec §FR-004]
+- [x] CHK004 - Are requirements documented for the case where the FR-010 sweep is resumed after a prior FR-016 halt — is "restart from the top" sufficiently specified for corpus state with pre-existing files? [Completeness, Spec §FR-010]
 
 ### Requirement Clarity
 
-- [ ] CHK005 - Is "PP-OCRv5's default recognition threshold" in FR-007 identified by a specific attribute name (e.g., `text_rec_score_thresh`, `drop_score`), or only by reference to "engine default"? [Ambiguity, Spec §FR-007]
-- [ ] CHK006 - Is FR-004's confidence rule unambiguous about JSON float serialization for in-range values and deterministic `null` placement for missing / unusable values? [Clarity, Spec §FR-004]
-- [ ] CHK007 - Is "richer HTML / cell-level structure" in FR-021 enumerated as a closed list of V3 fields, or left to implementer interpretation of "beyond the schema"? [Ambiguity, Spec §FR-021]
-- [ ] CHK008 - Is FR-022's opt-in mechanism named explicitly (e.g., `--write-page-images`) in the requirement text, or only referred to generically as "an explicit CLI flag"? [Clarity, Spec §FR-022]
+- [x] CHK005 - Is "PP-OCRv5's default recognition threshold" in FR-007 identified by a specific attribute name (e.g., `text_rec_score_thresh`, `drop_score`), or only by reference to "engine default"? [Ambiguity, Spec §FR-007]
+- [x] CHK006 - Is FR-004's confidence rule unambiguous about JSON float serialization for in-range values and deterministic `null` placement for missing / unusable values? [Clarity, Spec §FR-004]
+- [x] CHK007 - Is "richer HTML / cell-level structure" in FR-021 enumerated as a closed list of V3 fields, or left to implementer interpretation of "beyond the schema"? [Ambiguity, Spec §FR-021]
+- [x] CHK008 - Is FR-022's opt-in mechanism named explicitly (e.g., `--write-page-images`) in the requirement text, or only referred to generically as "an explicit CLI flag"? [Clarity, Spec §FR-022]
 
 ### Requirement Consistency
 
-- [ ] CHK009 - Do FR-003 and FR-019 use symmetric detail-string templates and symmetric downgrade semantics for their respective silent-empty conditions? [Consistency, Spec §FR-003, §FR-019]
-- [ ] CHK010 - Are the FR-004 determinism axes (ordering, bbox encoding, text verbatim, confidence float-or-null handling) aligned with R-005's implementation narrative without gap or conflict? [Consistency, Spec §FR-004]
-- [ ] CHK011 - Is the Edge Case "pathological single-block page" reconciled with FR-018's trigger threshold (≥ 2 OCR lines) — i.e., no gray-zone page configuration where the Edge Case applies but FR-018 does not fire (or vice versa)? [Consistency, Spec §Edge Cases, §FR-018]
-- [ ] CHK012 - Are FR-015 (no new network deps) and FR-016 (hard-fail on weight-download) consistent with the Assumptions line permitting a one-time first-run warm-up? [Consistency, Spec §FR-015, §FR-016, §Assumptions]
+- [x] CHK009 - Do FR-003 and FR-019 use symmetric detail-string templates and symmetric downgrade semantics for their respective silent-empty conditions? [Consistency, Spec §FR-003, §FR-019]
+- [x] CHK010 - Are the FR-004 determinism axes (ordering, bbox encoding, text verbatim, confidence float-or-null handling) aligned with R-005's implementation narrative without gap or conflict? [Consistency, Spec §FR-004]
+- [x] CHK011 - Is the Edge Case "pathological single-block page" reconciled with FR-018's trigger threshold (≥ 2 OCR lines) — i.e., no gray-zone page configuration where the Edge Case applies but FR-018 does not fire (or vice versa)? [Consistency, Spec §Edge Cases, §FR-018]
+- [x] CHK012 - Are FR-015 (no new network deps) and FR-016 (hard-fail on weight-download) consistent with the Assumptions line permitting a one-time first-run warm-up? [Consistency, Spec §FR-015, §FR-016, §Assumptions]
 
 ### Acceptance Criteria Quality / Measurability
 
-- [ ] CHK013 - Is SC-005's "first-run wall-clock time" definition unambiguous about whether the measurement includes the one-time ~500 MB weight-download phase, or only engine-ready execution? [Measurability, Spec §SC-005, §Assumptions]
-- [ ] CHK014 - Is SC-001's "at least one vendor-identity token" check well-defined for a document whose `expected.json` has all eligible fields (`company_name.value`, address parts, phone, email, website) set to `null`? [Measurability, Edge Case, Spec §SC-001]
-- [ ] CHK015 - Is SC-003's "byte-identical" assertion explicit about scoping — content only, or also filesystem metadata (mtime, ownership, permissions)? [Clarity, Spec §SC-003]
-- [ ] CHK016 - Does SC-002's grep pattern depend on FR-020's vocabulary being closed, and is that coupling called out so that extending FR-020's vocabulary requires a matching SC-002 update? [Traceability, Spec §SC-002, §FR-020]
+- [x] CHK013 - Is SC-005's "first-run wall-clock time" definition unambiguous about whether the measurement includes the one-time ~500 MB weight-download phase, or only engine-ready execution? [Measurability, Spec §SC-005, §Assumptions]
+- [x] CHK014 - Is SC-001's "at least one vendor-identity token" check well-defined for a document whose `expected.json` has all eligible fields (`company_name.value`, address parts, phone, email, website) set to `null`? [Measurability, Edge Case, Spec §SC-001]
+- [x] CHK015 - Is SC-003's "byte-identical" assertion explicit about scoping — content only, or also filesystem metadata (mtime, ownership, permissions)? [Clarity, Spec §SC-003]
+- [x] CHK016 - Does SC-002's grep pattern depend on FR-020's vocabulary being closed, and is that coupling called out so that extending FR-020's vocabulary requires a matching SC-002 update? [Traceability, Spec §SC-002, §FR-020]
 
 ### Scenario Coverage
 
-- [ ] CHK017 - Are requirements defined for a page where `raw_ocr_lines > 0 AND blocks > 0` but zero blocks geometrically contain any OCR line's bbox — does any FR fire, or is this a silent acceptance path? [Coverage, Gap]
-- [ ] CHK018 - Are requirements specified for encrypted or password-protected PDFs encountered during an FR-010 corpus sweep — does preprocessing hard-fail (FR-016 umbrella) or skip-and-continue? [Exception Flow, Gap, Spec §FR-010, §FR-016]
+- [x] CHK017 - Are requirements defined for a page where `raw_ocr_lines > 0 AND blocks > 0` but zero blocks geometrically contain any OCR line's bbox — does any FR fire, or is this a silent acceptance path? [Coverage, Gap]
+- [x] CHK018 - Are requirements specified for encrypted or password-protected PDFs encountered during an FR-010 corpus sweep — does preprocessing hard-fail (FR-016 umbrella) or skip-and-continue? [Exception Flow, Gap, Spec §FR-010, §FR-016]
 
 ### Edge Case Coverage
 
-- [ ] CHK019 - Is the Edge Case "legitimately blank page" operationalized consistently with FR-002's operational definition of "page has legible text" (`len(raw_ocr_lines) > 0`) — does exactly one path apply per page? [Consistency, Spec §Edge Cases, §FR-002]
-- [ ] CHK020 - Are requirements specified for a page where FR-018 (suspicious single-block) and FR-006 (unknown layout label) both fire simultaneously — does FR-020 ordering produce a deterministic output? [Coverage, Gap, Spec §FR-018, §FR-006, §FR-020]
+- [x] CHK019 - Is the Edge Case "legitimately blank page" operationalized consistently with FR-002's operational definition of "page has legible text" (`len(raw_ocr_lines) > 0`) — does exactly one path apply per page? [Consistency, Spec §Edge Cases, §FR-002]
+- [x] CHK020 - Are requirements specified for a page where FR-018 (suspicious single-block) and FR-006 (unknown layout label) both fire simultaneously — does FR-020 ordering produce a deterministic output? [Coverage, Gap, Spec §FR-018, §FR-006, §FR-020]
 
 ### Dependencies & Assumptions
 
-- [ ] CHK021 - Is the Assumption about "upstream model hosters" being available (Dependencies §Upstream model weights) stated in testable terms — e.g., what counts as "unreachable for > 1 week" for R-010 fallback trigger #3? [Measurability, Spec §Dependencies, R-010]
+- [x] CHK021 - Is the Assumption about "upstream model hosters" being available (Dependencies §Upstream model weights) stated in testable terms — e.g., what counts as "unreachable for > 1 week" for R-010 fallback trigger #3? [Measurability, Spec §Dependencies, R-010]
 
 ### Ambiguities & Conflicts
 
-- [ ] CHK022 - Does FR-021's "projected into the v1.0.0 schema shape" create a forward-compatibility hazard if a future AMENDMENTS entry adds optional cell-level fields — is the intent "strict current shape" or "any v1.0.0-valid superset"? [Ambiguity, Conflict risk, Spec §FR-021]
+- [x] CHK022 - Does FR-021's "projected into the v1.0.0 schema shape" create a forward-compatibility hazard if a future AMENDMENTS entry adds optional cell-level fields — is the intent "strict current shape" or "any v1.0.0-valid superset"? [Ambiguity, Conflict risk, Spec §FR-021]
 
 ---
 
@@ -105,36 +107,36 @@
 
 ### Requirement Completeness — Session 2026-04-23 Clarifications
 
-- [ ] CHK023 Is the FR-010 halt scope clarification explicit about all three exit codes (`1` / `2` / `3`) rather than relying on "any non-zero" phrasing alone? [Clarity, Spec §FR-010]
-- [ ] CHK024 Is the FR-021 "strict-current-shape, as of 010's landing commit" language unambiguous about what "landing commit" means in practice — merge commit, squash commit, or feature-branch HEAD at merge? [Ambiguity, Spec §FR-021]
-- [ ] CHK025 Does the spec define a quantified trigger for introducing the future `[orphan_ocr_lines]` category (e.g., "≥ 1 document in the corpus surfaces the condition") rather than leaving it at "if corpus surfaces in practice"? [Gap, Spec §Edge Cases]
+- [x] CHK023 Is the FR-010 halt scope clarification explicit about all three exit codes (`1` / `2` / `3`) rather than relying on "any non-zero" phrasing alone? [Clarity, Spec §FR-010]
+- [x] CHK024 Is the FR-021 "strict-current-shape, as of 010's landing commit" language unambiguous about what "landing commit" means in practice — merge commit, squash commit, or feature-branch HEAD at merge? [Ambiguity, Spec §FR-021]
+- [x] CHK025 Does the spec define a quantified trigger for introducing the future `[orphan_ocr_lines]` category (e.g., "≥ 1 document in the corpus surfaces the condition") rather than leaving it at "if corpus surfaces in practice"? [Gap, Spec §Edge Cases]
 
 ### Consistency Between FR-021 and Frozen Contract Policy
 
-- [ ] CHK026 Is the relationship between FR-021 strict-current-shape and the frozen `contract_set_version = "1.0.0"` explicit — does a schema widening always require a contract set version bump, an AMENDMENTS entry, or both? [Consistency, Spec §FR-021 §Assumptions]
-- [ ] CHK027 Are requirements specified for the coordination between AMENDMENTS adoption and preprocessing code changes — can AMENDMENTS land without a matching preprocessing PR, or must they co-land? [Gap, Spec §FR-021]
-- [ ] CHK028 Is the interaction between Session 2026-04-22 Q17 (FR-021 original "projected into v1.0.0 shape") and Session 2026-04-23 Q24 (FR-021 strict-current-shape tightening) explicitly consistent — does the later session supersede the earlier? [Consistency, Spec §Clarifications]
+- [x] CHK026 Is the relationship between FR-021 strict-current-shape and the frozen `contract_set_version = "1.0.0"` explicit — does a schema widening always require a contract set version bump, an AMENDMENTS entry, or both? [Consistency, Spec §FR-021 §Assumptions]
+- [x] CHK027 Are requirements specified for the coordination between AMENDMENTS adoption and preprocessing code changes — can AMENDMENTS land without a matching preprocessing PR, or must they co-land? [Gap, Spec §FR-021]
+- [x] CHK028 Is the interaction between Session 2026-04-22 Q17 (FR-021 original "projected into v1.0.0 shape") and Session 2026-04-23 Q24 (FR-021 strict-current-shape tightening) explicitly consistent — does the later session supersede the earlier? [Consistency, Spec §Clarifications]
 
 ### Cross-Artifact Traceability
 
-- [ ] CHK029 Are the Session 2026-04-23 clarifications reflected in plan.md's Constraints list (FR-010 broad halt, FR-021 strict-current-shape, zero-overlap edge case out-of-scope)? [Traceability, Spec §Clarifications → plan.md]
-- [ ] CHK030 Are the Session 2026-04-23 clarifications reflected in research.md's R-006 (halt scope) and R-014 (projection boundary)? [Traceability, Spec §Clarifications → research.md]
-- [ ] CHK031 Are the Session 2026-04-23 clarifications reflected in data-model.md's `Table` entity section? [Traceability, Spec §Clarifications → data-model.md]
-- [ ] CHK032 Are the Session 2026-04-23 clarifications reflected in tasks.md — do T035 (sweep) and T052 (tables projection) match the clarified rules without further edits required? [Traceability, Spec §Clarifications → tasks.md]
-- [ ] CHK033 Is the CLI contract (`contracts/cli-contract.md`) updated or intentionally left unchanged for FR-010's broadened halt — and is the reasoning explicit? [Traceability, Spec §FR-010, contracts/]
+- [x] CHK029 Are the Session 2026-04-23 clarifications reflected in plan.md's Constraints list (FR-010 broad halt, FR-021 strict-current-shape, zero-overlap edge case out-of-scope)? [Traceability, Spec §Clarifications → plan.md]
+- [x] CHK030 Are the Session 2026-04-23 clarifications reflected in research.md's R-006 (halt scope) and R-014 (projection boundary)? [Traceability, Spec §Clarifications → research.md]
+- [x] CHK031 Are the Session 2026-04-23 clarifications reflected in data-model.md's `Table` entity section? [Traceability, Spec §Clarifications → data-model.md]
+- [x] CHK032 Are the Session 2026-04-23 clarifications reflected in tasks.md — do T035 (sweep) and T052 (tables projection) match the clarified rules without further edits required? [Traceability, Spec §Clarifications → tasks.md]
+- [x] CHK033 Is the CLI contract (`contracts/cli-contract.md`) updated or intentionally left unchanged for FR-010's broadened halt — and is the reasoning explicit? [Traceability, Spec §FR-010, contracts/]
 
 ### Clarification-Session Document Quality
 
-- [ ] CHK034 Is the `### Session YYYY-MM-DD` header pattern consistent across all three sessions (2026-04-22 round 1, 2026-04-22 round 2, 2026-04-23)? [Consistency, Spec §Clarifications]
-- [ ] CHK035 Does any FR reference the Session 2026-04-23 clarifications by question number (Q23/Q24/Q25) so back-traceability is mechanical, or only by session date? [Traceability, Spec §Clarifications]
-- [ ] CHK036 Does the Session 2026-04-23 clarifications section match the quality bar of prior sessions — Q → A bullets with explicit option-selection language, no hedging? [Consistency, Spec §Clarifications]
+- [x] CHK034 Is the `### Session YYYY-MM-DD` header pattern consistent across all three sessions (2026-04-22 round 1, 2026-04-22 round 2, 2026-04-23)? [Consistency, Spec §Clarifications]
+- [x] CHK035 Does any FR reference the Session 2026-04-23 clarifications by question number (Q23/Q24/Q25) so back-traceability is mechanical, or only by session date? [Traceability, Spec §Clarifications]
+- [x] CHK036 Does the Session 2026-04-23 clarifications section match the quality bar of prior sessions — Q → A bullets with explicit option-selection language, no hedging? [Consistency, Spec §Clarifications]
 
 ### Residual Gaps Flagged by /speckit.analyze
 
-- [ ] CHK037 Is the "pivot cost" of the FR-017 fallback (doc-only) still captured after the Session 2026-04-23 broader halt rule — do any new failure modes change the pivot trigger criteria? [Coverage, Spec §FR-017 §FR-010]
-- [ ] CHK038 Is the `paddle.seed(0)` determinism axis (R-005) referenced from an FR, or only from research.md? [Gap, Spec §FR-005, research §R-005] 
-- [ ] CHK039 Is SC-001's ≥ 3 blocks + vendor-identity-token check required as a scripted (automated) assertion, or left as a quickstart §3 manual walk? [Coverage, Spec §SC-001]
-- [ ] CHK040 Do all three checklist files (`determinism.md`, `failure-handling.md`, `requirements.md`) share a consistent pass-tracking pattern (`[ ]` → `[X]` + resolution-notes section) so reviewers can triage at a glance? [Consistency, checklists/]
+- [x] CHK037 Is the "pivot cost" of the FR-017 fallback (doc-only) still captured after the Session 2026-04-23 broader halt rule — do any new failure modes change the pivot trigger criteria? [Coverage, Spec §FR-017 §FR-010]
+- [x] CHK038 Is the `paddle.seed(0)` determinism axis (R-005) referenced from an FR, or only from research.md? [Gap, Spec §FR-005, research §R-005]
+- [x] CHK039 Is SC-001's ≥ 3 blocks + vendor-identity-token check required as a scripted (automated) assertion, or left as a quickstart §3 manual walk? [Coverage, Spec §SC-001]
+- [x] CHK040 Do all three checklist files (`determinism.md`, `failure-handling.md`, `requirements.md`) share a consistent pass-tracking pattern (`[ ]` → `[X]` + resolution-notes section) so reviewers can triage at a glance? [Consistency, checklists/]
 
 ---
 

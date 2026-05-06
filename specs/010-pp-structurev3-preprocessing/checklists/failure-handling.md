@@ -11,6 +11,8 @@ not the implementation.
 **Depth**: Release gate
 **Audience**: Reviewer (PR + QA)
 
+**Checklist disposition cleanup (2026-05-06)**: The 2026-04-23 appended failure-handling pass was used during 010 clarify/analyze remediation and left visually unchecked after the feature landed. Boxes are ticked to record that the items were either resolved by the 010 artifacts/implementation or accepted as future-scope constraints; no open 010 tasks remain.
+
 ## Engine Initialization Failure
 
 - [X] CHK001 Is the behavior when a required model weight cannot be downloaded, cached, or loaded specified (hard-fail, non-zero exit, no artifact written)? [Completeness, Spec §FR-016 §Clarifications 2026-04-22]
@@ -129,33 +131,33 @@ No residuals at any severity level.
 
 ### FR-010 Broad Halt Scope (Session 2026-04-23 Q23)
 
-- [ ] CHK051 Is the FR-010 halt-on-any-non-zero rule explicitly enumerated across all three exit codes (`1` unexpected, `2` input_rejected, `3` internal_error), or does it still read like the original "FR-016 engine-init" case only? [Completeness, Spec §FR-010]
-- [ ] CHK052 Is the encrypted-PDF handling path under FR-010 explicit — does exit `2` halt the sweep alongside exit `3`, per the Session 2026-04-23 Q23 resolution? [Clarity, Spec §FR-010 §Clarifications 2026-04-23]
-- [ ] CHK053 Is the unexpected-exception handling (exit `1`) path under FR-010 explicit — does a per-document runtime exception halt the whole sweep? [Clarity, Spec §FR-010]
-- [ ] CHK054 Does the spec reconcile the broadened FR-010 halt rule with the older "FR-016 engine-init failure" phrasing so a reader doesn't see them as competing halt criteria? [Consistency, Spec §FR-010 §FR-016]
-- [ ] CHK055 Is the rollback guidance for a halted sweep explicit — "do NOT commit partial baselines; git-discard and re-run from the top after root cause is fixed"? [Clarity, Spec §FR-010]
-- [ ] CHK056 Is the FR-010 halt rule's interaction with the quickstart §5 `set -e` bash loop explicit, or is `set -e` assumed to be self-describing? [Traceability, Spec §FR-010]
-- [ ] CHK057 Does the spec cover the case where a document exits `0` but writes an artifact with `ingestion_sources.paddleocr_vl.status == "failure"` — does the sweep continue normally, and is that intent explicit? [Coverage, Spec §FR-010 §FR-003]
+- [x] CHK051 Is the FR-010 halt-on-any-non-zero rule explicitly enumerated across all three exit codes (`1` unexpected, `2` input_rejected, `3` internal_error), or does it still read like the original "FR-016 engine-init" case only? [Completeness, Spec §FR-010]
+- [x] CHK052 Is the encrypted-PDF handling path under FR-010 explicit — does exit `2` halt the sweep alongside exit `3`, per the Session 2026-04-23 Q23 resolution? [Clarity, Spec §FR-010 §Clarifications 2026-04-23]
+- [x] CHK053 Is the unexpected-exception handling (exit `1`) path under FR-010 explicit — does a per-document runtime exception halt the whole sweep? [Clarity, Spec §FR-010]
+- [x] CHK054 Does the spec reconcile the broadened FR-010 halt rule with the older "FR-016 engine-init failure" phrasing so a reader doesn't see them as competing halt criteria? [Consistency, Spec §FR-010 §FR-016]
+- [x] CHK055 Is the rollback guidance for a halted sweep explicit — "do NOT commit partial baselines; git-discard and re-run from the top after root cause is fixed"? [Clarity, Spec §FR-010]
+- [x] CHK056 Is the FR-010 halt rule's interaction with the quickstart §5 `set -e` bash loop explicit, or is `set -e` assumed to be self-describing? [Traceability, Spec §FR-010]
+- [x] CHK057 Does the spec cover the case where a document exits `0` but writes an artifact with `ingestion_sources.paddleocr_vl.status == "failure"` — does the sweep continue normally, and is that intent explicit? [Coverage, Spec §FR-010 §FR-003]
 
 ### Zero-Overlap Edge Case (Session 2026-04-23 Q25)
 
-- [ ] CHK058 Is the zero-overlap edge case (`lines > 0 AND blocks > 0 AND no bbox overlap`) declared out-of-scope with a specific future-category name (e.g., `[orphan_ocr_lines]`)? [Completeness, Spec §Edge Cases §Clarifications 2026-04-23]
-- [ ] CHK059 Is the out-of-scope declaration explicit that the artifact is STILL written (schema-valid) rather than treated as a failure that halts the sweep? [Clarity, Spec §Edge Cases §FR-010]
-- [ ] CHK060 Is the future-slice trigger criterion for introducing `[orphan_ocr_lines]` quantified (e.g., "corpus surfaces condition on ≥ 1 document"), or left unquantified? [Gap, Spec §Edge Cases]
-- [ ] CHK061 Is the interaction between the zero-overlap case and FR-018's `[suspicious_single_block]` warning explicit — if both trigger conditions match (single block, lines ≥ 2, but no overlap), which warnings fire? [Coverage, Spec §Edge Cases §FR-018]
+- [x] CHK058 Is the zero-overlap edge case (`lines > 0 AND blocks > 0 AND no bbox overlap`) declared out-of-scope with a specific future-category name (e.g., `[orphan_ocr_lines]`)? [Completeness, Spec §Edge Cases §Clarifications 2026-04-23]
+- [x] CHK059 Is the out-of-scope declaration explicit that the artifact is STILL written (schema-valid) rather than treated as a failure that halts the sweep? [Clarity, Spec §Edge Cases §FR-010]
+- [x] CHK060 Is the future-slice trigger criterion for introducing `[orphan_ocr_lines]` quantified (e.g., "corpus surfaces condition on ≥ 1 document"), or left unquantified? [Gap, Spec §Edge Cases]
+- [x] CHK061 Is the interaction between the zero-overlap case and FR-018's `[suspicious_single_block]` warning explicit — if both trigger conditions match (single block, lines ≥ 2, but no overlap), which warnings fire? [Coverage, Spec §Edge Cases §FR-018]
 
 ### FR-016 Hard-Fail Error Envelope Determinism
 
-- [ ] CHK062 Is the FR-016 engine-init hard-fail error envelope (stderr JSON with `kind="engine_init_failed"`) required to be deterministic across runs given the same missing weight — so CI assertions on stderr content are reliable? [Coverage, Spec §FR-016 §FR-004]
-- [ ] CHK063 Does the spec cover the case where FR-016 fires under the broadened FR-010 halt rule (i.e., FR-016 is one of the halting failure modes, not the only one)? [Consistency, Spec §FR-016 §FR-010]
+- [x] CHK062 Is the FR-016 engine-init hard-fail error envelope (stderr JSON with `kind="engine_init_failed"`) required to be deterministic across runs given the same missing weight — so CI assertions on stderr content are reliable? [Coverage, Spec §FR-016 §FR-004]
+- [x] CHK063 Does the spec cover the case where FR-016 fires under the broadened FR-010 halt rule (i.e., FR-016 is one of the halting failure modes, not the only one)? [Consistency, Spec §FR-016 §FR-010]
 
 ### New Edge Cases Surfaced During Analyze/Clarify
 
-- [ ] CHK064 Is the failure mode for `--write-page-images` when disk is full specified — does it affect the artifact's success state, or is PNG failure silently ignored? [Edge Case, Gap, Spec §FR-022]
-- [ ] CHK065 Is the sweep's behavior when the corpus contains a folder with no `source.pdf` (labeling mistake) specified — does the CLI exit `2` and halt, or skip? [Edge Case, Gap, Spec §FR-010]
-- [ ] CHK066 Does the spec require the CLI to identify which exit-code reason (`1` / `2` / `3`) triggered the halt before halting the sweep, so re-run diagnosis is direct? [Clarity, Spec §FR-010]
+- [x] CHK064 Is the failure mode for `--write-page-images` when disk is full specified — does it affect the artifact's success state, or is PNG failure silently ignored? [Edge Case, Gap, Spec §FR-022]
+- [x] CHK065 Is the sweep's behavior when the corpus contains a folder with no `source.pdf` (labeling mistake) specified — does the CLI exit `2` and halt, or skip? [Edge Case, Gap, Spec §FR-010]
+- [x] CHK066 Does the spec require the CLI to identify which exit-code reason (`1` / `2` / `3`) triggered the halt before halting the sweep, so re-run diagnosis is direct? [Clarity, Spec §FR-010]
 
 ### Recovery and Re-Run Workflow
 
-- [ ] CHK067 Is the "no partial baselines committed" guarantee enforced by operational practice (halt-then-don't-commit) rather than a code-level check — and is that trade-off explicit? [Clarity, Spec §FR-010]
-- [ ] CHK068 Is the triage path after a halt documented well enough that a new contributor can re-run without consulting the PRD — i.e., is the failure-triage path self-contained in spec + research? [Coverage, Spec §FR-010 §FR-016]
+- [x] CHK067 Is the "no partial baselines committed" guarantee enforced by operational practice (halt-then-don't-commit) rather than a code-level check — and is that trade-off explicit? [Clarity, Spec §FR-010]
+- [x] CHK068 Is the triage path after a halt documented well enough that a new contributor can re-run without consulting the PRD — i.e., is the failure-triage path self-contained in spec + research? [Coverage, Spec §FR-010 §FR-016]

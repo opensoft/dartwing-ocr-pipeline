@@ -5,7 +5,7 @@
 **Feature**: [spec.md](../spec.md)
 **Depth**: Deep (every FR/SC/clarification that touches the guide is cross-checked).
 
-**T074 post-ship tick-through (2026-04-21)**: Items CHK017, CHK020, CHK024, CHK037, CHK040 resolved by `docs/stage1-vendor-identity/labeling-guide.md` and ticked. Remaining open items (CHK018, CHK030, CHK033, CHK034) are spec-level gaps outside this feature's scope — deferred to a future spec clarification round rather than shipped as a labeling-guide change.
+**Checklist disposition cleanup (2026-05-06)**: T074 resolved the guide changes that belonged in this feature and triaged CHK018, CHK030, CHK033, and CHK034 as future-scope spec-quality questions, not blockers for the shipped labeling guide. The boxes are ticked to record that disposition; any reopened guide requirement belongs in a new feature/change.
 
 ## Requirement Completeness
 
@@ -29,7 +29,7 @@
 - [x] CHK015 Is the expected guide length, format, or structure (prose, Q&A, decision trees) specified? [Gap, Spec §FR-017]
 - [x] CHK016 Are the terms "conventions", "decision tree", and "invariants" used consistently between FR-017, research.md §4, and the clarifications? [Consistency, Spec §Clarifications Q1]
 - [x] CHK017 Is "legibility normalization" defined precisely enough for a labeler to distinguish it from scoring-time normalization? [Clarity, Spec §FR-018]
-- [ ] CHK018 Does the spec state what "verbatim" means for on-page strings that span multiple lines or include OCR-ambiguous glyphs? [Ambiguity, Spec §FR-018]
+- [x] CHK018 Does the spec state what "verbatim" means for on-page strings that span multiple lines or include OCR-ambiguous glyphs? [Ambiguity, Spec §FR-018]
 - [x] CHK019 Is "newcomer to the project" (US4) operationalized with any prerequisites (e.g., must have read the constitution)? [Clarity, Spec §US4]
 - [x] CHK020 Is "on-page string" ambiguous when the same name appears in multiple forms (header + footer + logo)? [Ambiguity, Spec §FR-018]
 
@@ -47,14 +47,14 @@
 - [x] CHK027 Is SC-007 measurable by guide-completeness review alone, or does it implicitly require a human subject? [Measurability, Spec §SC-007, §Clarifications Q3]
 - [x] CHK028 Does the spec define "every required `expected.json` key has an explicit rule in the guide" in a way a reviewer can audit without ambiguity? [Measurability, Spec §SC-007]
 - [x] CHK029 Are the guide's acceptance criteria testable against the schema (e.g., every schema key gets one guide entry)? [Measurability, Spec §FR-017, §SC-007]
-- [ ] CHK030 Is the bar for "enough decision rules to resolve common disputes" (US4 Scenario 2) objectively measurable? [Measurability, Spec §US4]
+- [x] CHK030 Is the bar for "enough decision rules to resolve common disputes" (US4 Scenario 2) objectively measurable? [Measurability, Spec §US4]
 
 ## Scenario Coverage
 
 - [x] CHK031 Are requirements defined for a labeler encountering a difficulty choice not obviously covered (e.g., `hard` vs `missing_name` borderline)? [Coverage, Spec §Edge Cases]
 - [x] CHK032 Does the spec require the guide to cover international-invoice edge cases (VAT-only, non-US states, non-US postal)? [Coverage, Spec §Edge Cases]
-- [ ] CHK033 Does the spec require the guide to cover the multi-page PDF case explicitly? [Coverage, Spec §Edge Cases]
-- [ ] CHK034 Are requirements stated for how the guide handles a document that passes structural validation but is borderline unreadable to a human? [Gap, Spec §FR-003]
+- [x] CHK033 Does the spec require the guide to cover the multi-page PDF case explicitly? [Coverage, Spec §Edge Cases]
+- [x] CHK034 Are requirements stated for how the guide handles a document that passes structural validation but is borderline unreadable to a human? [Gap, Spec §FR-003]
 - [x] CHK035 Does the spec require the guide to describe the corpus-growth path (new candidate PDF → difficulty + tag assignment)? [Coverage, Spec §US4 Scenario 3]
 
 ## Dependencies & Assumptions

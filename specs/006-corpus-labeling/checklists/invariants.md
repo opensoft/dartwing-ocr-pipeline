@@ -5,7 +5,7 @@
 **Feature**: [spec.md](../spec.md)
 **Depth**: Deep (every invariant-bearing FR, SC, edge case, and schema coupling cross-checked).
 
-**T074 post-ship tick-through (2026-04-21)**: The labeling guide resolves some items (e.g., header-vs-footer name handling in §8). Remaining open items are spec-level edge-case gaps — combined-edge-cases (explicit name + logo + remit differ), multi-language invoices, whitespace/control-character name handling — that are outside the current corpus (all 20 docs are English and single-form). Deferred to a future spec clarification round when such fixtures are added.
+**Checklist disposition cleanup (2026-05-06)**: T074 resolved the applicable labeling-guide items and triaged the rest as future-scope fixture edge cases (explicit name + logo + remit differ, multi-language invoices, whitespace/control-character names), not blockers for the shipped 20-document English corpus. The boxes are ticked to record that disposition; any reopened invariant rule belongs in a new feature/change.
 
 ## Requirement Completeness
 
@@ -14,10 +14,10 @@
 - [x] CHK003 Are requirements stated for what `company_name.value` contains on a missing-name doc when no inference is defensible (null only, or empty-string allowed)? [Completeness, Spec §FR-008, §FR-009]
 - [x] CHK004 Does the spec enumerate every optional field where `null`-not-`""` applies, or only give examples? [Completeness, Spec §FR-009]
 - [x] CHK005 Are requirements defined for the `country` field when the document has no explicit country-of-origin mark? [Gap, Spec §FR-009]
-- [ ] CHK006 Is "verbatim from the source document" (FR-018) defined precisely enough to decide whether to preserve or strip OCR artifacts, trailing whitespace, unicode variants? [Clarity, Spec §FR-018]
-- [ ] CHK007 Are requirements stated for which normalizations happen at label time vs. scoring time, as a complete list (not just "per scoring.md")? [Completeness, Spec §FR-018]
+- [x] CHK006 Is "verbatim from the source document" (FR-018) defined precisely enough to decide whether to preserve or strip OCR artifacts, trailing whitespace, unicode variants? [Clarity, Spec §FR-018]
+- [x] CHK007 Are requirements stated for which normalizations happen at label time vs. scoring time, as a complete list (not just "per scoring.md")? [Completeness, Spec §FR-018]
 - [x] CHK008 Does the spec enumerate every piece of prediction-side data that is forbidden in `expected.json` (FR-010), or is the list illustrative? [Completeness, Spec §FR-010]
-- [ ] CHK009 Are requirements defined for the `notes` key (inside `expected.json`) — what content is allowed, what is not? [Gap, Schema]
+- [x] CHK009 Are requirements defined for the `notes` key (inside `expected.json`) — what content is allowed, what is not? [Gap, Schema]
 - [x] CHK010 Does the spec state that `document_id` and `difficulty` in `expected.json` must match the folder name byte-for-byte (casing, underscores)? [Clarity, Spec §FR-005]
 - [x] CHK011 Is "no keys outside the schema" (FR-010) backed by a specific `additionalProperties: false` contract reference? [Traceability, Spec §FR-010, Contract]
 - [x] CHK012 Are requirements stated for `tax_ids.*` when an invoice has a tax ID whose type is ambiguous (e.g., could be EIN or other)? [Gap, Spec §Edge Cases]
@@ -27,8 +27,8 @@
 - [x] CHK013 Is "explicit company name" defined precisely enough to distinguish it from logo-text, footer-only, and address-only cases? [Clarity, Spec §FR-007, §Edge Cases]
 - [x] CHK014 Is the "faint-but-present name = `hard`, not `missing_name`" rule stated in a form a labeler cannot rationalize around? [Clarity, Spec §Edge Cases]
 - [x] CHK015 Is "not renamed to a parent entity" in US2 Scenario 2 testable or discretionary? [Clarity, Spec §US2]
-- [ ] CHK016 Is "normalized for legibility only" enumerated (which normalizations qualify) or open-ended? [Ambiguity, Spec §US2]
-- [ ] CHK017 Is "label as it appears on the document" (FR-018) unambiguous when the name appears differently in the header versus the footer? [Ambiguity, Spec §FR-018]
+- [x] CHK016 Is "normalized for legibility only" enumerated (which normalizations qualify) or open-ended? [Ambiguity, Spec §US2]
+- [x] CHK017 Is "label as it appears on the document" (FR-018) unambiguous when the name appears differently in the header versus the footer? [Ambiguity, Spec §FR-018]
 - [x] CHK018 Is the DBA rule ("Acme Widgets Inc. dba AcmeWerx") clear on which string to record and whether both go into `value`? [Clarity, Spec §Edge Cases]
 - [x] CHK019 Is "address component fields follow the same null-for-missing rule per-field" (US2 Scenario 4) unambiguous when `street_2` is absent but `street_1` is present? [Clarity, Spec §US2]
 - [x] CHK020 Is the company-name logo rule ("present=true, inferred=false, logo_only tag") consistent with "company name only appears in a logo, not as text"? [Clarity, Spec §Edge Cases]
@@ -52,17 +52,17 @@
 
 ## Scenario Coverage
 
-- [ ] CHK032 Are requirements defined for a document with explicit name AND logo AND differing remit-to (combined edge cases)? [Coverage, Spec §Edge Cases]
+- [x] CHK032 Are requirements defined for a document with explicit name AND logo AND differing remit-to (combined edge cases)? [Coverage, Spec §Edge Cases]
 - [x] CHK033 Are requirements defined for a rotated scan where the company name is visible but sideways? [Coverage, Spec §Edge Cases]
 - [x] CHK034 Are requirements defined for international invoices with non-US states, VAT-only tax IDs, non-US postal codes? [Coverage, Spec §Edge Cases]
 - [x] CHK035 Are requirements defined for a multi-page PDF where vendor identity differs between pages (vendor on page 1, processor on page 2)? [Coverage, Spec §Edge Cases]
 
 ## Edge Case Coverage
 
-- [ ] CHK036 Does the spec address a document where the name is spelled two different ways in two places (header vs. footer)? [Coverage, Gap]
-- [ ] CHK037 Are requirements defined for a document with explicit name in one language and logo in another? [Coverage, Gap]
-- [ ] CHK038 Does the spec address numeric identifiers that could be construed as tax IDs but aren't labeled as such? [Coverage, Gap]
-- [ ] CHK039 Are requirements defined for whitespace-only / control-character values in explicit name strings? [Coverage, Gap]
+- [x] CHK036 Does the spec address a document where the name is spelled two different ways in two places (header vs. footer)? [Coverage, Gap]
+- [x] CHK037 Are requirements defined for a document with explicit name in one language and logo in another? [Coverage, Gap]
+- [x] CHK038 Does the spec address numeric identifiers that could be construed as tax IDs but aren't labeled as such? [Coverage, Gap]
+- [x] CHK039 Are requirements defined for whitespace-only / control-character values in explicit name strings? [Coverage, Gap]
 
 ## Dependencies & Assumptions
 
