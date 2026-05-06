@@ -386,7 +386,14 @@ required, committed benchmark artifact has been introduced.
   field, may be used to carry this identity. A `preprocess_output.json`
   produced under `ppstructurev3@gpu` MUST be identifiable as such by
   parsing `pipeline_version` alone, without re-running the pipeline and
-  without consulting harness stdout.
+  without consulting harness stdout. **The lane segment is mandatory on
+  every post-feature artifact** (analyze finding AA5' — both CPU and GPU
+  runs after this feature lands MUST emit a trailing `.cpu` or `.gpu<N>`
+  segment); consumers MAY rely on its presence and use
+  `parse_lane_segment(...)` (see `data-model.md` §LaneSegment) to recover
+  lane identity. Pre-feature artifacts (no segment) parse as
+  `("cpu", None)` per the documented backward-compat default and MUST
+  remain readable.
 - **FR-017**: The CPU profile's existing determinism behavior
   (`enable_mkldnn=False`, `cpu_threads=1`, byte-stable output across
   repeat runs on the same input) MUST remain unchanged. Any byte-level

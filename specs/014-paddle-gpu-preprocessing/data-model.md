@@ -130,7 +130,26 @@ field-paths land in this feature:
 existing schema MUST keep working; the new fields are strictly
 additive.
 
-### `GpuPrerequisiteError` (in-memory exception type — analyze finding AA1)
+### `GpuPrerequisiteError` (in-memory exception type — analyze finding AA1, module location pinned per AA1')
+
+**Defined in**: `src/ledgerlinc_ocr/preprocessing/preflight.py`, alongside
+`PreflightState`, `PreflightEvidence`, and `PreflightReadout`. Implemented
+as part of T002–T005 (the same Foundational tasks that define the
+classifier surface).
+
+**Imported by**:
+- `src/ledgerlinc_ocr/preprocessing/pipeline.py` (T021) — raises
+  `GpuPrerequisiteError` from the inline GPU gate when the cached
+  `PreflightReadout.state` is anything other than
+  `PPSTRUCTUREV3_INIT_SUCCEEDED`.
+- `src/ledgerlinc_ocr/preprocessing/cli.py` (T022) — catches
+  `GpuPrerequisiteError`, renders the FR-009 stderr message, and exits
+  with the FR-001 exit code from Contracts §1.
+- `src/ledgerlinc_ocr/pipeline/runner.py` and
+  `src/ledgerlinc_ocr/pipeline/corpus_run.py` (T023, T024) — also
+  catch the same exception type when running the warm-corpus path.
+
+**Shape**:
 
 ```python
 class GpuPrerequisiteError(Exception):

@@ -275,8 +275,16 @@ init occurred in this process (R-009 absence policy). The value is
 PPStructureV3 GPU construction cost on first use, recorded once on
 the first per-document entry where the singleton was constructed,
 and absent from every subsequent `per_document[1..N]` entry in the
-same run (analyze finding RR13 gloss). On CPU runs, `preprocess_lane`
-is `"cpu"` and the `gpu_*_seconds` keys are absent.
+same run (analyze finding RR13 gloss). Each `python -m
+ledgerlinc_ocr.pipeline …` invocation is a **new Python process**
+with its own `_ENGINE` singleton; if a run aborts (FR-010 forced
+abort, signal, crash) and the operator re-runs after fixing the
+underlying issue, the new process measures and emits
+`gpu_init_seconds` again on the first document of the restarted
+run. The metric is per-process, not per-corpus-session — there is
+no cross-process cache of init time (analyze finding AA3'). On CPU
+runs, `preprocess_lane` is `"cpu"` and the `gpu_*_seconds` keys are
+absent.
 
 ---
 

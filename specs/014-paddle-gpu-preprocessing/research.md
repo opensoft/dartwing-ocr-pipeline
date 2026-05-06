@@ -286,6 +286,30 @@ before *any* artifact write) always cause an immediate non-zero exit
 and write no artifacts; this is the existing FR-009 behavior and is
 not gated on `--on-failure` either way.
 
+**Cold single-document mode** (analyze finding AA2'): single-doc
+mode (`ledgerlinc-preprocess --document-folder …` invoked on one
+document at a time, no warm-corpus runner) has no `--on-failure`
+flag to honor or override. In this mode, the abort-on-first-GPU-failure
+override does not apply because there is no multi-document run to
+abort. The semantics are simpler:
+
+- The inline preflight gate runs once on entry to `_get_engine` /
+  `preprocessing/pipeline.py::run` (T021). On any non-success FR-001
+  state, the gate raises `GpuPrerequisiteError` (defined in
+  `src/ledgerlinc_ocr/preprocessing/preflight.py`), which propagates
+  to `preprocessing/cli.py` (T022).
+- T022's exception handler renders the FR-009 stderr message
+  (`error: --preprocess-profile=ppstructurev3@gpu: <state>; <recommendation>`)
+  and exits with the FR-001 exit code (10/11/12/13/14 per
+  Contracts §1).
+- A per-document GPU inference failure in cold mode (rare — the gate
+  passes but `predict(...)` raises mid-document) propagates as the
+  underlying exception type (e.g. `RuntimeError` for ROCm OOM) with
+  no special `gpu_lane_forced_abort` flag. The caller exits with
+  the existing single-doc failure exit code from feature 010 — the
+  warm-corpus `--on-failure` machinery is not exercised because cold
+  mode is single-document by definition.
+
 **Rationale**:
 
 - The Q3 clarification is unambiguous: "Abort the whole harness run on
