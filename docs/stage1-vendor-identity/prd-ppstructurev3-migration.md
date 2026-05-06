@@ -75,14 +75,16 @@ Explicitly out of scope:
   CPU-only scanner.
 - Splitting preprocessing engines into separate repositories.
 - Evaluator or extractor changes.
-- GPU / ROCm inference path for the PPStructureV3 full-structure profile.
-  CPU-only, matching today. The separate lightweight edge profile is specified
-  as `edge-ocr@jetson` in the runtime-profile PRD.
+- GPU / ROCm inference path for the PPStructureV3 full-structure profile in
+  the 010 migration slice. Feature 014 (`prd-paddle-gpu-preprocessing.md`)
+  handles the later opt-in `ppstructurev3@gpu` validation path. The separate
+  lightweight edge profile is specified as `edge-ocr@jetson` in the
+  runtime-profile PRD.
 
 ## Constraints
 
 - The v1.0.0 `preprocess_output.json` contract remains frozen as a historical snapshot. New outputs for this migration must validate against the active `contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json` and emit `contract_set_version = "1.2.0"`.
-- Determinism. V3 must run CPU-only, single-threaded (`cpu_threads=1`, `use_mp=False` equivalents), and produce byte-stable output for a given input. If V3's ordering is non-deterministic, the migration adds a sort/normalization step.
+- Determinism for the 010 migration. V3 must run CPU-only, single-threaded (`cpu_threads=1`, `use_mp=False` equivalents), and produce byte-stable output for a given input. If V3's ordering is non-deterministic, the migration adds a sort/normalization step. Feature 014 may validate an opt-in GPU profile separately, but it does not retroactively change the CPU determinism requirement for this migration.
 - No new cloud or network dependencies beyond the existing model weight downloads from `paddlepaddle.bj.bcebos.com` / `paddlex` model hosters.
 - Warnings are surfaced in the artifact's `warnings` array, not swallowed into stdout. This matches existing preprocessing behavior.
 

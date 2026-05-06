@@ -71,6 +71,8 @@ Explicitly out of scope:
   `cloud-workstation` validation stack
 - remote cloud execution or provider-managed fallback
 - workstation GPU/ROCm preprocessing for the PPStructureV3 full-structure profile
+  in the 011 controller slice; feature 014 reopens this as an explicit
+  opt-in `ppstructurev3@gpu` validation path without changing the CPU default
 - a second repository for the edge OCR scanner
 - allowing two canonical `preprocess_output.json` files in the same document folder at the same time
 
