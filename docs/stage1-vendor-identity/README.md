@@ -21,6 +21,8 @@ Stage 1 is intentionally narrow:
   - product requirements for amending the top-level pipeline CLI so the same entrypoint can run real or stubbed stage profiles and stage slices; also records the shared profile direction for `ppstructurev3@cpu` full-workstation preprocessing, `cloud-workstation` local GPU validation, and future `edge-ocr@jetson` edge preprocessing
 - `prd-ppstructurev3-migration.md`
   - product requirements for the full-structure preprocessing profile migration from PaddleOCR 2.10 to PPStructureV3 / PP-OCRv5
+- `prd-paddle-gpu-preprocessing.md`
+  - product requirements for feature 014: validating whether PPStructureV3 can run on the workstation GPU and, if viable, adding an explicit opt-in `ppstructurev3@gpu` preprocessing profile without replacing the CPU default
 - `ollama-runtime.md`
   - how host Ollama and optional containerized Ollama fit into the stage 1 architecture
 - `../../docker/compose.ollama-rocm-linux.yml`
