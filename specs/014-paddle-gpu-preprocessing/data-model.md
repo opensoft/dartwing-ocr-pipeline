@@ -90,8 +90,22 @@ Not a class; just a documented format. Defined in
 - Appended to `pipeline_version` as the trailing `.<lane_segment>`
   segment, *after* `dpi<N>`.
 - Parsed back by a pure helper `parse_lane_segment(pipeline_version: str)
-  -> tuple[str, Optional[int]]` returning `("cpu", None)` or
-  `("gpu", N)`.
+  -> tuple[str, Optional[int]]` with the following normative behavior:
+  - For a post-feature CPU string ending in `.cpu`: returns `("cpu", None)`.
+  - For a post-feature GPU string ending in `.gpu<N>`: returns `("gpu", N)`.
+  - For a **pre-feature** `pipeline_version` (no trailing lane
+    segment, ends with `.dpi<N>`): returns `("cpu", None)`. This is
+    the backward-compatible parser default — pre-feature artifacts
+    were always produced by the CPU profile, so coercing to `cpu` is
+    semantically correct.
+  - For a **forward-compatible unknown segment** (e.g.
+    `.npu0`, `.jetson0`, anything not matching `cpu|gpu\d+`):
+    returns `("unknown", None)` and does NOT raise. Strict
+    consumers in future features may upgrade to a fail-fast policy;
+    today's parser MUST tolerate unrecognized segments.
+  - For a malformed `pipeline_version` (e.g. empty, missing
+    `dpi<N>`, missing the `+paddleocr…` block): raises a
+    `ValueError` with a message naming the offending input.
 
 ### `RunSummary` (existing dataclass — additive change)
 

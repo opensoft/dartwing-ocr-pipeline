@@ -29,6 +29,8 @@ in the intended environment. The CPU profile remains the default and unchanged.
 - Q: When the GPU profile is selected for a multi-document harness run and one document's GPU inference fails mid-run, what happens to the rest of the run? → A: Abort the whole harness run on the first per-document GPU failure; remaining documents not processed.
 - Q: What format must the FR-001 preflight readout produce? → A: Human-readable text plus one trailing JSON line on stdout (mirrors feature 011 `run_summary` style).
 - Q: How is warm CPU vs. warm GPU timing evidence (FR-022, US3) surfaced? → A: Add timing fields to the existing feature-011 `run_summary` stdout JSON; no persisted artifact.
+- Wording resolution (post-checklist, no behavior change): "Ollama GPU state" in FR-005 is narrowed to *Ollama-process-specific* signals. Observing shared host indicators (`/dev/kfd`, `/dev/dri`, `HIP_VISIBLE_DEVICES`, `ROCM_PATH`, `CUDA_VISIBLE_DEVICES`) is GPU-runtime exposure evidence under FR-002, not Ollama state, and is permitted. Reason: resolves checklist conflicts CHK028 (failure-handling.md) / CHK029 (diagnostics.md).
+- Wording resolution (post-checklist, no behavior change): "schema" / "schema field" in FR-015 and FR-025 means the JSON-Schema-validated field shape under `contracts/stage1_vendor_identity/v1.2.0/`, not the free-form string content of fields whose schema is `{"type":"string","minLength":1}`. Adding a parseable lane segment to `pipeline_version` is therefore a content addition, not a schema change. Reason: resolves checklist conflict CHK025 (contract.md).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -254,14 +256,31 @@ required, committed benchmark artifact has been introduced.
   unusable by Paddle; (e) Paddle GPU usable but PPStructureV3 GPU
   initialization fails; (f) PPStructureV3 GPU initialization succeeds.
 - **FR-002**: The preflight readout MUST identify the exact Python
-  interpreter and environment path executing the preflight, the installed
-  Paddle and PaddleOCR versions, the Paddle GPU build flag, the visible
-  device count, the selected device, and whether the runtime exposes the
-  required GPU device file(s).
+  interpreter and environment path executing the preflight (interpreter
+  path, interpreter version, and venv path when distinct from the system
+  interpreter), the installed Paddle and PaddleOCR versions, the Paddle
+  GPU build flags (both `is_compiled_with_cuda` and
+  `is_compiled_with_rocm`), the visible device count, the selected
+  device, and whether the runtime exposes the required GPU device files
+  or environment variables (`/dev/kfd`, `/dev/dri`,
+  `HIP_VISIBLE_DEVICES`, `ROCM_PATH`, `CUDA_VISIBLE_DEVICES`,
+  containerization indicators). The operational expansion of this list
+  is documented in `specs/014-paddle-gpu-preprocessing/data-model.md`
+  (`PreflightEvidence`); FR-002 is satisfied as long as the readout
+  surfaces every field defined there.
 - **FR-003**: The preflight readout MUST be self-contained enough that a
   developer can decide the next action (install dependencies, change
   container device exposure, change runtime, or stop) without reading
-  source code. The readout MUST be emitted in a dual form on stdout:
+  source code. Each FR-001 fail-state recommendation MUST (a) name a
+  specific remediation action (e.g. an install command, a container
+  configuration change, or a runtime switch), (b) reference
+  `docs/stage1-vendor-identity/paddle-gpu-preflight.md` (or its
+  successor) so a developer can navigate to the canonical guide
+  without prior knowledge of the docs tree, and (c) fit on one line
+  ("plain language" per US1: avoid jargon, name the issue once, state
+  the next user action). The success-state recommendation MUST confirm
+  that the GPU profile is safe to enable and name the device string.
+  The readout MUST be emitted in a dual form on stdout:
   (a) a human-readable text section that names the FR-001 state, the
   evidence captured under FR-002, and the recommended next remediation
   step, followed by (b) exactly one trailing JSON object on its own line
@@ -275,8 +294,17 @@ required, committed benchmark artifact has been introduced.
   behavior or write any pipeline artifact (`preprocess_output.json`,
   routing decisions, final payload, or evaluator output) as a side effect.
 - **FR-005**: The preflight command MUST treat Ollama GPU success as
-  unrelated to Paddle GPU readiness; it MUST NOT use Ollama GPU state as
-  evidence that Paddle GPU works.
+  unrelated to Paddle GPU readiness; it MUST NOT use *Ollama-process-specific*
+  GPU state (whether the Ollama daemon is running, whether it is
+  serving requests, whether it has bound the GPU) as evidence that
+  Paddle GPU works. Observing shared host-level GPU runtime indicators
+  — presence of `/dev/kfd` and `/dev/dri`, or environment variables
+  such as `HIP_VISIBLE_DEVICES`, `ROCM_PATH`, and `CUDA_VISIBLE_DEVICES`
+  — does NOT constitute "Ollama GPU state" for the purposes of this
+  requirement; those indicate the host's overall GPU exposure and MAY
+  be reported under FR-002. The classifier MUST still attempt its own
+  Paddle device bind and PPStructureV3 GPU init to confirm Paddle GPU
+  readiness; the host indicators alone never satisfy state (f).
 - **FR-006**: The preflight command MUST be runnable in the same bench
   environment that runs the pipeline, with no requirement for
   workstation-only credentials, secrets, or external network calls beyond
@@ -330,7 +358,18 @@ required, committed benchmark artifact has been introduced.
 - **FR-015**: The GPU profile MUST preserve the existing JSON field
   semantics: pages, blocks, raw OCR lines, tables, quality, ingestion
   sources, warnings, and document text. No schema fields may be added,
-  removed, or repurposed in this feature.
+  removed, or repurposed in this feature. For this feature and for
+  FR-025, "schema field" and "artifact schema" mean the
+  JSON-Schema-validated field shape of the four stage 1 artifacts —
+  field name, presence rule, JSON type, and any constraints expressed
+  in `contracts/stage1_vendor_identity/v1.2.0/*.schema.json`. They do
+  NOT cover the free-form string content of fields whose JSON Schema
+  is `{"type": "string", "minLength": 1}` (notably `pipeline_version`).
+  Adding parseable structure to such a free-form string (e.g. a
+  trailing `.cpu` or `.gpu<N>` lane segment) is a content addition,
+  not a schema change, and is permitted under FR-016 provided every
+  artifact still validates against the unchanged JSON Schema and the
+  parser contract is documented.
 - **FR-016**: The GPU profile MUST make the selected profile and device
   visible to downstream consumers by encoding them as additional segments
   in the existing `pipeline_version` string of `preprocess_output.json`
@@ -425,9 +464,12 @@ required, committed benchmark artifact has been introduced.
 ### Measurable Outcomes
 
 - **SC-001**: A developer can run one documented command in the bench
-  environment and within five minutes know whether Paddle GPU is usable
-  for PPStructureV3 on this workstation, with the result classified into
-  one of the six FR-001 states.
+  environment and within five minutes wall-clock from a cold weights
+  cache (i.e. first-run weight downloads under `~/.paddlex/`) know
+  whether Paddle GPU is usable for PPStructureV3 on this workstation,
+  with the result classified into one of the six FR-001 states.
+  Subsequent invocations on the same machine, with weights already
+  cached, MUST return in seconds rather than minutes.
 - **SC-002**: For every FR-001 failure state, the preflight readout names
   the next remediation step (install path, container exposure, runtime
   switch, or hardware/runtime not viable) without requiring a developer
@@ -446,7 +488,18 @@ required, committed benchmark artifact has been introduced.
   stdout.
 - **SC-006**: The CPU profile produces byte-identical
   `preprocess_output.json` for a fixed input on repeat runs after this
-  feature lands, matching its pre-feature byte-level output.
+  feature lands, where "byte-identical" means a per-byte SHA-256 match
+  between two consecutive runs on the **same host environment**
+  (interpreter, OS, Paddle wheel, PaddleOCR weights, lane segment) on
+  the same input. The fixed input used for the in-tree regression
+  guard is `tests/stage1_vendor_identity/inv_001_easy/source.pdf`. The
+  guarantee applies to repeat-run determinism, not to cross-environment
+  determinism (cross-host, cross-wheel, cross-OS byte-identity is
+  explicitly out of scope). The `pipeline_version` lane-segment
+  addition introduced by this feature is a one-time intentional bump
+  applied uniformly to every CPU run after this feature lands; SC-006
+  is verified against post-feature CPU output, not against pre-feature
+  artifacts.
 - **SC-007**: Default automated test runs (no GPU available) pass in the
   same time envelope as today, with GPU-gated tests skipped with a
   reason traceable to a specific FR-001 state.
@@ -527,3 +580,16 @@ required, committed benchmark artifact has been introduced.
   per-document folder (run-namespaced comparison output is allowed in
   the runtime-profile PRD but is not introduced by this feature).
 - Embedding a model runtime into the pipeline container.
+- Multi-GPU device selection (e.g. binding `gpu:1` or higher). The
+  `LaneSegment` grammar reserves `gpu<N>` for `N ≥ 0` to keep future
+  multi-GPU work non-breaking, but only `gpu0` is emitted by this
+  feature.
+- Non-x86-CUDA / non-ROCm GPU lanes (DCU, NPU, XPU, MetaX,
+  Iluvatar). PaddleOCR's `device=` parameter accepts those strings,
+  but this feature does not introduce profile vocabulary for them.
+- Cross-environment determinism (byte-identity across hosts, wheels,
+  or OS versions) for the CPU lane. SC-006 covers same-host repeat
+  runs only.
+- GPU-lane byte-level repeat-run determinism. Per the Assumptions
+  section, GPU output is recorded but not asserted to be byte-stable
+  across runs.

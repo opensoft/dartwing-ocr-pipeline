@@ -176,6 +176,91 @@ Prerequisites: `research.md` complete.
 **Output**: `data-model.md`, `contracts/cli-contract.md`, `quickstart.md`,
 agent-context update.
 
+### Contract Test Coverage
+
+The following contract-level guarantees must each have at least one
+named test:
+
+1. **Schema unchanged** — `tests/contract_tests/` already validates the
+   four stage 1 artifact schemas under `contract_set_version` 1.2.0
+   via the existing validator infrastructure (feature 001). This
+   feature adds no schema; the existing contract test suite is
+   sufficient to assert "no field added/removed/repurposed" per
+   FR-015 / FR-025.
+2. **Lane-segment grammar reversibility** —
+   `tests/unit/test_pipeline_version_lane_segment.py` (named in
+   §Project Structure) verifies the regex from research R-014.2 plus
+   round-trip behavior: any `pipeline_version` produced by
+   `build_pipeline_version(...)` parses back to the same lane via
+   `parse_lane_segment(...)`. The test also asserts the
+   backward-compatible default (pre-feature strings → `("cpu", None)`)
+   and the forward-compatible default (unknown segments →
+   `("unknown", None)`).
+3. **CPU byte-stability (SC-006)** —
+   `tests/pipeline_tests/test_pipeline_version_cpu_byte_stable.py`
+   runs the CPU profile twice on
+   `tests/stage1_vendor_identity/inv_001_easy/source.pdf` and asserts
+   `sha256sum` equality of the produced `preprocess_output.json`
+   bytes. This is the CI gate for SC-006; failure exits non-zero via
+   pytest, blocking merge.
+4. **`run_summary` additivity** — extend
+   `tests/integration/test_runsummary_gpu_timing_fields.py` (named in
+   §Project Structure) with one assertion that a 0.1.0-shape parser
+   (i.e. one that only knows the pre-feature key set) parses a
+   0.1.1 output without raising and without losing existing fields.
+   This satisfies the additive contract from research R-014.6.
+5. **Fail-fast 100% (SC-003)** —
+   `tests/integration/test_pipeline_gpu_gate_failfast.py` (named in
+   §Project Structure) injects each FR-001 fail state via a mocked
+   classifier and asserts: (a) no artifact is written, (b) the
+   stderr error names both `--preprocess-profile=ppstructurev3@gpu`
+   and the FR-001 state verbatim, (c) the exit code matches the
+   contracts/cli-contract.md table.
+
+These five together cover every contract-level guarantee that this
+feature introduces or extends. No additional contract tests are
+required; deeper unit and integration coverage is named in §Project
+Structure.
+
+### Operational posture (added 2026-05-06 post-checklist)
+
+- **Privacy/PII**: stage 1 is dev-internal. The preflight readout
+  and pipeline error messages may include filesystem paths,
+  environment-variable presence flags, and exception messages
+  verbatim. No automatic redaction is required at this stage; this
+  is documented in `contracts/cli-contract.md` (§Output posture).
+- **Natural language / encoding**: English only, UTF-8 stdout.
+  Localization is out of scope for stage 1.
+- **Terminal rendering**: no ANSI escape sequences; readouts must
+  remain readable when piped or captured by CI. 80-column width is
+  a soft target; long evidence values (paths, exception messages)
+  may exceed it as a diagnostic necessity.
+- **Recovery workflow**: when preflight returns a fail state, the
+  developer (a) reads the recommendation, (b) applies the named
+  remediation (install command, container exposure change, runtime
+  switch), (c) re-runs preflight to verify the new state, and (d)
+  re-runs the pipeline. This loop is documented end-to-end in
+  `quickstart.md` and the new
+  `docs/stage1-vendor-identity/paddle-gpu-preflight.md`. Mid-corpus
+  GPU aborts (FR-010) are recovered the same way; the harness has
+  no automatic resume — successfully-processed documents retain
+  their artifacts, the failed document and any subsequent documents
+  must be re-run after the prerequisite is fixed.
+
+### Existing feature-011 `run_summary` shape (assumption pinned)
+
+Per research R-014.6, the existing feature-011 `RunSummary` shape this
+feature extends additively contains: `kind: "run_summary"`,
+`schema_version: "0.1.0"`, `stack_preset`, `resolved_profiles`,
+`execution_slice`, `on_failure`, `documents_total`,
+`documents_succeeded`, `documents_failed`,
+`profile_initialization_seconds`, `per_document[]` (with
+`document_id`, `folder`, `status`, `failed_stage`, `exit_code`,
+`message`, `stages`). The implementation reference is
+`src/ledgerlinc_ocr/pipeline/timing.py`. Adding the additive fields
+named in research R-014.6 must not modify any of the keys above; the
+contract test in §Contract Test Coverage point 4 enforces this.
+
 ### Post-Design Constitution Re-Check
 
 Re-evaluated after Phase 1 below; same gates apply.

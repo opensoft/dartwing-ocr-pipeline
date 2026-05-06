@@ -96,6 +96,57 @@ trigger PaddleOCR's first-run weight download into
 and it is preexisting paddle behavior). When `--no-init` is set, even
 that write is suppressed.
 
+### Output posture (English UTF-8, terminal-safe, dev-internal)
+
+The preflight readout is a development-internal diagnostic. It MUST
+be emitted as English UTF-8 plain text plus a single trailing JSON
+line. It MUST NOT use ANSI escape sequences (no color, no cursor
+control) so it remains readable when piped through `tee`, captured by
+CI logs, or read on a monochrome terminal. Line widths SHOULD fit a
+standard 80-column terminal; long evidence values (paths, exception
+messages) MAY exceed that as a diagnostic necessity.
+
+The readout MAY include filesystem paths, environment-variable
+presence, and exception messages. **No PII redaction is required at
+stage 1**: the readout is intended for the developer running it and
+is not surfaced to end users. Operators sharing readouts in public
+issue trackers SHOULD review the captured evidence for sensitive
+host details before posting; that is an operational practice, not a
+preflight responsibility.
+
+### `pipeline_version` parsing (consumer guidance)
+
+Consumers reading `preprocess_output.json` and parsing
+`pipeline_version` SHOULD:
+
+- Treat `pipeline_version` as opaque if they do not need profile or
+  device identity (this preserves backward compatibility with
+  pre-feature artifacts, which had no lane segment).
+- When lane identity is needed, use the `parse_lane_segment(...)`
+  helper from `preprocessing/version.py` (see `data-model.md`).
+  Pre-feature artifacts (no trailing lane segment) parse as
+  `("cpu", None)` per the backward-compatible default; unrecognized
+  segments parse as `("unknown", None)` without raising.
+- For deeper validation, the normative regex is documented in
+  `research.md` R-014.2.
+
+`contract_set_version` (currently `1.2.0`) governs JSON Schema
+validation; `pipeline_version` is a producer-behavior identity
+string. Consumers that gate solely on schema validity check
+`contract_set_version` (or run the validator); consumers that gate
+on producer behavior check `pipeline_version`. The two are
+orthogonal — a `pipeline_version` lane-segment change does not
+require a `contract_set_version` bump.
+
+### `run_summary` consumer tolerance
+
+All consumers of the `kind:"run_summary"` JSON line MUST ignore
+unknown keys, including unknown nested keys under
+`per_document[].stages.<stage>`. This is the additive contract that
+permits patch-level `schema_version` bumps (e.g. 0.1.0 → 0.1.1 in
+this feature) without breaking existing parsers. The full
+versioning policy is documented in `research.md` R-014.6.
+
 ### Determinism
 
 Two consecutive runs with the same environment MUST produce the same

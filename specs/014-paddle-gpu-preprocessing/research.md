@@ -119,6 +119,64 @@ The lane segment is the **last** segment so existing parsers that read
   `src/ledgerlinc_ocr/pipeline/profiles.py`; mixing it into
   `pipeline_version` would muddle the parser surface.
 
+**Normative regex** (consumer-facing): the post-feature `pipeline_version`
+matches:
+
+```python
+PIPELINE_VERSION_RE = re.compile(
+    r"^stage1-preprocess-v\d+\.\d+\.\d+\+paddleocr"
+    r"(?P<paddleocr_version>\d+\.\d+\.\d+)\."
+    r"(?P<weights_hash7>[0-9a-f]{7})\."
+    r"dpi(?P<dpi>\d+)\."
+    r"(?P<lane_segment>cpu|gpu\d+)$"
+)
+```
+
+The trailing `(?P<lane_segment>cpu|gpu\d+)` group is the sole carrier
+of profile/device identity per Clarification Q1.
+
+**Legitimate triggers for a `pipeline_version` change** (closed list
+for this feature; future features may extend by amendment):
+
+1. The preprocessing slice's semver bumps (`v0.2.0` → `v0.3.0` etc.)
+   per its own change-log.
+2. The packaged PaddleOCR version changes (`paddleocr3.5.0` →
+   `paddleocr3.6.0`).
+3. The `weights_hash7` segment changes once a real weight hash
+   replaces the `0000000` placeholder (deferred to a later feature).
+4. The DPI segment changes (out of scope today; reserved).
+5. The lane segment changes (`.cpu` → `.gpu0` and vice versa) when
+   the operator selects the other profile. **This is the only trigger
+   added by feature 014.**
+
+A change to `pipeline_version` for any reason *outside* this list
+is a regression — including any change that produces non-byte-identical
+`preprocess_output.json` for the same input on the same CPU host.
+
+**Backward-compatible parser default**: a pre-feature
+`pipeline_version` (one that ends with `dpi<N>` with no trailing lane
+segment) MUST be parsed as the CPU lane. Implementation
+recommendation: the `parse_lane_segment(...)` helper documented in
+`data-model.md` returns `("cpu", None)` for any input that lacks the
+trailing `.cpu` / `.gpu<N>` segment.
+
+**Forward-compatible parser tolerance**: a future-feature
+`pipeline_version` carrying an unrecognized lane segment (e.g.
+`.npu0`, `.jetson0`) MUST NOT cause this feature's parser to raise.
+The parser SHOULD return `("unknown", None)` for unrecognized
+segments so this feature's consumers can degrade gracefully (warn
+and continue) rather than crash. Strict consumers MAY upgrade to a
+fail-fast policy in a future feature; that is out of scope here.
+
+**`weights_hash7` placeholder and determinism**: the `0000000`
+placeholder inherited from feature 010 R-007 applies identically to
+both lanes and is treated as a stable string for determinism
+purposes within this feature. Replacing it with a real hash is
+explicitly deferred to a future feature; SC-006 byte-identity holds
+under the placeholder regime, and any future placeholder→hash swap
+is a one-time intentional `pipeline_version` bump under trigger (3)
+above.
+
 ---
 
 ## R-014.3: Shared classifier API surface
@@ -373,6 +431,40 @@ existing consumers MUST continue to parse the run summary as today.
   consumer-visible shape change beyond additive fields; we are strictly
   additive.
 
+**Formal definition of "additive"** (for this feature and future
+`run_summary` evolution):
+
+> A change to the `run_summary` JSON shape is **additive** if and only
+> if (a) only new optional keys are introduced at any nesting depth,
+> (b) no existing keys are removed, (c) no existing key's JSON type
+> changes, and (d) no existing key's semantics are redefined. Any
+> change that fails any of (a)–(d) is **not** additive and requires a
+> minor or major `schema_version` bump.
+
+**`schema_version` bump policy**:
+
+- **Patch** (`0.1.0` → `0.1.1`, this feature) — additive change per
+  the definition above.
+- **Minor** (`0.1.X` → `0.2.0`) — semantically meaningful change to
+  an existing field that consumers must adapt to (e.g., a renamed
+  key with both old and new keys present during a deprecation window,
+  or a type widening like `int` → `float`).
+- **Major** (`0.X.X` → `1.0.0`) — breaking removal or rename, or any
+  change that would cause a 0.X.X-shape parser to raise.
+
+**Documentation update obligation**: any future `schema_version` bump
+MUST be documented in (a) the relevant feature's `research.md`
+(rationale and back-compat notes), and (b) `contracts/cli-contract.md`
+of the feature making the change (or its successor). There is no
+separate top-level CHANGELOG file at stage 1; the per-feature
+research and contract documents are the canonical record.
+
+**Consumer tolerance contract**: every consumer of `kind:"run_summary"`
+JSON MUST ignore unknown keys for forward compatibility with
+additive future bumps. Consumers MAY warn on an unrecognized
+`schema_version` major component but MUST NOT raise on a
+recognized-major / unrecognized-minor or unrecognized-patch combination.
+
 ---
 
 ## R-014.7: Paddle GPU detection mechanics
@@ -440,6 +532,45 @@ on `/paddlepaddle/docs` queried 2026-05-06):
 - Probe with `paddle.utils.run_check()` — rejected. It runs a much
   larger end-to-end self-test and is too slow for a five-minute SLA on
   cold environments.
+
+**Edge-case behavior** (for diagnostic robustness, all surface as the
+classifier producing a well-defined readout, not as a Python crash):
+
+- *`paddle.is_compiled_with_*` raises*: the classifier captures the
+  exception into `evidence.ppstructurev3_init_error` (or a new
+  `paddle_introspection_error` field if Implementation chooses, kept
+  internal to the readout shape per spec Key Entities) and
+  conservatively classifies as `PADDLE_CPU_ONLY`. This is the safest
+  fallback because the absence of usable GPU build introspection is
+  indistinguishable from a CPU-only build for the purposes of
+  remediation guidance.
+- *Bind probe (`paddle.device.set_device("gpu:0")` + tiny tensor)
+  hangs rather than raises*: the classifier runs the probe
+  synchronously without an explicit timeout. If Paddle hangs,
+  preflight hangs; this is the simplest behavior compatible with the
+  five-minute SLA from SC-001 (a hang past five minutes is itself a
+  diagnostic signal, and adding a timeout introduces ROCm-driver
+  flakiness handling that is out of scope). Running with `timeout(1)`
+  at the shell level is the documented operator workaround.
+- *`device_count > 0` but the bind probe succeeds against a different
+  device index than reported*: the classifier records the device
+  string Paddle actually bound (`evidence.selected_device`) and
+  proceeds. Whatever Paddle reports is what the readout reports;
+  reconciling driver-level inconsistencies is Paddle's responsibility,
+  not the classifier's.
+- *`paddlepaddle` and `paddleocr` versions disagree (mid-upgrade)*:
+  the classifier reports both versions in evidence. If
+  PPStructureV3 init fails because of the mismatch, the state is
+  `PPSTRUCTUREV3_INIT_FAILED` with the captured exception — the
+  version mismatch is visible via the two evidence fields, not as a
+  separate state.
+- *PaddleOCR exception class taxonomy*: the classifier does **not**
+  rely on a specific exception-class hierarchy to choose between
+  `GPU_EXPOSED_PADDLE_CANT_BIND` and `PPSTRUCTUREV3_INIT_FAILED`. The
+  state is determined by **which classifier step raised** (step 5 →
+  CANT_BIND, step 6 → INIT_FAILED). The exception's `str(exc)` is
+  captured verbatim into evidence for the developer to read; no
+  taxonomy mapping is required at stage 1.
 
 ---
 
@@ -577,6 +708,19 @@ shaped from these flags:
   makes the readout actionable: a user with a CPU-only Paddle wheel
   but a properly-mapped device sees that the wheel is the issue, not
   the container.
+
+**Compatibility with FR-005**: Observing the env vars and device
+files above is *host-level GPU exposure* evidence, not
+*Ollama-process-specific* state, and is therefore permitted under
+the FR-005 wording resolution recorded in `spec.md` Clarifications
+(2026-05-06). The classifier never reads Ollama's process status,
+HTTP endpoint, or PID files; it only reads kernel device files and
+process-environment variables that any GPU-aware process on the
+host would set. Crucially, none of these flags by themselves can
+satisfy `PPSTRUCTUREV3_INIT_SUCCEEDED`; that state requires a
+successful Paddle bind probe and a successful PPStructureV3
+construction performed by the classifier itself (steps 5–6 of
+R-014.7).
 
 **Alternatives considered**:
 
