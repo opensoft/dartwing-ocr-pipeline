@@ -267,6 +267,14 @@ useful for ad-hoc debugging when the test fails.
 
 ## 5. Run the test suite
 
+> **Always invoke pytest from the repo root** (or pass `--rootdir <repo-root>`).
+> The `gpu` marker and the preflight-based skip hook are registered in the
+> repo-root `tests/conftest.py`. Pytest discovers conftests starting from the
+> `rootdir` and walking up; if you `cd tests/integration && pytest test_pipeline_gpu_e2e.py`
+> the root conftest may not load and the `gpu` marker will surface as
+> `unknown marker: gpu` collection errors. This is documented pytest behavior
+> (per analyze finding RR12).
+
 Default (no GPU available — CI behavior):
 
 ```bash

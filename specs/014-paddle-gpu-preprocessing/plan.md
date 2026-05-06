@@ -149,16 +149,17 @@ fetched via `mcp__plugin_context7_context7__query-docs`.
 
 Prerequisites: `research.md` complete.
 
-1. **Entities → `data-model.md`**:
-   - `PreflightState` (enum) — the six FR-001 states.
-   - `PreflightEvidence` (frozen dataclass) — interpreter, env path, Paddle/PaddleOCR versions, build flags, device count, selected device, runtime device exposure, PPStructureV3 init result + duration.
-   - `PreflightReadout` (frozen dataclass) — `state: PreflightState`, `evidence: PreflightEvidence`, `recommendation: str`, plus `to_text()` and `to_json_dict()` serializers.
-   - `LaneSegment` (string-typed value object) — the parseable `.cpu` / `.gpu<N>` suffix appended to `pipeline_version`.
-   - `RunSummary` (existing, additive) — gains `preprocess_initialization_seconds_by_lane` (or analogous additive key) and `per_document.stages.preprocess.gpu_*_seconds` phase keys per R-014.6.
+1. **Entities → `data-model.md`** (each entity maps 1:1 to a Phase 2 Foundational task per the AA3 traceability fix):
+   - `PreflightState` (enum) — the six FR-001 states. **Implemented by tasks.md T002.**
+   - `PreflightEvidence` (frozen dataclass) — interpreter, env path, Paddle/PaddleOCR versions, build flags, device count, selected device, runtime device exposure, PPStructureV3 init result + duration. **Implemented by tasks.md T003.**
+   - `PreflightReadout` (frozen dataclass) — `state: PreflightState`, `evidence: PreflightEvidence`, `recommendation: str`, plus `to_text()` and `to_json_dict()` serializers. **Implemented by tasks.md T004.** The `classify(...)` function body that produces a `PreflightReadout` is **tasks.md T005** (the function body itself, distinct from the dataclass scaffolding in T002–T004).
+   - `LaneSegment` (string-typed value object) — the parseable `.cpu` / `.gpu<N>` suffix appended to `pipeline_version`. **Implemented by tasks.md T006 + T007.**
+   - `RunSummary` (existing, additive) — gains `preprocess_initialization_seconds_by_lane` (or analogous additive key) and `per_document.stages.preprocess.gpu_*_seconds` phase keys per R-014.6. **Implemented by tasks.md T027 + T028 + T029.**
+   - `GpuPrerequisiteError` (in-memory exception type, not persisted) — raised by `preprocessing/pipeline.py` (tasks.md T021) when the GPU gate detects a non-success FR-001 state; carries `state: PreflightState` and `recommendation: str`. Caught by `preprocessing/cli.py` (tasks.md T022) and rendered as the FR-009 stderr message.
 
 2. **Interface contracts → `contracts/cli-contract.md`**:
    - `python -m ledgerlinc_ocr.preprocessing.preflight` — exit codes, stdout shape (text section + trailing JSON line), stderr usage, exit-code-to-state table, no-disk-write guarantee.
-   - `ledgerlinc-preprocess … --preprocess-profile ppstructurev3@gpu` — CLI surface unchanged (the flag already exists from feature 011); contract additions are: (a) the new value is accepted, (b) the value is rejected with a named missing-prerequisite error before any artifact write when preflight does not pass, (c) the produced `preprocess_output.json` carries the lane segment in `pipeline_version`.
+   - `ledgerlinc-preprocess … --preprocess-profile ppstructurev3@gpu` — `pipeline/cli.py` already exposes `--preprocess-profile` from feature 011 for warm-corpus mode; the single-doc `preprocessing/cli.py` does NOT yet expose the flag (verified post-analyze finding F16) and tasks.md T022 adds it as part of this feature. Contract additions are: (a) the new value `ppstructurev3@gpu` is accepted by both CLI surfaces, (b) the value is rejected with a named missing-prerequisite error before any artifact write when preflight does not pass, (c) the produced `preprocess_output.json` carries the lane segment in `pipeline_version`.
    - `ledgerlinc-pipeline …` (warm-corpus / single-doc) — additive: when preprocess profile is the GPU lane, the harness aborts on first GPU inference failure regardless of `--on-failure`, and the `run_summary` JSON line carries the additive timing fields from R-014.6.
 
 3. **`quickstart.md`** — a developer walkthrough:

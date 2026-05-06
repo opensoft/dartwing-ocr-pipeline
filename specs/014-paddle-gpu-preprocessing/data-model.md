@@ -89,8 +89,14 @@ Not a class; just a documented format. Defined in
   is the device index Paddle bound to.
 - Appended to `pipeline_version` as the trailing `.<lane_segment>`
   segment, *after* `dpi<N>`.
-- Parsed back by a pure helper `parse_lane_segment(pipeline_version: str)
-  -> tuple[str, Optional[int]]` with the following normative behavior:
+- Parsed back by a pure helper with this normative signature
+  (analyze finding AA5):
+
+  ```python
+  def parse_lane_segment(pipeline_version: str) -> tuple[str, Optional[int]]: ...
+  ```
+
+  Behavior:
   - For a post-feature CPU string ending in `.cpu`: returns `("cpu", None)`.
   - For a post-feature GPU string ending in `.gpu<N>`: returns `("gpu", N)`.
   - For a **pre-feature** `pipeline_version` (no trailing lane
@@ -123,6 +129,24 @@ field-paths land in this feature:
 `SCHEMA_VERSION` bumps from `0.1.0` → `0.1.1`. Consumers of the
 existing schema MUST keep working; the new fields are strictly
 additive.
+
+### `GpuPrerequisiteError` (in-memory exception type — analyze finding AA1)
+
+```python
+class GpuPrerequisiteError(Exception):
+    """Raised by preprocessing/pipeline.py when the GPU gate detects a
+    non-success FR-001 state. Caught by preprocessing/cli.py (T022) and
+    rendered as the FR-009 stderr message."""
+
+    state: PreflightState   # the FR-001 fail state from the cached PreflightReadout
+    recommendation: str     # the human-readable next-step recommendation
+```
+
+Not persisted, not serialized to JSON, not part of any contract
+artifact. Exists purely as the transport between the preprocessing
+gate (T021) and the CLI error formatter (T022). Its shape may evolve
+without an amendment so long as the (state, recommendation) pair
+remains accessible to the CLI rendering code path.
 
 ---
 

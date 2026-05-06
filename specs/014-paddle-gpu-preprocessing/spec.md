@@ -25,7 +25,7 @@ in the intended environment. The CPU profile remains the default and unchanged.
 ### Session 2026-05-06
 
 - Q: Where is the GPU profile/device identity recorded so SC-005 can be verified from the artifact? → A: Encode profile + device only in `pipeline_version`; no other artifact change.
-- Q: When the pipeline runs with `--preprocess-profile ppstructurev3@gpu`, how does it gate on GPU prerequisites before the first artifact write? → A: Pipeline calls the same checker module inline every GPU run; no cache; reuses FR-001 state vocabulary verbatim.
+- Q: When the pipeline runs with `--preprocess-profile ppstructurev3@gpu`, how does it gate on GPU prerequisites before the first artifact write? → A: Pipeline calls the same checker module inline every GPU run; no cache; reuses FR-001 state vocabulary verbatim. *(per-process cache of the cached PreflightReadout is permitted — the constraint is that there is no cross-process cache; the inline gate runs once per process before the first artifact write per Research R-014.4. Note clarified post-analyze finding AA2.)*
 - Q: When the GPU profile is selected for a multi-document harness run and one document's GPU inference fails mid-run, what happens to the rest of the run? → A: Abort the whole harness run on the first per-document GPU failure; remaining documents not processed.
 - Q: What format must the FR-001 preflight readout produce? → A: Human-readable text plus one trailing JSON line on stdout (mirrors feature 011 `run_summary` style).
 - Q: How is warm CPU vs. warm GPU timing evidence (FR-022, US3) surfaced? → A: Add timing fields to the existing feature-011 `run_summary` stdout JSON; no persisted artifact.

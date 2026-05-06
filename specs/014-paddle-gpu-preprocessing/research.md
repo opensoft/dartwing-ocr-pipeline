@@ -722,6 +722,13 @@ successful Paddle bind probe and a successful PPStructureV3
 construction performed by the classifier itself (steps 5–6 of
 R-014.7).
 
+The FR-005 wording resolution originated from the
+[`/speckit.checklist`](../../checklists/) findings CHK028
+(`failure-handling.md`) and CHK029 (`diagnostics.md`), both marked
+Resolved on 2026-05-06 (analyze finding AA4 cross-link). Future
+amendments to FR-005 should re-read those checklist items to
+confirm the host-vs-Ollama distinction still holds.
+
 **Alternatives considered**:
 
 - Shell out to `rocminfo` — rejected. Network/subprocess dependency,

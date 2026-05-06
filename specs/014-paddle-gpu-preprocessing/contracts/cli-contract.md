@@ -270,8 +270,13 @@ The end-of-run JSON line (`kind: "run_summary"`) gains:
 ```
 
 `gpu_init_seconds` is present only on the first document where GPU
-init occurred in this process (R-009 absence policy). On CPU runs,
-`preprocess_lane` is `"cpu"` and the `gpu_*_seconds` keys are absent.
+init occurred in this process (R-009 absence policy). The value is
+**per-process**, not per-document: it measures the one-time
+PPStructureV3 GPU construction cost on first use, recorded once on
+the first per-document entry where the singleton was constructed,
+and absent from every subsequent `per_document[1..N]` entry in the
+same run (analyze finding RR13 gloss). On CPU runs, `preprocess_lane`
+is `"cpu"` and the `gpu_*_seconds` keys are absent.
 
 ---
 
