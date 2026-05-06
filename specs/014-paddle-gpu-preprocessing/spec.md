@@ -20,6 +20,16 @@ outcome, and only adds an opt-in `ppstructurev3@gpu` preprocessing profile if
 preflight proves Paddle GPU + PPStructureV3 GPU initialization actually work
 in the intended environment. The CPU profile remains the default and unchanged.
 
+## Clarifications
+
+### Session 2026-05-06
+
+- Q: Where is the GPU profile/device identity recorded so SC-005 can be verified from the artifact? → A: Encode profile + device only in `pipeline_version`; no other artifact change.
+- Q: When the pipeline runs with `--preprocess-profile ppstructurev3@gpu`, how does it gate on GPU prerequisites before the first artifact write? → A: Pipeline calls the same checker module inline every GPU run; no cache; reuses FR-001 state vocabulary verbatim.
+- Q: When the GPU profile is selected for a multi-document harness run and one document's GPU inference fails mid-run, what happens to the rest of the run? → A: Abort the whole harness run on the first per-document GPU failure; remaining documents not processed.
+- Q: What format must the FR-001 preflight readout produce? → A: Human-readable text plus one trailing JSON line on stdout (mirrors feature 011 `run_summary` style).
+- Q: How is warm CPU vs. warm GPU timing evidence (FR-022, US3) surfaced? → A: Add timing fields to the existing feature-011 `run_summary` stdout JSON; no persisted artifact.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — GPU readiness preflight (Priority: P1)
@@ -219,7 +229,9 @@ required, committed benchmark artifact has been introduced.
   PPStructureV3 step as "not exercised" rather than "failed".
 - The GPU profile is selected and PPStructureV3 initializes on the GPU but
   ROCm runs out of memory mid-document. The failure must be reported as a
-  per-document GPU failure rather than a hidden CPU re-run.
+  per-document GPU failure rather than a hidden CPU re-run, and in a
+  multi-document harness run that failure must abort the rest of the run
+  rather than continuing with subsequent documents.
 - A developer runs the GPU profile and then the CPU profile in the same
   per-document folder. The canonical `preprocess_output.json` must reflect
   whichever profile ran last; there must not be two canonical preprocessing
@@ -249,7 +261,16 @@ required, committed benchmark artifact has been introduced.
 - **FR-003**: The preflight readout MUST be self-contained enough that a
   developer can decide the next action (install dependencies, change
   container device exposure, change runtime, or stop) without reading
-  source code.
+  source code. The readout MUST be emitted in a dual form on stdout:
+  (a) a human-readable text section that names the FR-001 state, the
+  evidence captured under FR-002, and the recommended next remediation
+  step, followed by (b) exactly one trailing JSON object on its own line
+  that exposes the same FR-001 state and the FR-002 evidence fields in a
+  machine-parseable shape. This mirrors the `kind: "run_summary"` stdout
+  convention from feature 011 so tests, CI, and the FR-019 skip-gate can
+  parse the JSON line without scraping the human text. The exact JSON
+  shape is not a frozen contract artifact (per the "Preflight readout"
+  Key Entity) and may evolve without an amendment.
 - **FR-004**: The preflight command MUST NOT modify the pipeline's runtime
   behavior or write any pipeline artifact (`preprocess_output.json`,
   routing decisions, final payload, or evaluator output) as a side effect.
@@ -274,10 +295,22 @@ required, committed benchmark artifact has been introduced.
   prerequisite is not satisfied, the pipeline MUST fail before writing any
   artifact, and the failure message MUST name both the selected profile
   and the specific missing GPU prerequisite (matching the FR-001 state
-  vocabulary).
+  vocabulary). The pipeline MUST gate on GPU prerequisites by invoking
+  the same checker module that powers the FR-001 preflight readout,
+  inline on every GPU pipeline invocation. There is no cached preflight
+  result; the pipeline does not require that a separate preflight command
+  has been run beforehand. The shared checker is the single source of
+  truth for the FR-001 state vocabulary; the pipeline MUST NOT define a
+  parallel set of GPU readiness states.
 - **FR-010**: When `ppstructurev3@gpu` is selected and GPU initialization
   succeeds but a per-document GPU inference call fails, the pipeline MUST
-  fail for that document. It MUST NOT silently fall back to CPU.
+  fail for that document. It MUST NOT silently fall back to CPU. In a
+  multi-document harness run, the first per-document GPU inference
+  failure MUST abort the entire run; remaining documents MUST NOT be
+  processed and MUST NOT have artifacts written. The aborting failure
+  MUST be attributable to the GPU profile and the offending document in
+  the run output, matching the FR-001 state vocabulary where applicable
+  (e.g. ROCm OOM, GPU runtime fault).
 - **FR-011**: The stub profile MUST remain lane-less. `stub@gpu` MUST
   remain invalid.
 - **FR-012**: The existing execution-slice flags (`--start-at`,
@@ -299,10 +332,14 @@ required, committed benchmark artifact has been introduced.
   sources, warnings, and document text. No schema fields may be added,
   removed, or repurposed in this feature.
 - **FR-016**: The GPU profile MUST make the selected profile and device
-  visible to downstream consumers through `pipeline_version`, run
-  metadata, or both, so that a `preprocess_output.json` produced under
-  `ppstructurev3@gpu` is identifiable as such without re-running the
-  pipeline.
+  visible to downstream consumers by encoding them as additional segments
+  in the existing `pipeline_version` string of `preprocess_output.json`
+  (e.g. an explicit `cpu` or `gpu<N>` segment alongside the existing
+  semver/engine/dpi segments). No other artifact field, and no new schema
+  field, may be used to carry this identity. A `preprocess_output.json`
+  produced under `ppstructurev3@gpu` MUST be identifiable as such by
+  parsing `pipeline_version` alone, without re-running the pipeline and
+  without consulting harness stdout.
 - **FR-017**: The CPU profile's existing determinism behavior
   (`enable_mkldnn=False`, `cpu_threads=1`, byte-stable output across
   repeat runs on the same input) MUST remain unchanged. Any byte-level
@@ -328,7 +365,14 @@ required, committed benchmark artifact has been introduced.
   harness output contracts.
 - **FR-022**: The feature MUST capture warm CPU vs. warm GPU
   preprocessing timing for the same input. Timing capture MUST NOT
-  require introducing a new mandatory committed benchmark artifact.
+  require introducing a new mandatory committed benchmark artifact, a
+  new persisted artifact filename, or any change to the four stage 1
+  artifact schemas. Timing values (one-time profile initialization time
+  and per-document preprocessing time) MUST be emitted as additive
+  optional fields on the existing feature-011 `kind: "run_summary"`
+  stdout JSON line, so a developer can capture them by tee-ing stdout
+  without parsing committed baselines. Adding these fields MUST NOT
+  break consumers of the existing `run_summary` shape.
 - **FR-023**: The feature MUST update the relevant runtime/quickstart
   documentation so a developer reading docs alone can: run the preflight
   command, interpret each FR-001 readout state, choose between CPU and
@@ -397,8 +441,9 @@ required, committed benchmark artifact has been introduced.
   invoice (`inv_001_easy`) with non-empty `document_text` and at least
   three layout blocks.
 - **SC-005**: The selected preprocessing profile and device are
-  recoverable from `preprocess_output.json` (via `pipeline_version`
-  and/or run metadata) without re-running the pipeline.
+  recoverable from `preprocess_output.json` by parsing `pipeline_version`
+  alone, without re-running the pipeline and without consulting harness
+  stdout.
 - **SC-006**: The CPU profile produces byte-identical
   `preprocess_output.json` for a fixed input on repeat runs after this
   feature lands, matching its pre-feature byte-level output.
