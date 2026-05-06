@@ -7,6 +7,11 @@ from typing import Any
 LOW_CONFIDENCE_THRESHOLD = 0.60
 SKEW_FLAG_DEG = 2.0
 
+# Finalized by GitHub issue #1 calibration against the populated 20-document
+# stage-1 corpus. The PPStructureV3 baselines showed all documents classified
+# as good/low with the highest low-confidence ratio still below the good
+# boundary, so the Decision 6 constants remain unchanged and the preprocessing
+# semver is not bumped.
 SCAN_GOOD_AVG = 0.85
 SCAN_GOOD_LOWCONF = 0.10
 SCAN_FAIR_AVG = 0.70

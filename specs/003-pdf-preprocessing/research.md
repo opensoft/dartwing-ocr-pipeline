@@ -150,7 +150,7 @@ between pages.
 
 ---
 
-## Decision 6 — Quality signal thresholds (calibration deferred by clarification)
+## Decision 6 — Quality signal thresholds (calibrated)
 
 **Decision**: Derive all three signals from the three pinned input metrics
 (`spec.md` FR-013):
@@ -161,7 +161,8 @@ between pages.
 - `max_skew_deg` = max absolute detected skew angle per page (before rotation
   snapping).
 
-**Provisional thresholds** (to be corpus-calibrated in implementation):
+**Final thresholds** (calibrated against the populated 20-document corpus in
+GitHub issue #1):
 
 | Signal          | Value  | Condition                                           |
 |-----------------|--------|-----------------------------------------------------|
@@ -175,9 +176,13 @@ between pages.
 
 **Rationale**:
 - Pure rules on measurable inputs — satisfies FR-013 ("not model judgment").
-- Thresholds are provisional; real numbers come from a calibration pass over
-  the 20-doc corpus during implementation (clarification deferred exact values
-  to planning/implementation).
+- The populated corpus artifacts classified 20/20 documents as `good` and
+  20/20 as `low` noise. The lowest average line confidence was 0.8970
+  (`inv_011_hard`), and the highest low-confidence ratio was 0.0737
+  (`inv_011_hard`), still below the `good` / `low` boundary. The provisional
+  constants therefore did not misfire and were kept unchanged.
+- Because no threshold constant changed, `src/ledgerlinc_ocr/preprocessing/version.py`
+  `SEMVER` was not bumped.
 - All three signals are derivable from what PaddleOCR already returns (line
   confidences + detected rotation/skew). No new dependency.
 
