@@ -170,13 +170,25 @@ def test_internal_classifier_crash_exits_2(monkeypatch) -> None:
     assert "RuntimeError" in err
 
 
-def test_argparse_error_exits_1(monkeypatch) -> None:
+def test_argparse_error_returns_1(monkeypatch) -> None:
     """Per Contracts §1.Exit codes: an unrecognized argument is a usage
-    error and MUST exit 1 (not argparse's default 2 — exit 2 is reserved
-    for internal classifier crashes per the FR-001 contract)."""
-    with pytest.raises(SystemExit) as excinfo:
-        preflight_cli.main(["--bogus"])
-    assert excinfo.value.code == 1
+    error and MUST map to return/exit code 1 (not argparse's default 2 —
+    exit 2 is reserved for internal classifier crashes per the FR-001
+    contract). main(...) MUST return the integer 1 directly, not raise
+    SystemExit, so library/test callers can invoke it without wrapping
+    in pytest.raises(SystemExit)."""
+    rc, _, err = _run_cli(monkeypatch, ["--bogus"])
+    assert rc == 1
+    assert "error:" in err  # argparse usage diagnostic on stderr
+
+
+def test_help_returns_0(monkeypatch) -> None:
+    """Per Contracts §1.Exit codes: `--help` prints the help banner to
+    stdout and maps to return/exit code 0. main(...) MUST return the
+    integer 0 directly, not raise SystemExit."""
+    rc, out, _ = _run_cli(monkeypatch, ["--help"])
+    assert rc == 0
+    assert "usage:" in out  # argparse help banner marker on stdout
 
 
 def test_quiet_omits_text_section_but_keeps_json(monkeypatch) -> None:

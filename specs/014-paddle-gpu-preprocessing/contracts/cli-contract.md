@@ -87,6 +87,8 @@ preflight: internal error: <exception class>: <message>
 | `13` | `state == gpu_exposed_paddle_cant_bind`                                |
 | `14` | `state == ppstructurev3_init_failed`                                   |
 
+The preflight CLI normalizes argparse usage errors (e.g. unknown flags, missing required arguments) to exit/return code **1** and reserves code **2** exclusively for internal classifier errors (uncaught exceptions raised by `classify()`); `main(...)` returns these codes as integers when invoked programmatically, and the `__main__` entry-point passes the same value to `sys.exit()`.
+
 ### Side-effect contract (FR-004)
 
 The preflight CLI MUST NOT write any pipeline artifact

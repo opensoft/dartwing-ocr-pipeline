@@ -76,7 +76,20 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = _build_parser()
-    args = parser.parse_args(list(argv) if argv is not None else None)
+    try:
+        args = parser.parse_args(list(argv) if argv is not None else None)
+    except SystemExit as exc:
+        # argparse exits via SystemExit: --help raises SystemExit(0) after
+        # printing help to stdout, and our _UsageErrorParser.error() calls
+        # self.exit(1, ...) which raises SystemExit(1) after writing the
+        # usage diagnostic to stderr. Catch both so main(...) returns the
+        # integer exit code instead of propagating SystemExit, which keeps
+        # the function safe to call from Python tests/library callers.
+        # Defensive cast: argparse normally emits int codes, but SystemExit
+        # tolerates non-int payloads — coerce anything non-int to 1 (usage
+        # error) to keep the CLI contract integer-shaped.
+        code = exc.code if isinstance(exc.code, int) else 1
+        return code
     try:
         readout = classify(attempt_ppstructurev3_init=not args.no_init)
     except Exception as exc:  # noqa: BLE001 - last-ditch internal error path
