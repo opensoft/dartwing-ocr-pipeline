@@ -18,7 +18,12 @@ from typing import Any, Iterator
 
 from ledgerlinc_ocr.pipeline.profiles import Stage
 
-SCHEMA_VERSION = "0.1.0"
+# Feature 014 (T027 / R-014.6): patch bump for additive `preprocess_lane`,
+# `gpu_init_seconds`, `gpu_inference_seconds`, and the optional
+# `gpu_lane_forced_abort` per-document flag. Consumers MUST ignore
+# unknown keys; pre-feature 0.1.0 parsers continue to read 0.1.1
+# output without error per the additive contract.
+SCHEMA_VERSION = "0.1.1"
 
 
 def _ns_to_seconds(ns: int) -> float:
@@ -88,7 +93,14 @@ class DocumentTimings:
 
 @dataclass
 class RunSummary:
-    """End-of-run JSON-Lines run summary for warm-corpus mode (R-009)."""
+    """End-of-run JSON-Lines run summary for warm-corpus mode (R-009).
+
+    Feature 014 (T027) adds the additive top-level field
+    ``preprocess_lane`` (always present after this feature; values
+    "cpu" or "gpu<N>"). Per-document timing maps may also carry the
+    additive `gpu_init_seconds` and `gpu_inference_seconds` phase
+    keys per R-009's phase-key-absence policy (T028 / T029 / T030).
+    """
     stack_preset: str | None
     resolved_profiles: dict[Stage, str]
     execution_slice: dict[str, str]
@@ -98,6 +110,7 @@ class RunSummary:
     documents_failed: int
     profile_initialization_seconds: dict[Stage, float] = field(default_factory=dict)
     per_document: list[dict[str, Any]] = field(default_factory=list)
+    preprocess_lane: str = "cpu"  # T027: additive (default for backward compat)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -114,6 +127,7 @@ class RunSummary:
                 self.profile_initialization_seconds
             ),
             "per_document": list(self.per_document),
+            "preprocess_lane": self.preprocess_lane,  # T027 additive
         }
 
     def as_json_line(self) -> str:
@@ -152,7 +166,15 @@ def build_per_document_failure(
     exit_code: int,
     message: str,
     timings: DocumentTimings | None = None,
+    gpu_lane_forced_abort: bool = False,
 ) -> dict[str, Any]:
+    """Feature 014 (T024 / CF9): adds the optional keyword-only
+    ``gpu_lane_forced_abort: bool = False`` parameter. When ``True``,
+    the returned dict carries the key ``"gpu_lane_forced_abort": True``
+    (always ``true`` when present per data-model §RunSummary). When
+    ``False`` (default; every existing failure path), the key is
+    absent. The signature extension is purely additive — existing
+    callers without the kwarg continue to behave as before."""
     out: dict[str, Any] = {
         "document_id": document_id,
         "folder": folder,
@@ -163,6 +185,8 @@ def build_per_document_failure(
     }
     if timings is not None and timings.stages:
         out["stages"] = timings.to_summary_dict()
+    if gpu_lane_forced_abort:
+        out["gpu_lane_forced_abort"] = True
     return out
 
 

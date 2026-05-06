@@ -24,6 +24,12 @@ from ledgerlinc_ocr.preprocessing.version import (
 )
 from ledgerlinc_ocr.preprocessing.warnings import build_warning, sort_warnings
 
+# Feature 014 / VT-003: `preflight` is imported lazily inside the GPU
+# code path (see `_invoke_gpu_gate` below). Module-level import would
+# break collection for unrelated tests when `preflight.py` is
+# temporarily unavailable (e.g., during the conftest defensive-path
+# verification in T035). The CPU path never references preflight.
+
 DOCUMENT_ID_RE = re.compile(r"^inv_\d{3}(?:_(easy|medium|hard|missing_name))?$")
 
 _TEXT_BEARING_BLOCK_TYPES = {"text", "title", "header", "footer"}
@@ -35,6 +41,11 @@ class Invocation:
     source_file: str = "source.pdf"
     write_page_images: bool = False
     pipeline_version: str | None = None
+    # Feature 014 (T021): preprocess lane resolved from --preprocess-profile.
+    # "cpu" (default) or "gpu0" (or "gpu<N>" for non-zero device indices,
+    # reserved for future multi-GPU work). The lane is threaded into
+    # build_pipeline_version() and ocr.run_page() per FR-016.
+    preprocess_lane: str = "cpu"
 
 
 def _derive_document_id(folder_name: str) -> str:
@@ -56,10 +67,39 @@ def _validate_input(invocation: Invocation) -> Path:
     return pdf_path
 
 
+def _resolve_lane_to_device(lane: str) -> str:
+    """Map a preprocess lane string ('cpu' or 'gpu<N>') to the
+    PPStructureV3 `device` argument."""
+    if lane == "cpu":
+        return "cpu"
+    if lane.startswith("gpu") and lane[3:].isdigit():
+        return f"gpu:{lane[3:]}"
+    raise ValueError(f"unrecognized preprocess lane: {lane!r}")
+
+
 def run(invocation: Invocation) -> Path:
+    # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
+    # gate BEFORE any artifact write or input parsing. This ensures the
+    # fail-fast error names the selected profile and FR-001 state even
+    # if the document folder is also broken — GPU readiness is a
+    # process-level prerequisite, not a per-document one. ensure_gpu_ready
+    # is process-cached per Q2 — second and subsequent calls within the
+    # same process short-circuit on the cached PPSTRUCTUREV3_INIT_SUCCEEDED
+    # readout.
+    if invocation.preprocess_lane != "cpu":
+        # Lazy import so the CPU path stays decoupled from preflight.
+        from ledgerlinc_ocr.preprocessing.preflight import (
+            ensure_gpu_ready as _ensure_gpu_ready,
+        )
+
+        _ensure_gpu_ready()
+
     pdf_path = _validate_input(invocation)
     document_id = _derive_document_id(invocation.document_folder.name)
-    pipeline_version = invocation.pipeline_version or build_pipeline_version()
+
+    pipeline_version = invocation.pipeline_version or build_pipeline_version(
+        lane_segment=invocation.preprocess_lane,
+    )
 
     # rasterize.rasterize_pdf is a page-at-a-time generator (FR-005a / R-011).
     # ZeroPagePdfError is raised inside open_pdf() on the first next() iteration,
@@ -99,8 +139,11 @@ def run(invocation: Invocation) -> Path:
 
         # Single V3 call producing both layout + OCR in one pass (FR-007, R-004).
         # EngineInitError raised here propagates to the CLI (FR-016).
+        # Feature 014 (T021): pass the resolved device; CPU lane → "cpu",
+        # GPU lane → "gpu:0" (or "gpu:N" per CF4).
         lines, blocks, page_tables, run_warnings = ocr.run_page(
-            pr.image, pr.page_number, pr.width, pr.height
+            pr.image, pr.page_number, pr.width, pr.height,
+            device=_resolve_lane_to_device(invocation.preprocess_lane),
         )
         page_warnings.extend(run_warnings)
 

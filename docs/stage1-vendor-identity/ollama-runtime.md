@@ -2,6 +2,8 @@
 
 This document records how the repo supports Ollama during stage 1 and what has been verified on the current workstation.
 
+> **See also**: [`paddle-gpu-preflight.md`](./paddle-gpu-preflight.md) — operator-facing diagnostic for the workstation Paddle GPU preprocessing lane (`ppstructurev3@gpu`). Ollama GPU success and Paddle GPU readiness are independent (per spec FR-005); the preflight tool is the documented way to determine whether Paddle can drive the GPU on this host. Run `python -m ledgerlinc_ocr.preprocessing.preflight` to classify the environment into one of six FR-001 states.
+
 ## Supported Runtime Paths
 
 The repo now distinguishes local model runtime paths:

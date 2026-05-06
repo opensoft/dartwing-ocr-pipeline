@@ -27,6 +27,8 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
+from typing import Optional
+
 from ledgerlinc_ocr.pipeline.corpus import DocumentEntry, WarmProfileRegistry
 from ledgerlinc_ocr.pipeline.exit_codes import ExitCode, StructuredFailureRecord
 from ledgerlinc_ocr.pipeline.path_resolution import derive_document_id
@@ -44,6 +46,21 @@ from ledgerlinc_ocr.pipeline.timing import (
     build_per_document_success,
     emit_run_summary,
 )
+# Feature 014 / VT-003: `preflight` types are imported lazily inside
+# the GPU warm factory. Module-level import would break collection
+# for unrelated tests when `preflight.py` is temporarily unavailable
+# (T035 collection-time defensive path). The CPU path never references
+# preflight.
+
+# Feature 014 (T023 / NEW.4): module-level cache for the
+# `PreflightReadout` produced by the inline GPU gate. Set by
+# `_maybe_register_warm_preprocess` after a successful classify; read
+# by T029 when populating `gpu_init_seconds` in the run summary. The
+# variable is process-scoped per Q2 — there is no cross-process cache.
+# The annotation uses `Any` here so this module loads without
+# preflight.py present; the actual runtime value is a PreflightReadout
+# (or None).
+_PREFLIGHT_READOUT: Optional[Any] = None
 
 # Severity ranking per Research R-008. Lower rank == higher severity.
 # When aggregating multiple per-document exit codes in continue mode,
@@ -205,7 +222,51 @@ def run_warm_corpus(
     runner = runner if runner is not None else Runner()
     registry = WarmProfileRegistry.empty()
     _maybe_register_warm_preprocess(registry, plan)
-    warm_init_failure = _warm_initialize_live_preprocess(registry, plan)
+    # Feature 014 (Contracts §2 Pre-write GPU gate): warm-corpus GPU
+    # preflight failures emit the FR-009 stderr form and exit with the
+    # FR-001-state-mapped exit code (10–14) before any artifact write,
+    # rather than collapsing to the generic PROCESSING_FAILURE path.
+    # Lazy-import the exception types so a missing preflight.py does
+    # not break this module at import time (T035 / VT-003).
+    try:
+        from ledgerlinc_ocr.preprocessing.preflight import (
+            GpuPrerequisiteError as _GpuPrerequisiteError,
+            exit_code_for_state as _exit_code_for_state,
+        )
+    except ImportError:
+        _GpuPrerequisiteError = None  # type: ignore[assignment]
+        _exit_code_for_state = None  # type: ignore[assignment]
+
+    try:
+        warm_init_failure = _warm_initialize_live_preprocess(registry, plan)
+    except Exception as _exc:  # noqa: BLE001 - intentional: route GPU prereq failures
+        if (
+            _GpuPrerequisiteError is not None
+            and isinstance(_exc, _GpuPrerequisiteError)
+            and _exit_code_for_state is not None
+        ):
+            # FR-009 stderr format: name both selected profile and FR-001 state.
+            print(
+                f"error: --preprocess-profile=ppstructurev3@gpu: "
+                f"{_exc.state.value}; {_exc.recommendation}",
+                file=sys.stderr,
+            )
+            # Emit a partial run_summary so consumers see the abort
+            # in the stdout JSON line as well, with the user's
+            # requested on_failure preserved verbatim.
+            _emit_warm_init_failure_summary(
+                documents=documents,
+                plan=plan,
+                registry=registry,
+                message=(
+                    f"--preprocess-profile=ppstructurev3@gpu: "
+                    f"{_exc.state.value}; {_exc.recommendation}"
+                ),
+                emit_failure=_emit_failure,
+                gpu_prerequisite_failure=True,
+            )
+            return _exit_code_for_state(_exc.state)
+        raise
     if warm_init_failure is not None:
         return _emit_warm_init_failure_summary(
             documents=documents,
@@ -271,20 +332,57 @@ def run_warm_corpus(
                 routing_decision=result.routing_decision,
                 artifacts=result.artifacts_written,
             )
-            per_document_records.append(
-                build_per_document_success(
-                    document_id=invocation.document_id,
-                    folder=folder_raw,
-                    timings=result.timings,
-                )
+            success_record = build_per_document_success(
+                document_id=invocation.document_id,
+                folder=folder_raw,
+                timings=result.timings,
             )
+            # Feature 014 (T030): drain the per-document GPU inference
+            # accumulator and emit `gpu_inference_seconds` on the
+            # preprocess stage of this success record. CPU runs return
+            # None (key absent per R-009 absence policy).
+            from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+            _gpu_inf = _ocr_mod.take_gpu_inference_seconds()
+            if _gpu_inf is not None:
+                stages_map = success_record.setdefault("stages", {})
+                preprocess_stage = stages_map.setdefault(
+                    "preprocess", {"total_seconds": 0.0}
+                )
+                preprocess_stage["gpu_inference_seconds"] = _gpu_inf
+            per_document_records.append(success_record)
         else:
             failed += 1
+            # Feature 014 (T024 / R-014.4 / FR-010): when the resolved
+            # preprocess profile is the GPU lane and a per-document
+            # failure surfaces, force-abort the corpus regardless of
+            # the user's --on-failure value. The user's requested
+            # mode is preserved verbatim in run_summary.on_failure
+            # for audit transparency; only the runtime control flow
+            # is overridden. The `gpu_lane_forced_abort: true` flag
+            # on the per-document failure record signals to consumers
+            # that this was a GPU-lane-forced abort, distinct from a
+            # user-requested fail-fast.
+            preprocess_profile = plan.profiles.get("preprocess")
+            is_gpu_lane = (
+                preprocess_profile is not None
+                and preprocess_profile.implementation == "ppstructurev3"
+                and preprocess_profile.lane == "gpu"
+            )
+            # Attribution: include profile + document_id in the message
+            # field so a downstream consumer can identify the failed
+            # GPU-profile run (analyze finding VT-010).
+            failure_message = result.message
+            if is_gpu_lane:
+                failure_message = (
+                    f"[ppstructurev3@gpu] document_id={invocation.document_id}: "
+                    f"{result.message}"
+                )
             _emit_failure(
                 StructuredFailureRecord.for_code(
                     result.exit_code,
                     stage=result.stage,
-                    message=result.message,
+                    message=failure_message,
                     artifacts_written=[
                         str(p) for p in result.artifacts_written
                     ],
@@ -296,14 +394,49 @@ def run_warm_corpus(
                     folder=folder_raw,
                     failed_stage=result.stage,
                     exit_code=int(result.exit_code),
-                    message=result.message,
+                    message=failure_message,
                     timings=result.timings,
+                    gpu_lane_forced_abort=is_gpu_lane,
                 )
             )
-            if plan.failure_policy.fail_fast:
+            if plan.failure_policy.fail_fast or is_gpu_lane:
+                # GPU lane forces abort even when user requested
+                # --on-failure=continue (R-014.4). The summary's
+                # top-level on_failure field still reports the
+                # user-requested mode unchanged.
                 break
 
     registry.close()
+
+    # Feature 014 (T029): resolve the preprocess lane string for the
+    # additive `preprocess_lane` field on RunSummary.
+    _pp_profile = plan.profiles.get("preprocess")
+    if _pp_profile is not None and _pp_profile.lane == "gpu":
+        _resolved_preprocess_lane = "gpu0"
+    else:
+        _resolved_preprocess_lane = "cpu"
+
+    # Feature 014 (T029 / AA4'): if the GPU lane was used and a successful
+    # PreflightReadout was cached by T023's warm factory in the
+    # module-level `_PREFLIGHT_READOUT` variable, record the one-time
+    # PPStructureV3 GPU init time on the FIRST successful per_document
+    # entry's preprocess stage as `gpu_init_seconds`. Phase keys absent
+    # on subsequent docs per R-009 absence policy. T029 reads the cache
+    # set by T023; it MUST NOT re-call classify(...).
+    if (
+        _resolved_preprocess_lane.startswith("gpu")
+        and _PREFLIGHT_READOUT is not None
+        and _PREFLIGHT_READOUT.evidence.ppstructurev3_init_seconds is not None
+    ):
+        _init_seconds = _PREFLIGHT_READOUT.evidence.ppstructurev3_init_seconds
+        for record in per_document_records:
+            if record.get("status") == "success":
+                stages_map = record.setdefault("stages", {})
+                preprocess_stage = stages_map.setdefault(
+                    "preprocess", {"total_seconds": 0.0}
+                )
+                preprocess_stage["gpu_init_seconds"] = _init_seconds
+                break
 
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
@@ -321,6 +454,7 @@ def run_warm_corpus(
         documents_failed=failed,
         profile_initialization_seconds=registry.initialization_seconds(),
         per_document=per_document_records,
+        preprocess_lane=_resolved_preprocess_lane,
     )
     emit_run_summary(summary)
 
@@ -334,14 +468,30 @@ def _emit_warm_init_failure_summary(
     registry: WarmProfileRegistry,
     message: str,
     emit_failure: Callable[[StructuredFailureRecord], None],
+    gpu_prerequisite_failure: bool = False,
 ) -> int:
+    """Emit the partial run_summary on warm-init failure.
+
+    When `gpu_prerequisite_failure` is True (Contracts §2 Pre-write GPU
+    gate), the caller has already emitted the FR-009 stderr form and is
+    responsible for the FR-001-state-mapped exit code. This function
+    skips the StructuredFailureRecord emission to avoid double-printing
+    a stderr line, and it returns ``ExitCode.PROCESSING_FAILURE`` only
+    so the legacy CPU/non-GPU code path keeps working — the caller
+    discards this return value when ``gpu_prerequisite_failure`` is True.
+    """
     first = documents[0]
-    emit_failure(
-        StructuredFailureRecord.for_code(
-            ExitCode.PROCESSING_FAILURE,
-            stage="preprocess",
-            message=message,
+    if not gpu_prerequisite_failure:
+        emit_failure(
+            StructuredFailureRecord.for_code(
+                ExitCode.PROCESSING_FAILURE,
+                stage="preprocess",
+                message=message,
+            )
         )
+    _pp_profile = plan.profiles.get("preprocess")
+    _warm_lane = (
+        "gpu0" if _pp_profile is not None and _pp_profile.lane == "gpu" else "cpu"
     )
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
@@ -354,6 +504,7 @@ def _emit_warm_init_failure_summary(
             "stop_after": plan.slice_.stop_after,
         },
         on_failure=plan.failure_policy.mode,
+        preprocess_lane=_warm_lane,
         documents_total=len(documents),
         documents_succeeded=0,
         documents_failed=1,
@@ -395,18 +546,41 @@ def _maybe_register_warm_preprocess(
     profile = plan.profiles["preprocess"]
     if profile.kind != "live":
         return
-    if (profile.implementation, profile.lane) != ("ppstructurev3", "cpu"):
+    # Feature 014 (T023): also accept the GPU lane. The warm factory's
+    # initialize() runs the inline preflight gate first via
+    # ensure_gpu_ready(), then constructs the singleton with the
+    # resolved device. On gate failure GpuPrerequisiteError propagates
+    # up and is caught by the existing _warm_initialize_live_preprocess
+    # handler, which aborts the run with no per-doc artifacts (FR-009).
+    if (profile.implementation, profile.lane) not in {
+        ("ppstructurev3", "cpu"),
+        ("ppstructurev3", "gpu"),
+    }:
         return
     # Capability gate: only warm-init when a real live adapter is registered,
     # not when the test-only stub fallback is in place.
     if not is_live_capable("preprocess", profile.implementation, profile.lane):
         return
 
+    is_gpu_lane = profile.lane == "gpu"
+    device_str = "gpu:0" if is_gpu_lane else "cpu"
+
     class _PPStructureV3WarmInstance:
         def initialize(self) -> None:
             from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
 
-            _ocr_mod._get_engine()  # type: ignore[attr-defined]
+            global _PREFLIGHT_READOUT
+            if is_gpu_lane:
+                # Feature 014 (T021 / T023 / FR-009): inline GPU gate.
+                # Raises GpuPrerequisiteError on any non-success FR-001
+                # state; caller (_warm_initialize_live_preprocess) catches
+                # the exception and turns it into a run-level abort.
+                from ledgerlinc_ocr.preprocessing.preflight import (
+                    ensure_gpu_ready as _ensure_gpu_ready,
+                )
+
+                _PREFLIGHT_READOUT = _ensure_gpu_ready()
+            _ocr_mod._get_engine(device=device_str)  # type: ignore[attr-defined]
 
         def close(self) -> None:
             return None
@@ -414,7 +588,7 @@ def _maybe_register_warm_preprocess(
     registry.register_factory(
         stage="preprocess",
         implementation="ppstructurev3",
-        lane="cpu",
+        lane=profile.lane,
         factory=_PPStructureV3WarmInstance,
     )
 
@@ -441,6 +615,23 @@ def _warm_initialize_live_preprocess(
             lane=profile.lane,
         )
     except Exception as exc:  # noqa: BLE001 -- intentional: see comment
+        # Feature 014: GpuPrerequisiteError must propagate so the caller
+        # in run_warm_corpus can route it through the FR-009 stderr form
+        # and FR-001-state-mapped exit code (Contracts §2 Pre-write GPU
+        # gate). Lazy import keeps this module importable when
+        # preflight.py is unavailable (T035 / VT-003 defensive scope).
+        try:
+            from ledgerlinc_ocr.preprocessing.preflight import (
+                GpuPrerequisiteError as _GpuPrerequisiteError,
+            )
+        except ImportError:
+            _GpuPrerequisiteError = None  # type: ignore[assignment]
+        if (
+            _GpuPrerequisiteError is not None
+            and isinstance(exc, _GpuPrerequisiteError)
+        ):
+            raise
+
         import logging
 
         message = str(exc) or type(exc).__name__

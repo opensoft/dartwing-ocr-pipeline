@@ -18,6 +18,7 @@ ProfileKind = Literal["stub", "live"]
 STAGES: tuple[Stage, ...] = ("preprocess", "extract", "routing", "final_payload")
 
 PPSTRUCTUREV3_CPU = "ppstructurev3@cpu"
+PPSTRUCTUREV3_GPU = "ppstructurev3@gpu"
 RULES_CPU = "rules@cpu"
 ASSEMBLER_CPU = "assembler@cpu"
 
@@ -26,6 +27,7 @@ SUPPORTED_PROFILES: frozenset[tuple[Stage, str, str | None]] = frozenset({
     # preprocess
     ("preprocess", "stub", None),
     ("preprocess", "ppstructurev3", "cpu"),
+    ("preprocess", "ppstructurev3", "gpu"),  # feature 014 (T020)
     ("preprocess", "edge-ocr", "jetson"),
     # extract
     ("extract", "stub", None),
