@@ -113,6 +113,20 @@ Not a class; just a documented format. Defined in
     `dpi<N>`, missing the `+paddleocr…` block): raises a
     `ValueError` with a message naming the offending input.
 
+**Rationale for the backward-compat default** (analyze finding NEW.11):
+pre-feature artifacts were CPU-only by definition (the GPU lane did
+not exist before this feature), so coercing the missing trailing
+segment to `("cpu", None)` preserves their original semantics and
+keeps them forward-parseable in contexts where lane identity is
+needed. This is **not** a parsing bug to be "fixed" in a future
+feature — it is the documented backward-compat default. Future lane
+additions (e.g., a hypothetical `npu` lane) should follow the same
+discipline: treat unrecognized segments as `("unknown", None)`
+(forward-compat), and treat missing segments on pre-feature
+artifacts as `("cpu", None)` (backward-compat). Genuinely malformed
+strings — those missing `dpi<N>` or the `+paddleocr…` block — still
+raise `ValueError`; only the trailing-segment slot is permissive.
+
 ### `RunSummary` (existing dataclass — additive change)
 
 Located in `src/ledgerlinc_ocr/pipeline/timing.py`. Three additive
@@ -166,6 +180,28 @@ artifact. Exists purely as the transport between the preprocessing
 gate (T021) and the CLI error formatter (T022). Its shape may evolve
 without an amendment so long as the (state, recommendation) pair
 remains accessible to the CLI rendering code path.
+
+**Runtime model bridge** (analyze finding NEW.10): the gate's
+runtime model integrates three concerns:
+
+1. **Q2 clarification** (`spec.md` Clarifications 2026-05-06):
+   single `classify(...)` invocation per process before the first
+   artifact write; no cross-process cache.
+2. **Research R-014.4** (cached in-process readout): the per-process
+   result is stored in the module-level `_PREFLIGHT_READOUT:
+   Optional[PreflightReadout] = None` variable in
+   `src/ledgerlinc_ocr/pipeline/corpus_run.py` (established by T023,
+   read by T029).
+3. **`GpuPrerequisiteError`** (this section): the in-memory
+   transport from the gate (T021, which raises) to the CLI error
+   formatter (T022, which catches). The exception's `state` and
+   `recommendation` are populated from the cached `PreflightReadout`,
+   so the FR-001 vocabulary remains the single source of truth all
+   the way from classifier output to stderr message.
+
+Together these three concerns implement the FR-009 fail-fast gate
+without leaking Paddle/PaddleOCR exception types into the pipeline
+error path.
 
 ---
 

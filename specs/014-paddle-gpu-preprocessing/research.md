@@ -753,6 +753,21 @@ Resolved on 2026-05-06 (analyze finding AA4 cross-link). Future
 amendments to FR-005 should re-read those checklist items to
 confirm the host-vs-Ollama distinction still holds.
 
+**Implementation guidance for the Ollama isolation boundary** (analyze
+finding NEW.9): the classifier code path NEVER imports the `ollama`
+Python package, NEVER opens an HTTP connection to Ollama's localhost
+endpoint (default `http://127.0.0.1:11434`), and NEVER reads Ollama's
+PID file or systemd unit status. The isolation is enforced by
+**not consuming** Ollama signals, not by *suppressing* them — there
+is no code branch that observes Ollama state and discards it. As a
+direct consequence: a running Ollama with GPU bound does NOT flip a
+non-passing preflight to passing (the classifier never sees Ollama),
+and a stopped Ollama does NOT flip a passing preflight to failing
+(again, the classifier never sees Ollama). This invariant is
+testable indirectly — T013 covers the host-level edge cases — but
+no positive-Ollama probe test is needed because the classifier
+literally has no Ollama-aware code to exercise.
+
 **Alternatives considered**:
 
 - Shell out to `rocminfo` — rejected. Network/subprocess dependency,
