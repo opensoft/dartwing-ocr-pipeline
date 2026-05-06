@@ -33,7 +33,7 @@ changes; no committed-baseline regeneration; no Jetson lane.
 ## Technical Context
 
 **Language/Version**: Python 3.12 (matches `.devcontainer/Dockerfile` and existing `pyproject.toml` `requires-python = ">=3.12"`).
-**Primary Dependencies**: existing — `paddleocr>=3.5,<4`, `paddlex[ocr]>=3.5,<4`, `paddlepaddle>=3.0,<4` (CPU baseline; the optional GPU wheel `paddlepaddle-gpu` is an out-of-tree workstation install — see research R-014.7), `pypdfium2>=4.30,<5`, `Pillow>=10.4,<11`, `numpy>=1.26,<3`, `jsonschema>=4.22,<5`, `pydantic>=2.7,<3`. No new pinned dependency added by this feature; the GPU wheel is documented as an additive optional install path per FR-024.
+**Primary Dependencies**: existing — `paddleocr>=3.5,<4`, `paddlex[ocr]>=3.5,<4`, `paddlepaddle>=3.0,<4` (CPU baseline; the optional GPU wheel `paddlepaddle-gpu` is an out-of-tree workstation install — see research R-014.11), `pypdfium2>=4.30,<5`, `Pillow>=10.4,<11`, `numpy>=1.26,<3`, `jsonschema>=4.22,<5`, `pydantic>=2.7,<3`. No new pinned dependency added by this feature; the GPU wheel is documented as an additive optional install path per FR-024.
 **Storage**: Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`; writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. Preflight writes nothing to disk per FR-004. No DB.
 **Testing**: pytest 8.x via `[project.optional-dependencies] dev`; `pytest-socket` for network isolation; new `gpu` pytest marker for FR-019 skip-gating tied to the shared preflight classifier (research R-014.9).
 **Target Platform**: Linux (devcontainer + native ROCm host). WSL Docker Desktop is explicitly *not* a supported GPU runtime; the preflight readout will diagnose that case.
@@ -273,6 +273,15 @@ Re-evaluated after Phase 1 below; same gates apply.
 - Timing surfaces as additive fields on the existing `run_summary` JSON; no new artifact (Clarification Q5, R-014.6). ✓
 - No GPU dependency added to `requirements.txt` / `pyproject.toml` runtime extras (FR-024); GPU wheel is documented as workstation-only. ✓
 
+**FR-025 hard-boundary verification** (post-checklist, post-analyze): the six FR-025 hard boundaries are individually verified by:
+
+1. *No schema field added/removed/repurposed* — enforced by the existing `tests/contract_tests/` infrastructure under feature 001 (Plan §Contract Test Coverage point 1; Tasks T032).
+2. *No canonical artifact filename change* — `preprocess_output.json` is the only canonical preprocessing artifact (FR-013); no new filenames are introduced.
+3. *No remote cloud execution or provider credentials* — `httpx` is only used for the existing host-Ollama HTTP path; no provider SDK or credential is added.
+4. *No `edge-ocr@jetson` profile additions* — confirmed: only `("preprocess", "ppstructurev3", "gpu")` is added to `SUPPORTED_PROFILES` (Tasks T020); the existing Jetson tuple is untouched.
+5. *No replacement of `ppstructurev3@cpu` as the default profile* — `DEFAULT_PROFILES["preprocess"]` remains `PPSTRUCTUREV3_CPU` (FR-008; Tasks T020).
+6. *No regenerated committed corpus baseline from GPU output* — no task in the list touches `tests/stage1_vendor_identity/inv_*/` baseline artifacts; SC-006 byte-stability guard (Tasks T031) protects the CPU baseline regime; SC-009 deferral applies to GPU.
+
 **Result: PASS post-design.** No new Complexity Tracking entries.
 
 ## Complexity Tracking
@@ -286,18 +295,24 @@ evaluations.*
 
 Aligned to the user-story priorities in `spec.md`:
 
-- **M1 — Preflight library + CLI (P1).** Land `preflight.py`,
-  `preflight_cli.py`, the dual-format readout, the `gpu` pytest marker,
-  and `docs/stage1-vendor-identity/paddle-gpu-preflight.md`. Independent
-  test: per US1 acceptance scenarios 1–6.
-- **M2 — `ppstructurev3@gpu` profile in pipeline (P2).** Extend
-  `profiles.py`, `ocr.py`, `version.py`, `pipeline.py`, and `runner.py`.
+- **M1 — Preflight library + CLI (P1).** Tasks T002–T016 (Phase 2
+  Foundational classifier + Phase 3 US1 CLI/docs). Land `preflight.py`
+  (T002–T005), `preflight_cli.py` (T014), the dual-format readout
+  (T004 + T014), the `gpu` pytest marker plus session classifier
+  fixture and skip hook (T009), and
+  `docs/stage1-vendor-identity/paddle-gpu-preflight.md` (T016).
+  Independent test: per US1 acceptance scenarios 1–6.
+- **M2 — `ppstructurev3@gpu` profile in pipeline (P2).** Tasks T017–T024
+  (Phase 4 US2). Extend `profiles.py` (T020), `ocr.py` (T008,
+  Foundational), `version.py` (T006/T007, Foundational), `pipeline.py`
+  (T021), `cli.py` (T022), and `runner.py` / `corpus_run.py` (T023/T024).
   Wire the shared classifier into the GPU runtime gate. Add the GPU
-  integration test (FR-020). Independent test: per US2 acceptance
+  integration test (T019, FR-020). Independent test: per US2 acceptance
   scenarios 1–6.
-- **M3 — Timing evidence in `run_summary` (P3).** Add additive timing
-  fields to `RunSummary`, populate them from the warm-corpus runner, and
-  add `tests/integration/test_runsummary_gpu_timing_fields.py`.
+- **M3 — Timing evidence in `run_summary` (P3).** Tasks T025–T030 (Phase
+  5 US3). Add additive timing fields to `RunSummary` (T027/T028),
+  populate them from the warm-corpus runner (T029) and the
+  preprocessing pipeline (T030), and add the timing tests (T025/T026).
   Independent test: per US3 acceptance scenarios 1–4.
 
 Each milestone ships its own tests and docs and is independently

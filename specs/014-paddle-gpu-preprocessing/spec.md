@@ -221,9 +221,14 @@ required, committed benchmark artifact has been introduced.
   selected profile in the failure message.
 - A second developer tries to use `stub@gpu`. The profile vocabulary must
   reject this exactly as it does today; stubs remain lane-less.
-- The CPU profile run produces byte-identical output before and after this
-  feature lands. Any change to CPU determinism is a regression, not an
-  acceptable side effect.
+- The CPU profile run produces byte-identical output across consecutive
+  CPU runs after this feature lands (the post-feature CPU output is the
+  byte-stable baseline per SC-006). The one-time addition of the `.cpu`
+  lane segment to `pipeline_version` is the only intentional difference
+  between pre-feature and post-feature CPU output and is not a
+  regression. Any byte-level change to CPU output between two repeat
+  post-feature runs on the same input and same host environment IS a
+  regression.
 - A developer runs preflight in a network-restricted shell where Paddle
   cannot download model weights. Preflight must still report Paddle install
   state, build capability, and GPU device exposure even if it cannot
@@ -262,9 +267,11 @@ required, committed benchmark artifact has been introduced.
   GPU build flags (both `is_compiled_with_cuda` and
   `is_compiled_with_rocm`), the visible device count, the selected
   device, and whether the runtime exposes the required GPU device files
-  or environment variables (`/dev/kfd`, `/dev/dri`,
-  `HIP_VISIBLE_DEVICES`, `ROCM_PATH`, `CUDA_VISIBLE_DEVICES`,
-  containerization indicators). The operational expansion of this list
+  or environment variables: presence of `/dev/kfd`, presence of
+  `/dev/dri`, whether `HIP_VISIBLE_DEVICES` is set, whether
+  `ROCM_PATH` is set, whether `CUDA_VISIBLE_DEVICES` is set, and a
+  `running_in_container` flag (set when `/.dockerenv` exists or the
+  `container` environment variable is set). The operational expansion of this list
   is documented in `specs/014-paddle-gpu-preprocessing/data-model.md`
   (`PreflightEvidence`); FR-002 is satisfied as long as the readout
   surfaces every field defined there.
@@ -293,17 +300,18 @@ required, committed benchmark artifact has been introduced.
 - **FR-004**: The preflight command MUST NOT modify the pipeline's runtime
   behavior or write any pipeline artifact (`preprocess_output.json`,
   routing decisions, final payload, or evaluator output) as a side effect.
-- **FR-005**: The preflight command MUST treat Ollama GPU success as
-  unrelated to Paddle GPU readiness; it MUST NOT use *Ollama-process-specific*
-  GPU state (whether the Ollama daemon is running, whether it is
-  serving requests, whether it has bound the GPU) as evidence that
-  Paddle GPU works. Observing shared host-level GPU runtime indicators
-  — presence of `/dev/kfd` and `/dev/dri`, or environment variables
-  such as `HIP_VISIBLE_DEVICES`, `ROCM_PATH`, and `CUDA_VISIBLE_DEVICES`
-  — does NOT constitute "Ollama GPU state" for the purposes of this
-  requirement; those indicate the host's overall GPU exposure and MAY
-  be reported under FR-002. The classifier MUST still attempt its own
-  Paddle device bind and PPStructureV3 GPU init to confirm Paddle GPU
+- **FR-005**: For the purposes of this requirement, "Ollama GPU state"
+  means **only** Ollama-process-specific signals — whether the Ollama
+  daemon is running, whether it is serving requests, whether it has
+  bound the GPU. Shared host-level GPU runtime indicators (presence of
+  `/dev/kfd` or `/dev/dri`, or environment variables such as
+  `HIP_VISIBLE_DEVICES`, `ROCM_PATH`, and `CUDA_VISIBLE_DEVICES`) are
+  NOT "Ollama GPU state"; they indicate the host's overall GPU
+  exposure and MAY be reported under FR-002. The preflight command
+  MUST treat Ollama GPU success as unrelated to Paddle GPU readiness
+  and MUST NOT use Ollama-process-specific signals as evidence that
+  Paddle GPU works. The classifier MUST still attempt its own Paddle
+  device bind and PPStructureV3 GPU init to confirm Paddle GPU
   readiness; the host indicators alone never satisfy state (f).
 - **FR-006**: The preflight command MUST be runnable in the same bench
   environment that runs the pipeline, with no requirement for
@@ -465,11 +473,13 @@ required, committed benchmark artifact has been introduced.
 
 - **SC-001**: A developer can run one documented command in the bench
   environment and within five minutes wall-clock from a cold weights
-  cache (i.e. first-run weight downloads under `~/.paddlex/`) know
-  whether Paddle GPU is usable for PPStructureV3 on this workstation,
-  with the result classified into one of the six FR-001 states.
-  Subsequent invocations on the same machine, with weights already
-  cached, MUST return in seconds rather than minutes.
+  cache know whether Paddle GPU is usable for PPStructureV3 on this
+  workstation, with the result classified into one of the six FR-001
+  states. "Cold weights cache" means the first invocation after Paddle
+  is installed, when `~/.paddlex/` is empty or absent and PaddleOCR
+  must download the model weights on first use. Subsequent invocations
+  on the same machine, with weights already cached, MUST return in
+  seconds rather than minutes.
 - **SC-002**: For every FR-001 failure state, the preflight readout names
   the next remediation step (install path, container exposure, runtime
   switch, or hardware/runtime not viable) without requiring a developer

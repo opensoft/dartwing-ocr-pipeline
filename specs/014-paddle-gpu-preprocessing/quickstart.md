@@ -257,6 +257,12 @@ diff /tmp/sha_run1 /tmp/sha_run2 && echo "byte-stable ✓"
 Both runs MUST produce identical SHA-256 sums. Any difference is a
 regression of FR-017.
 
+This manual procedure is the same gate enforced by
+`tests/pipeline_tests/test_pipeline_version_cpu_byte_stable.py` (Tasks
+T031). Once the test exists, running it manually is optional — the
+test is the canonical CI gate, and the manual procedure above is
+useful for ad-hoc debugging when the test fails.
+
 ---
 
 ## 5. Run the test suite

@@ -118,7 +118,7 @@ field-paths land in this feature:
 | `profile_initialization_seconds.preprocess`               | `float`           | Already exists; populated for both CPU and GPU lanes (no shape change) |
 | `per_document[].stages.preprocess.gpu_init_seconds`       | `float`           | Present only on the first document in a GPU run where init occurred (R-009 phase-key absence policy) |
 | `per_document[].stages.preprocess.gpu_inference_seconds`  | `float`           | Present on every per-document entry produced by the GPU lane |
-| `per_document[].gpu_lane_forced_abort`                    | `bool` (true)     | Present only on the per-document failure record that triggered an R-014.4 forced abort |
+| `per_document[].gpu_lane_forced_abort`                    | `bool` (always `true` when present) | Present only on the per-document failure record that triggered the R-014.4 forced abort; always `true` when present |
 
 `SCHEMA_VERSION` bumps from `0.1.0` → `0.1.1`. Consumers of the
 existing schema MUST keep working; the new fields are strictly

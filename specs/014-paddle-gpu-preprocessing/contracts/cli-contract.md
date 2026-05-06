@@ -213,9 +213,14 @@ After the gate has passed, a per-document GPU inference failure (e.g.
 ROCm OOM during `_get_engine().predict(...)`):
 
 - Records a per-document failure entry with
-  `gpu_lane_forced_abort: true` (warm-corpus mode) or surfaces the
-  exception directly (single-doc mode).
-- Aborts the warm-corpus run regardless of `--on-failure` value (R-014.4).
+  `gpu_lane_forced_abort: true` (warm-corpus mode; the key is present
+  only on the per-document failure record that triggered the abort
+  and is always `true` when present) or surfaces the exception
+  directly (single-doc mode).
+- Aborts the warm-corpus run regardless of `--on-failure` value
+  (R-014.4). The user's requested `--on-failure` value is preserved
+  verbatim in the run-summary's top-level `on_failure` field for
+  audit transparency; only the runtime control flow is overridden.
 - Emits the partial `run_summary` JSON line on stdout including the
   failure record and the documents not attempted (per existing
   feature-011 conventions).

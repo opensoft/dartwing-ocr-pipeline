@@ -39,6 +39,19 @@ artifact-contract discipline:
   - produces OCR lines, reading order, layout blocks, table projections, and
     document text
   - used for canonical corpus baselines and full-evidence extraction grounding
+  - has two workstation-runtime variants under the same artifact contract:
+    `ppstructurev3@cpu` (the canonical default; CPU-bound, byte-stable
+    on repeat runs) and `ppstructurev3@gpu` (workstation-only, opt-in,
+    gated on a per-process Paddle GPU preflight; native Linux ROCm is
+    the supported runtime path; WSL Docker Desktop is not). Both
+    variants emit the same `preprocess_output.json` shape; the chosen
+    variant is recoverable from the artifact's `pipeline_version`
+    string by parsing the trailing `.cpu` or `.gpu<N>` lane segment.
+    Jetson/edge GPU is out of scope for `full-structure` and is
+    served by the separate `edge-ocr@jetson` profile below. See
+    `docs/stage1-vendor-identity/paddle-gpu-preflight.md` for the
+    operator-facing FR-001 state guide and the additive `paddlepaddle-gpu`
+    install path.
 - `edge-ocr`
   - a lightweight OCR-first scanner for the Jetson Nano Super edge target
   - runs OCR on the Jetson GPU lane; CPU-only OCR fallback is not supported
