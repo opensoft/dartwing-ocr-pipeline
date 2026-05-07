@@ -156,7 +156,10 @@ def test_cf4_second_device_after_engine_bound_raises(monkeypatch) -> None:
 
     class _OkPPStructure:
         def __init__(self, *args, **kwargs):
-            pass
+            # Stub PPStructureV3: classify() only needs construction to
+            # succeed and the resulting object to be truthy; no fields
+            # or methods are exercised in this test.
+            ...
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_OkPPStructure))
 

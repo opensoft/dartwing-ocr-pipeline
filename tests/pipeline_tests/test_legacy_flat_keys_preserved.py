@@ -12,6 +12,8 @@ does this on the GPU lane), those flat keys MUST appear too.
 """
 from __future__ import annotations
 
+import pytest
+
 from ledgerlinc_ocr.pipeline.timing import (
     DocumentTimings,
     StageTiming,
@@ -45,11 +47,11 @@ def test_t036_legacy_flat_total_seconds_preserved_in_0_1_2() -> None:
     assert "total_seconds" in preprocess_stage, (
         "back-compat: stages.preprocess.total_seconds MUST persist in 0.1.2"
     )
-    assert preprocess_stage["total_seconds"] == 102.71
+    assert preprocess_stage["total_seconds"] == pytest.approx(102.71)
 
     # New structured form
     assert "phase_timings" in record
-    assert record["phase_timings"]["total"]["seconds"] == 102.71
+    assert record["phase_timings"]["total"]["seconds"] == pytest.approx(102.71)
 
     # Both forms coexist on the same record (FR-014 additive-only rule).
     assert "phase_timings" in record and "stages" in record
@@ -78,7 +80,7 @@ def test_t036_gpu_init_and_inference_seconds_can_coexist_with_phase_timings() ->
     record["stages"]["preprocess"]["gpu_inference_seconds"] = 8.43
 
     # Both forms present
-    assert record["stages"]["preprocess"]["gpu_init_seconds"] == 41.21
-    assert record["phase_timings"]["engine_init"]["seconds"] == 41.21
-    assert record["stages"]["preprocess"]["gpu_inference_seconds"] == 8.43
-    assert record["per_page_inference"][0]["seconds"] == 8.43
+    assert record["stages"]["preprocess"]["gpu_init_seconds"] == pytest.approx(41.21)
+    assert record["phase_timings"]["engine_init"]["seconds"] == pytest.approx(41.21)
+    assert record["stages"]["preprocess"]["gpu_inference_seconds"] == pytest.approx(8.43)
+    assert record["per_page_inference"][0]["seconds"] == pytest.approx(8.43)

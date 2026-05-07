@@ -107,21 +107,144 @@ def run(invocation: Invocation, *, stage_timing: Optional[StageTiming] = None) -
         return _run_inner(invocation, stage_timing)
 
 
+def _build_failed_page_dict(pr: rasterize.PageRasterFailure) -> dict[str, Any]:
+    return {
+        "page_number": pr.page_number,
+        "width": pr.width,
+        "height": pr.height,
+        "rotation_detected": pr.rotation_detected,
+        "blocks": [],
+        "raw_ocr_lines": [],
+    }
+
+
+@dataclass
+class _PageResult:
+    page_dict: dict[str, Any]
+    lines: list[dict[str, Any]]
+    blocks: list[dict[str, Any]]
+    tables: list[dict[str, Any]]
+    warnings: list[str]
+    silent_empty: bool
+
+
+def _build_page_warnings(
+    pr: Any, lines: list[dict[str, Any]], blocks: list[dict[str, Any]]
+) -> tuple[list[str], bool]:
+    """Compute defensive warnings for a successful page (FR-003, FR-018,
+    FR-019, plus rotation-normalized note). Returns (warnings, silent_empty).
+    """
+    page_warnings: list[str] = []
+    silent_empty = False
+
+    # FR-003: silent-empty-layout — lines produced but no blocks.
+    if len(lines) > 0 and len(blocks) == 0:
+        page_warnings.append(
+            build_warning(
+                pr.page_number,
+                "silent_empty_layout",
+                f"OCR produced {len(lines)} lines but layout returned zero blocks",
+            )
+        )
+        silent_empty = True
+
+    # FR-019: silent-empty-ocr — blocks produced but no OCR lines, AND at
+    # least one block is text-bearing. Figure- and table-only pages
+    # legitimately have zero OCR lines.
+    text_bearing_blocks = [
+        b for b in blocks if b.get("block_type") in _TEXT_BEARING_BLOCK_TYPES
+    ]
+    if len(blocks) > 0 and len(lines) == 0 and len(text_bearing_blocks) > 0:
+        page_warnings.append(
+            build_warning(
+                pr.page_number,
+                "silent_empty_ocr",
+                f"OCR returned zero lines despite {len(text_bearing_blocks)} text-type blocks",
+            )
+        )
+        silent_empty = True
+
+    # FR-018: suspicious-single-block — multiple OCR lines but only one
+    # layout region. Warn, but do NOT downgrade status.
+    if len(lines) >= 2 and len(blocks) == 1:
+        page_warnings.append(
+            build_warning(
+                pr.page_number,
+                "suspicious_single_block",
+                f"single block covers {len(lines)} OCR lines",
+            )
+        )
+
+    if pr.rotation_snapped:
+        page_warnings.append(
+            f"page {pr.page_number}: rotation {pr.rotation_original}° normalized to {pr.rotation_detected}°"
+        )
+
+    return page_warnings, silent_empty
+
+
+def _process_page(pr: Any, invocation: Invocation) -> _PageResult:
+    """Run OCR on one rasterized page and assemble the per-page result.
+
+    Handles the FR-003 / FR-018 / FR-019 defensive checks, page-image
+    cleanup (FR-005a / R-011), and the optional `write_page_images`
+    debug write.
+    """
+    if isinstance(pr, rasterize.PageRasterFailure):
+        return _PageResult(
+            page_dict=_build_failed_page_dict(pr),
+            lines=[],
+            blocks=[],
+            tables=[],
+            warnings=[
+                f"page {pr.page_number}: rasterization failed: {pr.error}"
+            ],
+            silent_empty=False,
+        )
+
+    # Single V3 call producing both layout + OCR in one pass (FR-007, R-004).
+    # Feature 014 (T021): pass the resolved device.
+    lines, blocks, page_tables, run_warnings = ocr.run_page(
+        pr.image, pr.page_number, pr.width, pr.height,
+        device=_resolve_lane_to_device(invocation.preprocess_lane),
+    )
+    defensive_warnings, silent_empty = _build_page_warnings(pr, lines, blocks)
+
+    if invocation.write_page_images:
+        img_path = invocation.document_folder / f"page_{pr.page_number}.png"
+        pr.image.save(img_path)
+
+    # FR-005a / R-011: release the page image before the next page rasterizes.
+    try:
+        pr.image.close()
+    except Exception:
+        pass
+
+    return _PageResult(
+        page_dict={
+            "page_number": pr.page_number,
+            "width": pr.width,
+            "height": pr.height,
+            "rotation_detected": pr.rotation_detected,
+            "blocks": blocks,
+            "raw_ocr_lines": lines,
+        },
+        lines=lines,
+        blocks=blocks,
+        tables=page_tables,
+        warnings=run_warnings + defensive_warnings,
+        silent_empty=silent_empty,
+    )
+
+
 def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
-    # gate BEFORE any artifact write or input parsing. This ensures the
-    # fail-fast error names the selected profile and FR-001 state even
-    # if the document folder is also broken — GPU readiness is a
-    # process-level prerequisite, not a per-document one. ensure_gpu_ready
-    # is process-cached per Q2 — second and subsequent calls within the
-    # same process short-circuit on the cached PPSTRUCTUREV3_INIT_SUCCEEDED
-    # readout.
+    # gate BEFORE any artifact write or input parsing. ensure_gpu_ready
+    # is process-cached per Q2.
     if invocation.preprocess_lane != "cpu":
-        # Lazy import so the CPU path stays decoupled from preflight.
         from ledgerlinc_ocr.preprocessing.preflight import (
             ensure_gpu_ready as _ensure_gpu_ready,
         )
-
         _ensure_gpu_ready()
 
     pdf_path = _validate_input(invocation)
@@ -131,16 +254,6 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
         lane_segment=invocation.preprocess_lane,
     )
 
-    # rasterize.rasterize_pdf is a page-at-a-time generator (FR-005a / R-011).
-    # ZeroPagePdfError is raised inside open_pdf() on the first next() iteration,
-    # so no separate "not rasters" guard is needed.
-    # Feature 015 (T016): wrap the rasterize+per-page-OCR loop in
-    # `measure_phase("rasterization")`. The per-page GPU inference time is
-    # recorded into `ocr._GPU_INFERENCE_NS_BY_PAGE` separately and surfaces
-    # via `take_gpu_inference_per_page()` as the run_summary
-    # `per_page_inference` array — it is intentionally NOT subtracted from
-    # `rasterization` here; the two phases are measured along different
-    # axes and the consumer may overlap them.
     rasters = rasterize.rasterize_pdf(pdf_path, dpi=DPI)
 
     pages: list[dict[str, Any]] = []
@@ -154,120 +267,20 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # Manual phase timer (instead of `measure_phase` context manager) so the
     # large for-loop body doesn't need to be indented. Same semantics: the
     # delta is added to `stage_timing.phases_ns["rasterization"]` after the
-    # loop completes. measure_phase's `finally` semantics are not needed
-    # here because run-loop exceptions are caught inside the loop and
-    # turned into per-page warnings; no exception escapes the for body.
+    # loop completes.
     import time as _time
     _rasterize_start_ns = _time.monotonic_ns()
     for pr in rasters:
-        page_warnings: list[str] = []
-        blocks: list[dict[str, Any]] = []
-        page_tables: list[dict[str, Any]] = []
-        lines: list[dict[str, Any]] = []
-
-        if isinstance(pr, rasterize.PageRasterFailure):
-            page_warnings.append(
-                f"page {pr.page_number}: rasterization failed: {pr.error}"
-            )
-            pages.append(
-                {
-                    "page_number": pr.page_number,
-                    "width": pr.width,
-                    "height": pr.height,
-                    "rotation_detected": pr.rotation_detected,
-                    "blocks": [],
-                    "raw_ocr_lines": [],
-                }
-            )
-            warnings_out.extend(page_warnings)
-            continue
-
-        # Single V3 call producing both layout + OCR in one pass (FR-007, R-004).
-        # EngineInitError raised here propagates to the CLI (FR-016).
-        # Feature 014 (T021): pass the resolved device; CPU lane → "cpu",
-        # GPU lane → "gpu:0" (or "gpu:N" per CF4).
-        lines, blocks, page_tables, run_warnings = ocr.run_page(
-            pr.image, pr.page_number, pr.width, pr.height,
-            device=_resolve_lane_to_device(invocation.preprocess_lane),
-        )
-        page_warnings.extend(run_warnings)
-
-        # FR-003: silent-empty-layout — lines produced but no blocks.
-        if len(lines) > 0 and len(blocks) == 0:
-            page_warnings.append(
-                build_warning(
-                    pr.page_number,
-                    "silent_empty_layout",
-                    f"OCR produced {len(lines)} lines but layout returned zero blocks",
-                )
-            )
-            silent_empty_page_detected = True
-
-        # FR-019: silent-empty-ocr — blocks produced but no OCR lines, AND at
-        # least one block is text-bearing (text/title/header/footer). Figure-
-        # and table-only pages legitimately have zero OCR lines.
-        text_bearing_blocks = [
-            b for b in blocks if b.get("block_type") in _TEXT_BEARING_BLOCK_TYPES
-        ]
-        if (
-            len(blocks) > 0
-            and len(lines) == 0
-            and len(text_bearing_blocks) > 0
-        ):
-            page_warnings.append(
-                build_warning(
-                    pr.page_number,
-                    "silent_empty_ocr",
-                    f"OCR returned zero lines despite {len(text_bearing_blocks)} text-type blocks",
-                )
-            )
-            silent_empty_page_detected = True
-
-        # FR-018: suspicious-single-block — multiple OCR lines but only one
-        # layout region. Warn, but do NOT downgrade status.
-        if len(lines) >= 2 and len(blocks) == 1:
-            page_warnings.append(
-                build_warning(
-                    pr.page_number,
-                    "suspicious_single_block",
-                    f"single block covers {len(lines)} OCR lines",
-                )
-            )
-
-        if pr.rotation_snapped:
-            page_warnings.append(
-                f"page {pr.page_number}: rotation {pr.rotation_original}° normalized to {pr.rotation_detected}°"
-            )
-
-        pages.append(
-            {
-                "page_number": pr.page_number,
-                "width": pr.width,
-                "height": pr.height,
-                "rotation_detected": pr.rotation_detected,
-                "blocks": blocks,
-                "raw_ocr_lines": lines,
-            }
-        )
-        tables.extend(page_tables)
-        warnings_out.extend(page_warnings)
-        all_lines.extend(lines)
-        if lines or blocks:
+        result = _process_page(pr, invocation)
+        pages.append(result.page_dict)
+        warnings_out.extend(result.warnings)
+        tables.extend(result.tables)
+        all_lines.extend(result.lines)
+        if result.lines or result.blocks:
             pages_with_output += 1
+        if result.silent_empty:
+            silent_empty_page_detected = True
 
-        if invocation.write_page_images:
-            img_path = invocation.document_folder / f"page_{pr.page_number}.png"
-            pr.image.save(img_path)
-
-        # FR-005a / R-011: release the page image before the next page is
-        # rasterized. The page-owned `lines`, `blocks`, `page_tables`, and
-        # warnings have already been copied into document-level accumulators.
-        try:
-            pr.image.close()
-        except Exception:
-            pass
-
-    # Feature 015 (T016): close the rasterization-phase timer.
     stage_timing.add_phase(
         "rasterization", _time.monotonic_ns() - _rasterize_start_ns
     )
