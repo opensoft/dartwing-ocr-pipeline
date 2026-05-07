@@ -396,13 +396,22 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
         def adapter(
             invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
         ) -> Any:
+            # Feature 015 (T021): pass the Runner's active StageTiming
+            # into pipeline.run so the per-phase keys (`rasterization`,
+            # `artifact_write`, plus `total` via measure_total) are
+            # recorded on the same map the Runner is using for the
+            # coarse `infer` phase. corpus_run.py drains this map after
+            # the call to build the run_summary `phase_timings` block.
+            from ledgerlinc_ocr.pipeline.timing import current_stage_timing
+
             out_path = preprocessing_run(
                 PreInvocation(
                     document_folder=invocation.destination_folder,
                     source_file=_SOURCE_PDF,
                     pipeline_version=invocation.pipeline_version,
                     preprocess_lane=lane,
-                )
+                ),
+                stage_timing=current_stage_timing(),
             )
             from ledgerlinc_ocr.pipeline.runner import StageRunOutput
 

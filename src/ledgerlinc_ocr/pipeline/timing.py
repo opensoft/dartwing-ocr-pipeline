@@ -6,17 +6,42 @@ Internal arithmetic stays in integer nanoseconds (``time.monotonic_ns``).
 Conversion to seconds happens only at serialization time, rounded to six
 decimal places (R-015). Phase keys absent from a stage's timing map mean
 "not measured" (R-009 phase-key absence policy).
+
+Feature 015 (T021): live stage adapters need access to the active
+StageTiming so they can record fine-grained phase keys (e.g.,
+preprocess's `rasterization` and `artifact_write` per FR-013) on
+the same map the Runner is already using for the coarse `infer` /
+`write` phases. The Runner sets `_CURRENT_STAGE_TIMING` (a
+contextvars.ContextVar) just before invoking the stage callable;
+adapters call `current_stage_timing()` to retrieve it.
 """
 from __future__ import annotations
 
+import contextvars
 import json
 import sys
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any, Iterator, Optional
 
 from ledgerlinc_ocr.pipeline.profiles import Stage
+
+
+# Feature 015 (T021): contextvar that the Runner populates with the
+# active StageTiming for the stage currently being executed. Live
+# stage adapters read this to thread fine-grained phase timings into
+# the same StageTiming the Runner is using for the coarse phase. The
+# default is None — meaning "no Runner is wrapping us; do not record."
+_CURRENT_STAGE_TIMING: contextvars.ContextVar[Optional["StageTiming"]] = (
+    contextvars.ContextVar("ledgerlinc_ocr.pipeline.timing._CURRENT_STAGE_TIMING", default=None)
+)
+
+
+def current_stage_timing() -> Optional["StageTiming"]:
+    """Return the active per-stage StageTiming or None when not inside a
+    Runner-wrapped stage call."""
+    return _CURRENT_STAGE_TIMING.get()
 
 # Feature 014 (T027 / R-014.6): patch bump for additive `preprocess_lane`,
 # `gpu_init_seconds`, `gpu_inference_seconds`, and the optional
@@ -150,6 +175,30 @@ def emit_run_summary(summary: RunSummary, *, stream: Any = None) -> None:
     """Emit the run summary as the last stdout line (R-009)."""
     target = stream if stream is not None else sys.stdout
     target.write(summary.as_json_line() + "\n")
+
+
+def attach_one_time_gpu_phases(record: dict[str, Any], readout: Any) -> None:
+    """Attach the GPU one-time phase keys (`paddle_import`,
+    `gpu_bind_probe`, `engine_init`) to a per-document run_summary record's
+    `phase_timings` block (feature 015 / T027 / R-015.4).
+
+    `readout` is a `PreflightReadout` (or any object with an `evidence`
+    attribute carrying the three `*_seconds` fields). Phases whose source
+    value is None are omitted (FR-016). The record's `phase_timings`
+    sub-dict is created if absent."""
+    ev = getattr(readout, "evidence", None)
+    if ev is None:
+        return
+    phase_timings = record.setdefault("phase_timings", {})
+    paddle_import_seconds = getattr(ev, "paddle_import_seconds", None)
+    gpu_bind_probe_seconds = getattr(ev, "gpu_bind_probe_seconds", None)
+    engine_init_seconds = getattr(ev, "ppstructurev3_init_seconds", None)
+    if paddle_import_seconds is not None:
+        phase_timings["paddle_import"] = {"seconds": paddle_import_seconds}
+    if gpu_bind_probe_seconds is not None:
+        phase_timings["gpu_bind_probe"] = {"seconds": gpu_bind_probe_seconds}
+    if engine_init_seconds is not None:
+        phase_timings["engine_init"] = {"seconds": engine_init_seconds}
 
 
 def build_per_document_success(
