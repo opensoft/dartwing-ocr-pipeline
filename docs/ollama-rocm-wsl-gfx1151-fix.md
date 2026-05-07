@@ -189,16 +189,37 @@ Expected signals:
 - `AMD Radeon(TM) 8060S Graphics`
 - `gfx1151`
 
-### B. Start Ollama with debug logging
+### B. Start Ollama with the required ROCm runtime environment
 
 ```bash
-OLLAMA_DEBUG=1 /usr/bin/ollama serve
+scripts/start-host-ollama-rocm-wsl.sh
 ```
 
-Expected signal after the patch:
+Do not use plain `ollama serve` for this workstation. The patched binary is
+still required, but the current ROCm 7.2 / ROCDXG path also requires the host
+HSA runtime to be preloaded ahead of Ollama's bundled ROCm libraries:
+
+```bash
+HSA_ENABLE_DXG_DETECTION=1
+HSA_ENABLE_SDMA=0
+ROCM_PATH=/opt/rocm-7.2.0
+HIP_PATH=/opt/rocm-7.2.0
+LD_PRELOAD=/opt/rocm-7.2.0/lib/libhsa-runtime64.so.1
+LD_LIBRARY_PATH=/opt/rocm-7.2.0/lib
+```
+
+Without this environment, the runner can offload layers to `ROCm0` and then
+hang during model load after the ROCDXG warning:
+
+```text
+librocdxg.so: undefined symbol: hsa_signal_store_screlease
+```
+
+Expected signals after the patch and startup environment:
 
 - inference compute reports `library=ROCm`
 - compute target is `gfx1151`
+- `ollama ps` reports `100% GPU` for an active model
 
 ### C. Run a model
 
@@ -265,7 +286,10 @@ During GPU load, one warning appeared from `librocdxg.so`:
 undefined symbol: hsa_signal_store_screlease
 ```
 
-Even with that warning, the model still loaded with ROCm layer offload and the runner had ROCm libraries and `/dev/dxg` open.
+This warning is only benign when the required startup environment above is in
+place. Without the `LD_PRELOAD` of `/opt/rocm-7.2.0/lib/libhsa-runtime64.so.1`,
+the runner can hang at load progress around `0.18` after offloading layers to
+`ROCm0`.
 
 This warning should be treated as a compatibility concern to watch, but it did not block GPU inference in this setup.
 
@@ -281,7 +305,7 @@ Then restart the server:
 
 ```bash
 pkill -f '/usr/bin/ollama serve'
-/usr/bin/ollama serve
+scripts/start-host-ollama-rocm-wsl.sh
 ```
 
 Expected rollback result:
@@ -308,13 +332,15 @@ Recommended next steps:
 - patched source: `/tmp/ollama-src/ml/device.go`
 - active binary: `/usr/bin/ollama`
 - stock backup: `/usr/bin/ollama.orig-0.20.5`
+- startup script: `scripts/start-host-ollama-rocm-wsl.sh`
 
 ### Key commands
 
 ```bash
 rocminfo | rg 'Marketing Name|gfx1151'
-OLLAMA_DEBUG=1 /usr/bin/ollama serve
+scripts/start-host-ollama-rocm-wsl.sh
 /usr/bin/ollama run llama3.2:1b "Respond with the single word: hello"
+ollama ps
 ps -ef | rg 'ollama serve|ollama runner'
 rg 'libamdhip64|libhsa-runtime64|libhipblas|libhipblaslt|librocblas|librocdxg' /proc/<runner-pid>/maps
 ls -l /proc/<runner-pid>/fd

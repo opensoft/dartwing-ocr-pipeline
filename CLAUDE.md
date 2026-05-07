@@ -23,6 +23,12 @@ Devcontainer (defaults to a lightweight Python 3.12 image; runs `pip install -r 
 - Open in VS Code Dev Containers — the `pipeline-dev` service from `.devcontainer/docker-compose.yml` is used
 - `OLLAMA_BASE_URL` defaults to `http://host.docker.internal:11434` so the container calls a host-level Ollama
 
+Start workstation host Ollama for the AMD ROCm/GPU lane:
+```bash
+scripts/start-host-ollama-rocm-wsl.sh
+```
+Do not use plain `ollama serve` for the WSL `gfx1151` GPU lane; this host requires the HSA preload and SDMA settings captured in that script.
+
 Optional local Ollama container (CPU-only on WSL; see caveat below):
 ```bash
 docker compose -f .devcontainer/docker-compose.yml --profile ollama up -d
@@ -96,7 +102,7 @@ From the constitution (`.specify/memory/constitution.md`):
 - **Pipeline code** owns preprocessing, extraction orchestration, consensus, routing, final payload.
 - **Test harness** (separate concern — see `prd-test-harness.md`) owns corpus, expected truth, evaluation, reporting.
 - **Selected local model runtime over HTTP** owns model inference for stage 1. Full-workstation uses host Ollama, cloud-workstation uses local workstation GPU model endpoints, and edge-fast uses Jetson-local Ollama. Do not embed model runtime into the pipeline container.
-- On this workstation only host Ollama is GPU-capable. The optional `ollama` Docker service on WSL is CPU-only — HIP cannot see the AMD GPU inside Docker Desktop. Treat the native Linux ROCm compose file as the production path, not the WSL container. Details: `docs/stage1-vendor-identity/ollama-runtime.md` and `docs/ollama-rocm-wsl-gfx1151-fix.md`.
+- On this workstation only host Ollama is GPU-capable. Start it with `scripts/start-host-ollama-rocm-wsl.sh`, not plain `ollama serve`; the optional `ollama` Docker service on WSL is CPU-only — HIP cannot see the AMD GPU inside Docker Desktop. Treat the native Linux ROCm compose file as the production path, not the WSL container. Details: `docs/stage1-vendor-identity/ollama-runtime.md` and `docs/ollama-rocm-wsl-gfx1151-fix.md`.
 
 ### Non-negotiable rules
 

@@ -150,11 +150,51 @@ This is true both for WSL and for a future Linux cloud host.
 
 ## How To Use The Host Runtime
 
-1. Start Ollama on the host.
-2. Keep the default `OLLAMA_BASE_URL`.
+1. Start Ollama on the WSL host with the repo startup script:
+
+   ```bash
+   scripts/start-host-ollama-rocm-wsl.sh
+   ```
+
+   Do not start this workstation's GPU lane with plain `ollama serve`.
+   The `gfx1151` WSL ROCm path requires the host HSA runtime preload and
+   SDMA workaround documented in `../ollama-rocm-wsl-gfx1151-fix.md`.
+
+2. Keep the default `OLLAMA_BASE_URL` when the container can reach the WSL
+   host directly. When Docker Desktop cannot route to the WSL IP directly,
+   use the network-IP relay URL that resolves to host Ollama.
 3. Run the pipeline container unchanged.
 
 No compose override is needed for this path.
+
+### Host Runtime Verification
+
+After startup, verify GPU placement before treating a benchmark or pipeline
+run as GPU-backed:
+
+```bash
+curl -fsS http://127.0.0.1:11434/api/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"llama3.2:1b","prompt":"Reply with OK only.","stream":false,"keep_alive":"5m","options":{"num_predict":2,"num_ctx":2048}}'
+
+ollama ps
+```
+
+Expected `ollama ps` signal:
+
+```text
+PROCESSOR    100% GPU
+```
+
+When validating from `py-bench`, query the network-reachable URL, for example:
+
+```bash
+export OLLAMA_BASE_URL=http://192.168.1.131:11436
+curl -fsS "$OLLAMA_BASE_URL/api/ps"
+```
+
+The `api/ps` response should report a non-zero `size_vram` for the loaded
+model.
 
 ## How To Use The Local Container Runtime
 
