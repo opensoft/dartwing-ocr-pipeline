@@ -98,7 +98,7 @@ class CLIInvocation:
     destination_folder: Path
     document_id: str
     overwrite: bool
-    pipeline_version: str
+    pipeline_version: str | None
     policy_version: str
     contract_set_version: str
     ollama_url: str

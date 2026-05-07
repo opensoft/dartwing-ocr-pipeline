@@ -79,3 +79,23 @@ def test_supported_profiles_contains_gpu_tuple() -> None:
 
 def test_ppstructurev3_gpu_constant_defined() -> None:
     assert PPSTRUCTUREV3_GPU == "ppstructurev3@gpu"
+
+
+def test_ppstructurev3_gpu_live_adapter_registered_by_default() -> None:
+    """The opt-in GPU profile must resolve to a real adapter, not the
+    generic FR-034 deferred placeholder."""
+    from ledgerlinc_ocr.pipeline import stages as stages_mod
+
+    stages_mod.reset_live_registry(stub_fallback_only=False)
+    assert stages_mod.is_live_capable("preprocess", "ppstructurev3", "gpu")
+
+
+def test_pipeline_cli_pipeline_version_default_allows_lane_stamp() -> None:
+    """When omitted, pipeline-version must stay None so the selected
+    preprocessing lane can build `.cpu` or `.gpu0` itself."""
+    from ledgerlinc_ocr.pipeline.cli import _build_parser
+
+    args = _build_parser().parse_args(
+        ["run", "--document-folder", "tests/stage1_vendor_identity/inv_001_easy"]
+    )
+    assert args.pipeline_version is None

@@ -11,6 +11,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from ledgerlinc_ocr.contract_versions import (
+    ContractVersionError,
+    require_matching_contract_version,
+    require_stage1_contract_version,
+)
 from ledgerlinc_ocr.validator import (
     ArtifactName,
     validate_artifact,
@@ -44,9 +49,11 @@ def _load_packet(folder: Path) -> dict[str, Any]:
         ) from exc
 
 
-def _validate_packet(folder: Path) -> None:
+def _validate_packet(folder: Path, *, contract_set_version: str) -> None:
     outcome = validate_artifact(
-        folder / _INPUT_NAME, ArtifactName.PREPROCESS_OUTPUT
+        folder / _INPUT_NAME,
+        ArtifactName.PREPROCESS_OUTPUT,
+        version=contract_set_version,
     )
     if not outcome.passed:
         raise InputContractDrift(
@@ -71,6 +78,7 @@ def run(
     template_path: Path,
     *,
     pipeline_version: str | None = None,
+    contract_set_version: str | None = None,
 ) -> Path:
     """Extract one document. Returns the path to the written artifact.
 
@@ -79,6 +87,11 @@ def run(
     extract adapter) pass ``--pipeline-version`` through here so the
     written artifact stamps the user-supplied value, matching how the
     other stage modules honor pipeline-version overrides.
+
+    ``contract_set_version`` is optional for standalone stage runs. When
+    supplied by the pipeline controller, it must match the upstream
+    preprocess artifact; the extractor does not silently retarget an existing
+    packet to a different contract set.
     """
 
     folder = Path(folder_path)
@@ -95,15 +108,28 @@ def run(
             detail={"voter_role": voter_config.voter_role},
         )
 
-    _validate_packet(folder)
     packet = _load_packet(folder)
-
-    csv = packet.get("contract_set_version")
-    if csv != "1.0.0":
-        raise InputContractDrift(
-            f"preprocess_output.json declares contract_set_version {csv!r}; expected '1.0.0'",
-            detail={"path": str(folder / _INPUT_NAME), "found": csv, "expected": "1.0.0"},
+    try:
+        packet_contract_set_version = require_stage1_contract_version(
+            packet.get("contract_set_version"),
+            artifact_label="preprocess_output.json",
         )
+        packet_contract_set_version = require_matching_contract_version(
+            found=packet_contract_set_version,
+            expected=contract_set_version,
+            artifact_label="preprocess_output.json",
+        )
+    except ContractVersionError as exc:
+        raise InputContractDrift(
+            str(exc),
+            detail={
+                "path": str(folder / _INPUT_NAME),
+                "found": packet.get("contract_set_version"),
+                "expected": contract_set_version,
+            },
+        ) from exc
+
+    _validate_packet(folder, contract_set_version=packet_contract_set_version)
 
     now = datetime.now(UTC)
     if pipeline_version is None:
@@ -119,6 +145,7 @@ def run(
         config=voter_config,
         now=now,
         pipeline_version=pipeline_version,
+        contract_set_version=packet_contract_set_version,
         repair_trail=repair_trail,
     )
 

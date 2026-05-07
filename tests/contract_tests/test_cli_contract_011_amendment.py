@@ -111,12 +111,9 @@ def test_help_lists_every_011_flag(capsys: pytest.CaptureFixture[str]):
 # ---------------------------------------------------------------------------
 
 def test_default_contract_set_version_constant():
-    """I2 follow-up (see cli.py comment): the runtime default stays at
-    "1.0.0" until per-stage modules accept the active contract set
-    version. The bump to "1.2.0" is deferred outside the 011 slice.
-    """
+    """The runtime default follows the active stage 1 contract set."""
     from ledgerlinc_ocr.pipeline.cli import _DEFAULT_CONTRACT_SET_VERSION
-    assert _DEFAULT_CONTRACT_SET_VERSION == "1.0.0"
+    assert _DEFAULT_CONTRACT_SET_VERSION == "1.2.0"
 
 
 def test_no_flag_run_uses_default_contract_set(tmp_doc: Path):

@@ -232,6 +232,7 @@ def reconcile(
     now: datetime,
     pipeline_version: str,
     repair_trail: list[str],
+    contract_set_version: str = "1.0.0",
 ) -> dict[str, Any]:
     warnings: list[str] = []
     extraction_notes: list[str] = []
@@ -244,7 +245,7 @@ def reconcile(
 
     # Step 1 — Metadata
     artifact: dict[str, Any] = {
-        "contract_set_version": "1.0.0",
+        "contract_set_version": contract_set_version,
         "pipeline_version": pipeline_version,
         "document_id": packet["document_id"],
         "processed_at": now.isoformat().replace("+00:00", "Z"),

@@ -36,7 +36,7 @@ class MalformedInputError(RouterError):
 
 
 class VersionDriftError(RouterError):
-    """The input reports ``contract_set_version`` other than ``"1.0.0"``."""
+    """The input reports an unsupported or mismatched ``contract_set_version``."""
 
 
 class ContractAssertionError(RouterError):

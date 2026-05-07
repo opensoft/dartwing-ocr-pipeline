@@ -8,6 +8,10 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from ledgerlinc_ocr.contract_versions import (
+    ContractVersionError,
+    require_stage1_contract_version,
+)
 from ledgerlinc_ocr.validator import (
     ArtifactName,
     validate_artifact,
@@ -23,7 +27,7 @@ def assemble_and_write(artifact_dict: dict[str, Any], folder_path: Path) -> Path
 
     Order of operations:
     1. Serialize to JSON in-memory (fail fast on non-serializable values).
-    2. Run the frozen v1.0.0 validator against the serialized artifact.
+    2. Run the matching contract-set validator against the serialized artifact.
     3. `os.replace` from a sibling `.tmp-<pid>` file for atomic rename.
 
     Raises `ArtifactAssemblyError` on schema failures (should be unreachable —
@@ -65,13 +69,29 @@ def assemble_and_write(artifact_dict: dict[str, Any], folder_path: Path) -> Path
             detail={"path": str(tmp_path), "error": str(exc)},
         ) from exc
 
+    try:
+        contract_set_version = require_stage1_contract_version(
+            artifact_dict.get("contract_set_version"),
+            artifact_label="edge_extraction_output.json",
+        )
+    except ContractVersionError as exc:
+        tmp_path.unlink(missing_ok=True)
+        raise ArtifactAssemblyError(
+            f"assembled artifact has unsupported contract_set_version: {exc}",
+            detail={"error": str(exc)},
+        ) from exc
+
     # Run the in-repo validator against the serialized file — proves what is
     # about to hit disk is schema-valid, not just the in-memory dict.
-    outcome = validate_artifact(tmp_path, ArtifactName.EDGE_EXTRACTION_OUTPUT)
+    outcome = validate_artifact(
+        tmp_path,
+        ArtifactName.EDGE_EXTRACTION_OUTPUT,
+        version=contract_set_version,
+    )
     if not outcome.passed:
         tmp_path.unlink(missing_ok=True)
         raise ArtifactAssemblyError(
-            "assembled artifact failed v1.0.0 schema validation before write",
+            f"assembled artifact failed v{contract_set_version} schema validation before write",
             detail={
                 "errors": [
                     {

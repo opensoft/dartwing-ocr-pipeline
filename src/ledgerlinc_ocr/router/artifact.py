@@ -21,12 +21,15 @@ import os
 import tempfile
 from pathlib import Path
 
+from ledgerlinc_ocr.contract_versions import (
+    ContractVersionError,
+    require_stage1_contract_version,
+)
 from ledgerlinc_ocr.router.errors import ContractAssertionError, MissingInputError
 from ledgerlinc_ocr.validator import validate_artifact
 
 _OUTPUT_ARTIFACT_NAME = "routing_decision"
 _OUTPUT_FILE_NAME = "routing_decision.json"
-_CONTRACT_SET_VERSION = "1.0.0"
 
 
 def _serialize(artifact: dict) -> bytes:
@@ -57,6 +60,16 @@ def assemble_and_write(folder: str | Path, artifact: dict) -> Path:
         )
     final_path = folder / _OUTPUT_FILE_NAME
 
+    try:
+        contract_set_version = require_stage1_contract_version(
+            artifact.get("contract_set_version"),
+            artifact_label="routing_decision.json",
+        )
+    except ContractVersionError as exc:
+        raise ContractAssertionError(
+            f"assembled routing_decision has unsupported contract_set_version: {exc}"
+        ) from exc
+
     # Validate AFTER writing to a sibling temp file inside ``folder`` so the
     # later ``os.replace`` is guaranteed atomic on POSIX. On validation
     # failure we unlink the temp file before raising so the filesystem
@@ -76,7 +89,7 @@ def assemble_and_write(folder: str | Path, artifact: dict) -> Path:
         outcome = validate_artifact(
             tmp_path,
             _OUTPUT_ARTIFACT_NAME,
-            version=_CONTRACT_SET_VERSION,
+            version=contract_set_version,
         )
         if not outcome.passed:
             first = outcome.violations[0] if outcome.violations else None

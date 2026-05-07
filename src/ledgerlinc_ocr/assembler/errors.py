@@ -51,13 +51,13 @@ class InputUnreadableError(InputRejectedError):
 
 
 class InputSchemaInvalidError(InputRejectedError):
-    """An input file parses but fails its own v1.0.0 schema."""
+    """An input file parses but fails its own contract-set schema."""
 
     kind: ClassVar[str] = "schema_invalid_input"
 
 
 class ContractDriftError(InputRejectedError):
-    """One input reports `contract_set_version != "1.0.0"`."""
+    """An input reports an unsupported or mismatched `contract_set_version`."""
 
     kind: ClassVar[str] = "contract_drift"
 

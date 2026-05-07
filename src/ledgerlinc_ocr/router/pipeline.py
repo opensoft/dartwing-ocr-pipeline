@@ -20,7 +20,6 @@ from ledgerlinc_ocr.router.input_loader import load_and_validate
 from ledgerlinc_ocr.router.rules import apply_rules
 from ledgerlinc_ocr.router.scores import compute_scores
 
-_CONTRACT_SET_VERSION = "1.0.0"
 _DEFAULT_INPUT_FILE = "edge_extraction_output.json"
 
 _CONSENSUS_SUMMARY = {
@@ -42,11 +41,12 @@ def _build_artifact(
     rule_result,
     pipeline_version: str,
     policy_version: str,
+    contract_set_version: str,
     processed_at: str,
 ) -> dict:
     """Assemble the routing_decision dict in the schema's required key order."""
     return {
-        "contract_set_version": _CONTRACT_SET_VERSION,
+        "contract_set_version": contract_set_version,
         "pipeline_version": pipeline_version,
         "policy_version": policy_version,
         "document_id": input_dict["document_id"],
@@ -70,6 +70,7 @@ def run(
     pipeline_version: str,
     policy_version: str,
     input_file: str = _DEFAULT_INPUT_FILE,
+    contract_set_version: str | None = None,
     now_fn=_utc_now_z_second,
 ) -> tuple[Path, dict]:
     """Route one per-document folder.
@@ -81,7 +82,10 @@ def run(
     folder = Path(folder)
     input_path = folder / input_file
 
-    input_dict = load_and_validate(input_path)
+    input_dict = load_and_validate(
+        input_path,
+        contract_set_version=contract_set_version,
+    )
     checks = compute_checks(input_dict)
     scores = compute_scores(input_dict)
     rule_result = apply_rules(checks, scores, input_dict)
@@ -93,6 +97,7 @@ def run(
         rule_result=rule_result,
         pipeline_version=pipeline_version,
         policy_version=policy_version,
+        contract_set_version=input_dict["contract_set_version"],
         processed_at=now_fn(),
     )
 

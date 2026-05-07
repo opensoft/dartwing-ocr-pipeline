@@ -23,7 +23,6 @@ from ledgerlinc_ocr.assembler.version import build_pipeline_version
 from ledgerlinc_ocr.assembler.write import write_final_payload
 
 OUTPUT_FILENAME = "final_structured_payload.json"
-CONTRACT_SET_VERSION = "1.0.0"
 DOCUMENT_TYPE = "invoice"
 
 
@@ -33,6 +32,7 @@ class Invocation:
 
     document_folder: Path
     pipeline_version: str | None = None
+    contract_set_version: str | None = None
     now_utc: Callable[[], datetime] | None = None
 
 
@@ -72,10 +72,19 @@ def run(invocation: Invocation) -> Path:
 
     # Invariants 1–2: existence + JSON-parseable
     extractor, routing = check_inputs_readable(folder)
-    # Invariant 3: each input schema-valid
-    check_schemas_valid(extractor, routing)
-    # Invariant 4: contract_set_version pinned to 1.0.0
-    check_contract_versions(extractor, routing)
+    # Invariant 3: input contract sets are supported, matching, and honor any
+    # controller-selected contract set.
+    contract_set_version = check_contract_versions(
+        extractor,
+        routing,
+        contract_set_version=invocation.contract_set_version,
+    )
+    # Invariant 4: each input schema-valid under that contract set.
+    check_schemas_valid(
+        extractor,
+        routing,
+        contract_set_version=contract_set_version,
+    )
     # Invariant 5: document_id agreement
     document_id = check_document_ids_match(extractor, routing)
     # Invariant 6: routing internal consistency (FR-016)
@@ -83,7 +92,7 @@ def run(invocation: Invocation) -> Path:
 
     # Assemble — insertion order matches FINAL_KEY_ORDER.
     payload: dict = {
-        "contract_set_version": CONTRACT_SET_VERSION,
+        "contract_set_version": contract_set_version,
         "pipeline_version": pipeline_version,
         "document_id": document_id,
         "processed_at": processed_at,
@@ -95,7 +104,7 @@ def run(invocation: Invocation) -> Path:
     }
 
     # Invariant 7: output schema-valid (exit 3 on failure, no write)
-    validate_output(payload)
+    validate_output(payload, contract_set_version=contract_set_version)
 
     out_path = (folder / OUTPUT_FILENAME).resolve()
     write_final_payload(out_path, payload)

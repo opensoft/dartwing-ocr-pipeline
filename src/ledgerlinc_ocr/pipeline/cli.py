@@ -26,7 +26,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from ledgerlinc_ocr import __version__ as _package_version
 from ledgerlinc_ocr.pipeline.corpus import CorpusParseError, parse_documents_file
 from ledgerlinc_ocr.pipeline.exit_codes import ExitCode, StructuredFailureRecord
 from ledgerlinc_ocr.pipeline.failure_policy import (
@@ -64,16 +63,7 @@ from ledgerlinc_ocr.validator.loader import (
 
 _DEFAULT_OLLAMA_URL = "http://localhost:11434"
 _DEFAULT_POLICY_VERSION = "stage1-baseline-v0"
-# I2 follow-up: the active contract set per CLAUDE.md is "1.2.0", but
-# the per-stage modules (router, assembler, extract, preprocessing)
-# hardcode "1.0.0" in their input/output validation. Bumping this
-# default in 011 would cascade artifact ``contract_set_version`` to
-# "1.2.0" and break every per-stage module's input check. Closing the
-# I2 drift therefore requires a wider change that updates each stage
-# module's pinned version, which is out of scope for 011 (the spec's
-# FR-029 forbids artifact schema changes here). Re-evaluate once the
-# stage modules accept the active contract set version.
-_DEFAULT_CONTRACT_SET_VERSION = "1.0.0"
+_DEFAULT_CONTRACT_SET_VERSION = "1.2.0"
 _LOG_LEVELS = ("error", "warning", "info", "debug")
 
 _STACK_PRESET_CHOICES = ("full-workstation", "cloud-workstation", "edge-fast")
@@ -95,7 +85,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--output-dir", type=Path, default=None)
     run.add_argument("--document-id", type=str, default=None)
     run.add_argument("--overwrite", action="store_true")
-    run.add_argument("--pipeline-version", type=str, default=_package_version)
+    run.add_argument("--pipeline-version", type=str, default=None)
     run.add_argument(
         "--policy-version", type=str, default=_DEFAULT_POLICY_VERSION
     )

@@ -7,9 +7,12 @@ contract:
 - I/O / permission error on read → ``UnreadableInputError`` (exit code 2)
 - non-JSON bytes or schema-invalid content → ``MalformedInputError`` (exit
   code 2)
-- ``contract_set_version != "1.0.0"`` → ``VersionDriftError`` (exit code 2)
+- unsupported or mismatched ``contract_set_version`` → ``VersionDriftError``
+  (exit code 2)
 
-Exact-equal (not major-equal) version checking per research.md Decision 2.
+Standalone router calls preserve the input contract set. Pipeline-controller
+calls may pass a selected contract set, which must exactly match the input
+artifact stamp.
 
 No rule logic, no output, no filesystem mutation.
 """
@@ -18,6 +21,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from ledgerlinc_ocr.contract_versions import (
+    ContractVersionError,
+    require_matching_contract_version,
+    require_stage1_contract_version,
+)
 from ledgerlinc_ocr.router.errors import (
     MalformedInputError,
     MissingInputError,
@@ -26,11 +34,14 @@ from ledgerlinc_ocr.router.errors import (
 )
 from ledgerlinc_ocr.validator import validate_artifact
 
-_EXPECTED_CONTRACT_SET_VERSION = "1.0.0"
 _INPUT_ARTIFACT_NAME = "edge_extraction_output"
 
 
-def load_and_validate(path: str | Path) -> dict:
+def load_and_validate(
+    path: str | Path,
+    *,
+    contract_set_version: str | None = None,
+) -> dict:
     """Return the parsed, schema-valid input dict.
 
     ``path`` points to the ``edge_extraction_output.json`` file itself (not
@@ -76,18 +87,25 @@ def load_and_validate(path: str | Path) -> dict:
             f"got {type(data).__name__}"
         )
 
-    version = data.get("contract_set_version")
-    if version != _EXPECTED_CONTRACT_SET_VERSION:
-        raise VersionDriftError(
-            f"input file {path} reports contract_set_version={version!r}; "
-            f"stage 1 router requires exactly "
-            f"{_EXPECTED_CONTRACT_SET_VERSION!r}"
+    try:
+        version = require_stage1_contract_version(
+            data.get("contract_set_version"),
+            artifact_label="edge_extraction_output.json",
         )
+        version = require_matching_contract_version(
+            found=version,
+            expected=contract_set_version,
+            artifact_label="edge_extraction_output.json",
+        )
+    except ContractVersionError as exc:
+        raise VersionDriftError(
+            f"input file {path}: {exc}"
+        ) from exc
 
     outcome = validate_artifact(
         path,
         _INPUT_ARTIFACT_NAME,
-        version=_EXPECTED_CONTRACT_SET_VERSION,
+        version=version,
     )
     if not outcome.passed:
         first = outcome.violations[0] if outcome.violations else None

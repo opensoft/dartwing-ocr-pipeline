@@ -33,6 +33,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Callable
 
+from ledgerlinc_ocr import __version__ as _package_version
 from ledgerlinc_ocr.pipeline.profiles import Stage, StageProfile
 
 _SOURCE_PDF = "source.pdf"
@@ -45,12 +46,16 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _stub_pipeline_version(invocation: "CLIInvocation") -> str:
+    return invocation.pipeline_version or _package_version
+
+
 def default_preprocess(
     invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
 ) -> dict[str, Any]:
     return {
         "contract_set_version": invocation.contract_set_version,
-        "pipeline_version": invocation.pipeline_version,
+        "pipeline_version": _stub_pipeline_version(invocation),
         "document_id": invocation.document_id,
         "source_type": "pdf",
         "source_file": _SOURCE_PDF,
@@ -117,7 +122,7 @@ def default_extraction(
     }
     return {
         "contract_set_version": invocation.contract_set_version,
-        "pipeline_version": invocation.pipeline_version,
+        "pipeline_version": _stub_pipeline_version(invocation),
         "document_id": invocation.document_id,
         "processed_at": _now_iso(),
         "model_runtime": {
@@ -184,7 +189,7 @@ def default_routing(
 
     return {
         "contract_set_version": invocation.contract_set_version,
-        "pipeline_version": invocation.pipeline_version,
+        "pipeline_version": _stub_pipeline_version(invocation),
         "policy_version": invocation.policy_version,
         "document_id": invocation.document_id,
         "processed_at": _now_iso(),
@@ -238,7 +243,7 @@ def default_final_payload(
 
     return {
         "contract_set_version": invocation.contract_set_version,
-        "pipeline_version": invocation.pipeline_version,
+        "pipeline_version": _stub_pipeline_version(invocation),
         "document_id": invocation.document_id,
         "processed_at": _now_iso(),
         "document_type": "invoice",
@@ -374,6 +379,43 @@ _seed_default_stub_fallbacks()
 # ---------------------------------------------------------------------------
 
 
+def _ppstructurev3_factory(lane: str) -> AdapterFactory:
+    """Return a live PPStructureV3 preprocessing adapter for one lane.
+
+    ``lane`` is the artifact lane segment consumed by
+    ``ledgerlinc_ocr.preprocessing.pipeline.Invocation``: ``"cpu"`` for the
+    default CPU adapter, ``"gpu0"`` for the workstation GPU adapter.
+    """
+    import json
+    from ledgerlinc_ocr.preprocessing.pipeline import (
+        Invocation as PreInvocation,
+        run as preprocessing_run,
+    )
+
+    def factory(_plan: "ResolvedRunPlan") -> StageCallable:
+        def adapter(
+            invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
+        ) -> Any:
+            out_path = preprocessing_run(
+                PreInvocation(
+                    document_folder=invocation.destination_folder,
+                    source_file=_SOURCE_PDF,
+                    pipeline_version=invocation.pipeline_version,
+                    preprocess_lane=lane,
+                )
+            )
+            from ledgerlinc_ocr.pipeline.runner import StageRunOutput
+
+            return StageRunOutput(
+                payload=json.loads(out_path.read_text(encoding="utf-8")),
+                artifact_path=out_path,
+            )
+
+        return adapter
+
+    return factory
+
+
 def _ppstructurev3_cpu_factory(_plan: "ResolvedRunPlan") -> StageCallable:
     """T031: live (preprocess, ppstructurev3, cpu) adapter wrapping
     ``ledgerlinc_ocr.preprocessing.pipeline.run``.
@@ -383,30 +425,7 @@ def _ppstructurev3_cpu_factory(_plan: "ResolvedRunPlan") -> StageCallable:
     callers should reuse the warmed engine via ``WarmProfileRegistry``;
     cold one-off callers pay the init cost once.
     """
-    import json
-    from ledgerlinc_ocr.preprocessing.pipeline import (
-        Invocation as PreInvocation,
-        run as preprocessing_run,
-    )
-
-    def adapter(
-        invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
-    ) -> Any:
-        out_path = preprocessing_run(
-            PreInvocation(
-                document_folder=invocation.destination_folder,
-                source_file=_SOURCE_PDF,
-                pipeline_version=invocation.pipeline_version,
-            )
-        )
-        from ledgerlinc_ocr.pipeline.runner import StageRunOutput
-
-        return StageRunOutput(
-            payload=json.loads(out_path.read_text(encoding="utf-8")),
-            artifact_path=out_path,
-        )
-
-    return adapter
+    return _ppstructurev3_factory("cpu")(_plan)
 
 
 def _ollama_extract_factory(lane: str) -> Callable[["ResolvedRunPlan"], StageCallable]:
@@ -450,6 +469,7 @@ def _ollama_extract_factory(lane: str) -> Callable[["ResolvedRunPlan"], StageCal
                 voter=voter,
                 template_path=template_path,
                 pipeline_version=invocation.pipeline_version,
+                contract_set_version=invocation.contract_set_version,
             )
             from ledgerlinc_ocr.pipeline.runner import StageRunOutput
 
@@ -490,14 +510,20 @@ def _routing_rules_cpu_factory(plan: "ResolvedRunPlan") -> StageCallable:
     ``ledgerlinc_ocr.router.pipeline.run``. Pure-deterministic, no init cost.
     """
     from ledgerlinc_ocr.router.pipeline import run as router_run
+    from ledgerlinc_ocr.router.version import (
+        build_pipeline_version as build_routing_pipeline_version,
+    )
 
     def adapter(
         invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
     ) -> Any:
         path, artifact = router_run(
             invocation.destination_folder,
-            pipeline_version=invocation.pipeline_version,
+            pipeline_version=(
+                invocation.pipeline_version or build_routing_pipeline_version()
+            ),
             policy_version=invocation.policy_version,
+            contract_set_version=invocation.contract_set_version,
         )
         from ledgerlinc_ocr.pipeline.runner import StageRunOutput
 
@@ -523,6 +549,7 @@ def _final_payload_assembler_cpu_factory(_plan: "ResolvedRunPlan") -> StageCalla
             AssInvocation(
                 document_folder=invocation.destination_folder,
                 pipeline_version=invocation.pipeline_version,
+                contract_set_version=invocation.contract_set_version,
             )
         )
         from ledgerlinc_ocr.pipeline.runner import StageRunOutput
@@ -616,6 +643,7 @@ def resolve_stage_callable(
 
 def _register_default_live_adapters() -> None:
     register_ppstructurev3_cpu()
+    register_ppstructurev3_gpu()
     register_ollama_gpu()
     register_routing_rules_cpu()
     register_final_payload_assembler_cpu()
@@ -668,6 +696,23 @@ def register_ppstructurev3_cpu() -> None:
     _LIVE_CAPABILITIES.add(("preprocess", "ppstructurev3", "cpu"))
 
 
+def register_ppstructurev3_gpu() -> None:
+    """Register the live ppstructurev3@gpu adapter.
+
+    The adapter stays opt-in because DEFAULT_PROFILES still selects
+    ppstructurev3@cpu. When selected, preprocessing.pipeline performs the
+    FR-001 preflight gate before artifact writes and binds PPStructureV3 to
+    gpu:0 via lane segment ``gpu0``.
+    """
+    register_live_adapter(
+        stage="preprocess",
+        implementation="ppstructurev3",
+        lane="gpu",
+        factory=_ppstructurev3_factory("gpu0"),
+    )
+    _LIVE_CAPABILITIES.add(("preprocess", "ppstructurev3", "gpu"))
+
+
 _register_default_live_adapters()
 
 
@@ -686,6 +731,7 @@ __all__ = [
     "register_ollama_cpu",
     "register_ollama_gpu",
     "register_ppstructurev3_cpu",
+    "register_ppstructurev3_gpu",
     "register_routing_rules_cpu",
     "reset_live_registry",
     "resolve_stage_callable",

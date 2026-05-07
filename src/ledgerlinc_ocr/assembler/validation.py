@@ -8,6 +8,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ledgerlinc_ocr.contract_versions import (
+    ContractVersionError,
+    require_matching_contract_version,
+    require_stage1_contract_version,
+)
 from ledgerlinc_ocr.assembler.errors import (
     ContractDriftError,
     DocumentIdMismatchError,
@@ -19,7 +24,6 @@ from ledgerlinc_ocr.assembler.io import load_json, validate_input
 
 EXTRACTOR_FILENAME = "edge_extraction_output.json"
 ROUTING_FILENAME = "routing_decision.json"
-CONTRACT_SET_VERSION = "1.0.0"
 
 
 def check_inputs_exist(folder: Path) -> tuple[Path, Path]:
@@ -44,19 +48,53 @@ def check_inputs_readable(folder: Path) -> tuple[dict, dict]:
     return extractor, routing
 
 
-def check_schemas_valid(extractor: dict, routing: dict) -> None:
-    validate_input(extractor, "edge_extraction_output", input_name="edge_extraction_output")
-    validate_input(routing, "routing_decision", input_name="routing_decision")
+def check_schemas_valid(
+    extractor: dict,
+    routing: dict,
+    *,
+    contract_set_version: str,
+) -> None:
+    validate_input(
+        extractor,
+        "edge_extraction_output",
+        input_name="edge_extraction_output",
+        contract_set_version=contract_set_version,
+    )
+    validate_input(
+        routing,
+        "routing_decision",
+        input_name="routing_decision",
+        contract_set_version=contract_set_version,
+    )
 
 
-def check_contract_versions(extractor: dict, routing: dict) -> None:
-    ext_v = extractor.get("contract_set_version")
-    rt_v = routing.get("contract_set_version")
-    if ext_v != CONTRACT_SET_VERSION or rt_v != CONTRACT_SET_VERSION:
-        raise ContractDriftError(
-            f"contract_set_version must be {CONTRACT_SET_VERSION!r}; "
-            f"got extractor={ext_v!r}, routing={rt_v!r}"
+def check_contract_versions(
+    extractor: dict,
+    routing: dict,
+    *,
+    contract_set_version: str | None = None,
+) -> str:
+    try:
+        ext_v = require_stage1_contract_version(
+            extractor.get("contract_set_version"),
+            artifact_label="edge_extraction_output.json",
         )
+        rt_v = require_stage1_contract_version(
+            routing.get("contract_set_version"),
+            artifact_label="routing_decision.json",
+        )
+        if ext_v != rt_v:
+            raise ContractVersionError(
+                "input contract_set_version values must match; "
+                f"got extractor={ext_v!r}, routing={rt_v!r}"
+            )
+        return require_matching_contract_version(
+            found=ext_v,
+            expected=contract_set_version,
+            artifact_label="assembler inputs",
+        )
+    except ContractVersionError as exc:
+        raise ContractDriftError(str(exc)) from exc
 
 
 def check_document_ids_match(extractor: dict, routing: dict) -> str:
