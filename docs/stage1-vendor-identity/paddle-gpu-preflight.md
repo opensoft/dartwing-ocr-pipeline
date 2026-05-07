@@ -167,45 +167,51 @@ ROCm-enabled Paddle build that matches the host's ROCm runtime. This is
 the only Paddle GPU runtime path the team has agreed to support for
 stage 1 preprocessing.
 
-Current workstation finding: no public Paddle 3.3.x Linux x86_64
-Python 3.12 ROCm wheel matching this AMD `gfx1151` host has been found.
-Do **not** install a CUDA `paddlepaddle-gpu` wheel on this machine; CUDA
-wheels do not make Paddle bind to an AMD ROCm device. The current path
-is a source build with Paddle's ROCm switch:
+The wheel itself, plus the ROCm/CMake patches and source-build runbook
+required to produce it for hosts with no matching public wheel (currently
+the case for AMD `gfx1151` on Python 3.12 ROCm 7.x), live in the
+[`opensoft/model-paddle`](https://github.com/opensoft/model-paddle) repo.
+The pipeline does **not** ship a build script; this preflight only
+detects the consumed distribution name (`paddlepaddle`,
+`paddlepaddle-gpu`, or `paddlepaddle-dcu`).
 
-```bash
-scripts/build-paddle-rocm-wheel.sh configure
-CMAKE_BUILD_PARALLEL_LEVEL=4 scripts/build-paddle-rocm-wheel.sh build
-```
+Workstation install:
 
-The build wrapper clones Paddle outside the repository, patches Paddle
-v3.3.1's older ROCm CMake assumptions for ROCm 7.x and `gfx1151`, and
-copies any resulting wheel to:
+1. **Get a wheel.** Either download a published asset from a
+   [`model-paddle` GitHub Release](https://github.com/opensoft/model-paddle/releases),
+   or build one locally per `model-paddle`'s
+   [`docs/source-build.md`](https://github.com/opensoft/model-paddle/blob/main/docs/source-build.md).
+   Naming: a ROCm build emits `paddlepaddle-dcu` (because Paddle's
+   `WITH_ROCM=ON` build renames the wheel); a CUDA build emits
+   `paddlepaddle-gpu`. Both expose the normal `import paddle` module and
+   `gpu:0` device string. Do **not** install a CUDA wheel on an AMD host
+   — CUDA wheels do not make Paddle bind to an AMD ROCm device.
 
-```text
-~/.cache/ledgerlinc/paddle-rocm/wheelhouse/
-```
+2. **Install into an isolated venv first** (do not replace the project
+   `.venv` until verification passes):
 
-With `WITH_ROCM=ON`, Paddle names the local wheel
-`paddlepaddle-dcu`, while still exposing the normal `import paddle`
-module and `gpu:0` device string.
+   ```bash
+   python3.12 -m venv .venv-paddle-rocm
+   .venv-paddle-rocm/bin/pip install -U pip
+   .venv-paddle-rocm/bin/pip install -e ".[dev]" --no-deps
+   .venv-paddle-rocm/bin/pip install paddleocr==3.5.0 "paddlex[ocr]==3.5.1"
+   .venv-paddle-rocm/bin/pip uninstall -y paddlepaddle
+   # Either install from a model-paddle release asset URL …
+   .venv-paddle-rocm/bin/pip install \
+     https://github.com/opensoft/model-paddle/releases/download/<release-tag>/paddlepaddle_dcu-<version>-cp312-cp312-linux_x86_64.whl
+   # … or install a locally-built wheel from model-paddle's wheelhouse:
+   # .venv-paddle-rocm/bin/pip install ~/.cache/ledgerlinc/paddle-rocm/wheelhouse/paddlepaddle_dcu-*.whl
+   ```
 
-Install the wheel into a separate test venv first; do not replace the
-project `.venv` until the isolated environment passes the runtime bind
-probe:
+3. **Verify the wheel binds.** Run `model-paddle`'s pipeline-agnostic
+   probe (`scripts/verify-paddle-rocm-runtime.sh` in that repo) — it
+   confirms ROCm compilation, device visibility, and a tensor on
+   `gpu:0`. Then run **this** preflight from the same venv to confirm
+   PPStructureV3 itself initializes:
 
-```bash
-python3.12 -m venv .venv-paddle-rocm
-.venv-paddle-rocm/bin/pip install -U pip
-.venv-paddle-rocm/bin/pip install -e ".[dev]" --no-deps
-.venv-paddle-rocm/bin/pip install paddleocr==3.5.0 "paddlex[ocr]==3.5.1"
-.venv-paddle-rocm/bin/pip uninstall -y paddlepaddle
-.venv-paddle-rocm/bin/pip install ~/.cache/ledgerlinc/paddle-rocm/wheelhouse/paddlepaddle-dcu*.whl
-scripts/verify-paddle-rocm-runtime.sh .venv-paddle-rocm/bin/python
-```
-
-See [`paddle-rocm-source-build.md`](./paddle-rocm-source-build.md) for
-the full source-build procedure and the current host evidence.
+   ```bash
+   PYTHONPATH=src .venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing.preflight
+   ```
 
 This install path is **not** added to `requirements.txt` and **not**
 added to `pyproject.toml` (per FR-024). The lightweight pipeline

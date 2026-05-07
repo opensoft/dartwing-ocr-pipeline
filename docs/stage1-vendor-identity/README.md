@@ -23,8 +23,6 @@ Stage 1 is intentionally narrow:
   - product requirements for the full-structure preprocessing profile migration from PaddleOCR 2.10 to PPStructureV3 / PP-OCRv5
 - `prd-paddle-gpu-preprocessing.md`
   - product requirements for feature 014: validating whether PPStructureV3 can run on the workstation GPU and, if viable, adding an explicit opt-in `ppstructurev3@gpu` preprocessing profile without replacing the CPU default
-- `paddle-rocm-source-build.md`
-  - current source-build path for producing an isolated ROCm-enabled Paddle wheel for Python 3.12 on the AMD `gfx1151` workstation
 - `ollama-runtime.md`
   - how host Ollama and optional containerized Ollama fit into the stage 1 architecture
 - `../../docker/compose.ollama-rocm-linux.yml`
