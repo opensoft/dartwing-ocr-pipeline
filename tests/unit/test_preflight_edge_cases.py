@@ -64,11 +64,32 @@ def _patch_versions_absent(monkeypatch):
     real_version = metadata.version
 
     def fake_version(name: str) -> str:
-        if name in ("paddlepaddle", "paddleocr"):
+        if name in ("paddlepaddle", "paddlepaddle-gpu", "paddlepaddle-dcu", "paddleocr"):
             raise metadata.PackageNotFoundError(name)
         return real_version(name)
 
     monkeypatch.setattr(metadata, "version", fake_version)
+
+
+def test_rocm_dcu_distribution_counts_as_paddle_installed(monkeypatch) -> None:
+    real_version = metadata.version
+
+    def fake_version(name: str) -> str:
+        if name in ("paddlepaddle", "paddlepaddle-gpu"):
+            raise metadata.PackageNotFoundError(name)
+        if name == "paddlepaddle-dcu":
+            return "3.3.0.dev20260319"
+        if name == "paddleocr":
+            return "3.5.0"
+        return real_version(name)
+
+    monkeypatch.setattr(metadata, "version", fake_version)
+    monkeypatch.setitem(sys.modules, "paddle", _stub_paddle(cuda=False, rocm=True, device_count=0))
+
+    readout = classify(attempt_ppstructurev3_init=False)
+
+    assert readout.state is PreflightState.GPU_NOT_EXPOSED
+    assert readout.evidence.paddle_version == "3.3.0.dev20260319"
 
 
 # Edge case bullet 1: interpreter path / venv divergence

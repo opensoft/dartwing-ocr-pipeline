@@ -218,6 +218,20 @@ def _package_version(name: str) -> Optional[str]:
         return None
 
 
+def _paddle_distribution_version() -> Optional[str]:
+    """Return the installed Paddle distribution version.
+
+    CPU wheels use ``paddlepaddle``. CUDA wheels commonly use
+    ``paddlepaddle-gpu``. Paddle's ROCm/DCU source build names the wheel
+    ``paddlepaddle-dcu``. All three expose ``import paddle``.
+    """
+    for name in ("paddlepaddle", "paddlepaddle-gpu", "paddlepaddle-dcu"):
+        version = _package_version(name)
+        if version is not None:
+            return version
+    return None
+
+
 def _recommendation_for(state: PreflightState, evidence: PreflightEvidence) -> str:
     """FR-003 three-part rule: (a) specific remediation action,
     (b) reference to docs/stage1-vendor-identity/paddle-gpu-preflight.md,
@@ -242,9 +256,9 @@ def _recommendation_for(state: PreflightState, evidence: PreflightEvidence) -> s
         )
     if state == PreflightState.PADDLE_CPU_ONLY:
         return (
-            f"Install a GPU-enabled paddlepaddle wheel (workstation-only, additive "
-            f"to requirements.txt). See {doc_ref} for the supported native-Linux "
-            f"ROCm install path."
+            f"Install or build a ROCm-enabled Paddle wheel (workstation-only, "
+            f"additive to requirements.txt). See {doc_ref} for the supported "
+            f"native-Linux ROCm source-build install path."
         )
     if state == PreflightState.GPU_NOT_EXPOSED:
         exposure = evidence.runtime_device_exposure
@@ -265,8 +279,8 @@ def _recommendation_for(state: PreflightState, evidence: PreflightEvidence) -> s
     if state == PreflightState.GPU_EXPOSED_PADDLE_CANT_BIND:
         return (
             f"Paddle GPU build does not match this host's ROCm/CUDA driver; "
-            f"reinstall the matching wheel. See {doc_ref} for the supported "
-            f"wheel-driver combination."
+            f"reinstall or rebuild the matching wheel. See {doc_ref} for the "
+            f"supported ROCm build-driver combination."
         )
     if state == PreflightState.PPSTRUCTUREV3_INIT_FAILED:
         return (
@@ -297,7 +311,7 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
     interpreter_path, interpreter_version, venv_path = _interpreter_evidence()
     runtime_device_exposure = _detect_runtime_device_exposure()
 
-    paddle_version = _package_version("paddlepaddle")
+    paddle_version = _paddle_distribution_version()
     paddleocr_version = _package_version("paddleocr")
 
     base_evidence = dict(

@@ -163,31 +163,55 @@ string verbatim, e.g. `GPU lane is ready. You can now run
 ## Supported Install Path
 
 The supported workstation runtime is a **native Linux ROCm host** with a
-`paddlepaddle-gpu` wheel that matches the host's ROCm version. This is
+ROCm-enabled Paddle build that matches the host's ROCm runtime. This is
 the only Paddle GPU runtime path the team has agreed to support for
 stage 1 preprocessing.
 
-Install it manually into the same venv that has the lightweight
-LedgerLinc base. The wheel pin is intentionally not recorded inline
-here; verify the current `paddlepaddle-gpu` version and the official
-ROCm wheel index URL against the Paddle 3.x docs at install time
-(`https://www.paddlepaddle.org.cn/` and
-`https://www.paddleocr.ai/main/`) before running the command:
+Current workstation finding: no public Paddle 3.3.x Linux x86_64
+Python 3.12 ROCm wheel matching this AMD `gfx1151` host has been found.
+Do **not** install a CUDA `paddlepaddle-gpu` wheel on this machine; CUDA
+wheels do not make Paddle bind to an AMD ROCm device. The current path
+is a source build with Paddle's ROCm switch:
 
 ```bash
-# Verify the wheel version and the -f index URL against the
-# official Paddle 3.x ROCm wheel docs at install time.
-.venv/bin/pip uninstall -y paddlepaddle
-.venv/bin/pip install paddlepaddle-gpu==<paddle-3.x-rocm-pin> \
-    -f <official-paddle-rocm-wheel-index-url>
-.venv/bin/python -m ledgerlinc_ocr.preprocessing.preflight
+scripts/build-paddle-rocm-wheel.sh configure
+CMAKE_BUILD_PARALLEL_LEVEL=4 scripts/build-paddle-rocm-wheel.sh build
 ```
+
+The build wrapper clones Paddle outside the repository, patches Paddle
+v3.3.1's older ROCm CMake assumptions for ROCm 7.x and `gfx1151`, and
+copies any resulting wheel to:
+
+```text
+~/.cache/ledgerlinc/paddle-rocm/wheelhouse/
+```
+
+With `WITH_ROCM=ON`, Paddle names the local wheel
+`paddlepaddle-dcu`, while still exposing the normal `import paddle`
+module and `gpu:0` device string.
+
+Install the wheel into a separate test venv first; do not replace the
+project `.venv` until the isolated environment passes the runtime bind
+probe:
+
+```bash
+python3.12 -m venv .venv-paddle-rocm
+.venv-paddle-rocm/bin/pip install -U pip
+.venv-paddle-rocm/bin/pip install -e ".[dev]" --no-deps
+.venv-paddle-rocm/bin/pip install paddleocr==3.5.0 "paddlex[ocr]==3.5.1"
+.venv-paddle-rocm/bin/pip uninstall -y paddlepaddle
+.venv-paddle-rocm/bin/pip install ~/.cache/ledgerlinc/paddle-rocm/wheelhouse/paddlepaddle-dcu*.whl
+scripts/verify-paddle-rocm-runtime.sh .venv-paddle-rocm/bin/python
+```
+
+See [`paddle-rocm-source-build.md`](./paddle-rocm-source-build.md) for
+the full source-build procedure and the current host evidence.
 
 This install path is **not** added to `requirements.txt` and **not**
 added to `pyproject.toml` (per FR-024). The lightweight pipeline
 container's CPU-only baseline must remain installable without any
 GPU-only wheel. Operators who need GPU enable it manually, per host,
-into their venv.
+into an isolated venv first.
 
 ## Unsupported Paths
 

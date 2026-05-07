@@ -5,7 +5,9 @@
 This PRD defines the product requirements for feature 014: proving whether the
 stage 1 PPStructureV3 preprocessing profile can run on the workstation GPU and,
 if it can, adding an explicit GPU preprocessing profile that the harness can use
-for faster validation.
+for faster validation. It also captures the follow-on optimization roadmap now
+that the ROCm path has been proven functional but too slow for routine harness
+use.
 
 The feature is intentionally staged as a runtime spike plus opt-in profile. It
 does not replace the existing `ppstructurev3@cpu` path until the GPU path proves
@@ -37,6 +39,20 @@ The core unknown is not only code-level device selection. It is whether this
 AMD/ROCm WSL environment has a compatible Paddle GPU runtime at all. If it
 does not, the project still needs a clear preflight failure and documented
 decision before spending time wiring a non-working profile.
+
+Post-proof state:
+
+- A ROCm-enabled `paddlepaddle-dcu` wheel can bind Paddle to `gpu:0` on the
+  WSL host.
+- PPStructureV3 GPU preflight can initialize successfully on `gpu:0`.
+- A temp pipeline run over `inv_001_easy/source.pdf` produced a schema-valid
+  `preprocess_output.json` with a `.gpu0` pipeline version.
+- The measured temp run was about 103 seconds for one document, which is too
+  slow for the intended faster harness workflow.
+- The observed runtime includes duplicated PPStructureV3 initialization
+  (preflight plus actual preprocessing), MIOpen/COMGR startup work, full
+  PPStructureV3 model loading, 300 DPI rasterization, and the full
+  layout/OCR/table stack.
 
 ## Goal
 
@@ -109,6 +125,8 @@ Included:
   - run metadata or pipeline version makes the selected profile/device visible
 - Capture timing metadata for CPU versus GPU preprocessing on the same document
   or small corpus copy.
+- Capture enough timing detail to separate import, preflight, engine
+  construction, warmup, rasterization, inference, and artifact writing.
 - Update PRD/runtime docs and quickstart notes so developers know when a skip,
   fail-fast, or pass is expected.
 
@@ -193,6 +211,28 @@ Explicitly out of scope:
 5. Timing comparison MUST be captured without adding a new required persisted
    benchmark artifact.
 
+### GPU Performance Optimization Requirements
+
+1. The GPU lane MUST avoid duplicated PPStructureV3 construction where a
+   preflight-created engine can be reused safely by the actual preprocessing
+   call, or the preflight MUST stop before heavy PPStructureV3 initialization
+   and let the production engine construction act as the step-6 proof.
+2. Warm corpus mode MUST support one reusable `ppstructurev3@gpu` engine per
+   process, matching the intent of the existing warm CPU profile.
+3. The timing model MUST distinguish one-time costs from per-document costs:
+   Paddle import, Paddle bind probe, PPStructureV3 init, MIOpen/COMGR warmup,
+   rasterization, per-page inference, and artifact write.
+4. GPU benchmark runs MUST exclude optional warmup time from per-document
+   steady-state timing, while still reporting warmup time separately.
+5. The pipeline MUST keep `ppstructurev3@cpu` as the default until GPU
+   preprocessing is materially faster on the same corpus sample and quality
+   remains acceptable.
+6. Any reduction of the PPStructureV3 module set, OCR model size, DPI, or page
+   region MUST be measured against vendor-identity quality before becoming the
+   normal GPU lane.
+7. The GPU lane MUST still fail fast rather than silently falling back to CPU
+   when an optimization path is unavailable.
+
 ## Success Criteria
 
 Preflight success criteria:
@@ -222,6 +262,19 @@ Promotion criteria for future default consideration:
     determinism differs from CPU, the feature must record that limitation and
     keep GPU out of committed baseline regeneration until a follow-up decision.
 
+Optimization success criteria:
+
+11. Single-document GPU runtime is decomposed into named timing phases so the
+    project can tell whether the current two-minute cost is startup, tuning,
+    rasterization, inference, or artifact writing.
+12. Warm GPU corpus mode processes multiple documents without reconstructing
+    PPStructureV3 for every document.
+13. A warm GPU run reports first-document initialization/warmup separately from
+    subsequent per-document inference time.
+14. At least one optimization slice demonstrates a measured runtime reduction
+    on `inv_001_easy` or explains, with phase timings, why the bottleneck moved
+    to a non-optimized phase.
+
 ## Recommended Implementation Order
 
 1. Add a preflight script or CLI command that diagnoses the current environment
@@ -239,6 +292,123 @@ Promotion criteria for future default consideration:
 8. Add timing comparison output and documentation.
 9. Decide in a later feature whether GPU becomes the default or remains an
    opt-in workstation profile.
+
+## Implementation Feature List
+
+The GPU proof is complete enough to split optimization into smaller follow-on
+features. These are implementation features, not new product surfaces unless
+their acceptance criteria say otherwise.
+
+### Feature 015: GPU Engine Reuse And Phase Timing
+
+Purpose: remove duplicated startup work and make the current two-minute runtime
+explainable.
+
+Scope:
+
+- Replace the heavy preflight-plus-runtime double initialization with one
+  process-scoped GPU readiness result and one reusable PPStructureV3 engine.
+- Ensure `ppstructurev3@gpu` cold and warm runs use the same engine cache rules
+  as the CPU warm path, with a single-device-per-process guard.
+- Add phase timing for Paddle import/bind, PPStructureV3 init, warmup,
+  rasterization, inference, and artifact writing.
+- Surface the timing in existing run summary metadata without adding a new
+  persisted benchmark artifact.
+
+Acceptance:
+
+- One GPU preprocessing process constructs PPStructureV3 no more than once.
+- A warm corpus run over at least two documents reports GPU init/warmup only on
+  the first document and inference time on each successful document.
+- Existing CPU/stub CI remains GPU-free.
+- The temp `inv_001_easy` run produces the same schema-valid `.gpu0` artifact
+  and includes phase timing sufficient to identify the slowest phase.
+
+### Feature 016: GPU Warmup And MIOpen Cache Stabilization
+
+Purpose: reduce first-real-document latency caused by MIOpen/COMGR tuning and
+make benchmark timing repeatable after reboot or cache clear.
+
+Scope:
+
+- Add an explicit optional GPU warmup step after engine construction and before
+  timed corpus documents.
+- Keep `MIOPEN_FIND_MODE=2` as the default workstation fast-find mode unless a
+  measured alternative is better.
+- Document cache locations and startup behavior for `~/.cache/miopen` and
+  `~/.cache/comgr`.
+- Record warmup time separately from document inference time.
+
+Acceptance:
+
+- Warmup can be run intentionally and is not confused with per-document OCR
+  time.
+- Repeated runs on the same warmed cache have less timing variance than cold
+  cache runs.
+- MIOpen workspace warnings are captured as known runtime diagnostics or
+  eliminated by configuration if a safe configuration is found.
+
+### Feature 017: PPStructureV3 Module And Model Reduction
+
+Purpose: stop paying for PPStructureV3 components that are not needed for stage
+1 vendor identity.
+
+Scope:
+
+- Audit the actual runtime adapter options, not just preflight options, and
+  confirm unused modules are disabled in the live GPU preprocessing path.
+- Test lighter PaddleOCR detection/recognition model variants against the
+  stage 1 vendor identity corpus.
+- Keep output schema unchanged; only the internal OCR/layout strategy changes.
+
+Acceptance:
+
+- The GPU lane logs or records the model/module configuration used.
+- At least two model/module configurations are benchmarked against the same
+  small corpus.
+- Any selected lighter configuration preserves vendor-identity quality gates
+  before it becomes the default GPU configuration.
+
+### Feature 018: DPI And Region Strategy
+
+Purpose: reduce image size and page area processed by OCR while protecting
+vendor-name recall.
+
+Scope:
+
+- Benchmark 300 DPI against lower DPI settings such as 240 and 200.
+- Add a vendor-identity-first region strategy that can process header/top-page
+  regions before escalating to full-page PPStructureV3.
+- Fall back to full-page processing when confidence or evidence coverage is
+  insufficient.
+
+Acceptance:
+
+- DPI changes are measured for speed and extraction quality.
+- Region-first mode never writes a partial artifact that violates the existing
+  schema.
+- The fallback path is deterministic and visible in timing/diagnostic metadata.
+
+### Feature 019: OCR-Only Fast Lane Evaluation
+
+Purpose: decide whether stage 1 vendor identity really needs full
+PPStructureV3 layout/table inference on every document.
+
+Scope:
+
+- Prototype an OCR-lines-plus-coordinates preprocessing lane that skips full
+  structure/table recognition.
+- Compare downstream vendor identity extraction and routing decisions against
+  the full PPStructureV3 lane.
+- Keep this as an experimental lane until accuracy is known.
+
+Acceptance:
+
+- The fast lane can process the same temp corpus without schema changes.
+- The evaluator shows whether vendor identity accuracy is acceptable compared
+  with full PPStructureV3.
+- The project has a documented decision to promote, revise, or discard the
+  fast lane.
 
 ## Risks And Mitigations
 
