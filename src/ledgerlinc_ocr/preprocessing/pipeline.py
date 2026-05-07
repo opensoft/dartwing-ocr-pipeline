@@ -6,12 +6,16 @@ FR-018, FR-019 defensive checks and FR-020 warning ordering. EngineInitError
 
 Feature 015 (T016 / R-015.4): `run()` accepts an optional `stage_timing`
 parameter (`pipeline.timing.StageTiming`). When provided, the rasterize
-loop and artifact-write call are wrapped in `measure_phase` context
+loop and the artifact-write call are wrapped in `measure_phase` context
 managers so the caller can read per-phase seconds (`rasterization`,
-`artifact_write`) plus `total_ns` (via `measure_total`). The single-doc
-CLI threads its own StageTiming in; the warm-corpus runner passes
-`result.timings.stages[Stage.PREPROCESS]` so corpus_run.py can drain
-the same channel.
+`artifact_write`) off `stage_timing.phases_ns`. The caller owns
+`measure_total` — when `stage_timing` is passed in, `run()` does NOT
+wrap the body in `measure_total` (otherwise the warm-corpus Runner,
+which already wraps the same StageTiming in `measure_total`, would
+double-count `total_ns`). Only when `stage_timing` is None does `run()`
+construct a local one and wrap it in `measure_total`. The single-doc
+CLI manages its own `measure_total`; the warm-corpus Runner does so via
+`pipeline.timing.measure_total` around each stage_callable invocation.
 """
 
 from __future__ import annotations
@@ -90,21 +94,19 @@ def _resolve_lane_to_device(lane: str) -> str:
 def run(invocation: Invocation, *, stage_timing: Optional[StageTiming] = None) -> Path:
     """Execute the preprocessing pipeline for one document.
 
-    Feature 015 (T016 / R-015.4): when `stage_timing` is provided (a
-    `pipeline.timing.StageTiming` instance), `run()` records the
-    `rasterization` and `artifact_write` phases via `measure_phase`,
-    and the entire body via `measure_total`. The caller (single-doc CLI
-    or warm-corpus Runner) then reads `stage_timing.phases_ns` and
-    `stage_timing.total_ns` to assemble the run_summary `phase_timings`
-    block. When `stage_timing` is None, an internal StageTiming is
-    constructed locally and discarded — preserving exact previous
-    behavior for callers that have not adopted the new shape.
+    Feature 015 (T016 / R-015.4): when `stage_timing` is provided,
+    `run()` records the `rasterization` and `artifact_write` phases via
+    `measure_phase`. The caller owns `measure_total` so warm-corpus
+    Runner — which already wraps the same StageTiming in
+    `measure_total` — does not double-count `total_ns`. When
+    `stage_timing` is None, a local one is constructed and `run()`
+    wraps the body in `measure_total` itself.
     """
     if stage_timing is None:
-        stage_timing = StageTiming(stage="preprocess")
-
-    with measure_total(stage_timing):
-        return _run_inner(invocation, stage_timing)
+        local_timing = StageTiming(stage="preprocess")
+        with measure_total(local_timing):
+            return _run_inner(invocation, local_timing)
+    return _run_inner(invocation, stage_timing)
 
 
 def _build_failed_page_dict(pr: rasterize.PageRasterFailure) -> dict[str, Any]:

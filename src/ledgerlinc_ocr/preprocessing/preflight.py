@@ -87,7 +87,7 @@ class PreflightEvidence:
     ppstructurev3_init_error: Optional[str] = None
     ppstructurev3_init_skipped_reason: Optional[str] = None
     # Feature 015 (R-015.2): per-step timings for FR-013 phase emission.
-    # Both fields are six-decimal-rounded `time.perf_counter_ns()` deltas in
+    # Both fields are six-decimal-rounded `time.monotonic_ns()` deltas in
     # seconds, or None when the corresponding step did not execute (early
     # exit on a fail state). Fed into `phase_timings.paddle_import` and
     # `phase_timings.gpu_bind_probe` on the first successful per_document

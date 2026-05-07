@@ -44,6 +44,7 @@ from ledgerlinc_ocr.pipeline.timing import (
     build_per_document_failure,
     build_per_document_success,
     emit_run_summary,
+    measure_total,
 )
 
 # Feature 014 / VT-003: `preflight` types (GpuPrerequisiteError,
@@ -128,12 +129,16 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     # Feature 015 (T017): construct a StageTiming so pipeline.run() can
-    # record the rasterization / artifact_write phase deltas plus
-    # measure_total. We thread it in as the new optional kwarg.
+    # record the rasterization / artifact_write phase deltas. Per the
+    # `pipeline.run()` contract (caller owns `measure_total` when
+    # `stage_timing` is passed in), wrap the call in `measure_total`
+    # here so the GPU-prereq failure path below also records elapsed
+    # time even when pipeline.run() raises before completing.
     stage_timing = StageTiming(stage="preprocess")
 
     try:
-        out_path = pipeline.run(invocation, stage_timing=stage_timing)
+        with measure_total(stage_timing):
+            out_path = pipeline.run(invocation, stage_timing=stage_timing)
         with out_path.open("r", encoding="utf-8") as f:
             written = json.load(f)
     except _GpuPrerequisiteError as exc:
