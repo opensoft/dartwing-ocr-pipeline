@@ -3,6 +3,15 @@
 Single-engine per page (PPStructureV3 via `ocr.run_page`) with FR-003,
 FR-018, FR-019 defensive checks and FR-020 warning ordering. EngineInitError
 (FR-016) is NOT caught here — it propagates to the CLI for hard-fail exit.
+
+Feature 015 (T016 / R-015.4): `run()` accepts an optional `stage_timing`
+parameter (`pipeline.timing.StageTiming`). When provided, the rasterize
+loop and artifact-write call are wrapped in `measure_phase` context
+managers so the caller can read per-phase seconds (`rasterization`,
+`artifact_write`) plus `total_ns` (via `measure_total`). The single-doc
+CLI threads its own StageTiming in; the warm-corpus runner passes
+`result.timings.stages[Stage.PREPROCESS]` so corpus_run.py can drain
+the same channel.
 """
 
 from __future__ import annotations
@@ -10,7 +19,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from ledgerlinc_ocr.preprocessing import artifact as artifact_mod
 from ledgerlinc_ocr.preprocessing import ocr, rasterize
@@ -23,6 +32,7 @@ from ledgerlinc_ocr.preprocessing.version import (
     build_pipeline_version,
 )
 from ledgerlinc_ocr.preprocessing.warnings import build_warning, sort_warnings
+from ledgerlinc_ocr.pipeline.timing import StageTiming, measure_phase, measure_total
 
 # Feature 014 / VT-003: `preflight` is imported lazily inside the GPU
 # code path (see `_invoke_gpu_gate` below). Module-level import would
@@ -77,7 +87,27 @@ def _resolve_lane_to_device(lane: str) -> str:
     raise ValueError(f"unrecognized preprocess lane: {lane!r}")
 
 
-def run(invocation: Invocation) -> Path:
+def run(invocation: Invocation, *, stage_timing: Optional[StageTiming] = None) -> Path:
+    """Execute the preprocessing pipeline for one document.
+
+    Feature 015 (T016 / R-015.4): when `stage_timing` is provided (a
+    `pipeline.timing.StageTiming` instance), `run()` records the
+    `rasterization` and `artifact_write` phases via `measure_phase`,
+    and the entire body via `measure_total`. The caller (single-doc CLI
+    or warm-corpus Runner) then reads `stage_timing.phases_ns` and
+    `stage_timing.total_ns` to assemble the run_summary `phase_timings`
+    block. When `stage_timing` is None, an internal StageTiming is
+    constructed locally and discarded — preserving exact previous
+    behavior for callers that have not adopted the new shape.
+    """
+    if stage_timing is None:
+        stage_timing = StageTiming(stage="preprocess")
+
+    with measure_total(stage_timing):
+        return _run_inner(invocation, stage_timing)
+
+
+def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
     # gate BEFORE any artifact write or input parsing. This ensures the
     # fail-fast error names the selected profile and FR-001 state even
@@ -104,6 +134,13 @@ def run(invocation: Invocation) -> Path:
     # rasterize.rasterize_pdf is a page-at-a-time generator (FR-005a / R-011).
     # ZeroPagePdfError is raised inside open_pdf() on the first next() iteration,
     # so no separate "not rasters" guard is needed.
+    # Feature 015 (T016): wrap the rasterize+per-page-OCR loop in
+    # `measure_phase("rasterization")`. The per-page GPU inference time is
+    # recorded into `ocr._GPU_INFERENCE_NS_BY_PAGE` separately and surfaces
+    # via `take_gpu_inference_per_page()` as the run_summary
+    # `per_page_inference` array — it is intentionally NOT subtracted from
+    # `rasterization` here; the two phases are measured along different
+    # axes and the consumer may overlap them.
     rasters = rasterize.rasterize_pdf(pdf_path, dpi=DPI)
 
     pages: list[dict[str, Any]] = []
@@ -114,6 +151,14 @@ def run(invocation: Invocation) -> Path:
     pages_with_output = 0
     silent_empty_page_detected = False
 
+    # Manual phase timer (instead of `measure_phase` context manager) so the
+    # large for-loop body doesn't need to be indented. Same semantics: the
+    # delta is added to `stage_timing.phases_ns["rasterization"]` after the
+    # loop completes. measure_phase's `finally` semantics are not needed
+    # here because run-loop exceptions are caught inside the loop and
+    # turned into per-page warnings; no exception escapes the for body.
+    import time as _time
+    _rasterize_start_ns = _time.monotonic_ns()
     for pr in rasters:
         page_warnings: list[str] = []
         blocks: list[dict[str, Any]] = []
@@ -222,6 +267,11 @@ def run(invocation: Invocation) -> Path:
         except Exception:
             pass
 
+    # Feature 015 (T016): close the rasterization-phase timer.
+    stage_timing.add_phase(
+        "rasterization", _time.monotonic_ns() - _rasterize_start_ns
+    )
+
     quality = compute_quality(all_lines, max_skew_deg=max_skew)
     ingestion_sources = build_ingestion_sources(
         pages_total=len(pages),
@@ -250,5 +300,7 @@ def run(invocation: Invocation) -> Path:
         warnings=warnings_out,
     )
     out_path = invocation.document_folder / artifact_mod.ARTIFACT_FILENAME
-    artifact_mod.validate_and_write(art, out_path)
+    # Feature 015 (T016): time the artifact validate+write as its own phase.
+    with measure_phase(stage_timing, "artifact_write"):
+        artifact_mod.validate_and_write(art, out_path)
     return out_path
