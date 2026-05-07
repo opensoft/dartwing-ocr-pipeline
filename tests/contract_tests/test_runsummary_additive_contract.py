@@ -108,7 +108,11 @@ def test_0_1_0_parser_reads_0_1_1_output_without_raising() -> None:
     # 0.1.0-shape parser succeeds and preserves pre-feature fields.
     parsed = _simulate_0_1_0_parser(payload)
     assert parsed["kind"] == "run_summary"
-    assert parsed["schema_version"] == "0.1.1"  # the value, not the schema, is read
+    # Feature 014 set this to "0.1.1"; feature 015 (R-015.4) bumped it
+    # additively to "0.1.2". The contract being tested is "0.1.0 parser
+    # reads the output without raising" — assert ≥ 0.1.1, not exact equality.
+    parsed_parts = tuple(int(p) for p in parsed["schema_version"].split("."))
+    assert parsed_parts >= (0, 1, 1)
     assert parsed["resolved_profiles"] == {"preprocess": "ppstructurev3@gpu"}
     assert parsed["documents_total"] == 2
     assert parsed["documents_succeeded"] == 1

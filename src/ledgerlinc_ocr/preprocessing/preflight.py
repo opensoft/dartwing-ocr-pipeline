@@ -86,6 +86,14 @@ class PreflightEvidence:
     ppstructurev3_init_seconds: Optional[float] = None
     ppstructurev3_init_error: Optional[str] = None
     ppstructurev3_init_skipped_reason: Optional[str] = None
+    # Feature 015 (R-015.2): per-step timings for FR-013 phase emission.
+    # Both fields are six-decimal-rounded `time.perf_counter_ns()` deltas in
+    # seconds, or None when the corresponding step did not execute (early
+    # exit on a fail state). Fed into `phase_timings.paddle_import` and
+    # `phase_timings.gpu_bind_probe` on the first successful per_document
+    # entry's run_summary record.
+    paddle_import_seconds: Optional[float] = None
+    gpu_bind_probe_seconds: Optional[float] = None
 
 
 @dataclass(frozen=True)
@@ -111,6 +119,8 @@ class PreflightReadout:
             "visible_device_count": self.evidence.visible_device_count,
             "selected_device": self.evidence.selected_device,
             "runtime_device_exposure": dict(self.evidence.runtime_device_exposure),
+            "paddle_import_seconds": self.evidence.paddle_import_seconds,
+            "gpu_bind_probe_seconds": self.evidence.gpu_bind_probe_seconds,
             "ppstructurev3_init_seconds": self.evidence.ppstructurev3_init_seconds,
             "ppstructurev3_init_error": self.evidence.ppstructurev3_init_error,
             "ppstructurev3_init_skipped_reason": self.evidence.ppstructurev3_init_skipped_reason,
@@ -157,6 +167,8 @@ class PreflightReadout:
                     f"runtime_device_exposure.{key}: {str(ev.runtime_device_exposure[key]).lower()}"
                 )
         for key, value in (
+            ("paddle_import_seconds", ev.paddle_import_seconds),
+            ("gpu_bind_probe_seconds", ev.gpu_bind_probe_seconds),
             ("ppstructurev3_init_seconds", ev.ppstructurev3_init_seconds),
             ("ppstructurev3_init_error", ev.ppstructurev3_init_error),
             ("ppstructurev3_init_skipped_reason", ev.ppstructurev3_init_skipped_reason),
@@ -332,11 +344,18 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
         evidence = PreflightEvidence(**base_evidence)
         return _make_readout(PreflightState.PADDLE_NOT_INSTALLED, evidence)
 
+    # Feature 015 (R-015.2 / T006): time the `import paddle` call so the
+    # first-doc run_summary can report `phase_timings.paddle_import.seconds`.
+    paddle_import_start_ns = time.monotonic_ns()
     try:
         import paddle  # type: ignore[import-not-found]
     except Exception:  # noqa: BLE001 - any import-time failure → not installed
         evidence = PreflightEvidence(**base_evidence)
         return _make_readout(PreflightState.PADDLE_NOT_INSTALLED, evidence)
+    paddle_import_seconds = round(
+        (time.monotonic_ns() - paddle_import_start_ns) / 1e9, 6
+    )
+    base_evidence.update(paddle_import_seconds=paddle_import_seconds)
 
     # Step 3: build flags. Per R-014.7, an unexpected raise here is
     # treated as conservative PADDLE_CPU_ONLY (do not pretend GPU is
@@ -373,11 +392,20 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
         return _make_readout(PreflightState.GPU_NOT_EXPOSED, evidence)
 
     # Step 5: bind probe (synchronous; no timeout per R-014.7).
+    # Feature 015 (R-015.2 / T006): time the bind+probe so the first-doc
+    # run_summary can report `phase_timings.gpu_bind_probe.seconds`.
+    gpu_bind_probe_start_ns = time.monotonic_ns()
     try:
         paddle.device.set_device("gpu:0")
         _probe = paddle.to_tensor([0])  # noqa: F841 - probe only
         del _probe
-        base_evidence.update(selected_device="gpu:0")
+        gpu_bind_probe_seconds = round(
+            (time.monotonic_ns() - gpu_bind_probe_start_ns) / 1e9, 6
+        )
+        base_evidence.update(
+            selected_device="gpu:0",
+            gpu_bind_probe_seconds=gpu_bind_probe_seconds,
+        )
     except Exception as exc:  # noqa: BLE001
         evidence = PreflightEvidence(
             **{**base_evidence,
@@ -412,7 +440,11 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
     try:
         from paddleocr import PPStructureV3  # type: ignore[import-not-found]
 
-        _engine = PPStructureV3(  # noqa: F841 - construction probe only
+        # Feature 015 (R-015.1 / CF5 / T008): construct PPStructureV3 and
+        # persist it into the runtime singleton instead of `del`-ing it.
+        # The runtime path (`ocr._get_engine`) will return this same
+        # instance on its first call rather than constructing a second.
+        engine = PPStructureV3(
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
             use_textline_orientation=False,
@@ -424,7 +456,9 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
             device="gpu:0",
             lang="en",
         )
-        del _engine
+        from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+        _ocr_mod._adopt_engine(engine, "gpu:0")
         elapsed = round((time.monotonic_ns() - start_ns) / 1e9, 6)
         evidence = PreflightEvidence(
             **{**base_evidence, "ppstructurev3_init_seconds": elapsed}
