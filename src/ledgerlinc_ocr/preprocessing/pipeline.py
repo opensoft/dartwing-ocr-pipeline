@@ -254,8 +254,6 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
         lane_segment=invocation.preprocess_lane,
     )
 
-    rasters = rasterize.rasterize_pdf(pdf_path, dpi=DPI)
-
     pages: list[dict[str, Any]] = []
     tables: list[dict[str, Any]] = []
     warnings_out: list[str] = []
@@ -264,26 +262,21 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     pages_with_output = 0
     silent_empty_page_detected = False
 
-    # Manual phase timer (instead of `measure_phase` context manager) so the
-    # large for-loop body doesn't need to be indented. Same semantics: the
-    # delta is added to `stage_timing.phases_ns["rasterization"]` after the
-    # loop completes.
-    import time as _time
-    _rasterize_start_ns = _time.monotonic_ns()
-    for pr in rasters:
-        result = _process_page(pr, invocation)
-        pages.append(result.page_dict)
-        warnings_out.extend(result.warnings)
-        tables.extend(result.tables)
-        all_lines.extend(result.lines)
-        if result.lines or result.blocks:
-            pages_with_output += 1
-        if result.silent_empty:
-            silent_empty_page_detected = True
-
-    stage_timing.add_phase(
-        "rasterization", _time.monotonic_ns() - _rasterize_start_ns
-    )
+    # `measure_phase` records `phases_ns["rasterization"]` even when the
+    # iterator raises before yielding (e.g., ZeroPagePdfError on the first
+    # `next()`) — the context manager's finally clause guarantees the delta
+    # is captured for FR-016 / FP2 partial-failure timings.
+    with measure_phase(stage_timing, "rasterization"):
+        for pr in rasterize.rasterize_pdf(pdf_path, dpi=DPI):
+            result = _process_page(pr, invocation)
+            pages.append(result.page_dict)
+            warnings_out.extend(result.warnings)
+            tables.extend(result.tables)
+            all_lines.extend(result.lines)
+            if result.lines or result.blocks:
+                pages_with_output += 1
+            if result.silent_empty:
+                silent_empty_page_detected = True
 
     quality = compute_quality(all_lines, max_skew_deg=max_skew)
     ingestion_sources = build_ingestion_sources(

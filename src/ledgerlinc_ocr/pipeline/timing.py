@@ -43,6 +43,23 @@ def current_stage_timing() -> Optional["StageTiming"]:
     Runner-wrapped stage call."""
     return _CURRENT_STAGE_TIMING.get()
 
+
+@contextmanager
+def bind_current_stage_timing(stage_timing: "StageTiming"):
+    """Context manager: bind ``stage_timing`` as the active per-stage
+    StageTiming for the duration of the block.
+
+    The Runner uses this around each stage_callable invocation so live
+    adapters can call ``current_stage_timing()`` to thread fine-grained
+    phase keys (e.g., ``rasterization``, ``artifact_write``) into the
+    same StageTiming the Runner is recording the coarse phase on.
+    """
+    token = _CURRENT_STAGE_TIMING.set(stage_timing)
+    try:
+        yield
+    finally:
+        _CURRENT_STAGE_TIMING.reset(token)
+
 # Feature 014 (T027 / R-014.6): patch bump for additive `preprocess_lane`,
 # `gpu_init_seconds`, `gpu_inference_seconds`, and the optional
 # `gpu_lane_forced_abort` per-document flag. Consumers MUST ignore

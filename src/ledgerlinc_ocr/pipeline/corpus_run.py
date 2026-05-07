@@ -42,6 +42,7 @@ from ledgerlinc_ocr.pipeline.runner import (
 from ledgerlinc_ocr.pipeline.stages import is_live_capable
 from ledgerlinc_ocr.pipeline.timing import (
     RunSummary,
+    attach_one_time_gpu_phases,
     build_per_document_failure,
     build_per_document_success,
     emit_run_summary,
@@ -504,8 +505,7 @@ def run_warm_corpus(
         and _PREFLIGHT_READOUT is not None
         and _PREFLIGHT_READOUT.evidence.ppstructurev3_init_seconds is not None
     ):
-        _ev = _PREFLIGHT_READOUT.evidence
-        _init_seconds = _ev.ppstructurev3_init_seconds
+        _init_seconds = _PREFLIGHT_READOUT.evidence.ppstructurev3_init_seconds
         for record in per_document_records:
             if record.get("status") == "success":
                 stages_map = record.setdefault("stages", {})
@@ -513,17 +513,11 @@ def run_warm_corpus(
                     "preprocess", {"total_seconds": 0.0}
                 )
                 preprocess_stage["gpu_init_seconds"] = _init_seconds
-                # Feature 015: structured form alongside the legacy flat key.
-                phase_timings_block = record.setdefault("phase_timings", {})
-                if _ev.paddle_import_seconds is not None:
-                    phase_timings_block["paddle_import"] = {
-                        "seconds": _ev.paddle_import_seconds
-                    }
-                if _ev.gpu_bind_probe_seconds is not None:
-                    phase_timings_block["gpu_bind_probe"] = {
-                        "seconds": _ev.gpu_bind_probe_seconds
-                    }
-                phase_timings_block["engine_init"] = {"seconds": _init_seconds}
+                # Feature 015: shared helper attaches structured form
+                # (paddle_import / gpu_bind_probe / engine_init) so warm-
+                # corpus and single-doc paths stay in sync on field names
+                # and None-omission rules.
+                attach_one_time_gpu_phases(record, _PREFLIGHT_READOUT)
                 break
 
     summary = RunSummary(
@@ -584,22 +578,14 @@ def _emit_warm_init_failure_summary(
     # Feature 015 (T024 / FP1): on warm-init failure, attach whatever
     # GPU prereq phase timings were captured before the failure (e.g.,
     # `paddle_import` if step 1 ran). Reads from `_PREFLIGHT_READOUT`
-    # if it was set by the warm factory before the abort.
+    # if it was set by the warm factory before the abort. Field names
+    # and None-omission rules come from the shared helper so warm-
+    # corpus and single-doc emission cannot drift.
     _warm_init_failure_phase_timings: dict[str, dict[str, float]] = {}
     if _warm_lane.startswith("gpu") and _PREFLIGHT_READOUT is not None:
-        _ev = _PREFLIGHT_READOUT.evidence
-        if _ev.paddle_import_seconds is not None:
-            _warm_init_failure_phase_timings["paddle_import"] = {
-                "seconds": _ev.paddle_import_seconds
-            }
-        if _ev.gpu_bind_probe_seconds is not None:
-            _warm_init_failure_phase_timings["gpu_bind_probe"] = {
-                "seconds": _ev.gpu_bind_probe_seconds
-            }
-        if _ev.ppstructurev3_init_seconds is not None:
-            _warm_init_failure_phase_timings["engine_init"] = {
-                "seconds": _ev.ppstructurev3_init_seconds
-            }
+        _scratch: dict[str, Any] = {}
+        attach_one_time_gpu_phases(_scratch, _PREFLIGHT_READOUT)
+        _warm_init_failure_phase_timings = _scratch.get("phase_timings", {})
 
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,

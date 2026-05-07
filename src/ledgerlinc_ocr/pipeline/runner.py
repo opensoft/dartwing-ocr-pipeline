@@ -41,7 +41,7 @@ from ledgerlinc_ocr.pipeline.slice_control import (
 from ledgerlinc_ocr.pipeline.timing import (
     DocumentTimings,
     StageTiming,
-    _CURRENT_STAGE_TIMING,
+    bind_current_stage_timing,
     measure_phase,
     measure_total,
 )
@@ -482,28 +482,24 @@ class Runner:
                 timings=timings,
             )
 
-        with measure_total(stage_timing):
-            # Feature 015 (T021): expose the active StageTiming via
-            # contextvar so live preprocess adapters can record
-            # fine-grained phase keys (`rasterization`, `artifact_write`)
-            # on the same map.
-            _ctx_token = _CURRENT_STAGE_TIMING.set(stage_timing)
-            try:
-                with measure_phase(stage_timing, _STAGE_COMPUTE_PHASE[stage]):
-                    try:
-                        output = stage_callable(invocation, produced)
-                    except Exception as exc:  # noqa: BLE001 -- contract: convert to failure
-                        return RunResult(
-                            exit_code=_classify_stage_exception(exc),
-                            artifacts_written=artifacts_written,
-                            stage=failure_stage_name,
-                            message=_format_stage_exception(
-                                exc, profile=plan.profiles[stage]
-                            ),
-                            timings=timings,
-                        )
-            finally:
-                _CURRENT_STAGE_TIMING.reset(_ctx_token)
+        with measure_total(stage_timing), bind_current_stage_timing(stage_timing):
+            # Feature 015 (T021): bind_current_stage_timing exposes the
+            # active StageTiming via the timing-module contextvar so live
+            # preprocess adapters can record fine-grained phase keys
+            # (`rasterization`, `artifact_write`) on the same map.
+            with measure_phase(stage_timing, _STAGE_COMPUTE_PHASE[stage]):
+                try:
+                    output = stage_callable(invocation, produced)
+                except Exception as exc:  # noqa: BLE001 -- contract: convert to failure
+                    return RunResult(
+                        exit_code=_classify_stage_exception(exc),
+                        artifacts_written=artifacts_written,
+                        stage=failure_stage_name,
+                        message=_format_stage_exception(
+                            exc, profile=plan.profiles[stage]
+                        ),
+                        timings=timings,
+                    )
             if isinstance(output, StageRunOutput):
                 payload = output.payload
                 dest = output.artifact_path

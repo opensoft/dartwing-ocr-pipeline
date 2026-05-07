@@ -40,6 +40,7 @@ from ledgerlinc_ocr.pipeline.timing import (
     DocumentTimings,
     RunSummary,
     StageTiming,
+    attach_one_time_gpu_phases as timing_attach_one_time_gpu_phases,
     build_per_document_failure,
     build_per_document_success,
     emit_run_summary,
@@ -240,7 +241,12 @@ def _attach_one_time_gpu_phases(
     """On a successful first GPU-lane document, attach the GPU one-time
     phase keys (`paddle_import`, `gpu_bind_probe`, `engine_init`) from
     the cached preflight readout. CPU runs leave `phase_timings`
-    untouched (FR-017 / ISO1)."""
+    untouched (FR-017 / ISO1).
+
+    Delegates field-name mapping and None-omission rules to
+    `pipeline.timing.attach_one_time_gpu_phases` so the warm-corpus
+    and single-doc paths cannot drift.
+    """
     if not preprocess_lane.startswith("gpu"):
         return
     try:
@@ -252,13 +258,9 @@ def _attach_one_time_gpu_phases(
     readout = _get_last_readout()
     if readout is None:
         return
-    ev = readout.evidence
-    if ev.paddle_import_seconds is not None:
-        phase_timings["paddle_import"] = {"seconds": ev.paddle_import_seconds}
-    if ev.gpu_bind_probe_seconds is not None:
-        phase_timings["gpu_bind_probe"] = {"seconds": ev.gpu_bind_probe_seconds}
-    if ev.ppstructurev3_init_seconds is not None:
-        phase_timings["engine_init"] = {"seconds": ev.ppstructurev3_init_seconds}
+    timing_attach_one_time_gpu_phases(
+        {"phase_timings": phase_timings}, readout
+    )
 
 
 def _emit_single_doc_run_summary(

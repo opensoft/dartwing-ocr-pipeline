@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import pytest
 
+pytest_plugins = ["pytester"]
+
 
 def test_t031_gpu_marker_is_registered_in_conftest() -> None:
     """The `gpu` marker MUST be registered so that pytest does not
@@ -59,12 +61,44 @@ def test_t031_gpu_marker_skip_reason_traces_to_preflight_state() -> None:
     )
 
 
-@pytest.mark.gpu
-def test_t031_marker_actually_skips_gpu_tests_on_cpu_host() -> None:
-    """Negative control: this test is GPU-marked and should be skipped
-    on a CPU host (where preflight does not return PPSTRUCTUREV3_INIT_SUCCEEDED).
-    If the conftest `gpu` marker plumbing is broken, this test would
-    run on a CPU host and fail (since no work is done here, it would
-    actually pass — but the SKIP behavior is itself observable via
-    pytest collection output)."""
-    pytest.fail("If you see this on a CPU host, the gpu marker plumbing is broken")
+def test_t031_marker_actually_skips_gpu_tests_on_cpu_host(
+    pytester: pytest.Pytester,
+) -> None:
+    """Negative control: when conftest detects no GPU readiness, a
+    `@pytest.mark.gpu` test MUST be reported as `skipped`, not run.
+
+    Runs an inline pytester subprocess with a stub conftest that mirrors
+    the real conftest's skip-on-no-GPU rule, plus one `gpu`-marked test
+    body that would fail if it executed. The assertion is that pytester
+    reports `skipped == 1` and `failed == 0`. This works on both CPU
+    and GPU hosts because the stub conftest forces the no-GPU path.
+    """
+    pytester.makeconftest(
+        """
+        import pytest
+
+        def pytest_configure(config):
+            config.addinivalue_line(
+                "markers", "gpu: requires Paddle GPU readiness"
+            )
+
+        def pytest_collection_modifyitems(config, items):
+            skip_gpu = pytest.mark.skip(
+                reason="preflight: no_gpu_runtime (forced by stub conftest)"
+            )
+            for item in items:
+                if item.get_closest_marker("gpu") is not None:
+                    item.add_marker(skip_gpu)
+        """
+    )
+    pytester.makepyfile(
+        """
+        import pytest
+
+        @pytest.mark.gpu
+        def test_should_be_skipped():
+            pytest.fail("gpu marker did not skip — plumbing broken")
+        """
+    )
+    result = pytester.runpytest()
+    result.assert_outcomes(skipped=1, failed=0, passed=0)
