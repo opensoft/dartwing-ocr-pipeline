@@ -107,14 +107,16 @@ class CLIInvocation:
     timeout: int
     ollama_cpu_url: str | None = None
     ollama_jetson_url: str | None = None
-    # Feature 016: opt-in GPU warmup pass for ppstructurev3@gpu. Off by
-    # default. Set by the cold-mode pipeline CLI from `--gpu-warmup` /
-    # `LEDGERLINC_GPU_WARMUP=1` AND only when the resolved preprocess
-    # profile is the GPU lane. Threaded into the live preprocess
-    # adapter at `stages._ppstructurev3_factory` as
-    # `PreInvocation(warmup=...)`. Warm-corpus mode reads the flag
-    # directly from `args` in `pipeline.corpus_run` and does NOT use
-    # this field — it is purely a cold-mode threading vehicle.
+    # Feature 016 (Copilot PR #24 round 3): CLI-intent flag set by the
+    # cold-mode `_run_cold` after resolving `--gpu-warmup` /
+    # `LEDGERLINC_GPU_WARMUP=1` against the resolved preprocess profile
+    # lane. **Diagnostic only — no longer threaded through the
+    # preprocessing adapter.** Runtime warmup is driven by the hoisted
+    # `pipeline.run_warmup_if_active()` call in `_run_cold` BEFORE the
+    # runner dispatches any stage, so warmup duration is excluded from
+    # `phase_timings.total.seconds` per FR-007 / SC-004. Warm-corpus
+    # mode reads `--gpu-warmup` directly from `args` in
+    # `pipeline.corpus_run` and does not touch this field.
     warmup: bool = False
 
 

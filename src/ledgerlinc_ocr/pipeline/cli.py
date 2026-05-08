@@ -389,17 +389,26 @@ def _run_cold(
 
     # Hoisted warmup: must run BEFORE the runner's stage dispatch so
     # warmup duration is excluded from per-doc `phase_timings.total`.
-    # Lazy-import the helper so this module's import path stays free of
-    # `preprocessing.pipeline` (which transitively pulls in PIL/numpy).
+    # Lazy-import the helper + exception types so this module's import
+    # path stays free of `preprocessing.pipeline` (which transitively
+    # pulls in PIL/numpy) and a missing preflight.py does not break
+    # collection.
     if invocation.warmup:
+        from ledgerlinc_ocr.preprocessing.pipeline import (
+            run_warmup_if_active as _run_warmup_if_active,
+        )
+        from ledgerlinc_ocr.preprocessing.errors import WarmupError
         try:
-            from ledgerlinc_ocr.preprocessing.pipeline import (
-                run_warmup_if_active as _run_warmup_if_active,
+            from ledgerlinc_ocr.preprocessing.preflight import (
+                GpuPrerequisiteError as _GpuPrerequisiteError,
+                exit_code_for_state as _exit_code_for_state,
             )
-            from ledgerlinc_ocr.preprocessing.errors import WarmupError
-            _preprocess_lane = "gpu0"  # ppstructurev3@gpu resolves here
+        except ImportError:
+            _GpuPrerequisiteError = None  # type: ignore[assignment]
+            _exit_code_for_state = None  # type: ignore[assignment]
+        try:
             _run_warmup_if_active(
-                preprocess_lane=_preprocess_lane,
+                preprocess_lane="gpu0",  # ppstructurev3@gpu resolves here
                 warmup_optin=True,
             )
         except WarmupError as exc:
@@ -407,6 +416,25 @@ def _run_cold(
                 f"error: warmup failed: {exc.cause_class}: {exc}\n"
             )
             return int(ExitCode.WARMUP_FAILED)
+        except Exception as _exc:  # noqa: BLE001 — route preflight failure
+            # `ensure_gpu_ready()` inside `run_warmup_if_active` can raise
+            # `GpuPrerequisiteError`. Translate to the FR-009 envelope +
+            # FR-001-state-mapped exit code (10–14) per Contracts §1,
+            # mirroring the warm-corpus path's pre-write GPU gate
+            # (`pipeline/corpus_run.py` ~L240). Any other unexpected
+            # exception re-raises (back-compat: prior behavior on the
+            # cold-path warmup-disabled flow lets exceptions surface).
+            if (
+                _GpuPrerequisiteError is not None
+                and isinstance(_exc, _GpuPrerequisiteError)
+                and _exit_code_for_state is not None
+            ):
+                sys.stderr.write(
+                    f"error: --preprocess-profile=ppstructurev3@gpu: "
+                    f"{_exc.state.value}; {_exc.recommendation}\n"
+                )
+                return int(_exit_code_for_state(_exc.state))
+            raise
 
     r = runner if runner is not None else Runner()
     # In cold mode, call legacy ``runner.run(invocation)`` to preserve the

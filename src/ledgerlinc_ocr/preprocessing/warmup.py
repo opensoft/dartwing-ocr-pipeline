@@ -61,13 +61,29 @@ from ledgerlinc_ocr.preprocessing.rasterize import (
 from ledgerlinc_ocr.preprocessing.version import DPI
 
 
+_FIXTURE_ENV_VAR: str = "LEDGERLINC_WARMUP_FIXTURE_PATH"
+
+
 def _resolve_default_fixture() -> Path:
     """Locate ``tests/stage1_vendor_identity/inv_001_easy/source.pdf``
-    relative to this module's import path. Walks up parents until the corpus
-    root is found. Falls back to a relative path if the corpus root is not
-    found at import time — ``run_warmup`` will then raise a
-    ``WarmupError(cause_class="FixtureLoadError")`` on first call, which
-    is the documented fail-fast behavior."""
+    relative to this module's import path.
+
+    Resolution order:
+
+    1. ``$LEDGERLINC_WARMUP_FIXTURE_PATH`` env var (operator override —
+       primary escape hatch for installed distributions where the
+       repo's ``tests/`` tree is not on disk).
+    2. Walk parents of this module until a ``tests/stage1_vendor_identity/
+       inv_001_easy/source.pdf`` is found (the dev-from-repo path).
+    3. Fall back to the relative literal path. ``run_warmup`` will then
+       raise ``WarmupError(cause_class="FixtureLoadError")`` on first
+       call with a message instructing operators to set the env var or
+       supply ``fixture_path=`` explicitly. This is intentional fail-
+       fast — the feature is not silently degraded.
+    """
+    env_value = os.environ.get(_FIXTURE_ENV_VAR)
+    if env_value:
+        return Path(env_value).expanduser()
     here = Path(__file__).resolve()
     for ancestor in here.parents:
         candidate = (
@@ -168,8 +184,16 @@ def _load_fixture(fixture_path: Path) -> tuple[np.ndarray, str]:
     / PIL error — fail-fast per FR-007."""
     try:
         if not fixture_path.is_file():
+            # When operators run an installed distribution (no `tests/`
+            # tree on disk) the auto-resolved default falls back to a
+            # relative literal that does not exist. Point them at the
+            # `LEDGERLINC_WARMUP_FIXTURE_PATH` escape hatch so they can
+            # supply any local PDF as the warmup fixture without shipping
+            # `tests/` as package data.
             raise FileNotFoundError(
-                f"warmup fixture not found at {fixture_path}"
+                f"warmup fixture not found at {fixture_path}; set "
+                f"{_FIXTURE_ENV_VAR}=/path/to/source.pdf or pass "
+                f"fixture_path= explicitly when invoking from a non-repo install"
             )
         for page in rasterize_pdf(fixture_path, dpi=DPI):
             if isinstance(page, PageRasterFailure):
@@ -178,8 +202,18 @@ def _load_fixture(fixture_path: Path) -> tuple[np.ndarray, str]:
                 )
             assert isinstance(page, PageRaster)
             image = page.image
-            digest = hashlib.sha256(image.tobytes()).hexdigest()
-            np_img = np.array(image)
+            try:
+                digest = hashlib.sha256(image.tobytes()).hexdigest()
+                np_img = np.array(image)
+            finally:
+                # Release the PIL raster buffer once we have the
+                # numpy array + digest. Mirrors the page-loop close
+                # in `preprocessing/pipeline.py::_process_page` so
+                # repeated warmup retries don't leak large buffers.
+                try:
+                    image.close()
+                except Exception:
+                    pass
             return np_img, digest
         raise RuntimeError(
             f"warmup fixture {fixture_path} produced no pages"
@@ -274,8 +308,17 @@ def run_warmup(
             cause_module="time",
         )
 
+    # Round to six-decimal seconds (run-summary-schema.md §2). Sub-microsecond
+    # `engine.predict` (e.g., a stub returning immediately) collapses to
+    # 0.0 under naive `round`, contradicting the strictly-positive
+    # invariant tests assert on. Clamp to the smallest representable
+    # positive 6-decimal value (1e-6) so a successful warmup always
+    # surfaces non-zero seconds.
+    seconds_rounded = round(elapsed, 6)
+    if seconds_rounded == 0.0:
+        seconds_rounded = 1e-6
     result = WarmupResult(
-        seconds=round(elapsed, 6),
+        seconds=seconds_rounded,
         fixture_sha256=digest,
         fixture_path=path,
     )

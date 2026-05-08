@@ -12,6 +12,8 @@ When you set `--gpu-warmup` (or `LEDGERLINC_GPU_WARMUP=1`) on a `ppstructurev3@g
 
 If you re-run on the same workstation without clearing the caches, `phase_timings.warmup.seconds` should be **at least 2× smaller** (per SC-003) — that's the cold-vs-warm signal.
 
+**Installed-distribution note**: the warmup fixture default resolves relative to the repo's `tests/` tree, which is not shipped as package data. If you run an installed distribution (the `tests/` tree is not on disk), set `LEDGERLINC_WARMUP_FIXTURE_PATH=/absolute/path/to/source.pdf` to point at any local PDF (any single-page invoice will do — the fixture is used purely to drive PPStructureV3's kernel-selection path; it is not part of the per-document OCR output). Without this override, `--gpu-warmup` will fail-fast with `WarmupError(cause_class="FixtureLoadError")` and exit 15.
+
 ---
 
 ## 1. Cache locations
@@ -114,10 +116,10 @@ Every warmup-enabled `ppstructurev3@gpu` run that completes successfully emits a
         "engine_init":       {"seconds": 1.5},       // ← feature 015
         "warmup":            {"seconds": <VALUE>},   // ← feature 016 — read THIS
         "rasterization":     {"seconds": 0.1},
-        "per_page_inference": [{"page": 1, "seconds": 0.3}],
         "artifact_write":    {"seconds": 0.05},
-        "total":             {"seconds": 0.45}        // ← does NOT include warmup
-      }
+        "total":             {"seconds": 0.45}       // ← does NOT include warmup
+      },
+      "per_page_inference": [{"page": 1, "seconds": 0.3}]
     }
   ]
 }

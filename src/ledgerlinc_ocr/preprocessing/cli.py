@@ -245,19 +245,6 @@ def main(argv: list[str] | None = None) -> int:
             message=f"--preprocess-profile=ppstructurev3@gpu: {exc.state.value}; {exc.recommendation}",
         )
         return _exit_code_for_state(exc.state)
-    except WarmupError as exc:
-        # Feature 016 (T007 / T008 / T011 / FR-007 / SC-011 /
-        # contracts/cli-contract.md §3-§4 / module-invariants.md I-5): the
-        # explicit warmup pass raised. Print the canonical stderr line,
-        # exit 15, emit NO run_summary, write NO preprocess_output.json
-        # (the artifact-write phase did not run because `_run_inner`
-        # raised before rasterization). Per SC-011 the entire stdout
-        # `kind: "run_summary"` JSON line is absent on warmup failure.
-        print(
-            f"error: warmup failed: {exc.cause_class}: {exc}",
-            file=sys.stderr,
-        )
-        return EXIT_WARMUP_FAILED
     except InputRejectedError as exc:
         print(
             json.dumps({"status": "error", "kind": "input_rejected", "message": str(exc)}),
