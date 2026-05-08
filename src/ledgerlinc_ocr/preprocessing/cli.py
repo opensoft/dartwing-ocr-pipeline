@@ -27,9 +27,16 @@ from ledgerlinc_ocr.preprocessing.errors import (
     EXIT_INTERNAL_ERROR,
     EXIT_OK,
     EXIT_UNEXPECTED,
+    EXIT_WARMUP_FAILED,
     ArtifactInvalidError,
     EngineInitError,
     InputRejectedError,
+    WarmupError,
+)
+from ledgerlinc_ocr.preprocessing.warmup_optin import (
+    is_warmup_optin_set,
+    is_gpu_lane,
+    warn_and_proceed_message,
 )
 from ledgerlinc_ocr.pipeline.profiles import (
     PPSTRUCTUREV3_CPU,
@@ -79,6 +86,24 @@ def _build_parser() -> argparse.ArgumentParser:
             "ledgerlinc_ocr.pipeline.profiles."
         ),
     )
+    # Feature 016 (T008 / FR-002 / R-016.1 / contracts/cli-contract.md §1):
+    # opt-in GPU warmup pass for ppstructurev3@gpu. Off by default; orthogonal
+    # to --preprocess-profile. Also accepted via the LEDGERLINC_GPU_WARMUP=1
+    # env var (CLI flag wins when both set).
+    p.add_argument(
+        "--gpu-warmup",
+        action="store_true",
+        default=False,
+        help=(
+            "Run a one-time PPStructureV3 warmup pass after engine "
+            "construction so MIOpen/COMGR kernel-selection cost is paid up "
+            "front. Reported as phase_timings.warmup on the first successful "
+            "per-document run_summary entry. Has no effect on "
+            "ppstructurev3@cpu or stub adapters (a stderr warning is emitted "
+            "in those cases). Can also be set via the LEDGERLINC_GPU_WARMUP=1 "
+            "environment variable; the CLI flag wins when both are present."
+        ),
+    )
     return p
 
 
@@ -120,12 +145,26 @@ def main(argv: list[str] | None = None) -> int:
         )
         return EXIT_INPUT_REJECTED
 
+    # Feature 016 (T008 / T010 / T021 / FR-010 / SC-007): resolve the warmup
+    # opt-in surface (CLI flag + LEDGERLINC_GPU_WARMUP env var). When set on
+    # a non-GPU lane, emit the FR-010 warn-and-proceed line and force the
+    # threaded `warmup` flag to False so `_run_inner` does not import or
+    # invoke `preprocessing.warmup` (FR-011 / I-6).
+    warmup_optin = is_warmup_optin_set(args.gpu_warmup)
+    warmup_threaded = warmup_optin and is_gpu_lane(preprocess_lane)
+    if warmup_optin and not is_gpu_lane(preprocess_lane):
+        active_profile_name = (
+            args.preprocess_profile if args.preprocess_profile else "ppstructurev3@cpu"
+        )
+        print(warn_and_proceed_message(active_profile_name), file=sys.stderr)
+
     invocation = pipeline.Invocation(
         document_folder=args.document_folder,
         source_file=args.source_file,
         write_page_images=args.write_page_images,
         pipeline_version=args.pipeline_version,
         preprocess_lane=preprocess_lane,
+        warmup=warmup_threaded,
     )
 
     # Feature 015 (T017): construct a StageTiming so pipeline.run() can
@@ -164,6 +203,19 @@ def main(argv: list[str] | None = None) -> int:
             message=f"--preprocess-profile=ppstructurev3@gpu: {exc.state.value}; {exc.recommendation}",
         )
         return _exit_code_for_state(exc.state)
+    except WarmupError as exc:
+        # Feature 016 (T007 / T008 / T011 / FR-007 / SC-011 /
+        # contracts/cli-contract.md §3-§4 / module-invariants.md I-5): the
+        # explicit warmup pass raised. Print the canonical stderr line,
+        # exit 15, emit NO run_summary, write NO preprocess_output.json
+        # (the artifact-write phase did not run because `_run_inner`
+        # raised before rasterization). Per SC-011 the entire stdout
+        # `kind: "run_summary"` JSON line is absent on warmup failure.
+        print(
+            f"error: warmup failed: {exc.cause_class}: {exc}",
+            file=sys.stderr,
+        )
+        return EXIT_WARMUP_FAILED
     except InputRejectedError as exc:
         print(
             json.dumps({"status": "error", "kind": "input_rejected", "message": str(exc)}),
@@ -210,12 +262,20 @@ def main(argv: list[str] | None = None) -> int:
 
     # Feature 015 (T017 / R-015.6 / FR-014): emit the run_summary line
     # with the new structured phase_timings + per_page_inference blocks.
+    # Feature 016 (T006 / T008 / R-016.8): thread the cached warmup seconds
+    # into the run_summary's first-doc one-time-GPU-phases attachment when
+    # warmup actually ran.
+    warmup_seconds: float | None = None
+    if invocation.warmup and is_gpu_lane(preprocess_lane):
+        from ledgerlinc_ocr.preprocessing import warmup as _warmup_mod
+        warmup_seconds = _warmup_mod.get_cached_warmup_seconds()
     _emit_single_doc_run_summary(
         invocation=invocation,
         preprocess_lane=preprocess_lane,
         stage_timing=stage_timing,
         success=True,
         document_id=written["document_id"],
+        warmup_seconds=warmup_seconds,
     )
 
     return EXIT_OK
@@ -242,15 +302,23 @@ def _build_phase_timings_from_stage(
 def _attach_one_time_gpu_phases(
     phase_timings: dict[str, dict[str, float]],
     preprocess_lane: str,
+    *,
+    warmup_seconds: float | None = None,
 ) -> None:
     """On a successful first GPU-lane document, attach the GPU one-time
-    phase keys (`paddle_import`, `gpu_bind_probe`, `engine_init`) from
-    the cached preflight readout. CPU runs leave `phase_timings`
-    untouched (FR-017 / ISO1).
+    phase keys (`paddle_import`, `gpu_bind_probe`, `engine_init`, and —
+    feature 016 — `warmup`) from the cached preflight readout and the
+    captured warmup seconds. CPU runs leave `phase_timings` untouched
+    (FR-017 / ISO1).
 
-    Delegates field-name mapping and None-omission rules to
-    `pipeline.timing.attach_one_time_gpu_phases` so the warm-corpus
-    and single-doc paths cannot drift.
+    Feature 016 (T008 / R-016.8 / contracts/module-invariants.md I-11):
+    the four "first-doc one-time GPU phase" keys form a coherent set —
+    `attach_one_time_gpu_phases` is the single source of truth for the
+    set's joint-presence rule.
+
+    Delegates field-name mapping, six-decimal rounding, and None-omission
+    rules to `pipeline.timing.attach_one_time_gpu_phases` so the warm-
+    corpus and single-doc paths cannot drift.
     """
     if not preprocess_lane.startswith("gpu"):
         return
@@ -261,10 +329,12 @@ def _attach_one_time_gpu_phases(
     except ImportError:
         return
     readout = _get_last_readout()
-    if readout is None:
+    if readout is None and warmup_seconds is None:
         return
     timing_attach_one_time_gpu_phases(
-        {"phase_timings": phase_timings}, readout
+        {"phase_timings": phase_timings},
+        readout,
+        warmup_seconds=warmup_seconds,
     )
 
 
@@ -278,17 +348,26 @@ def _emit_single_doc_run_summary(
     failed_stage: str | None = None,
     exit_code: int | None = None,
     message: str | None = None,
+    warmup_seconds: float | None = None,
 ) -> None:
     """Emit the final `kind: "run_summary"` JSON line for a single-doc run.
 
     Single-doc emits the same shape as warm-corpus mode (R-015.6) so
     SC-005's "identify the slowest phase" analysis works the same way
     in both contexts. Output is the very last stdout line, after the
-    existing `{"status": "ok", ...}` summary line."""
+    existing `{"status": "ok", ...}` summary line.
+
+    Feature 016 (T008 / R-016.8): the optional `warmup_seconds` keyword
+    threads the captured warmup duration through to the run_summary's
+    first-doc one-time-GPU-phases attachment. ``None`` means warmup did
+    not run (CPU/stub or warmup opt-in absent); a float means warmup
+    completed successfully."""
     phase_timings = _build_phase_timings_from_stage(stage_timing)
 
     # GPU one-time phases attach only on the GPU lane.
-    _attach_one_time_gpu_phases(phase_timings, preprocess_lane)
+    _attach_one_time_gpu_phases(
+        phase_timings, preprocess_lane, warmup_seconds=warmup_seconds
+    )
 
     # GPU per-page inference array (drained from ocr accumulator).
     per_page_inference: list[tuple[int, float]] | None = None

@@ -66,7 +66,7 @@ def test_warm_corpus_stub_run(tmp_path: Path, capsys: pytest.CaptureFixture[str]
     # phase_timings, per_page_inference). 0.1.1-shape parsers continue
     # to read 0.1.2 output by ignoring unknown keys; this assertion
     # tracks the producer's current emitted version.
-    assert summary["schema_version"] == "0.1.2"
+    assert summary["schema_version"] == "0.1.3"
     assert summary["documents_total"] == 3
     assert summary["documents_succeeded"] == 3
     assert summary["documents_failed"] == 0

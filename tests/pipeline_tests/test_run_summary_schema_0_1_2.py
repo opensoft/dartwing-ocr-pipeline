@@ -33,9 +33,18 @@ PER_DOC_PHASES = {"rasterization", "artifact_write", "total"}
 # ---------------------------------------------------------------------------
 
 def test_pt5_schema_version_bumped_to_0_1_2() -> None:
-    assert timing.SCHEMA_VERSION == "0.1.2", (
-        f"feature 015 must bump SCHEMA_VERSION from 0.1.1 to 0.1.2 "
-        f"(got {timing.SCHEMA_VERSION!r})"
+    # Feature 015 bumped 0.1.1 → 0.1.2; feature 016 (T003 / FR-008 /
+    # R-016.9) further bumped 0.1.2 → 0.1.3 codebase-level for the
+    # additive optional `phase_timings.warmup` key. The historical bump
+    # this test asserted (0.1.1 → 0.1.2) is preserved by the version
+    # chain — the binding contract today is "SCHEMA_VERSION ≥ 0.1.2"
+    # and the producer currently emits 0.1.3. Feature 016's T013 adds
+    # a sibling `test_run_summary_schema_0_1_3.py` for the new bump's
+    # specific regression checks.
+    assert timing.SCHEMA_VERSION == "0.1.3", (
+        f"feature 016 must bump SCHEMA_VERSION from 0.1.2 to 0.1.3 "
+        f"(got {timing.SCHEMA_VERSION!r}); historical 0.1.1 → 0.1.2 "
+        f"bump from feature 015 still implied by the version chain"
     )
 
 

@@ -99,6 +99,25 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--extract-profile", type=str, default=None)
     run.add_argument("--routing-profile", type=str, default=None)
     run.add_argument("--final-payload-profile", type=str, default=None)
+    # Feature 016 (T009 / FR-002 / R-016.1 / contracts/cli-contract.md §1):
+    # opt-in GPU warmup pass for ppstructurev3@gpu. Off by default; orthogonal
+    # to --preprocess-profile. Also accepted via the LEDGERLINC_GPU_WARMUP=1
+    # env var (CLI flag wins when both set). On non-GPU profiles emits the
+    # FR-010 warn-and-proceed line and is otherwise a no-op.
+    run.add_argument(
+        "--gpu-warmup",
+        action="store_true",
+        default=False,
+        help=(
+            "Run a one-time PPStructureV3 warmup pass after engine "
+            "construction so MIOpen/COMGR kernel-selection cost is paid up "
+            "front. Reported as phase_timings.warmup on the first successful "
+            "per-document run_summary entry. Has no effect on non-GPU "
+            "profiles (a stderr warning is emitted in that case). Can also "
+            "be set via the LEDGERLINC_GPU_WARMUP=1 environment variable; "
+            "the CLI flag wins when both are present."
+        ),
+    )
     # Stack preset (FR-004A).
     run.add_argument(
         "--stack-preset",

@@ -47,6 +47,12 @@ from ledgerlinc_ocr.pipeline.timing import (
     build_per_document_success,
     emit_run_summary,
 )
+from ledgerlinc_ocr.preprocessing.errors import EXIT_WARMUP_FAILED, WarmupError
+from ledgerlinc_ocr.preprocessing.warmup_optin import (
+    is_gpu_lane,
+    is_warmup_optin_set,
+    warn_and_proceed_message,
+)
 # Feature 014 / VT-003: `preflight` types are imported lazily inside
 # the GPU warm factory. Module-level import would break collection
 # for unrelated tests when `preflight.py` is temporarily unavailable
@@ -277,6 +283,44 @@ def run_warm_corpus(
             emit_failure=_emit_failure,
         )
 
+    # Feature 016 (T007 / R-016.10 / FR-001 / FR-007 / SC-011): the warm
+    # corpus warmup hook fires AFTER `_warm_initialize_live_preprocess`
+    # succeeded (engine adopted via `ocr._adopt_engine`) and BEFORE the
+    # per-document loop opens any `measure_total`/`measure_phase` block.
+    # The activation surface mirrors the single-doc path: CLI flag
+    # `--gpu-warmup` plus env var `LEDGERLINC_GPU_WARMUP=1` (CLI wins).
+    # On non-GPU profiles we emit the FR-010 warn-and-proceed line and
+    # skip the warmup invocation. On WarmupError we exit 15 with stderr
+    # `error: warmup failed: <cause>` and emit NO run_summary at all
+    # (SC-011 (c)).
+    _gpu_warmup_optin = is_warmup_optin_set(getattr(args, "gpu_warmup", False))
+    _preprocess_profile_raw = getattr(args, "preprocess_profile", None)
+    _is_gpu_warmup_active = (
+        _gpu_warmup_optin
+        and isinstance(_preprocess_profile_raw, str)
+        and _preprocess_profile_raw.endswith("@gpu")
+    )
+    if _gpu_warmup_optin and not _is_gpu_warmup_active:
+        # Warn-and-proceed: opt-in set but profile is not ppstructurev3@gpu.
+        _profile_name_for_warning = (
+            _preprocess_profile_raw if _preprocess_profile_raw else "ppstructurev3@cpu"
+        )
+        print(warn_and_proceed_message(_profile_name_for_warning), file=sys.stderr)
+    if _is_gpu_warmup_active:
+        try:
+            from ledgerlinc_ocr.preprocessing import (
+                ocr as _ocr_mod,
+                warmup as _warmup_mod,
+            )
+            _warmup_mod.run_warmup(_ocr_mod._ENGINE)
+        except WarmupError as _warmup_exc:
+            print(
+                f"error: warmup failed: {_warmup_exc.cause_class}: {_warmup_exc}",
+                file=sys.stderr,
+            )
+            # Per SC-011: no run_summary is emitted on warmup failure.
+            return EXIT_WARMUP_FAILED
+
     per_document_records: list[dict[str, Any]] = []
     observed_exit_codes: list[ExitCode] = []
     succeeded = 0
@@ -506,6 +550,16 @@ def run_warm_corpus(
         and _PREFLIGHT_READOUT.evidence.ppstructurev3_init_seconds is not None
     ):
         _init_seconds = _PREFLIGHT_READOUT.evidence.ppstructurev3_init_seconds
+        # Feature 016 (T007 / R-016.8 / contracts/module-invariants.md I-11):
+        # if warmup ran successfully on this process, capture the cached
+        # seconds so the same first-successful-doc record carries the
+        # additive `phase_timings.warmup` key alongside `paddle_import` /
+        # `gpu_bind_probe` / `engine_init`. The four first-doc one-time
+        # GPU phases form a coherent set per I-11.
+        _warmup_seconds_for_attach: float | None = None
+        if _is_gpu_warmup_active:
+            from ledgerlinc_ocr.preprocessing import warmup as _warmup_mod
+            _warmup_seconds_for_attach = _warmup_mod.get_cached_warmup_seconds()
         for record in per_document_records:
             if record.get("status") == "success":
                 stages_map = record.setdefault("stages", {})
@@ -517,7 +571,12 @@ def run_warm_corpus(
                 # (paddle_import / gpu_bind_probe / engine_init) so warm-
                 # corpus and single-doc paths stay in sync on field names
                 # and None-omission rules.
-                attach_one_time_gpu_phases(record, _PREFLIGHT_READOUT)
+                # Feature 016: also attach `warmup` (or omit if None).
+                attach_one_time_gpu_phases(
+                    record,
+                    _PREFLIGHT_READOUT,
+                    warmup_seconds=_warmup_seconds_for_attach,
+                )
                 break
 
     summary = RunSummary(

@@ -60,6 +60,13 @@ class Invocation:
     # reserved for future multi-GPU work). The lane is threaded into
     # build_pipeline_version() and ocr.run_page() per FR-016.
     preprocess_lane: str = "cpu"
+    # Feature 016 (T006 / FR-001 / FR-002 / FR-010): the resolved warmup
+    # opt-in boolean. Off by default. When True AND `preprocess_lane` is a
+    # GPU lane, `_run_inner` invokes `preprocessing.warmup.run_warmup` once
+    # per process between engine adoption and the rasterization phase. CPU
+    # and stub paths ignore this flag (the CLI emits the FR-010 warn-and-
+    # proceed line at activation-detection time, not here).
+    warmup: bool = False
 
 
 def _derive_document_id(folder_name: str) -> str:
@@ -248,6 +255,25 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
             ensure_gpu_ready as _ensure_gpu_ready,
         )
         _ensure_gpu_ready()
+
+    # Feature 016 (T006 / FR-001 / FR-003 / FR-004 / R-016.10): when the
+    # warmup opt-in is set AND this is a GPU lane, run exactly one warmup
+    # pass after engine adoption (above) and BEFORE the first
+    # `measure_phase("rasterization")` opens (below). The lazy import
+    # confines GPU-only code to the GPU branch per FR-011 / I-6. The
+    # once-per-process guard inside `run_warmup` (`_WARMUP_RAN`) means
+    # subsequent calls (e.g., when `_run_inner` is called for doc 2 in a
+    # corpus run) are no-ops returning the cached result.
+    if invocation.warmup and invocation.preprocess_lane.startswith("gpu"):
+        from ledgerlinc_ocr.preprocessing import (
+            ocr as _ocr_mod,
+            warmup as _warmup_mod,
+        )
+        # WarmupError propagates to the CLI catch boundary (single-doc
+        # `cli.main` and corpus `corpus_run._run_warm_corpus`); both surface
+        # exit code 15 + stderr `error: warmup failed: <cause>` per FR-007 /
+        # SC-011. No silent fallback (FR-007).
+        _warmup_mod.run_warmup(_ocr_mod._ENGINE)
 
     pdf_path = _validate_input(invocation)
     document_id = _derive_document_id(invocation.document_folder.name)

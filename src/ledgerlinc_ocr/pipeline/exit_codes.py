@@ -38,6 +38,13 @@ class ExitCode(IntEnum):
     INVALID_PDF = 12
     OUTPUT_IN_USE = 13
     OUTPUT_PATH_NOT_USABLE = 14
+    # Feature 016 (T011 / FR-007 / SC-011 / contracts/cli-contract.md §4):
+    # the explicit GPU warmup pass raised a MIOpen/COMGR/Paddle error.
+    # Slots immediately after feature 014's preflight 10–14 codes per
+    # research R-016.6. Caught at the runner / corpus_run boundary; surfaced
+    # as `error: warmup failed: <cause-class>: <message>` on stderr with
+    # no run_summary line emitted (SC-011).
+    WARMUP_FAILED = 15
     PROCESSING_FAILURE = 20
     SCHEMA_VALIDATION_FAILURE = 30
 
