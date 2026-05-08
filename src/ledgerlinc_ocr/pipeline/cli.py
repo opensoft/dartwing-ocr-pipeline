@@ -56,6 +56,10 @@ from ledgerlinc_ocr.pipeline.runner import (
     Runner,
 )
 from ledgerlinc_ocr.pipeline.slice_control import SliceError, parse_slice
+from ledgerlinc_ocr.preprocessing.warmup_optin import (
+    is_warmup_optin_set,
+    warn_and_proceed_message,
+)
 from ledgerlinc_ocr.validator.loader import (
     ContractSetNotFoundError,
     load_contract_set,
@@ -357,6 +361,32 @@ def _run_cold(
     if plan is None:
         return int(_emit_usage_error(message))
 
+    # Feature 016: cold-mode warmup wiring. Resolve the activation surface
+    # (`--gpu-warmup` CLI flag + `LEDGERLINC_GPU_WARMUP` env var; CLI wins)
+    # and gate it on the resolved preprocess profile lane. On non-GPU
+    # profiles emit the FR-010 warn-and-proceed line and force
+    # `invocation.warmup = False`. The preprocessing adapter at
+    # `stages._ppstructurev3_factory` reads this field and threads it into
+    # `PreInvocation(warmup=...)` so `_run_inner` fires the warmup pass
+    # on the GPU branch.
+    _gpu_warmup_optin = is_warmup_optin_set(getattr(args, "gpu_warmup", False))
+    _preprocess_profile = plan.profiles.get("preprocess")
+    _preprocess_is_gpu = (
+        _preprocess_profile is not None
+        and _preprocess_profile.implementation == "ppstructurev3"
+        and _preprocess_profile.lane == "gpu"
+    )
+    if _gpu_warmup_optin and not _preprocess_is_gpu:
+        _profile_name_for_warning = (
+            args.preprocess_profile
+            if args.preprocess_profile
+            else "ppstructurev3@cpu"
+        )
+        sys.stderr.write(
+            warn_and_proceed_message(_profile_name_for_warning) + "\n"
+        )
+    invocation.warmup = _gpu_warmup_optin and _preprocess_is_gpu
+
     r = runner if runner is not None else Runner()
     # In cold mode, call legacy ``runner.run(invocation)`` to preserve the
     # 002-era test seam. ``Runner.run`` internally builds a default plan
@@ -395,6 +425,16 @@ def _run_cold(
             artifacts=result.artifacts_written,
         )
         return int(ExitCode.SUCCESS)
+
+    # Feature 016 / FR-007 / SC-011 / cli-contract.md §3-§4: warmup
+    # failures emit the canonical `error: warmup failed: <cause-class>:
+    # <message>` literal stderr line and exit 15 with NO
+    # StructuredFailureRecord JSON. `result.message` is already shaped
+    # by `_format_stage_exception` to `warmup failed: <cause>: <msg>`,
+    # so the `error: ` prefix is added here.
+    if result.exit_code == ExitCode.WARMUP_FAILED:
+        sys.stderr.write(f"error: {result.message}\n")
+        return int(result.exit_code)
 
     _emit_failure(
         StructuredFailureRecord.for_code(

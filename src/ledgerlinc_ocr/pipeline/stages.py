@@ -404,12 +404,21 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
             # the call to build the run_summary `phase_timings` block.
             from ledgerlinc_ocr.pipeline.timing import current_stage_timing
 
+            # Feature 016: thread the cold-mode warmup opt-in into the
+            # preprocessing Invocation. Only meaningful on the GPU lane —
+            # `_run_inner` short-circuits warmup on CPU regardless. The
+            # cold-mode CLI is responsible for setting `invocation.warmup`
+            # only when both `--gpu-warmup` (or `LEDGERLINC_GPU_WARMUP=1`)
+            # is set AND the resolved preprocess profile is GPU; otherwise
+            # the FR-010 warn-and-proceed line was already emitted at the
+            # CLI layer and `warmup` stays False here.
             out_path = preprocessing_run(
                 PreInvocation(
                     document_folder=invocation.destination_folder,
                     source_file=_SOURCE_PDF,
                     pipeline_version=invocation.pipeline_version,
                     preprocess_lane=lane,
+                    warmup=getattr(invocation, "warmup", False),
                 ),
                 stage_timing=current_stage_timing(),
             )
