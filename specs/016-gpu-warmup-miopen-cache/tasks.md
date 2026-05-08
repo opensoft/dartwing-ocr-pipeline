@@ -135,7 +135,9 @@ description: "Implementation tasks for feature 016: GPU Warmup And MIOpen Cache 
 
 ## Deferred Items (FR-014)
 
-The following items require workstation GPU hardware (`@gpu` mark) and are deferred per FR-014. They MUST be run before the feature is considered fully verified, but they do NOT block merging the CPU-safe implementation.
+**Tracking issue**: [opensoft/ledgerlinc-model-ocr-pipeline#23](https://github.com/opensoft/ledgerlinc-model-ocr-pipeline/issues/23) — *Feature 016: workstation GPU verification deferred per FR-014*
+
+The following items require workstation GPU hardware (`@gpu` mark) and are deferred per FR-014. They MUST be run before the feature is considered fully verified, but they do NOT block merging the CPU-safe implementation. When the workstation is available, follow the operator instructions in the linked GitHub issue (or the equivalent steps below) and tick each item back to `[x]` in this file as it lands.
 
 | Task | Verifies | Path |
 |---|---|---|
