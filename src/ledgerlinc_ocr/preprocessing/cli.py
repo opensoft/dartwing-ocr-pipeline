@@ -167,6 +167,48 @@ def main(argv: list[str] | None = None) -> int:
         warmup=warmup_threaded,
     )
 
+    # Feature 016 (Copilot PR #24 round 2 finding 1 / FR-007 / SC-004):
+    # warmup MUST run BEFORE the `measure_total(stage_timing)` window so
+    # the captured warmup duration does not inflate
+    # `phase_timings.total.seconds`. `run_warmup_if_active` is a no-op on
+    # CPU/stub lanes — the warn-and-proceed line was already emitted
+    # above. WarmupError translates to exit 15 + the canonical literal
+    # stderr line per cli-contract.md §3-§4.
+    try:
+        pipeline.run_warmup_if_active(
+            preprocess_lane=preprocess_lane,
+            warmup_optin=warmup_optin,
+        )
+    except WarmupError as exc:
+        print(
+            f"error: warmup failed: {exc.cause_class}: {exc}",
+            file=sys.stderr,
+        )
+        return EXIT_WARMUP_FAILED
+    except _GpuPrerequisiteError as exc:
+        # Feature 014: GPU prereq probing during warmup's
+        # `ensure_gpu_ready()` call surfaces here too. Forward to the
+        # same FR-009 error envelope used by the post-`measure_total`
+        # branch below.
+        print(
+            f"error: --preprocess-profile=ppstructurev3@gpu: "
+            f"{exc.state.value}; {exc.recommendation}",
+            file=sys.stderr,
+        )
+        # Emit a stub run_summary with no phases recorded — preflight
+        # ran but warmup pre-empted before any per-doc timing started.
+        empty_timing = StageTiming(stage="preprocess")
+        _emit_single_doc_run_summary(
+            invocation=invocation,
+            preprocess_lane=preprocess_lane,
+            stage_timing=empty_timing,
+            success=False,
+            failed_stage="preprocess",
+            exit_code=_exit_code_for_state(exc.state),
+            message=f"--preprocess-profile=ppstructurev3@gpu: {exc.state.value}; {exc.recommendation}",
+        )
+        return _exit_code_for_state(exc.state)
+
     # Feature 015 (T017): construct a StageTiming so pipeline.run() can
     # record the rasterization / artifact_write phase deltas. Per the
     # `pipeline.run()` contract (caller owns `measure_total` when

@@ -92,10 +92,10 @@ Codebase-level transition driven by this feature: `"0.1.2"` → `"0.1.3"`. Set i
 
 Two operator-clearable directories. Not owned by the pipeline; this feature configures them and reads their effect through `phase_timings.warmup.seconds` magnitude.
 
-| Directory | Set via env var | What lives there | When operator clears |
+| Directory | How its location is controlled | What lives there | When operator clears |
 |---|---|---|---|
-| `~/.cache/miopen` | `MIOPEN_USER_DB_PATH` (R-016.5) | MIOpen kernel database + find-mode tuning artifacts | After ROCm version bump; when investigating cold-vs-warm regression; when `phase_timings.warmup.seconds` looks suspicious |
-| `~/.cache/comgr` | `MIOPEN_CUSTOM_CACHE_DIR` (R-016.5) | HIP/ROCm compiler (COMGR) cache | Same triggers as above |
+| `~/.cache/miopen` | Pipeline sets both `MIOPEN_USER_DB_PATH` and `MIOPEN_CUSTOM_CACHE_DIR` to this path (R-016.5; operator override wins) | MIOpen kernel database + find-mode tuning artifacts | After ROCm version bump; when investigating cold-vs-warm regression; when `phase_timings.warmup.seconds` looks suspicious |
+| `~/.cache/comgr` | **Filesystem-default location used by the AMD COMGR library — not controlled by any pipeline-set env var.** Operators who need a non-default path use whatever knob the local ROCm/COMGR build exposes (typically `XDG_CACHE_HOME` or distribution-specific config). | HIP/ROCm compiler (COMGR) cache | Same triggers as above |
 
 **Cold cache** = both directories absent or empty (or populated under an incompatible ROCm/driver/PPStructureV3 configuration). **Warm cache** = both directories populated by a prior compatible run. Detection in production code MUST be via `phase_timings.warmup.seconds` magnitude (per Definitions in spec.md), NOT via filesystem inspection — this avoids race conditions and keeps the cache an opaque OS-level surface.
 

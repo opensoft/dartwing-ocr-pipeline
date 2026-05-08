@@ -364,11 +364,11 @@ def _run_cold(
     # Feature 016: cold-mode warmup wiring. Resolve the activation surface
     # (`--gpu-warmup` CLI flag + `LEDGERLINC_GPU_WARMUP` env var; CLI wins)
     # and gate it on the resolved preprocess profile lane. On non-GPU
-    # profiles emit the FR-010 warn-and-proceed line and force
-    # `invocation.warmup = False`. The preprocessing adapter at
-    # `stages._ppstructurev3_factory` reads this field and threads it into
-    # `PreInvocation(warmup=...)` so `_run_inner` fires the warmup pass
-    # on the GPU branch.
+    # profiles emit the FR-010 warn-and-proceed line. `invocation.warmup`
+    # is preserved as a CLI-intent flag for diagnostics; runtime warmup
+    # is driven by `pipeline.run_warmup_if_active()` below — the hoisted
+    # helper that runs OUTSIDE the runner's `measure_total` window per
+    # FR-007 / SC-004 (Copilot PR #24 round 2 finding 1).
     _gpu_warmup_optin = is_warmup_optin_set(getattr(args, "gpu_warmup", False))
     _preprocess_profile = plan.profiles.get("preprocess")
     _preprocess_is_gpu = (
@@ -386,6 +386,27 @@ def _run_cold(
             warn_and_proceed_message(_profile_name_for_warning) + "\n"
         )
     invocation.warmup = _gpu_warmup_optin and _preprocess_is_gpu
+
+    # Hoisted warmup: must run BEFORE the runner's stage dispatch so
+    # warmup duration is excluded from per-doc `phase_timings.total`.
+    # Lazy-import the helper so this module's import path stays free of
+    # `preprocessing.pipeline` (which transitively pulls in PIL/numpy).
+    if invocation.warmup:
+        try:
+            from ledgerlinc_ocr.preprocessing.pipeline import (
+                run_warmup_if_active as _run_warmup_if_active,
+            )
+            from ledgerlinc_ocr.preprocessing.errors import WarmupError
+            _preprocess_lane = "gpu0"  # ppstructurev3@gpu resolves here
+            _run_warmup_if_active(
+                preprocess_lane=_preprocess_lane,
+                warmup_optin=True,
+            )
+        except WarmupError as exc:
+            sys.stderr.write(
+                f"error: warmup failed: {exc.cause_class}: {exc}\n"
+            )
+            return int(ExitCode.WARMUP_FAILED)
 
     r = runner if runner is not None else Runner()
     # In cold mode, call legacy ``runner.run(invocation)`` to preserve the

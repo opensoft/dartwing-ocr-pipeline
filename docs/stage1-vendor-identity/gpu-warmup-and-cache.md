@@ -18,10 +18,10 @@ If you re-run on the same workstation without clearing the caches, `phase_timing
 
 The pipeline interacts with two on-disk OS caches during a warmup-enabled GPU run:
 
-| Directory | What lives there | Set via env var |
+| Directory | What lives there | How its location is controlled |
 |---|---|---|
-| `~/.cache/miopen` | MIOpen kernel database, find-mode tuning artifacts | `MIOPEN_USER_DB_PATH` |
-| `~/.cache/comgr` | HIP / ROCm compiler (COMGR) cache (compiled shader binaries) | `MIOPEN_CUSTOM_CACHE_DIR` |
+| `~/.cache/miopen` | MIOpen kernel database, find-mode tuning artifacts | Pipeline sets both `MIOPEN_USER_DB_PATH` and `MIOPEN_CUSTOM_CACHE_DIR` to this path inside `preprocessing/warmup.py::_apply_env_defaults` (operator override wins). |
+| `~/.cache/comgr` | HIP / ROCm compiler (COMGR) cache (compiled shader binaries) | **Filesystem-default location used by the AMD COMGR library — not controlled by any pipeline-set env var.** Operators who need a non-default path must use whatever knob the local ROCm/COMGR build exposes (typically `XDG_CACHE_HOME` or distribution-specific configuration). |
 
 Both directories are managed by AMD ROCm libraries — the pipeline does not write into them directly. They are populated as a side effect when MIOpen or COMGR runs (during warmup or per-document inference).
 
