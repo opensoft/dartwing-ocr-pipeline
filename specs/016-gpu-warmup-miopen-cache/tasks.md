@@ -7,7 +7,7 @@ description: "Implementation tasks for feature 016: GPU Warmup And MIOpen Cache 
 **Input**: Design documents from `/specs/016-gpu-warmup-miopen-cache/`
 **Prerequisites**: plan.md (✅), spec.md (✅), research.md (✅), data-model.md (✅), contracts/ (✅: `cli-contract.md`, `module-invariants.md`, `run-summary-schema.md`), quickstart.md (✅)
 
-**Tests**: Included. The spec's four user stories (`US1`–`US4`) each declare an Independent Test, and `plan.md` §Project Structure enumerates concrete test files under `tests/preprocessing/` and `tests/pipeline/`. GPU-marked tests follow `@pytest.mark.gpu` per FR-012 and the workstation verification path may be deferred per FR-014.
+**Tests**: Included. The spec's four user stories (`US1`–`US4`) each declare an Independent Test, and `plan.md` §Project Structure enumerates concrete test files under `tests/unit/preprocessing/` and `tests/pipeline_tests/`. GPU-marked tests follow `@pytest.mark.gpu` per FR-012 and the workstation verification path may be deferred per FR-014.
 
 **Organization**: Tasks are grouped by user story (US1 → US4) so each story can be implemented, tested, and delivered independently. US1 is the MVP.
 
@@ -21,7 +21,7 @@ description: "Implementation tasks for feature 016: GPU Warmup And MIOpen Cache 
 ## Path Conventions
 
 - Source: `src/ledgerlinc_ocr/{preprocessing,pipeline}/...`
-- Tests: `tests/{preprocessing,pipeline}/...`
+- Tests: `tests/{unit/preprocessing,pipeline_tests}/...`
 - Docs: `docs/stage1-vendor-identity/...`
 - Feature artifacts: `specs/016-gpu-warmup-miopen-cache/...`
 

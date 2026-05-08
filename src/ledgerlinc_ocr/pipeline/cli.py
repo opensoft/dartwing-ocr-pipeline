@@ -370,13 +370,14 @@ def _run_cold(
     # helper that runs OUTSIDE the runner's `measure_total` window per
     # FR-007 / SC-004 (Copilot PR #24 round 2 finding 1).
     _gpu_warmup_optin = is_warmup_optin_set(getattr(args, "gpu_warmup", False))
+    _preprocess_in_slice = "preprocess" in plan.slice_.stages_in_slice
     _preprocess_profile = plan.profiles.get("preprocess")
     _preprocess_is_gpu = (
         _preprocess_profile is not None
         and _preprocess_profile.implementation == "ppstructurev3"
         and _preprocess_profile.lane == "gpu"
     )
-    if _gpu_warmup_optin and not _preprocess_is_gpu:
+    if _gpu_warmup_optin and _preprocess_in_slice and not _preprocess_is_gpu:
         # Source the warning's profile name from the resolved plan so it
         # reflects the active profile after stack-preset / defaults
         # resolution, not only the raw `--preprocess-profile` flag the
@@ -390,7 +391,9 @@ def _run_cold(
         sys.stderr.write(
             warn_and_proceed_message(_profile_name_for_warning) + "\n"
         )
-    invocation.warmup = _gpu_warmup_optin and _preprocess_is_gpu
+    invocation.warmup = (
+        _gpu_warmup_optin and _preprocess_in_slice and _preprocess_is_gpu
+    )
 
     # Hoisted warmup: must run BEFORE the runner's stage dispatch so
     # warmup duration is excluded from per-doc `phase_timings.total`.
