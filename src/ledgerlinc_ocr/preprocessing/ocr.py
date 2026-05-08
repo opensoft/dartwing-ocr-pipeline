@@ -140,6 +140,24 @@ def _coalesce(*values: Any, default: Any = None) -> Any:
     return default
 
 
+def get_active_engine() -> Any:
+    """Return the adopted PPStructureV3 singleton, or raise ``RuntimeError``
+    if no engine has been adopted yet.
+
+    Public accessor for callers that need the engine after preflight /
+    warm-corpus initialization has already adopted one (e.g.,
+    ``preprocessing.warmup.run_warmup``). Avoids reaching into the
+    private ``_ENGINE`` module attribute.
+    """
+    if _ENGINE is None:
+        raise RuntimeError(
+            "preprocessing.ocr engine has not been adopted yet; "
+            "call _adopt_engine() (preflight) or _get_engine() before "
+            "requesting the active engine"
+        )
+    return _ENGINE
+
+
 def _adopt_engine(engine: Any, device: str) -> None:
     """Persist a PPStructureV3 instance into the runtime singleton.
 

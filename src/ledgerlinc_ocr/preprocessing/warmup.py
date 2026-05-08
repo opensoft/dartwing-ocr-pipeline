@@ -144,15 +144,16 @@ def _apply_env_defaults() -> None:
 
 def _classify_cause(exc: Exception) -> str:
     """Map an underlying exception to one of the closed cause-class
-    taxonomy values (data-model.md §WarmupError, research R-016.6)."""
+    taxonomy values (data-model.md §WarmupError, research R-016.6).
+
+    The paddle prefix subsumes ``paddleocr`` and ``paddlex`` because
+    ``str.startswith("paddle")`` matches both — a single check is
+    sufficient.
+    """
     module = (type(exc).__module__ or "").lower()
     if module.startswith("miopen") or module.startswith("comgr"):
         return "MIOpenError"
-    if (
-        module.startswith("paddleocr")
-        or module.startswith("paddlex")
-        or module.startswith("paddle")
-    ):
+    if module.startswith("paddle"):
         return "PaddleError"
     return "UnknownError"
 
@@ -247,6 +248,11 @@ def run_warmup(
 
     t0 = time.perf_counter()
     try:
+        # Suppresses Python-side `warnings` only (e.g., paddle deprecation
+        # notices through `warnings.warn`). MIOpen/COMGR diagnostics emit
+        # directly on C-side stderr and are unaffected — those are split
+        # into "addressed by default config" vs "residual" per the FR-016
+        # hybrid policy, not silenced here.
         with _std_warnings.catch_warnings():
             _std_warnings.simplefilter("ignore")
             engine.predict(np_img)

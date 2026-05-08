@@ -247,20 +247,34 @@ def test_fixture_digest_stable_across_invocations() -> None:
 
 # ---------------------------------------------------------------------------
 # I-4: no fold into caller phase_timings
+#
+# `run_warmup` accepts no caller-supplied phase_timings dict, so a direct
+# "did the dict change?" assertion would be tautological. The real I-4
+# guarantee — that warmup's seconds flow into run_summary only via
+# `attach_one_time_gpu_phases(record, readout, warmup_seconds=...)` and
+# never inflate `phase_timings.total` / per-document phase keys — is
+# enforced at the schema layer in
+# `tests/pipeline_tests/test_run_summary_schema_0_1_3.py`. Keeping a
+# unit-level placeholder here so the I-4 contract has a labeled landing
+# spot in this file.
 # ---------------------------------------------------------------------------
 
 
-def test_run_warmup_does_not_mutate_caller_phase_timings() -> None:
-    """`run_warmup` MUST NOT modify a caller-side `phase_timings` dict
-    (I-4). The warmup window is kept in WarmupResult.seconds, attached to
-    run_summary later via `attach_one_time_gpu_phases`."""
-    caller_phase_timings: dict[str, dict[str, float]] = {}
+def test_run_warmup_returns_seconds_only_via_warmup_result() -> None:
+    """Surface contract: the only seconds value `run_warmup` exposes is
+    `WarmupResult.seconds` (six-decimal-rounded perf_counter delta).
+    `run_warmup` does not accept or mutate a caller `phase_timings` dict —
+    callers thread `WarmupResult.seconds` through
+    `pipeline.timing.attach_one_time_gpu_phases(..., warmup_seconds=...)`
+    on the run_summary side. This is the unit-level half of I-4; the
+    schema-level half lives in `test_run_summary_schema_0_1_3.py`."""
     engine = _StubEngine()
-    warmup_mod.run_warmup(engine)
-    assert caller_phase_timings == {}, (
-        f"run_warmup must not mutate caller-side phase_timings; "
-        f"got {caller_phase_timings!r}"
-    )
+    result = warmup_mod.run_warmup(engine)
+    assert isinstance(result, warmup_mod.WarmupResult)
+    assert isinstance(result.seconds, float)
+    assert result.seconds == round(result.seconds, 6)
+    # The cached accessor returns the same seconds — no separate path.
+    assert warmup_mod.get_cached_warmup_seconds() == result.seconds
 
 
 # ---------------------------------------------------------------------------

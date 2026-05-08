@@ -35,6 +35,7 @@ from ledgerlinc_ocr.preprocessing.version import (
     DPI,
     build_pipeline_version,
 )
+from ledgerlinc_ocr.preprocessing.warmup_optin import is_gpu_lane
 from ledgerlinc_ocr.preprocessing.warnings import build_warning, sort_warnings
 from ledgerlinc_ocr.pipeline.timing import StageTiming, measure_phase, measure_total
 
@@ -264,7 +265,11 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # once-per-process guard inside `run_warmup` (`_WARMUP_RAN`) means
     # subsequent calls (e.g., when `_run_inner` is called for doc 2 in a
     # corpus run) are no-ops returning the cached result.
-    if invocation.warmup and invocation.preprocess_lane.startswith("gpu"):
+    # Use the strict `is_gpu_lane()` predicate (matches `_resolve_lane_to_device`
+    # which requires `gpu<N>` with a digit suffix) so warmup never runs for an
+    # invalid lane string that would later fail device resolution. Aligns with
+    # the corpus-runner activation path so both entry points share one helper.
+    if invocation.warmup and is_gpu_lane(invocation.preprocess_lane):
         from ledgerlinc_ocr.preprocessing import (
             ocr as _ocr_mod,
             warmup as _warmup_mod,
@@ -273,7 +278,7 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
         # `cli.main` and corpus `corpus_run._run_warm_corpus`); both surface
         # exit code 15 + stderr `error: warmup failed: <cause>` per FR-007 /
         # SC-011. No silent fallback (FR-007).
-        _warmup_mod.run_warmup(_ocr_mod._ENGINE)
+        _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
 
     pdf_path = _validate_input(invocation)
     document_id = _derive_document_id(invocation.document_folder.name)
