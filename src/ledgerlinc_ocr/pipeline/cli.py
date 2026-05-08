@@ -377,11 +377,16 @@ def _run_cold(
         and _preprocess_profile.lane == "gpu"
     )
     if _gpu_warmup_optin and not _preprocess_is_gpu:
-        _profile_name_for_warning = (
-            args.preprocess_profile
-            if args.preprocess_profile
-            else "ppstructurev3@cpu"
-        )
+        # Source the warning's profile name from the resolved plan so it
+        # reflects the active profile after stack-preset / defaults
+        # resolution, not only the raw `--preprocess-profile` flag the
+        # user typed (Copilot PR #24 round 4).
+        if _preprocess_profile is not None:
+            _profile_name_for_warning = _preprocess_profile.raw_value
+        elif args.preprocess_profile:
+            _profile_name_for_warning = args.preprocess_profile
+        else:
+            _profile_name_for_warning = "ppstructurev3@cpu"
         sys.stderr.write(
             warn_and_proceed_message(_profile_name_for_warning) + "\n"
         )

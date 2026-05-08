@@ -117,9 +117,39 @@ def test_cpu_warmup_optin_emits_stderr_warning_and_no_warmup_pass(
     CPU run that produces NO `phase_timings.warmup`."""
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
 
-    pre_run_modules = set(sys.modules.keys())
+    # Track import attempts of `preprocessing.warmup` regardless of
+    # whether the module is already cached in sys.modules. A simple
+    # `set(sys.modules.keys())` delta misses the violation when the
+    # module was loaded earlier in the test session (e.g., by
+    # test_warmup_unit.py), so the test would silently pass even if
+    # the warn-and-proceed path imported warmup (Copilot PR #24
+    # round 4). Patching `builtins.__import__` catches both
+    # `import preprocessing.warmup` and
+    # `from preprocessing import warmup` forms.
+    import builtins
+    real_import = builtins.__import__
+    warmup_import_attempts: list[str] = []
 
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    def _tracking_import(name: str, *args, **kwargs):
+        # Direct dotted import.
+        if (
+            name == "ledgerlinc_ocr.preprocessing.warmup"
+            or name.startswith("ledgerlinc_ocr.preprocessing.warmup.")
+        ):
+            warmup_import_attempts.append(name)
+        # `from ledgerlinc_ocr.preprocessing import warmup [as x]` form.
+        if name == "ledgerlinc_ocr.preprocessing":
+            fromlist = kwargs.get("fromlist")
+            if fromlist is None and len(args) >= 3:
+                fromlist = args[2]
+            if fromlist and "warmup" in tuple(fromlist):
+                warmup_import_attempts.append(
+                    "ledgerlinc_ocr.preprocessing:warmup"
+                )
+        return real_import(name, *args, **kwargs)
+
+    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run), \
+            patch("builtins.__import__", side_effect=_tracking_import):
         exit_code = cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -158,14 +188,13 @@ def test_cpu_warmup_optin_emits_stderr_warning_and_no_warmup_pass(
     assert invocation.preprocess_lane == "cpu"
 
     # No `preprocessing.warmup` module imported during the run (FR-011 / I-6).
-    new_modules = set(sys.modules.keys()) - pre_run_modules
-    forbidden_imports = {
-        m for m in new_modules
-        if m.endswith(".warmup") or m == "ledgerlinc_ocr.preprocessing.warmup"
-    }
-    assert not forbidden_imports, (
-        f"warn-and-proceed path imported preprocessing.warmup (FR-011 / I-6 "
-        f"violation): {forbidden_imports}"
+    # `_tracking_import` above caught any attempt regardless of sys.modules
+    # cache state, so an empty list here means the warn-and-proceed branch
+    # never tried to load the module — the strong-form coverage Copilot's
+    # PR #24 round-4 review asked for.
+    assert not warmup_import_attempts, (
+        f"warn-and-proceed path imported preprocessing.warmup "
+        f"(FR-011 / I-6 violation): {warmup_import_attempts}"
     )
 
 

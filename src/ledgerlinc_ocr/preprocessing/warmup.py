@@ -42,6 +42,7 @@ R-016.6:
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import os
 import time
@@ -195,29 +196,37 @@ def _load_fixture(fixture_path: Path) -> tuple[np.ndarray, str]:
                 f"{_FIXTURE_ENV_VAR}=/path/to/source.pdf or pass "
                 f"fixture_path= explicitly when invoking from a non-repo install"
             )
-        for page in rasterize_pdf(fixture_path, dpi=DPI):
-            if isinstance(page, PageRasterFailure):
-                raise RuntimeError(
-                    f"warmup fixture page 1 rasterize failed: {page.error}"
-                )
-            assert isinstance(page, PageRaster)
-            image = page.image
-            try:
-                digest = hashlib.sha256(image.tobytes()).hexdigest()
-                np_img = np.array(image)
-            finally:
-                # Release the PIL raster buffer once we have the
-                # numpy array + digest. Mirrors the page-loop close
-                # in `preprocessing/pipeline.py::_process_page` so
-                # repeated warmup retries don't leak large buffers.
+        # `rasterize_pdf` is a generator that closes the underlying
+        # `PdfDocument` in its `finally` clauses. Because we only consume
+        # the first page, wrap the iterator in `contextlib.closing` to
+        # force prompt `.close()` (which runs the generator's finally
+        # blocks) instead of waiting for GC — avoids leaking pdfium
+        # file handles in long-lived warmup processes (Copilot PR #24
+        # round 4).
+        with contextlib.closing(rasterize_pdf(fixture_path, dpi=DPI)) as pages:
+            for page in pages:
+                if isinstance(page, PageRasterFailure):
+                    raise RuntimeError(
+                        f"warmup fixture page 1 rasterize failed: {page.error}"
+                    )
+                assert isinstance(page, PageRaster)
+                image = page.image
                 try:
-                    image.close()
-                except Exception:
-                    pass
-            return np_img, digest
-        raise RuntimeError(
-            f"warmup fixture {fixture_path} produced no pages"
-        )
+                    digest = hashlib.sha256(image.tobytes()).hexdigest()
+                    np_img = np.array(image)
+                finally:
+                    # Release the PIL raster buffer once we have the
+                    # numpy array + digest. Mirrors the page-loop close
+                    # in `preprocessing/pipeline.py::_process_page` so
+                    # repeated warmup retries don't leak large buffers.
+                    try:
+                        image.close()
+                    except Exception:
+                        pass
+                return np_img, digest
+            raise RuntimeError(
+                f"warmup fixture {fixture_path} produced no pages"
+            )
     except WarmupError:
         raise
     except Exception as exc:

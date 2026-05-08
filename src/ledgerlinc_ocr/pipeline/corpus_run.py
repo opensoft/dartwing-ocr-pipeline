@@ -317,9 +317,17 @@ def run_warm_corpus(
     )
     if _gpu_warmup_optin and _preprocess_in_slice and not _is_gpu_warmup_active:
         # Warn-and-proceed: opt-in set but profile is not ppstructurev3@gpu.
-        _profile_name_for_warning = (
-            _preprocess_profile_raw if _preprocess_profile_raw else "ppstructurev3@cpu"
-        )
+        # Source the warning's profile name from the resolved plan
+        # (`plan.profiles["preprocess"].raw_value`) so it reflects the
+        # active profile after stack-preset / defaults resolution, not
+        # only the raw `--preprocess-profile` flag the user typed
+        # (Copilot PR #24 round 4).
+        if _warm_preprocess_profile is not None:
+            _profile_name_for_warning = _warm_preprocess_profile.raw_value
+        elif _preprocess_profile_raw:
+            _profile_name_for_warning = _preprocess_profile_raw
+        else:
+            _profile_name_for_warning = "ppstructurev3@cpu"
         print(warn_and_proceed_message(_profile_name_for_warning), file=sys.stderr)
     if _is_gpu_warmup_active:
         try:
