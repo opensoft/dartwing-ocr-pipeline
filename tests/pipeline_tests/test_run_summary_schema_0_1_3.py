@@ -95,7 +95,7 @@ def test_warmup_present_with_correct_shape_when_seconds_provided() -> None:
         f"phase_timings.warmup MUST have exactly one key 'seconds'; "
         f"got {warmup_entry!r}"
     )
-    assert warmup_entry["seconds"] == 0.123457, (
+    assert warmup_entry["seconds"] == pytest.approx(0.123457), (
         f"warmup.seconds must be six-decimal-rounded; got {warmup_entry['seconds']!r}"
     )
 
@@ -211,4 +211,4 @@ def test_legacy_flat_keys_still_emitted_in_0_1_3() -> None:
     assert "total_seconds" in preprocess_stage, (
         "0.1.3 must continue to emit legacy stages.preprocess.total_seconds for back-compat"
     )
-    assert preprocess_stage["total_seconds"] == 1.5
+    assert preprocess_stage["total_seconds"] == pytest.approx(1.5)

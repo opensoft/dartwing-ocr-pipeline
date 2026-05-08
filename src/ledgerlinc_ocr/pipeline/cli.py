@@ -303,6 +303,129 @@ def _build_resolved_plan(
     return plan, None, ""
 
 
+def _resolve_warning_profile_name(
+    plan_profile: Any, args_preprocess_profile: str | None
+) -> str:
+    """Resolve the active preprocess-profile name to surface in the FR-010
+    warn-and-proceed line. Prefers `plan_profile.raw_value` (reflects
+    `--stack-preset` / defaults) over the raw `--preprocess-profile`
+    flag the user typed; falls back to the literal default.
+    """
+    if plan_profile is not None:
+        return plan_profile.raw_value
+    if args_preprocess_profile:
+        return args_preprocess_profile
+    return "ppstructurev3@cpu"
+
+
+def _run_cold_warmup_if_active(invocation: CLIInvocation) -> int | None:
+    """Run the hoisted GPU warmup pass for cold mode.
+
+    Returns ``None`` to indicate the runner should proceed; returns an
+    integer exit code if warmup failed in a way that aborts the run
+    (FR-007 / SC-011 warmup failure → exit 15, or FR-009 GPU-prereq
+    failure → exit 10–14). Lazy-imports preprocessing.pipeline so this
+    module's import path stays free of PIL / numpy / preprocessing.
+
+    No-op (returns None) when ``invocation.warmup`` is False.
+    """
+    if not invocation.warmup:
+        return None
+    from ledgerlinc_ocr.preprocessing.pipeline import (
+        run_warmup_if_active as _run_warmup_if_active,
+    )
+    from ledgerlinc_ocr.preprocessing.errors import WarmupError
+    try:
+        from ledgerlinc_ocr.preprocessing.preflight import (
+            GpuPrerequisiteError as _gpu_prerequisite_error_cls,
+            exit_code_for_state as _exit_code_for_state,
+        )
+    except ImportError:
+        _gpu_prerequisite_error_cls = None  # type: ignore[assignment]
+        _exit_code_for_state = None  # type: ignore[assignment]
+    try:
+        _run_warmup_if_active(
+            preprocess_lane="gpu0",  # ppstructurev3@gpu resolves here
+            warmup_optin=True,
+        )
+    except WarmupError as exc:
+        sys.stderr.write(f"error: warmup failed: {exc.cause_class}: {exc}\n")
+        return int(ExitCode.WARMUP_FAILED)
+    except Exception as exc:  # noqa: BLE001 — route preflight failure
+        # `ensure_gpu_ready()` inside `run_warmup_if_active` can raise
+        # `GpuPrerequisiteError`. Translate to the FR-009 envelope +
+        # FR-001-state-mapped exit code (10–14) per Contracts §1.
+        # Any other unexpected exception re-raises.
+        if (
+            _gpu_prerequisite_error_cls is not None
+            and isinstance(exc, _gpu_prerequisite_error_cls)
+            and _exit_code_for_state is not None
+        ):
+            sys.stderr.write(
+                f"error: --preprocess-profile=ppstructurev3@gpu: "
+                f"{exc.state.value}; {exc.recommendation}\n"
+            )
+            return int(_exit_code_for_state(exc.state))
+        raise
+    return None
+
+
+def _is_legacy_cold_dispatch(args: argparse.Namespace, plan: ResolvedRunPlan) -> bool:
+    """Return True iff the cold invocation should use the legacy
+    ``runner.run(invocation)`` test seam (no 011 flags supplied)."""
+    if plan.stack_preset_name is not None:
+        return False
+    if plan.slice_.start_at != "preprocess":
+        return False
+    if plan.slice_.stop_after != "final_payload":
+        return False
+    return all(
+        args_value is None
+        for args_value in (
+            args.preprocess_profile,
+            args.extract_profile,
+            args.routing_profile,
+            args.final_payload_profile,
+            args.start_at,
+            args.stop_after,
+            args.on_failure,
+            args.ollama_cpu_url,
+            args.ollama_jetson_url,
+        )
+    )
+
+
+def _emit_cold_result(result: Any, document_id: str) -> int:
+    """Convert a cold-mode `RunResult` to the appropriate stdout/stderr
+    emission and exit code. Splits success / warmup-failed / generic-
+    failure handling out of `_run_cold` to keep its cognitive
+    complexity below the SonarCloud threshold.
+    """
+    if result.exit_code == ExitCode.SUCCESS:
+        _emit_stdout_summary(
+            document_id=document_id,
+            routing_decision=result.routing_decision,
+            artifacts=result.artifacts_written,
+        )
+        return int(ExitCode.SUCCESS)
+    # FR-007 / SC-011: warmup failure emits the canonical `error: warmup
+    # failed: <cause-class>: <msg>` literal (already shaped by the
+    # runner's `_format_stage_exception`) and suppresses the generic
+    # StructuredFailureRecord JSON.
+    if result.exit_code == ExitCode.WARMUP_FAILED:
+        sys.stderr.write(f"error: {result.message}\n")
+        return int(result.exit_code)
+    _emit_failure(
+        StructuredFailureRecord.for_code(
+            result.exit_code,
+            stage=result.stage,
+            message=result.message,
+            artifacts_written=[str(p) for p in result.artifacts_written],
+        )
+    )
+    return int(result.exit_code)
+
+
 def _run_cold(
     args: argparse.Namespace, runner: Runner | None
 ) -> int:
@@ -378,18 +501,13 @@ def _run_cold(
         and _preprocess_profile.lane == "gpu"
     )
     if _gpu_warmup_optin and _preprocess_in_slice and not _preprocess_is_gpu:
-        # Source the warning's profile name from the resolved plan so it
-        # reflects the active profile after stack-preset / defaults
-        # resolution, not only the raw `--preprocess-profile` flag the
-        # user typed (Copilot PR #24 round 4).
-        if _preprocess_profile is not None:
-            _profile_name_for_warning = _preprocess_profile.raw_value
-        elif args.preprocess_profile:
-            _profile_name_for_warning = args.preprocess_profile
-        else:
-            _profile_name_for_warning = "ppstructurev3@cpu"
         sys.stderr.write(
-            warn_and_proceed_message(_profile_name_for_warning) + "\n"
+            warn_and_proceed_message(
+                _resolve_warning_profile_name(
+                    _preprocess_profile, args.preprocess_profile
+                )
+            )
+            + "\n"
         )
     invocation.warmup = (
         _gpu_warmup_optin and _preprocess_in_slice and _preprocess_is_gpu
@@ -397,111 +515,20 @@ def _run_cold(
 
     # Hoisted warmup: must run BEFORE the runner's stage dispatch so
     # warmup duration is excluded from per-doc `phase_timings.total`.
-    # Lazy-import the helper + exception types so this module's import
-    # path stays free of `preprocessing.pipeline` (which transitively
-    # pulls in PIL/numpy) and a missing preflight.py does not break
-    # collection.
-    if invocation.warmup:
-        from ledgerlinc_ocr.preprocessing.pipeline import (
-            run_warmup_if_active as _run_warmup_if_active,
-        )
-        from ledgerlinc_ocr.preprocessing.errors import WarmupError
-        try:
-            from ledgerlinc_ocr.preprocessing.preflight import (
-                GpuPrerequisiteError as _GpuPrerequisiteError,
-                exit_code_for_state as _exit_code_for_state,
-            )
-        except ImportError:
-            _GpuPrerequisiteError = None  # type: ignore[assignment]
-            _exit_code_for_state = None  # type: ignore[assignment]
-        try:
-            _run_warmup_if_active(
-                preprocess_lane="gpu0",  # ppstructurev3@gpu resolves here
-                warmup_optin=True,
-            )
-        except WarmupError as exc:
-            sys.stderr.write(
-                f"error: warmup failed: {exc.cause_class}: {exc}\n"
-            )
-            return int(ExitCode.WARMUP_FAILED)
-        except Exception as _exc:  # noqa: BLE001 — route preflight failure
-            # `ensure_gpu_ready()` inside `run_warmup_if_active` can raise
-            # `GpuPrerequisiteError`. Translate to the FR-009 envelope +
-            # FR-001-state-mapped exit code (10–14) per Contracts §1,
-            # mirroring the warm-corpus path's pre-write GPU gate
-            # (`pipeline/corpus_run.py` ~L240). Any other unexpected
-            # exception re-raises (back-compat: prior behavior on the
-            # cold-path warmup-disabled flow lets exceptions surface).
-            if (
-                _GpuPrerequisiteError is not None
-                and isinstance(_exc, _GpuPrerequisiteError)
-                and _exit_code_for_state is not None
-            ):
-                sys.stderr.write(
-                    f"error: --preprocess-profile=ppstructurev3@gpu: "
-                    f"{_exc.state.value}; {_exc.recommendation}\n"
-                )
-                return int(_exit_code_for_state(_exc.state))
-            raise
+    early_exit = _run_cold_warmup_if_active(invocation)
+    if early_exit is not None:
+        return early_exit
 
     r = runner if runner is not None else Runner()
     # In cold mode, call legacy ``runner.run(invocation)`` to preserve the
-    # 002-era test seam. ``Runner.run`` internally builds a default plan
-    # and delegates to ``run_plan`` -- but if the caller passed any 011
-    # flag (profile / slice / preset / lane / on-failure), the plan we
-    # just built reflects that, so we route through ``run_plan`` for
-    # those cases.
-    legacy_args = (
-        plan.stack_preset_name is None
-        and plan.slice_.start_at == "preprocess"
-        and plan.slice_.stop_after == "final_payload"
-        and all(
-            args_value is None
-            for args_value in (
-                args.preprocess_profile,
-                args.extract_profile,
-                args.routing_profile,
-                args.final_payload_profile,
-                args.start_at,
-                args.stop_after,
-                args.on_failure,
-                args.ollama_cpu_url,
-                args.ollama_jetson_url,
-            )
-        )
-    )
-    if legacy_args:
+    # 002-era test seam when no 011 flags are supplied; otherwise route
+    # through ``run_plan`` so the configured plan is used.
+    if _is_legacy_cold_dispatch(args, plan):
         result = r.run(invocation)
     else:
         result = r.run_plan(plan, folder=dest)
 
-    if result.exit_code == ExitCode.SUCCESS:
-        _emit_stdout_summary(
-            document_id=document_id,
-            routing_decision=result.routing_decision,
-            artifacts=result.artifacts_written,
-        )
-        return int(ExitCode.SUCCESS)
-
-    # Feature 016 / FR-007 / SC-011 / cli-contract.md §3-§4: warmup
-    # failures emit the canonical `error: warmup failed: <cause-class>:
-    # <message>` literal stderr line and exit 15 with NO
-    # StructuredFailureRecord JSON. `result.message` is already shaped
-    # by `_format_stage_exception` to `warmup failed: <cause>: <msg>`,
-    # so the `error: ` prefix is added here.
-    if result.exit_code == ExitCode.WARMUP_FAILED:
-        sys.stderr.write(f"error: {result.message}\n")
-        return int(result.exit_code)
-
-    _emit_failure(
-        StructuredFailureRecord.for_code(
-            result.exit_code,
-            stage=result.stage,
-            message=result.message,
-            artifacts_written=[str(p) for p in result.artifacts_written],
-        )
-    )
-    return int(result.exit_code)
+    return _emit_cold_result(result, document_id)
 
 
 def _run_warm_corpus(

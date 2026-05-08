@@ -324,7 +324,11 @@ def run_warmup(
     # positive 6-decimal value (1e-6) so a successful warmup always
     # surfaces non-zero seconds.
     seconds_rounded = round(elapsed, 6)
-    if seconds_rounded == 0.0:
+    # `elapsed` was already validated `> 0` above, so a zero result here can
+    # only come from rounding-down at the six-decimal grain. `<= 0` is
+    # exactly equivalent to `== 0.0` in this branch and avoids the
+    # SonarCloud float-equality rule (S1244).
+    if seconds_rounded <= 0:
         seconds_rounded = 1e-6
     result = WarmupResult(
         seconds=seconds_rounded,

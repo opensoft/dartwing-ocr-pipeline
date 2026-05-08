@@ -20,6 +20,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from ledgerlinc_ocr.preprocessing import pipeline
 from ledgerlinc_ocr.preprocessing.errors import (
@@ -123,6 +124,66 @@ def _resolve_preprocess_lane(raw_value: str | None) -> str:
     )
 
 
+def _handle_gpu_prerequisite_error(
+    *,
+    exc: Any,
+    invocation: pipeline.Invocation,
+    preprocess_lane: str,
+    stage_timing: StageTiming,
+    exit_code_for_state: Any,
+) -> int:
+    """Common handler for GpuPrerequisiteError raised either during the
+    hoisted warmup pass or during `pipeline.run()` itself.
+
+    Emits the FR-009 stderr envelope, then a partial single-doc
+    `run_summary` carrying whatever phases the preflight probe captured
+    before failing (paddle_import is the most common; gpu_bind_probe /
+    engine_init only when the failure happened later in the classify
+    ladder).
+    """
+    print(
+        f"error: --preprocess-profile=ppstructurev3@gpu: "
+        f"{exc.state.value}; {exc.recommendation}",
+        file=sys.stderr,
+    )
+    _emit_single_doc_run_summary(
+        invocation=invocation,
+        preprocess_lane=preprocess_lane,
+        stage_timing=stage_timing,
+        success=False,
+        failed_stage="preprocess",
+        exit_code=exit_code_for_state(exc.state),
+        message=f"--preprocess-profile=ppstructurev3@gpu: {exc.state.value}; {exc.recommendation}",
+    )
+    return exit_code_for_state(exc.state)
+
+
+def _emit_engine_init_failed(exc: EngineInitError) -> None:
+    """Emit the FR-016 `kind: "engine_init_failed"` stderr JSON envelope
+    with optional weight-download diagnostic fields."""
+    payload: dict[str, object] = {
+        "status": "error",
+        "kind": "engine_init_failed",
+        "cause_class": exc.cause_class,
+        "cause_module": exc.cause_module,
+        "message": str(exc),
+    }
+    if exc.missing_weight is not None:
+        payload["missing_weight"] = exc.missing_weight
+    if exc.weight_hoster_url is not None:
+        payload["weight_hoster_url"] = exc.weight_hoster_url
+    print(json.dumps(payload), file=sys.stderr)
+
+
+def _emit_simple_error_kind(kind: str, message: str) -> None:
+    """Emit the simple `{status:error, kind:<kind>, message:<msg>}` envelope
+    used by input_rejected / artifact_invalid / unexpected branches."""
+    print(
+        json.dumps({"status": "error", "kind": kind, "message": message}),
+        file=sys.stderr,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -139,10 +200,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         preprocess_lane = _resolve_preprocess_lane(args.preprocess_profile)
     except ProfileValidationError as exc:
-        print(
-            json.dumps({"status": "error", "kind": "input_rejected", "message": str(exc)}),
-            file=sys.stderr,
-        )
+        _emit_simple_error_kind("input_rejected", str(exc))
         return EXIT_INPUT_REJECTED
 
     # Feature 016 (T008 / T010 / T021 / FR-010 / SC-007): resolve the warmup
@@ -186,28 +244,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         return EXIT_WARMUP_FAILED
     except _GpuPrerequisiteError as exc:
-        # Feature 014: GPU prereq probing during warmup's
-        # `ensure_gpu_ready()` call surfaces here too. Forward to the
-        # same FR-009 error envelope used by the post-`measure_total`
-        # branch below.
-        print(
-            f"error: --preprocess-profile=ppstructurev3@gpu: "
-            f"{exc.state.value}; {exc.recommendation}",
-            file=sys.stderr,
-        )
-        # Emit a stub run_summary with no phases recorded — preflight
-        # ran but warmup pre-empted before any per-doc timing started.
-        empty_timing = StageTiming(stage="preprocess")
-        _emit_single_doc_run_summary(
+        # GPU prereq probing during warmup's `ensure_gpu_ready()` call
+        # raises here. Pre-measure_total path: stage_timing is empty
+        # because no per-doc timing has started yet.
+        return _handle_gpu_prerequisite_error(
+            exc=exc,
             invocation=invocation,
             preprocess_lane=preprocess_lane,
-            stage_timing=empty_timing,
-            success=False,
-            failed_stage="preprocess",
-            exit_code=_exit_code_for_state(exc.state),
-            message=f"--preprocess-profile=ppstructurev3@gpu: {exc.state.value}; {exc.recommendation}",
+            stage_timing=StageTiming(stage="preprocess"),
+            exit_code_for_state=_exit_code_for_state,
         )
-        return _exit_code_for_state(exc.state)
 
     # Feature 015 (T017): construct a StageTiming so pipeline.run() can
     # record the rasterization / artifact_write phase deltas. Per the
@@ -223,59 +269,26 @@ def main(argv: list[str] | None = None) -> int:
         with out_path.open("r", encoding="utf-8") as f:
             written = json.load(f)
     except _GpuPrerequisiteError as exc:
-        # Feature 014 (T022 / FR-009): name both the selected profile
-        # and the FR-001 state in stderr; exit with the FR-001-state
-        # exit code (10/11/12/13/14) per Contracts §1.
-        print(
-            f"error: --preprocess-profile=ppstructurev3@gpu: "
-            f"{exc.state.value}; {exc.recommendation}",
-            file=sys.stderr,
-        )
-        # Feature 015 (T018): emit a partial run_summary with whatever
-        # phases the GPU prereq probe completed before failure (paddle
-        # import is the most likely; gpu_bind_probe / engine_init only
-        # if the failure happened later in the classify ladder).
-        _emit_single_doc_run_summary(
+        # Post-measure_total path: stage_timing carries whatever phases
+        # the GPU prereq probe completed before failing.
+        return _handle_gpu_prerequisite_error(
+            exc=exc,
             invocation=invocation,
             preprocess_lane=preprocess_lane,
             stage_timing=stage_timing,
-            success=False,
-            failed_stage="preprocess",
-            exit_code=_exit_code_for_state(exc.state),
-            message=f"--preprocess-profile=ppstructurev3@gpu: {exc.state.value}; {exc.recommendation}",
+            exit_code_for_state=_exit_code_for_state,
         )
-        return _exit_code_for_state(exc.state)
     except InputRejectedError as exc:
-        print(
-            json.dumps({"status": "error", "kind": "input_rejected", "message": str(exc)}),
-            file=sys.stderr,
-        )
+        _emit_simple_error_kind("input_rejected", str(exc))
         return EXIT_INPUT_REJECTED
     except EngineInitError as exc:
-        payload: dict[str, object] = {
-            "status": "error",
-            "kind": "engine_init_failed",
-            "cause_class": exc.cause_class,
-            "cause_module": exc.cause_module,
-            "message": str(exc),
-        }
-        if exc.missing_weight is not None:
-            payload["missing_weight"] = exc.missing_weight
-        if exc.weight_hoster_url is not None:
-            payload["weight_hoster_url"] = exc.weight_hoster_url
-        print(json.dumps(payload), file=sys.stderr)
+        _emit_engine_init_failed(exc)
         return EXIT_INTERNAL_ERROR
     except ArtifactInvalidError as exc:
-        print(
-            json.dumps({"status": "error", "kind": "artifact_invalid", "message": str(exc)}),
-            file=sys.stderr,
-        )
+        _emit_simple_error_kind("artifact_invalid", str(exc))
         return EXIT_INTERNAL_ERROR
     except Exception as exc:
-        print(
-            json.dumps({"status": "error", "kind": "unexpected", "message": f"{type(exc).__name__}: {exc}"}),
-            file=sys.stderr,
-        )
+        _emit_simple_error_kind("unexpected", f"{type(exc).__name__}: {exc}")
         return EXIT_UNEXPECTED
 
     print(
