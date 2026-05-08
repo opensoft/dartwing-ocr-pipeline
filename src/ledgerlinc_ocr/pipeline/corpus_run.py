@@ -290,11 +290,14 @@ def run_warm_corpus(
     # The activation surface mirrors the single-doc path: CLI flag
     # `--gpu-warmup` plus env var `LEDGERLINC_GPU_WARMUP=1` (CLI wins).
     # On non-GPU profiles we emit the FR-010 warn-and-proceed line and
-    # skip the warmup invocation. On WarmupError we exit 15 with stderr
+    # skip the warmup invocation. When preprocess is outside the executed
+    # slice, warmup is also skipped because no engine was initialized for
+    # this run. On WarmupError we exit 15 with stderr
     # `error: warmup failed: <cause>` and emit NO run_summary at all
     # (SC-011 (c)).
     _gpu_warmup_optin = is_warmup_optin_set(getattr(args, "gpu_warmup", False))
     _preprocess_profile_raw = getattr(args, "preprocess_profile", None)
+    _preprocess_in_slice = "preprocess" in plan.slice_.stages_in_slice
     # Resolve the plan's preprocess profile to the same lane-string form the
     # single-doc CLI uses ("cpu" / "gpu0") so the activation check goes
     # through `is_gpu_lane()` — single source of truth shared with
@@ -309,8 +312,10 @@ def run_warm_corpus(
         )
         else "cpu"
     )
-    _is_gpu_warmup_active = _gpu_warmup_optin and is_gpu_lane(_warmup_lane)
-    if _gpu_warmup_optin and not _is_gpu_warmup_active:
+    _is_gpu_warmup_active = (
+        _gpu_warmup_optin and _preprocess_in_slice and is_gpu_lane(_warmup_lane)
+    )
+    if _gpu_warmup_optin and _preprocess_in_slice and not _is_gpu_warmup_active:
         # Warn-and-proceed: opt-in set but profile is not ppstructurev3@gpu.
         _profile_name_for_warning = (
             _preprocess_profile_raw if _preprocess_profile_raw else "ppstructurev3@cpu"

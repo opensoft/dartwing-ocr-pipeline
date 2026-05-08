@@ -55,21 +55,28 @@ Negation cases (warmup absent):
 
 ## 5. Validation snippet
 
-The minimal schema fragment a 0.1.3 run_summary MUST satisfy under `phase_timings`:
+The minimal schema fragment a 0.1.3 per-document run_summary entry MUST satisfy:
 
 ```jsonc
-"phase_timings": {
-  "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "paddle_import":       {"$ref": "#/$defs/seconds_record"},   // optional
-    "gpu_bind_probe":      {"$ref": "#/$defs/seconds_record"},   // optional
-    "engine_init":         {"$ref": "#/$defs/seconds_record"},   // optional
-    "warmup":              {"$ref": "#/$defs/seconds_record"},   // optional, NEW in 0.1.3
-    "rasterization":       {"$ref": "#/$defs/seconds_record"},   // optional
-    "per_page_inference":  {"type": "array", "items": {"$ref": "#/$defs/page_record"}}, // optional
-    "artifact_write":      {"$ref": "#/$defs/seconds_record"},   // optional
-    "total":               {"$ref": "#/$defs/seconds_record"}    // optional (always present in practice)
+"type": "object",
+"additionalProperties": false,
+"properties": {
+  "phase_timings": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "paddle_import":  {"$ref": "#/$defs/seconds_record"},  // optional
+      "gpu_bind_probe": {"$ref": "#/$defs/seconds_record"},  // optional
+      "engine_init":    {"$ref": "#/$defs/seconds_record"},  // optional
+      "warmup":         {"$ref": "#/$defs/seconds_record"},  // optional, NEW in 0.1.3
+      "rasterization":  {"$ref": "#/$defs/seconds_record"},  // optional
+      "artifact_write": {"$ref": "#/$defs/seconds_record"},  // optional
+      "total":          {"$ref": "#/$defs/seconds_record"}   // optional (always present in practice)
+    }
+  },
+  "per_page_inference": {
+    "type": "array",
+    "items": {"$ref": "#/$defs/page_record"}  // optional sibling field
   }
 },
 "$defs": {
@@ -91,13 +98,13 @@ The minimal schema fragment a 0.1.3 run_summary MUST satisfy under `phase_timing
 }
 ```
 
-Note: the run_summary stdout line is not stored under `contracts/stage1_vendor_identity/`; it is run-level pipeline observability metadata (Constitution II / Quality Gate #2 inapplicability per plan.md). The fragment above is the contract this feature commits to but is enforced by `tests/pipeline/test_run_summary_schema_0_1_3.py`, not by the stage 1 contract validator.
+Note: the run_summary stdout line is not stored under `contracts/stage1_vendor_identity/`; it is run-level pipeline observability metadata (Constitution II / Quality Gate #2 inapplicability per plan.md). The fragment above is the contract this feature commits to but is enforced by `tests/pipeline_tests/test_run_summary_schema_0_1_3.py`, not by the stage 1 contract validator.
 
 ## 6. Backwards-compatibility guarantees
 
 - Consumers parsing 0.1.2 must continue to parse 0.1.3 output: `phase_timings.warmup` is OPTIONAL and ADDITIVE.
 - Consumers MUST NOT reject a run_summary as malformed if `phase_timings.warmup` is present. The lineage of additive 0.1.x bumps means consumers built for any 0.1.x version should ignore unknown optional keys (this is the long-standing additive-only rule from feature 014 FR-014, restated by feature 015 FR-014).
-- Existing 0.1.2 fields (legacy flat `stages.preprocess.{total_seconds, gpu_init_seconds, gpu_inference_seconds}` and structured `phase_timings.{paddle_import, gpu_bind_probe, engine_init, rasterization, per_page_inference, artifact_write, total}`) are unchanged in name and shape.
+- Existing 0.1.2 fields (legacy flat `stages.preprocess.{total_seconds, gpu_init_seconds, gpu_inference_seconds}` and structured `phase_timings.{paddle_import, gpu_bind_probe, engine_init, rasterization, artifact_write, total}` plus sibling `per_page_inference`) are unchanged in name and shape.
 - Legacy flat `gpu_init_seconds` continues to mean `paddle_import + gpu_bind_probe + engine_init` only — warmup time is NEVER folded in (FR-009).
 - **Negative assertion (FR-009 explicit)**: warmup time MUST NOT inflate `stages.preprocess.gpu_init_seconds`, `stages.preprocess.gpu_inference_seconds`, or `stages.preprocess.total_seconds`. The legacy flat-key emission for a warmup-enabled run MUST be byte-identical to the same run without the warmup opt-in. This pins the contract for legacy 0.1.1 consumers — they continue to read identical numbers regardless of warmup state.
 

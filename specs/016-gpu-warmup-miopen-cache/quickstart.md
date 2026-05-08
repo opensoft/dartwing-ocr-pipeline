@@ -34,18 +34,22 @@ Clears the MIOpen / COMGR caches, runs warmup-enabled `ppstructurev3@gpu` on a s
 # Clear the caches. This is the operator action FR-017 / SC-009 documents.
 rm -rf "$HOME/.cache/miopen" "$HOME/.cache/comgr"
 
-# Single-doc cold-cache run.
+# Single-doc cold-cache run. Use a scratch copy so the committed corpus
+# baseline under tests/stage1_vendor_identity/ is not modified.
+rm -rf /tmp/inv_001_easy_cold
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_cold
+
 python -m ledgerlinc_ocr.preprocessing \
+  --document-folder /tmp/inv_001_easy_cold \
   --preprocess-profile=ppstructurev3@gpu \
   --gpu-warmup \
-  --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-dir tests/stage1_vendor_identity/inv_001_easy/ \
+  > /tmp/warmup_cold.stdout \
   2> /tmp/warmup_cold.stderr
 
 # Inspect run_summary.
-cat tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json | head -5
-# Or, if you ran via warm-corpus mode, the run_summary is the last stdout line:
-# python -m ledgerlinc_ocr.pipeline ... | tail -1 | jq '.per_document[0].phase_timings'
+tail -1 /tmp/warmup_cold.stdout | jq '.per_document[0] | {phase_timings, per_page_inference}'
+# Warm-corpus equivalent:
+# python -m ledgerlinc_ocr.pipeline run ... | tail -1 | jq '.per_document[0] | {phase_timings, per_page_inference}'
 ```
 
 Expected fragment of the first per-document run_summary entry:
@@ -60,10 +64,10 @@ Expected fragment of the first per-document run_summary entry:
     "engine_init":       {"seconds": <few-seconds>},
     "warmup":            {"seconds": <COLD-VALUE>},     // ← key new in 0.1.3
     "rasterization":     {"seconds": <small>},
-    "per_page_inference":[{"page": 1, "seconds": <steady-state>}],
     "artifact_write":    {"seconds": <small>},
     "total":             {"seconds": <sum-excluding-warmup>}
-  }
+  },
+  "per_page_inference": [{"page": 1, "seconds": <steady-state>}]
 }
 ```
 
@@ -76,11 +80,14 @@ Runs the same command in a fresh process WITHOUT clearing caches; warmup hits th
 ```bash
 # DO NOT clear caches — that is the whole point of this run.
 
+rm -rf /tmp/inv_001_easy_warm
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_warm
+
 python -m ledgerlinc_ocr.preprocessing \
+  --document-folder /tmp/inv_001_easy_warm \
   --preprocess-profile=ppstructurev3@gpu \
   --gpu-warmup \
-  --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-dir tests/stage1_vendor_identity/inv_001_easy/ \
+  > /tmp/warmup_warm.stdout \
   2> /tmp/warmup_warm.stderr
 ```
 
@@ -93,13 +100,16 @@ Compare `phase_timings.warmup.seconds` from this run to **Appendix A**'s cold va
 **Byte-identity check** (FR-018 / SC-008):
 
 ```bash
-sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json
+sha256sum /tmp/inv_001_easy_warm/preprocess_output.json
 # Compare to a non-warmup run:
+rm -rf /tmp/inv_001_easy_no_warmup
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_no_warmup
 python -m ledgerlinc_ocr.preprocessing \
+  --document-folder /tmp/inv_001_easy_no_warmup \
   --preprocess-profile=ppstructurev3@gpu \
-  --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-dir /tmp/no-warmup/
-sha256sum /tmp/no-warmup/preprocess_output.json
+  > /tmp/no-warmup.stdout \
+  2> /tmp/no-warmup.stderr
+sha256sum /tmp/inv_001_easy_no_warmup/preprocess_output.json
 # The two digests MUST match.
 ```
 
@@ -111,11 +121,15 @@ Validates the operator-triage path documented in US2 acceptance #3.
 # Clear ONLY the COMGR cache. MIOpen kernel DB stays warm.
 rm -rf "$HOME/.cache/comgr"
 
+rm -rf /tmp/inv_001_easy_comgr_only
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_comgr_only
+
 python -m ledgerlinc_ocr.preprocessing \
+  --document-folder /tmp/inv_001_easy_comgr_only \
   --preprocess-profile=ppstructurev3@gpu \
   --gpu-warmup \
-  --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-dir tests/stage1_vendor_identity/inv_001_easy/
+  > /tmp/warmup_comgr_only.stdout \
+  2> /tmp/warmup_comgr_only.stderr
 ```
 
 Expected: `phase_timings.warmup.seconds` rises measurably from § 2's warm-cache baseline (because COMGR has to recompile shaders) but is typically below the § 1 cold-cache total. Record the value in **Appendix A** so the docs deliverable can quote a representative number.
@@ -126,18 +140,24 @@ Validates the FR-010 / SC-007 contract clarified per /speckit.clarify Q1.
 
 ```bash
 # CPU path with the opt-in set anyway.
+rm -rf /tmp/inv_001_easy_cpu_warmup
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_cpu_warmup
+
 python -m ledgerlinc_ocr.preprocessing \
+  --document-folder /tmp/inv_001_easy_cpu_warmup \
   --preprocess-profile=ppstructurev3@cpu \
   --gpu-warmup \
-  --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-dir /tmp/cpu-warmup-check/ \
+  > /tmp/cpu-warmup-check.stdout \
   2> /tmp/cpu-warmup-check.stderr
 
 # Or via env var (matches CI ergonomics):
+rm -rf /tmp/inv_001_easy_cpu_warmup_env
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_cpu_warmup_env
+
 LEDGERLINC_GPU_WARMUP=1 python -m ledgerlinc_ocr.preprocessing \
+  --document-folder /tmp/inv_001_easy_cpu_warmup_env \
   --preprocess-profile=ppstructurev3@cpu \
-  --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-dir /tmp/cpu-warmup-envvar-check/ \
+  > /tmp/cpu-warmup-envvar-check.stdout \
   2> /tmp/cpu-warmup-envvar-check.stderr
 
 # Both runs MUST:
@@ -161,7 +181,7 @@ Validates SC-011. The failure path is hard to trigger naturally, so this section
 4. Write no `preprocess_output.json` (the output dir for the targeted document MUST be empty or unchanged from before the run).
 5. NOT silently fall back to a no-warmup run.
 
-The integration test `tests/pipeline/test_warmup_failure_path.py @gpu` exercises this with a controlled monkeypatch. CPU-safe variant in `tests/preprocessing/test_warmup_unit.py::test_warmup_predict_raises_wraps_to_warmup_error`.
+The integration test `tests/pipeline_tests/test_warmup_failure_path.py @gpu` exercises this with a controlled monkeypatch. CPU-safe variant in `tests/unit/preprocessing/test_warmup_unit.py::test_warmup_predict_raises_wraps_to_warmup_error`.
 
 ## 6. Test suite
 
@@ -171,7 +191,7 @@ The integration test `tests/pipeline/test_warmup_failure_path.py @gpu` exercises
 
 # GPU suite — workstation only (FR-012). Defer with FR-014 if no GPU is
 # available at landing time; tasks.md MUST capture the deferred verification.
-.venv-paddle-rocm/bin/pytest -m gpu tests/preprocessing/test_warmup_*.py tests/pipeline/test_warmup_*.py
+.venv-paddle-rocm/bin/pytest -m gpu tests/unit/preprocessing/test_warmup_*.py tests/pipeline_tests/test_warmup_*.py
 ```
 
 ## Appendix A: Workstation cold-vs-warm verification log (filled at landing)
