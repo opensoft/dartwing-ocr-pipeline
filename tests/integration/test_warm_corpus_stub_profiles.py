@@ -61,13 +61,12 @@ def test_warm_corpus_stub_run(tmp_path: Path, capsys: pytest.CaptureFixture[str]
     assert len(out) == 4
     summary = json.loads(out[-1])
     assert summary["kind"] == "run_summary"
-    # Feature 014 (T027 / R-014.6): SCHEMA_VERSION bumped from "0.1.0" →
-    # "0.1.1" (additive bump — new optional keys preprocess_lane,
-    # gpu_init_seconds, gpu_inference_seconds, gpu_lane_forced_abort).
-    # 0.1.0-shape parsers continue to read 0.1.1 output by ignoring
-    # unknown keys; this assertion tracks the producer's current
-    # emitted version.
-    assert summary["schema_version"] == "0.1.1"
+    # Feature 015 (T011 / R-015.4): SCHEMA_VERSION bumped from "0.1.1" →
+    # "0.1.2" (additive bump — new optional per-document keys
+    # phase_timings, per_page_inference). 0.1.1-shape parsers continue
+    # to read 0.1.2 output by ignoring unknown keys; this assertion
+    # tracks the producer's current emitted version.
+    assert summary["schema_version"] == "0.1.2"
     assert summary["documents_total"] == 3
     assert summary["documents_succeeded"] == 3
     assert summary["documents_failed"] == 0

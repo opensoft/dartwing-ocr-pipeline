@@ -6,24 +6,74 @@ Internal arithmetic stays in integer nanoseconds (``time.monotonic_ns``).
 Conversion to seconds happens only at serialization time, rounded to six
 decimal places (R-015). Phase keys absent from a stage's timing map mean
 "not measured" (R-009 phase-key absence policy).
+
+Feature 015 (T021): live stage adapters need access to the active
+StageTiming so they can record fine-grained phase keys (e.g.,
+preprocess's `rasterization` and `artifact_write` per FR-013) on
+the same map the Runner is already using for the coarse `infer` /
+`write` phases. The Runner sets `_CURRENT_STAGE_TIMING` (a
+contextvars.ContextVar) just before invoking the stage callable;
+adapters call `current_stage_timing()` to retrieve it.
 """
 from __future__ import annotations
 
+import contextvars
 import json
 import sys
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any, Iterator, Optional
 
 from ledgerlinc_ocr.pipeline.profiles import Stage
+
+
+# Feature 015 (T021): contextvar that the Runner populates with the
+# active StageTiming for the stage currently being executed. Live
+# stage adapters read this to thread fine-grained phase timings into
+# the same StageTiming the Runner is using for the coarse phase. The
+# default is None — meaning "no Runner is wrapping us; do not record."
+_CURRENT_STAGE_TIMING: contextvars.ContextVar[Optional["StageTiming"]] = (
+    contextvars.ContextVar("ledgerlinc_ocr.pipeline.timing._CURRENT_STAGE_TIMING", default=None)
+)
+
+
+def current_stage_timing() -> Optional["StageTiming"]:
+    """Return the active per-stage StageTiming or None when not inside a
+    Runner-wrapped stage call."""
+    return _CURRENT_STAGE_TIMING.get()
+
+
+@contextmanager
+def bind_current_stage_timing(stage_timing: "StageTiming"):
+    """Context manager: bind ``stage_timing`` as the active per-stage
+    StageTiming for the duration of the block.
+
+    The Runner uses this around each stage_callable invocation so live
+    adapters can call ``current_stage_timing()`` to thread fine-grained
+    phase keys (e.g., ``rasterization``, ``artifact_write``) into the
+    same StageTiming the Runner is recording the coarse phase on.
+    """
+    token = _CURRENT_STAGE_TIMING.set(stage_timing)
+    try:
+        yield
+    finally:
+        _CURRENT_STAGE_TIMING.reset(token)
 
 # Feature 014 (T027 / R-014.6): patch bump for additive `preprocess_lane`,
 # `gpu_init_seconds`, `gpu_inference_seconds`, and the optional
 # `gpu_lane_forced_abort` per-document flag. Consumers MUST ignore
 # unknown keys; pre-feature 0.1.0 parsers continue to read 0.1.1
 # output without error per the additive contract.
-SCHEMA_VERSION = "0.1.1"
+#
+# Feature 015 (T011 / R-015.4): patch bump 0.1.1 → 0.1.2 for additive
+# `phase_timings: {<name>: {seconds: float}}` and `per_page_inference:
+# [{page, seconds}, …]` per-document fields. The legacy 0.1.1 flat keys
+# (`stages.preprocess.{total_seconds, gpu_init_seconds,
+# gpu_inference_seconds}`) are preserved unchanged for one schema
+# version of back-compat (FR-014). Consumers built against 0.1.1
+# continue to read 0.1.2 output without changes.
+SCHEMA_VERSION = "0.1.2"
 
 
 def _ns_to_seconds(ns: int) -> float:
@@ -144,18 +194,83 @@ def emit_run_summary(summary: RunSummary, *, stream: Any = None) -> None:
     target.write(summary.as_json_line() + "\n")
 
 
+def attach_one_time_gpu_phases(record: dict[str, Any], readout: Any) -> None:
+    """Attach the GPU one-time phase keys (`paddle_import`,
+    `gpu_bind_probe`, `engine_init`) to a per-document run_summary record's
+    `phase_timings` block (feature 015 / T027 / R-015.4).
+
+    `readout` is a `PreflightReadout` (or any object with an `evidence`
+    attribute carrying the three `*_seconds` fields). Phases whose source
+    value is None are omitted (FR-016). The record's `phase_timings`
+    sub-dict is created if absent."""
+    ev = getattr(readout, "evidence", None)
+    if ev is None:
+        return
+    phase_timings = record.setdefault("phase_timings", {})
+    paddle_import_seconds = getattr(ev, "paddle_import_seconds", None)
+    gpu_bind_probe_seconds = getattr(ev, "gpu_bind_probe_seconds", None)
+    engine_init_seconds = getattr(ev, "ppstructurev3_init_seconds", None)
+    if paddle_import_seconds is not None:
+        phase_timings["paddle_import"] = {"seconds": paddle_import_seconds}
+    if gpu_bind_probe_seconds is not None:
+        phase_timings["gpu_bind_probe"] = {"seconds": gpu_bind_probe_seconds}
+    if engine_init_seconds is not None:
+        phase_timings["engine_init"] = {"seconds": engine_init_seconds}
+
+
 def build_per_document_success(
     *,
     document_id: str,
     folder: str,
     timings: DocumentTimings,
+    phase_timings: dict[str, dict[str, float]] | None = None,
+    per_page_inference: list[dict[str, Any]] | list[tuple[int, float]] | None = None,
 ) -> dict[str, Any]:
-    return {
+    """Build a successful per-document run_summary entry.
+
+    Feature 015 (T012 / R-015.4): adds two optional keyword-only
+    parameters carrying the new structured run_summary 0.1.2 shape:
+
+    - ``phase_timings``: ``{<phase_name>: {"seconds": <float>}}`` — when
+      provided non-None, attached to the returned dict under
+      ``"phase_timings"``. Phases that did not run MUST be passed as
+      omitted dict keys (callers' responsibility per FR-016).
+    - ``per_page_inference``: list of ``{"page": int, "seconds": float}``
+      records OR list of ``(page, seconds)`` tuples (auto-converted) —
+      when provided non-None, attached under ``"per_page_inference"``.
+
+    The legacy ``stages`` flat-key emission is preserved unchanged for
+    back-compat (one schema version of 0.1.1 → 0.1.2 transition)."""
+    out: dict[str, Any] = {
         "document_id": document_id,
         "folder": folder,
         "status": "success",
         "stages": timings.to_summary_dict(),
     }
+    if phase_timings is not None:
+        out["phase_timings"] = dict(phase_timings)
+    if per_page_inference is not None:
+        out["per_page_inference"] = _normalize_per_page(per_page_inference)
+    return out
+
+
+def _normalize_per_page(
+    per_page: list[dict[str, Any]] | list[tuple[int, float]],
+) -> list[dict[str, Any]]:
+    """Accept either dict-form or tuple-form per-page records and return
+    the canonical dict-form list."""
+    out: list[dict[str, Any]] = []
+    for entry in per_page:
+        if isinstance(entry, tuple) and len(entry) == 2:
+            page, seconds = entry
+            out.append({"page": int(page), "seconds": float(seconds)})
+        elif isinstance(entry, dict) and "page" in entry and "seconds" in entry:
+            out.append({"page": int(entry["page"]), "seconds": float(entry["seconds"])})
+        else:
+            raise ValueError(
+                f"per_page_inference entry has unsupported shape: {entry!r}"
+            )
+    return out
 
 
 def build_per_document_failure(
@@ -167,6 +282,8 @@ def build_per_document_failure(
     message: str,
     timings: DocumentTimings | None = None,
     gpu_lane_forced_abort: bool = False,
+    phase_timings: dict[str, dict[str, float]] | None = None,
+    per_page_inference: list[dict[str, Any]] | list[tuple[int, float]] | None = None,
 ) -> dict[str, Any]:
     """Feature 014 (T024 / CF9): adds the optional keyword-only
     ``gpu_lane_forced_abort: bool = False`` parameter. When ``True``,
@@ -187,6 +304,13 @@ def build_per_document_failure(
         out["stages"] = timings.to_summary_dict()
     if gpu_lane_forced_abort:
         out["gpu_lane_forced_abort"] = True
+    # Feature 015 (T012 / R-015.5 / FP1): partial phase_timings and
+    # per_page_inference may be attached to a failed-doc record. Phases
+    # that did not run MUST be passed as omitted dict keys (FR-016).
+    if phase_timings is not None:
+        out["phase_timings"] = dict(phase_timings)
+    if per_page_inference is not None:
+        out["per_page_inference"] = _normalize_per_page(per_page_inference)
     return out
 
 

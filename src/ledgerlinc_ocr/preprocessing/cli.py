@@ -5,6 +5,13 @@ the closed-set vocabulary from `pipeline.profiles` (default
 ``ppstructurev3@cpu``; ``ppstructurev3@gpu`` is the new opt-in lane).
 Catches `GpuPrerequisiteError` raised by the inline gate in T021 and
 exits with the FR-001-state-mapped exit code per Contracts §1.
+
+Feature 015 (T017 / R-015.6 / FR-014): single-doc runs now emit a
+final `kind: "run_summary"` JSON line on stdout with `documents_total: 1`,
+the structured `phase_timings` block per FR-014 + Q3, and the
+`per_page_inference` array on the GPU lane. Previous status JSON line
+is preserved before the run_summary line for back-compat with
+existing consumers.
 """
 
 from __future__ import annotations
@@ -28,6 +35,16 @@ from ledgerlinc_ocr.pipeline.profiles import (
     PPSTRUCTUREV3_CPU,
     ProfileValidationError,
     parse_profile,
+)
+from ledgerlinc_ocr.pipeline.timing import (
+    DocumentTimings,
+    RunSummary,
+    StageTiming,
+    attach_one_time_gpu_phases as timing_attach_one_time_gpu_phases,
+    build_per_document_failure,
+    build_per_document_success,
+    emit_run_summary,
+    measure_total,
 )
 
 # Feature 014 / VT-003: `preflight` types (GpuPrerequisiteError,
@@ -111,8 +128,17 @@ def main(argv: list[str] | None = None) -> int:
         preprocess_lane=preprocess_lane,
     )
 
+    # Feature 015 (T017): construct a StageTiming so pipeline.run() can
+    # record the rasterization / artifact_write phase deltas. Per the
+    # `pipeline.run()` contract (caller owns `measure_total` when
+    # `stage_timing` is passed in), wrap the call in `measure_total`
+    # here so the GPU-prereq failure path below also records elapsed
+    # time even when pipeline.run() raises before completing.
+    stage_timing = StageTiming(stage="preprocess")
+
     try:
-        out_path = pipeline.run(invocation)
+        with measure_total(stage_timing):
+            out_path = pipeline.run(invocation, stage_timing=stage_timing)
         with out_path.open("r", encoding="utf-8") as f:
             written = json.load(f)
     except _GpuPrerequisiteError as exc:
@@ -123,6 +149,19 @@ def main(argv: list[str] | None = None) -> int:
             f"error: --preprocess-profile=ppstructurev3@gpu: "
             f"{exc.state.value}; {exc.recommendation}",
             file=sys.stderr,
+        )
+        # Feature 015 (T018): emit a partial run_summary with whatever
+        # phases the GPU prereq probe completed before failure (paddle
+        # import is the most likely; gpu_bind_probe / engine_init only
+        # if the failure happened later in the classify ladder).
+        _emit_single_doc_run_summary(
+            invocation=invocation,
+            preprocess_lane=preprocess_lane,
+            stage_timing=stage_timing,
+            success=False,
+            failed_stage="preprocess",
+            exit_code=_exit_code_for_state(exc.state),
+            message=f"--preprocess-profile=ppstructurev3@gpu: {exc.state.value}; {exc.recommendation}",
         )
         return _exit_code_for_state(exc.state)
     except InputRejectedError as exc:
@@ -168,7 +207,151 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
     )
+
+    # Feature 015 (T017 / R-015.6 / FR-014): emit the run_summary line
+    # with the new structured phase_timings + per_page_inference blocks.
+    _emit_single_doc_run_summary(
+        invocation=invocation,
+        preprocess_lane=preprocess_lane,
+        stage_timing=stage_timing,
+        success=True,
+        document_id=written["document_id"],
+    )
+
     return EXIT_OK
+
+
+def _build_phase_timings_from_stage(
+    stage_timing: StageTiming,
+) -> dict[str, dict[str, float]]:
+    """Convert `StageTiming.phases_ns` into the FR-014 structured form.
+
+    Returns `{<phase_name>: {"seconds": <float>}}` for every recorded
+    phase, plus `total: {"seconds": <float>}` derived from
+    `stage_timing.total_ns`. Phases not recorded (e.g., `artifact_write`
+    when the run aborted before write) are absent from the dict — never
+    set to zero (FR-016)."""
+    phase_timings: dict[str, dict[str, float]] = {}
+    for phase_key, ns in stage_timing.phases_ns.items():
+        phase_timings[phase_key] = {"seconds": round(ns / 1e9, 6)}
+    if stage_timing.total_ns > 0:
+        phase_timings["total"] = {"seconds": round(stage_timing.total_ns / 1e9, 6)}
+    return phase_timings
+
+
+def _attach_one_time_gpu_phases(
+    phase_timings: dict[str, dict[str, float]],
+    preprocess_lane: str,
+) -> None:
+    """On a successful first GPU-lane document, attach the GPU one-time
+    phase keys (`paddle_import`, `gpu_bind_probe`, `engine_init`) from
+    the cached preflight readout. CPU runs leave `phase_timings`
+    untouched (FR-017 / ISO1).
+
+    Delegates field-name mapping and None-omission rules to
+    `pipeline.timing.attach_one_time_gpu_phases` so the warm-corpus
+    and single-doc paths cannot drift.
+    """
+    if not preprocess_lane.startswith("gpu"):
+        return
+    try:
+        from ledgerlinc_ocr.preprocessing.preflight import (
+            get_last_readout as _get_last_readout,
+        )
+    except ImportError:
+        return
+    readout = _get_last_readout()
+    if readout is None:
+        return
+    timing_attach_one_time_gpu_phases(
+        {"phase_timings": phase_timings}, readout
+    )
+
+
+def _emit_single_doc_run_summary(
+    *,
+    invocation: pipeline.Invocation,
+    preprocess_lane: str,
+    stage_timing: StageTiming,
+    success: bool,
+    document_id: str | None = None,
+    failed_stage: str | None = None,
+    exit_code: int | None = None,
+    message: str | None = None,
+) -> None:
+    """Emit the final `kind: "run_summary"` JSON line for a single-doc run.
+
+    Single-doc emits the same shape as warm-corpus mode (R-015.6) so
+    SC-005's "identify the slowest phase" analysis works the same way
+    in both contexts. Output is the very last stdout line, after the
+    existing `{"status": "ok", ...}` summary line."""
+    phase_timings = _build_phase_timings_from_stage(stage_timing)
+
+    # GPU one-time phases attach only on the GPU lane.
+    _attach_one_time_gpu_phases(phase_timings, preprocess_lane)
+
+    # GPU per-page inference array (drained from ocr accumulator).
+    per_page_inference: list[tuple[int, float]] | None = None
+    if preprocess_lane.startswith("gpu"):
+        from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+        per_page_inference = _ocr_mod.take_gpu_inference_per_page()
+    else:
+        # CPU lane: drain to avoid leaking accumulator state across calls
+        # but do NOT attach to the run_summary (FR-017 / ISO1).
+        from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+        _ocr_mod.take_gpu_inference_per_page()
+
+    folder_str = str(invocation.document_folder)
+    doc_timings = DocumentTimings(stages={"preprocess": stage_timing})
+
+    if success:
+        per_doc_record = build_per_document_success(
+            document_id=document_id or invocation.document_folder.name,
+            folder=folder_str,
+            timings=doc_timings,
+            phase_timings=phase_timings,
+            per_page_inference=per_page_inference,
+        )
+        documents_succeeded = 1
+        documents_failed = 0
+    else:
+        per_doc_record = build_per_document_failure(
+            document_id=document_id or invocation.document_folder.name,
+            folder=folder_str,
+            failed_stage=failed_stage or "preprocess",
+            exit_code=exit_code if exit_code is not None else EXIT_INTERNAL_ERROR,
+            message=message or "single-doc preprocess failure",
+            timings=doc_timings if stage_timing.phases_ns or stage_timing.total_ns else None,
+            phase_timings=phase_timings if phase_timings else None,
+            per_page_inference=per_page_inference,
+        )
+        documents_succeeded = 0
+        documents_failed = 1
+
+    summary = RunSummary(
+        stack_preset=None,
+        resolved_profiles={"preprocess": _profile_slug_for_lane(preprocess_lane)},
+        execution_slice={"start_at": "preprocess", "stop_after": "preprocess"},
+        on_failure="continue",
+        documents_total=1,
+        documents_succeeded=documents_succeeded,
+        documents_failed=documents_failed,
+        per_document=[per_doc_record],
+        preprocess_lane=preprocess_lane,
+    )
+    emit_run_summary(summary)
+
+
+def _profile_slug_for_lane(lane: str) -> str:
+    """Reverse-map the lane string back to the canonical profile slug
+    for `resolved_profiles`. CPU → ppstructurev3@cpu; gpu0 → ppstructurev3@gpu."""
+    if lane == "cpu":
+        return "ppstructurev3@cpu"
+    if lane.startswith("gpu"):
+        return "ppstructurev3@gpu"
+    return lane
 
 
 if __name__ == "__main__":

@@ -155,7 +155,7 @@ def test_omitted_profile_does_not_invoke_gate(folder_with_pdf: Path, monkeypatch
     # placeholder PDF — just check that the gate doesn't fire).
     from ledgerlinc_ocr.preprocessing import pipeline
 
-    def _fake_run(invocation):
+    def _fake_run(invocation, **kwargs):
         # Confirm the lane is cpu when no flag is passed.
         assert invocation.preprocess_lane == "cpu"
         out = invocation.document_folder / "preprocess_output.json"

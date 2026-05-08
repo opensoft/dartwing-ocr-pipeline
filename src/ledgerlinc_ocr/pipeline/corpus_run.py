@@ -42,6 +42,7 @@ from ledgerlinc_ocr.pipeline.runner import (
 from ledgerlinc_ocr.pipeline.stages import is_live_capable
 from ledgerlinc_ocr.pipeline.timing import (
     RunSummary,
+    attach_one_time_gpu_phases,
     build_per_document_failure,
     build_per_document_success,
     emit_run_summary,
@@ -332,19 +333,63 @@ def run_warm_corpus(
                 routing_decision=result.routing_decision,
                 artifacts=result.artifacts_written,
             )
+            # Feature 015 (T021 / R-015.4): build the structured
+            # phase_timings + per_page_inference blocks that ship in the
+            # 0.1.2 schema. Source data: result.timings.stages[PREPROCESS]
+            # carries `infer` / `write` (Runner-level) plus the
+            # feature-015 fine-grained `rasterization` / `artifact_write`
+            # / `total` keys threaded in via the contextvar by the
+            # live adapter (stages.py::_ppstructurev3_factory). The
+            # per-page inference array drains from the ocr accumulator.
+            from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+            preprocess_lane_now = (
+                "gpu0" if (
+                    plan.profiles.get("preprocess") is not None
+                    and plan.profiles["preprocess"].lane == "gpu"
+                ) else "cpu"
+            )
+
+            # Build phase_timings from the StageTiming map.
+            phase_timings: dict[str, dict[str, float]] = {}
+            preprocess_st = result.timings.stages.get("preprocess")
+            if preprocess_st is not None:
+                for phase_key, ns in preprocess_st.phases_ns.items():
+                    # Skip the Runner-level coarse keys ("infer", "write")
+                    # — they live in the legacy `stages.preprocess` flat
+                    # form and the FR-013 phase set is the new canonical
+                    # vocabulary. Coarse keys are not in FR-013.
+                    if phase_key in {"rasterization", "artifact_write"}:
+                        phase_timings[phase_key] = {
+                            "seconds": round(ns / 1e9, 6)
+                        }
+                if preprocess_st.total_ns > 0:
+                    phase_timings["total"] = {
+                        "seconds": round(preprocess_st.total_ns / 1e9, 6)
+                    }
+
+            # Drain per-page inference accumulator. CPU lane always drains
+            # (to avoid leaking state) but only attaches on GPU per
+            # FR-017 / ISO1.
+            _per_page_drained = _ocr_mod.take_gpu_inference_per_page()
+            per_page_inference: list[tuple[int, float]] | None = None
+            if preprocess_lane_now.startswith("gpu") and _per_page_drained:
+                per_page_inference = _per_page_drained
+
             success_record = build_per_document_success(
                 document_id=invocation.document_id,
                 folder=folder_raw,
                 timings=result.timings,
+                phase_timings=phase_timings if phase_timings else None,
+                per_page_inference=per_page_inference,
             )
-            # Feature 014 (T030): drain the per-document GPU inference
-            # accumulator and emit `gpu_inference_seconds` on the
-            # preprocess stage of this success record. CPU runs return
-            # None (key absent per R-009 absence policy).
-            from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
-
-            _gpu_inf = _ocr_mod.take_gpu_inference_seconds()
-            if _gpu_inf is not None:
+            # Feature 014 (T030): legacy gpu_inference_seconds flat key
+            # (sum of per-page seconds) preserved for one schema version.
+            if (
+                preprocess_lane_now.startswith("gpu")
+                and _per_page_drained
+            ):
+                _gpu_inf = round(sum(s for _, s in _per_page_drained), 6)
                 stages_map = success_record.setdefault("stages", {})
                 preprocess_stage = stages_map.setdefault(
                     "preprocess", {"total_seconds": 0.0}
@@ -388,6 +433,30 @@ def run_warm_corpus(
                     ],
                 )
             )
+            # Feature 015 (T023 / Q5 / FP1 / FP2): build partial
+            # phase_timings + per_page_inference for the failed doc.
+            # Phases that did not run are absent from the dict per FR-016.
+            from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+            preprocess_lane_now = "gpu0" if is_gpu_lane else "cpu"
+            failure_phase_timings: dict[str, dict[str, float]] = {}
+            preprocess_st = result.timings.stages.get("preprocess")
+            if preprocess_st is not None:
+                for phase_key, ns in preprocess_st.phases_ns.items():
+                    if phase_key in {"rasterization", "artifact_write"}:
+                        failure_phase_timings[phase_key] = {
+                            "seconds": round(ns / 1e9, 6)
+                        }
+                if preprocess_st.total_ns > 0:
+                    failure_phase_timings["total"] = {
+                        "seconds": round(preprocess_st.total_ns / 1e9, 6)
+                    }
+
+            _failure_per_page_drained = _ocr_mod.take_gpu_inference_per_page()
+            failure_per_page: list[tuple[int, float]] | None = None
+            if preprocess_lane_now.startswith("gpu") and _failure_per_page_drained:
+                failure_per_page = _failure_per_page_drained
+
             per_document_records.append(
                 build_per_document_failure(
                     document_id=invocation.document_id,
@@ -397,6 +466,8 @@ def run_warm_corpus(
                     message=failure_message,
                     timings=result.timings,
                     gpu_lane_forced_abort=is_gpu_lane,
+                    phase_timings=failure_phase_timings if failure_phase_timings else None,
+                    per_page_inference=failure_per_page,
                 )
             )
             if plan.failure_policy.fail_fast or is_gpu_lane:
@@ -423,6 +494,12 @@ def run_warm_corpus(
     # entry's preprocess stage as `gpu_init_seconds`. Phase keys absent
     # on subsequent docs per R-009 absence policy. T029 reads the cache
     # set by T023; it MUST NOT re-call classify(...).
+    #
+    # Feature 015 (T022 / FR-015 / R-015.4): also attach the structured
+    # GPU one-time phase keys (paddle_import / gpu_bind_probe /
+    # engine_init) to the same first-successful per_document entry's
+    # `phase_timings` block. The legacy flat `gpu_init_seconds` is
+    # preserved for one schema version of back-compat (FR-014).
     if (
         _resolved_preprocess_lane.startswith("gpu")
         and _PREFLIGHT_READOUT is not None
@@ -436,6 +513,11 @@ def run_warm_corpus(
                     "preprocess", {"total_seconds": 0.0}
                 )
                 preprocess_stage["gpu_init_seconds"] = _init_seconds
+                # Feature 015: shared helper attaches structured form
+                # (paddle_import / gpu_bind_probe / engine_init) so warm-
+                # corpus and single-doc paths stay in sync on field names
+                # and None-omission rules.
+                attach_one_time_gpu_phases(record, _PREFLIGHT_READOUT)
                 break
 
     summary = RunSummary(
@@ -493,6 +575,18 @@ def _emit_warm_init_failure_summary(
     _warm_lane = (
         "gpu0" if _pp_profile is not None and _pp_profile.lane == "gpu" else "cpu"
     )
+    # Feature 015 (T024 / FP1): on warm-init failure, attach whatever
+    # GPU prereq phase timings were captured before the failure (e.g.,
+    # `paddle_import` if step 1 ran). Reads from `_PREFLIGHT_READOUT`
+    # if it was set by the warm factory before the abort. Field names
+    # and None-omission rules come from the shared helper so warm-
+    # corpus and single-doc emission cannot drift.
+    _warm_init_failure_phase_timings: dict[str, dict[str, float]] = {}
+    if _warm_lane.startswith("gpu") and _PREFLIGHT_READOUT is not None:
+        _scratch: dict[str, Any] = {}
+        attach_one_time_gpu_phases(_scratch, _PREFLIGHT_READOUT)
+        _warm_init_failure_phase_timings = _scratch.get("phase_timings", {})
+
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -516,6 +610,11 @@ def _emit_warm_init_failure_summary(
                 failed_stage="preprocess",
                 exit_code=int(ExitCode.PROCESSING_FAILURE),
                 message=message,
+                phase_timings=(
+                    _warm_init_failure_phase_timings
+                    if _warm_init_failure_phase_timings
+                    else None
+                ),
             )
         ],
     )

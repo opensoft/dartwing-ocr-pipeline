@@ -28,10 +28,13 @@ from ledgerlinc_ocr.pipeline.timing import (
 )
 
 
-def test_runsummary_schema_version_bumped_to_0_1_1() -> None:
-    """T027: SCHEMA_VERSION constant is bumped from 0.1.0 to 0.1.1
-    (additive bump per R-014.6)."""
-    assert SCHEMA_VERSION == "0.1.1"
+def test_runsummary_schema_version_bumped_to_at_least_0_1_1() -> None:
+    """T027: SCHEMA_VERSION was bumped from 0.1.0 to 0.1.1 (R-014.6).
+    Feature 015 (T011 / R-015.4) further bumped 0.1.1 → 0.1.2 additively;
+    consumers built against 0.1.1 continue to read 0.1.2 unchanged. The
+    invariant this test guards is "≥ 0.1.1," not exact equality."""
+    parts = tuple(int(p) for p in SCHEMA_VERSION.split("."))
+    assert parts >= (0, 1, 1), f"schema_version regressed below 0.1.1: {SCHEMA_VERSION!r}"
 
 
 def test_runsummary_emits_preprocess_lane_field() -> None:
@@ -49,7 +52,9 @@ def test_runsummary_emits_preprocess_lane_field() -> None:
     payload = s.to_dict()
     assert "preprocess_lane" in payload
     assert payload["preprocess_lane"] == "cpu"
-    assert payload["schema_version"] == "0.1.1"
+    # Feature 015: schema_version bumped 0.1.1 → 0.1.2; assert ≥ 0.1.1.
+    parts = tuple(int(p) for p in payload["schema_version"].split("."))
+    assert parts >= (0, 1, 1)
 
 
 def test_runsummary_preprocess_lane_can_be_gpu0() -> None:
@@ -96,17 +101,36 @@ def test_build_per_document_failure_carries_optional_gpu_lane_forced_abort() -> 
 def test_take_gpu_inference_seconds_drains_and_resets() -> None:
     """T030: take_gpu_inference_seconds() returns the accumulated
     inference time and resets the counter; subsequent calls return
-    None until more inference is recorded."""
+    None until more inference is recorded.
+
+    Feature 015 (R-015.3 / T009): the accumulator is now a list of
+    (page_number, ns) tuples. `_record_gpu_inference_ns` requires a
+    page number argument. The legacy `take_gpu_inference_seconds()`
+    helper is preserved as a back-compat wrapper that sums seconds."""
     from ledgerlinc_ocr.preprocessing import ocr as ocr_mod
 
     ocr_mod.reset_gpu_inference_ns()
     assert ocr_mod.take_gpu_inference_seconds() is None
-    ocr_mod._record_gpu_inference_ns(500_000_000)  # 0.5 s
-    ocr_mod._record_gpu_inference_ns(250_000_000)  # 0.25 s
+    ocr_mod._record_gpu_inference_ns(1, 500_000_000)  # page 1, 0.5 s
+    ocr_mod._record_gpu_inference_ns(2, 250_000_000)  # page 2, 0.25 s
     seconds = ocr_mod.take_gpu_inference_seconds()
     assert seconds is not None
     assert abs(seconds - 0.75) < 1e-6
     # Drained: subsequent call returns None.
     assert ocr_mod.take_gpu_inference_seconds() is None
+
+
+def test_take_gpu_inference_per_page_returns_tuples() -> None:
+    """Feature 015 (R-015.3 / T009): the new `take_gpu_inference_per_page()`
+    helper returns per-page (page, seconds) tuples and resets."""
+    from ledgerlinc_ocr.preprocessing import ocr as ocr_mod
+
+    ocr_mod.reset_gpu_inference_ns()
+    assert ocr_mod.take_gpu_inference_per_page() is None
+    ocr_mod._record_gpu_inference_ns(1, 500_000_000)
+    ocr_mod._record_gpu_inference_ns(2, 250_000_000)
+    drained = ocr_mod.take_gpu_inference_per_page()
+    assert drained == [(1, 0.5), (2, 0.25)]
+    assert ocr_mod.take_gpu_inference_per_page() is None
 
 

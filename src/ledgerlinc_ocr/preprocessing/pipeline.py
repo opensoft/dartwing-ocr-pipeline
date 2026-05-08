@@ -3,6 +3,19 @@
 Single-engine per page (PPStructureV3 via `ocr.run_page`) with FR-003,
 FR-018, FR-019 defensive checks and FR-020 warning ordering. EngineInitError
 (FR-016) is NOT caught here — it propagates to the CLI for hard-fail exit.
+
+Feature 015 (T016 / R-015.4): `run()` accepts an optional `stage_timing`
+parameter (`pipeline.timing.StageTiming`). When provided, the rasterize
+loop and the artifact-write call are wrapped in `measure_phase` context
+managers so the caller can read per-phase seconds (`rasterization`,
+`artifact_write`) off `stage_timing.phases_ns`. The caller owns
+`measure_total` — when `stage_timing` is passed in, `run()` does NOT
+wrap the body in `measure_total` (otherwise the warm-corpus Runner,
+which already wraps the same StageTiming in `measure_total`, would
+double-count `total_ns`). Only when `stage_timing` is None does `run()`
+construct a local one and wrap it in `measure_total`. The single-doc
+CLI manages its own `measure_total`; the warm-corpus Runner does so via
+`pipeline.timing.measure_total` around each stage_callable invocation.
 """
 
 from __future__ import annotations
@@ -10,7 +23,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from ledgerlinc_ocr.preprocessing import artifact as artifact_mod
 from ledgerlinc_ocr.preprocessing import ocr, rasterize
@@ -23,6 +36,7 @@ from ledgerlinc_ocr.preprocessing.version import (
     build_pipeline_version,
 )
 from ledgerlinc_ocr.preprocessing.warnings import build_warning, sort_warnings
+from ledgerlinc_ocr.pipeline.timing import StageTiming, measure_phase, measure_total
 
 # Feature 014 / VT-003: `preflight` is imported lazily inside the GPU
 # code path (see `_invoke_gpu_gate` below). Module-level import would
@@ -77,21 +91,162 @@ def _resolve_lane_to_device(lane: str) -> str:
     raise ValueError(f"unrecognized preprocess lane: {lane!r}")
 
 
-def run(invocation: Invocation) -> Path:
+def run(invocation: Invocation, *, stage_timing: Optional[StageTiming] = None) -> Path:
+    """Execute the preprocessing pipeline for one document.
+
+    Feature 015 (T016 / R-015.4): when `stage_timing` is provided,
+    `run()` records the `rasterization` and `artifact_write` phases via
+    `measure_phase`. The caller owns `measure_total` so warm-corpus
+    Runner — which already wraps the same StageTiming in
+    `measure_total` — does not double-count `total_ns`. When
+    `stage_timing` is None, a local one is constructed and `run()`
+    wraps the body in `measure_total` itself.
+    """
+    if stage_timing is None:
+        local_timing = StageTiming(stage="preprocess")
+        with measure_total(local_timing):
+            return _run_inner(invocation, local_timing)
+    return _run_inner(invocation, stage_timing)
+
+
+def _build_failed_page_dict(pr: rasterize.PageRasterFailure) -> dict[str, Any]:
+    return {
+        "page_number": pr.page_number,
+        "width": pr.width,
+        "height": pr.height,
+        "rotation_detected": pr.rotation_detected,
+        "blocks": [],
+        "raw_ocr_lines": [],
+    }
+
+
+@dataclass
+class _PageResult:
+    page_dict: dict[str, Any]
+    lines: list[dict[str, Any]]
+    blocks: list[dict[str, Any]]
+    tables: list[dict[str, Any]]
+    warnings: list[str]
+    silent_empty: bool
+
+
+def _build_page_warnings(
+    pr: Any, lines: list[dict[str, Any]], blocks: list[dict[str, Any]]
+) -> tuple[list[str], bool]:
+    """Compute defensive warnings for a successful page (FR-003, FR-018,
+    FR-019, plus rotation-normalized note). Returns (warnings, silent_empty).
+    """
+    page_warnings: list[str] = []
+    silent_empty = False
+
+    # FR-003: silent-empty-layout — lines produced but no blocks.
+    if len(lines) > 0 and len(blocks) == 0:
+        page_warnings.append(
+            build_warning(
+                pr.page_number,
+                "silent_empty_layout",
+                f"OCR produced {len(lines)} lines but layout returned zero blocks",
+            )
+        )
+        silent_empty = True
+
+    # FR-019: silent-empty-ocr — blocks produced but no OCR lines, AND at
+    # least one block is text-bearing. Figure- and table-only pages
+    # legitimately have zero OCR lines.
+    text_bearing_blocks = [
+        b for b in blocks if b.get("block_type") in _TEXT_BEARING_BLOCK_TYPES
+    ]
+    if len(blocks) > 0 and len(lines) == 0 and len(text_bearing_blocks) > 0:
+        page_warnings.append(
+            build_warning(
+                pr.page_number,
+                "silent_empty_ocr",
+                f"OCR returned zero lines despite {len(text_bearing_blocks)} text-type blocks",
+            )
+        )
+        silent_empty = True
+
+    # FR-018: suspicious-single-block — multiple OCR lines but only one
+    # layout region. Warn, but do NOT downgrade status.
+    if len(lines) >= 2 and len(blocks) == 1:
+        page_warnings.append(
+            build_warning(
+                pr.page_number,
+                "suspicious_single_block",
+                f"single block covers {len(lines)} OCR lines",
+            )
+        )
+
+    if pr.rotation_snapped:
+        page_warnings.append(
+            f"page {pr.page_number}: rotation {pr.rotation_original}° normalized to {pr.rotation_detected}°"
+        )
+
+    return page_warnings, silent_empty
+
+
+def _process_page(pr: Any, invocation: Invocation) -> _PageResult:
+    """Run OCR on one rasterized page and assemble the per-page result.
+
+    Handles the FR-003 / FR-018 / FR-019 defensive checks, page-image
+    cleanup (FR-005a / R-011), and the optional `write_page_images`
+    debug write.
+    """
+    if isinstance(pr, rasterize.PageRasterFailure):
+        return _PageResult(
+            page_dict=_build_failed_page_dict(pr),
+            lines=[],
+            blocks=[],
+            tables=[],
+            warnings=[
+                f"page {pr.page_number}: rasterization failed: {pr.error}"
+            ],
+            silent_empty=False,
+        )
+
+    # Single V3 call producing both layout + OCR in one pass (FR-007, R-004).
+    # Feature 014 (T021): pass the resolved device.
+    lines, blocks, page_tables, run_warnings = ocr.run_page(
+        pr.image, pr.page_number, pr.width, pr.height,
+        device=_resolve_lane_to_device(invocation.preprocess_lane),
+    )
+    defensive_warnings, silent_empty = _build_page_warnings(pr, lines, blocks)
+
+    if invocation.write_page_images:
+        img_path = invocation.document_folder / f"page_{pr.page_number}.png"
+        pr.image.save(img_path)
+
+    # FR-005a / R-011: release the page image before the next page rasterizes.
+    try:
+        pr.image.close()
+    except Exception:
+        pass
+
+    return _PageResult(
+        page_dict={
+            "page_number": pr.page_number,
+            "width": pr.width,
+            "height": pr.height,
+            "rotation_detected": pr.rotation_detected,
+            "blocks": blocks,
+            "raw_ocr_lines": lines,
+        },
+        lines=lines,
+        blocks=blocks,
+        tables=page_tables,
+        warnings=run_warnings + defensive_warnings,
+        silent_empty=silent_empty,
+    )
+
+
+def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
-    # gate BEFORE any artifact write or input parsing. This ensures the
-    # fail-fast error names the selected profile and FR-001 state even
-    # if the document folder is also broken — GPU readiness is a
-    # process-level prerequisite, not a per-document one. ensure_gpu_ready
-    # is process-cached per Q2 — second and subsequent calls within the
-    # same process short-circuit on the cached PPSTRUCTUREV3_INIT_SUCCEEDED
-    # readout.
+    # gate BEFORE any artifact write or input parsing. ensure_gpu_ready
+    # is process-cached per Q2.
     if invocation.preprocess_lane != "cpu":
-        # Lazy import so the CPU path stays decoupled from preflight.
         from ledgerlinc_ocr.preprocessing.preflight import (
             ensure_gpu_ready as _ensure_gpu_ready,
         )
-
         _ensure_gpu_ready()
 
     pdf_path = _validate_input(invocation)
@@ -101,11 +256,6 @@ def run(invocation: Invocation) -> Path:
         lane_segment=invocation.preprocess_lane,
     )
 
-    # rasterize.rasterize_pdf is a page-at-a-time generator (FR-005a / R-011).
-    # ZeroPagePdfError is raised inside open_pdf() on the first next() iteration,
-    # so no separate "not rasters" guard is needed.
-    rasters = rasterize.rasterize_pdf(pdf_path, dpi=DPI)
-
     pages: list[dict[str, Any]] = []
     tables: list[dict[str, Any]] = []
     warnings_out: list[str] = []
@@ -114,113 +264,21 @@ def run(invocation: Invocation) -> Path:
     pages_with_output = 0
     silent_empty_page_detected = False
 
-    for pr in rasters:
-        page_warnings: list[str] = []
-        blocks: list[dict[str, Any]] = []
-        page_tables: list[dict[str, Any]] = []
-        lines: list[dict[str, Any]] = []
-
-        if isinstance(pr, rasterize.PageRasterFailure):
-            page_warnings.append(
-                f"page {pr.page_number}: rasterization failed: {pr.error}"
-            )
-            pages.append(
-                {
-                    "page_number": pr.page_number,
-                    "width": pr.width,
-                    "height": pr.height,
-                    "rotation_detected": pr.rotation_detected,
-                    "blocks": [],
-                    "raw_ocr_lines": [],
-                }
-            )
-            warnings_out.extend(page_warnings)
-            continue
-
-        # Single V3 call producing both layout + OCR in one pass (FR-007, R-004).
-        # EngineInitError raised here propagates to the CLI (FR-016).
-        # Feature 014 (T021): pass the resolved device; CPU lane → "cpu",
-        # GPU lane → "gpu:0" (or "gpu:N" per CF4).
-        lines, blocks, page_tables, run_warnings = ocr.run_page(
-            pr.image, pr.page_number, pr.width, pr.height,
-            device=_resolve_lane_to_device(invocation.preprocess_lane),
-        )
-        page_warnings.extend(run_warnings)
-
-        # FR-003: silent-empty-layout — lines produced but no blocks.
-        if len(lines) > 0 and len(blocks) == 0:
-            page_warnings.append(
-                build_warning(
-                    pr.page_number,
-                    "silent_empty_layout",
-                    f"OCR produced {len(lines)} lines but layout returned zero blocks",
-                )
-            )
-            silent_empty_page_detected = True
-
-        # FR-019: silent-empty-ocr — blocks produced but no OCR lines, AND at
-        # least one block is text-bearing (text/title/header/footer). Figure-
-        # and table-only pages legitimately have zero OCR lines.
-        text_bearing_blocks = [
-            b for b in blocks if b.get("block_type") in _TEXT_BEARING_BLOCK_TYPES
-        ]
-        if (
-            len(blocks) > 0
-            and len(lines) == 0
-            and len(text_bearing_blocks) > 0
-        ):
-            page_warnings.append(
-                build_warning(
-                    pr.page_number,
-                    "silent_empty_ocr",
-                    f"OCR returned zero lines despite {len(text_bearing_blocks)} text-type blocks",
-                )
-            )
-            silent_empty_page_detected = True
-
-        # FR-018: suspicious-single-block — multiple OCR lines but only one
-        # layout region. Warn, but do NOT downgrade status.
-        if len(lines) >= 2 and len(blocks) == 1:
-            page_warnings.append(
-                build_warning(
-                    pr.page_number,
-                    "suspicious_single_block",
-                    f"single block covers {len(lines)} OCR lines",
-                )
-            )
-
-        if pr.rotation_snapped:
-            page_warnings.append(
-                f"page {pr.page_number}: rotation {pr.rotation_original}° normalized to {pr.rotation_detected}°"
-            )
-
-        pages.append(
-            {
-                "page_number": pr.page_number,
-                "width": pr.width,
-                "height": pr.height,
-                "rotation_detected": pr.rotation_detected,
-                "blocks": blocks,
-                "raw_ocr_lines": lines,
-            }
-        )
-        tables.extend(page_tables)
-        warnings_out.extend(page_warnings)
-        all_lines.extend(lines)
-        if lines or blocks:
-            pages_with_output += 1
-
-        if invocation.write_page_images:
-            img_path = invocation.document_folder / f"page_{pr.page_number}.png"
-            pr.image.save(img_path)
-
-        # FR-005a / R-011: release the page image before the next page is
-        # rasterized. The page-owned `lines`, `blocks`, `page_tables`, and
-        # warnings have already been copied into document-level accumulators.
-        try:
-            pr.image.close()
-        except Exception:
-            pass
+    # `measure_phase` records `phases_ns["rasterization"]` even when the
+    # iterator raises before yielding (e.g., ZeroPagePdfError on the first
+    # `next()`) — the context manager's finally clause guarantees the delta
+    # is captured for FR-016 / FP2 partial-failure timings.
+    with measure_phase(stage_timing, "rasterization"):
+        for pr in rasterize.rasterize_pdf(pdf_path, dpi=DPI):
+            result = _process_page(pr, invocation)
+            pages.append(result.page_dict)
+            warnings_out.extend(result.warnings)
+            tables.extend(result.tables)
+            all_lines.extend(result.lines)
+            if result.lines or result.blocks:
+                pages_with_output += 1
+            if result.silent_empty:
+                silent_empty_page_detected = True
 
     quality = compute_quality(all_lines, max_skew_deg=max_skew)
     ingestion_sources = build_ingestion_sources(
@@ -250,5 +308,7 @@ def run(invocation: Invocation) -> Path:
         warnings=warnings_out,
     )
     out_path = invocation.document_folder / artifact_mod.ARTIFACT_FILENAME
-    artifact_mod.validate_and_write(art, out_path)
+    # Feature 015 (T016): time the artifact validate+write as its own phase.
+    with measure_phase(stage_timing, "artifact_write"):
+        artifact_mod.validate_and_write(art, out_path)
     return out_path

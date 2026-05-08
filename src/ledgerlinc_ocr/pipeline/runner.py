@@ -41,6 +41,7 @@ from ledgerlinc_ocr.pipeline.slice_control import (
 from ledgerlinc_ocr.pipeline.timing import (
     DocumentTimings,
     StageTiming,
+    bind_current_stage_timing,
     measure_phase,
     measure_total,
 )
@@ -481,7 +482,11 @@ class Runner:
                 timings=timings,
             )
 
-        with measure_total(stage_timing):
+        with measure_total(stage_timing), bind_current_stage_timing(stage_timing):
+            # Feature 015 (T021): bind_current_stage_timing exposes the
+            # active StageTiming via the timing-module contextvar so live
+            # preprocess adapters can record fine-grained phase keys
+            # (`rasterization`, `artifact_write`) on the same map.
             with measure_phase(stage_timing, _STAGE_COMPUTE_PHASE[stage]):
                 try:
                     output = stage_callable(invocation, produced)

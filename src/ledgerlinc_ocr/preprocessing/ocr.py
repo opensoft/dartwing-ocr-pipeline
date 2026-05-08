@@ -55,44 +55,62 @@ _ENGINE: Any = None
 # any subsequent call requesting a different device (single-device per
 # process). None means no engine is constructed yet.
 _ENGINE_DEVICE: Optional[str] = None
-# Feature 014 (T030): accumulator for per-page GPU inference time, in
-# nanoseconds. Read by callers (corpus_run.py / single-doc pipeline.py)
-# to populate `gpu_inference_seconds` on the per-document timing record.
-# Process-scoped; tests can clear via reset_gpu_inference_ns().
-_GPU_INFERENCE_NS_TOTAL: int = 0
-_GPU_INFERENCE_PAGES: int = 0
+# Feature 014 (T030) / Feature 015 (R-015.3 / T009): accumulator for
+# per-page GPU inference time. Feature 015 reshapes from the legacy
+# scalar (total_ns, page_count) to a list of (page_number, ns) tuples
+# so callers can emit the new `per_page_inference: [{page, seconds}, …]`
+# array required by FR-014. The legacy `take_gpu_inference_seconds()`
+# helper is preserved (sums the drained list) for one schema version
+# of back-compat. Process-scoped; tests can clear via
+# `reset_gpu_inference_ns()`.
+_GPU_INFERENCE_NS_BY_PAGE: list[tuple[int, int]] = []
 
 
-def _record_gpu_inference_ns(ns: int) -> None:
-    """T030: accumulate the elapsed GPU inference time on a single
-    `engine.predict` call into the module-level counter."""
-    global _GPU_INFERENCE_NS_TOTAL, _GPU_INFERENCE_PAGES
+def _record_gpu_inference_ns(page_number: int, ns: int) -> None:
+    """Record one page's GPU inference duration (T030 / T010).
+
+    `page_number` is 1-based and matches `preprocess_output.json`'s page
+    numbering convention. `ns` is the `time.monotonic_ns()` delta around
+    a single `engine.predict(np_img)` call. Negative or zero deltas are
+    silently ignored (defensive against clock anomalies)."""
+    global _GPU_INFERENCE_NS_BY_PAGE
     if ns > 0:
-        _GPU_INFERENCE_NS_TOTAL += ns
-        _GPU_INFERENCE_PAGES += 1
+        _GPU_INFERENCE_NS_BY_PAGE.append((int(page_number), int(ns)))
+
+
+def take_gpu_inference_per_page() -> Optional[list[tuple[int, float]]]:
+    """T009 (R-015.3): drain the accumulator and return per-page records.
+
+    Returns a list of `(page_number, seconds)` tuples (six-decimal-rounded
+    seconds), in the order pages were recorded. Resets the underlying
+    list. Returns `None` if no GPU inference has been recorded since the
+    last drain — callers (`corpus_run.py`, `preprocessing/cli.py`) treat
+    `None` as "omit the `per_page_inference` array per FR-016."
+    """
+    global _GPU_INFERENCE_NS_BY_PAGE
+    if not _GPU_INFERENCE_NS_BY_PAGE:
+        return None
+    drained = [(p, round(ns / 1e9, 6)) for p, ns in _GPU_INFERENCE_NS_BY_PAGE]
+    _GPU_INFERENCE_NS_BY_PAGE = []
+    return drained
 
 
 def take_gpu_inference_seconds() -> Optional[float]:
-    """T030: drain the accumulator. Returns the cumulative GPU inference
-    time in seconds (six-decimal rounded) and resets the counter, OR
-    None if no GPU inference has been recorded since the last call.
-    Callers (corpus_run.py / preprocessing/cli.py) call this once per
-    document to populate `gpu_inference_seconds` on that document's
-    timing record."""
-    global _GPU_INFERENCE_NS_TOTAL, _GPU_INFERENCE_PAGES
-    if _GPU_INFERENCE_PAGES == 0:
+    """Legacy helper preserved for one schema version of back-compat
+    (R-015.3). Drains the per-page list and returns the SUM of seconds,
+    matching feature 014's `gpu_inference_seconds` flat-key emission.
+    Returns None when no inference recorded.
+    """
+    drained = take_gpu_inference_per_page()
+    if drained is None:
         return None
-    seconds = round(_GPU_INFERENCE_NS_TOTAL / 1e9, 6)
-    _GPU_INFERENCE_NS_TOTAL = 0
-    _GPU_INFERENCE_PAGES = 0
-    return seconds
+    return round(sum(seconds for _, seconds in drained), 6)
 
 
 def reset_gpu_inference_ns() -> None:
     """Test-only: clear the accumulator without draining."""
-    global _GPU_INFERENCE_NS_TOTAL, _GPU_INFERENCE_PAGES
-    _GPU_INFERENCE_NS_TOTAL = 0
-    _GPU_INFERENCE_PAGES = 0
+    global _GPU_INFERENCE_NS_BY_PAGE
+    _GPU_INFERENCE_NS_BY_PAGE = []
 _PADDLE_SEEDED = False
 
 
@@ -120,6 +138,26 @@ def _coalesce(*values: Any, default: Any = None) -> Any:
         if _present(value):
             return value
     return default
+
+
+def _adopt_engine(engine: Any, device: str) -> None:
+    """Persist a PPStructureV3 instance into the runtime singleton.
+
+    Called by `preprocessing.preflight.classify()` to hand off the engine
+    constructed during preflight step 6 so the runtime path (`_get_engine`
+    on first `run_page` call) reuses it instead of building a second copy
+    (R-015.1 / CF5). Sets `_PADDLE_SEEDED = True` because preflight has
+    already invoked `paddle.seed(0)` indirectly via PPStructureV3 init.
+    Idempotent: calling with an engine when one is already adopted is a
+    no-op (the existing CF4 single-device guard catches conflicting
+    devices via `_get_engine`).
+    """
+    global _ENGINE, _ENGINE_DEVICE, _PADDLE_SEEDED
+    if _ENGINE is not None:
+        return
+    _ENGINE = engine
+    _ENGINE_DEVICE = device
+    _PADDLE_SEEDED = True
 
 
 def _seed_paddle_once() -> None:
@@ -584,9 +622,11 @@ def run_page(
         )
         return [], [], [], warnings_out
     finally:
-        # T030: accumulate GPU inference time (only on GPU runs).
+        # T030 / T010 (R-015.3): record per-page GPU inference time
+        # (page_number, ns) into the module-level list. CPU runs do not
+        # record. Page numbers stay 1-based to match preprocess_output.json.
         if _is_gpu_run:
-            _record_gpu_inference_ns(_time.monotonic_ns() - _gpu_start_ns)
+            _record_gpu_inference_ns(page_number, _time.monotonic_ns() - _gpu_start_ns)
 
     result: Any = None
     iterable = results if isinstance(results, (list, tuple)) else [results]
