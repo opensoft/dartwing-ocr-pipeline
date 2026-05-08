@@ -151,9 +151,12 @@ def get_active_engine() -> Any:
     """
     if _ENGINE is None:
         raise RuntimeError(
-            "preprocessing.ocr engine has not been adopted yet; "
-            "call _adopt_engine() (preflight) or _get_engine() before "
-            "requesting the active engine"
+            "preprocessing.ocr engine has not been adopted yet. "
+            "Run a normal preprocessing entrypoint first — "
+            "`preprocessing.preflight.ensure_gpu_ready()` (GPU lane) "
+            "or `python -m ledgerlinc_ocr.preprocessing ...` / "
+            "`python -m ledgerlinc_ocr.pipeline run ...` — so the "
+            "engine is constructed and adopted before requesting it."
         )
     return _ENGINE
 

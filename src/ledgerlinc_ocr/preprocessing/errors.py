@@ -8,16 +8,14 @@ EXIT_INPUT_REJECTED = 2
 EXIT_INTERNAL_ERROR = 3
 # Feature 016 (T011 / contracts/cli-contract.md §4): the warmup-failed
 # exit code, immediately following feature 014's preflight 10–14 range.
-# **Used only by `preprocessing/cli.py` (the `ledgerlinc-preprocess`
-# single-doc CLI)** when catching WarmupError raised by the hoisted
-# `pipeline.run_warmup_if_active(...)` call. The pipeline package
-# (`pipeline/cli.py` + `pipeline/corpus_run.py`) uses the equivalent
-# `ExitCode.WARMUP_FAILED = 15` enum from `pipeline/exit_codes.py`
-# instead of importing this constant — see the runner's
-# `_classify_stage_exception` and the cold/warm-corpus warmup catches.
-# The two sources are kept in sync at value 15 and an amendment to
-# either MUST update both (Copilot PR #24 round 5).
-EXIT_WARMUP_FAILED = 15
+# Derived from the canonical `ExitCode.WARMUP_FAILED` enum in
+# `pipeline/exit_codes.py` so the two surfaces have a single source of
+# truth — drift is now a type/import error, not a silent value mismatch
+# (Copilot PR #24 round 6). `preprocessing/cli.py` imports this constant;
+# the pipeline package uses the enum directly.
+from ledgerlinc_ocr.pipeline.exit_codes import ExitCode as _ExitCode
+
+EXIT_WARMUP_FAILED: int = int(_ExitCode.WARMUP_FAILED)
 
 
 class PreprocessingError(Exception):
