@@ -6,6 +6,16 @@ EXIT_OK = 0
 EXIT_UNEXPECTED = 1
 EXIT_INPUT_REJECTED = 2
 EXIT_INTERNAL_ERROR = 3
+# Feature 016 (T011 / contracts/cli-contract.md §4): the warmup-failed
+# exit code, immediately following feature 014's preflight 10–14 range.
+# Derived from the canonical `ExitCode.WARMUP_FAILED` enum in
+# `pipeline/exit_codes.py` so the two surfaces have a single source of
+# truth — drift is now a type/import error, not a silent value mismatch
+# (Copilot PR #24 round 6). `preprocessing/cli.py` imports this constant;
+# the pipeline package uses the enum directly.
+from ledgerlinc_ocr.pipeline.exit_codes import ExitCode as _ExitCode
+
+EXIT_WARMUP_FAILED: int = int(_ExitCode.WARMUP_FAILED)
 
 
 class PreprocessingError(Exception):
@@ -66,3 +76,36 @@ class EngineInitError(PreprocessingError):
         self.cause_module = cause_module
         self.missing_weight = missing_weight
         self.weight_hoster_url = weight_hoster_url
+
+
+class WarmupError(PreprocessingError):
+    """Feature 016 fail-fast: the explicit GPU warmup pass raised.
+
+    Wraps any exception raised by `preprocessing.warmup.run_warmup`'s fixture
+    loader, clock-anomaly check, env-default application, or the underlying
+    ``engine.predict(...)`` call. The cause-class taxonomy is the closed set
+    documented in `specs/016-gpu-warmup-miopen-cache/data-model.md` §WarmupError:
+    ``{"FixtureLoadError", "ClockAnomaly", "MIOpenError", "PaddleError",
+    "UnknownError"}``. Tests, monitoring, and downstream consumers may assert
+    that ``cause_class`` is always one of these five strings.
+
+    Caught at the runner/corpus_run boundary; surfaced as ``error: warmup
+    failed: <cause_class>: <message>`` on stderr with exit code 15
+    (``EXIT_WARMUP_FAILED``). Per spec FR-007 / SC-011, on this failure no
+    ``run_summary`` line is emitted and no ``preprocess_output.json`` is
+    written for any document that would have been timed after the failed
+    warmup; the run MUST NOT silently downgrade.
+    """
+
+    exit_code = EXIT_WARMUP_FAILED
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        cause_class: str,
+        cause_module: str,
+    ) -> None:
+        super().__init__(message)
+        self.cause_class = cause_class
+        self.cause_module = cause_module

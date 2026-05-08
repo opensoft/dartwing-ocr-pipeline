@@ -107,6 +107,17 @@ class CLIInvocation:
     timeout: int
     ollama_cpu_url: str | None = None
     ollama_jetson_url: str | None = None
+    # Feature 016 (Copilot PR #24 round 3): CLI-intent flag set by the
+    # cold-mode `_run_cold` after resolving `--gpu-warmup` /
+    # `LEDGERLINC_GPU_WARMUP=1` against the resolved preprocess profile
+    # lane. **Diagnostic only — no longer threaded through the
+    # preprocessing adapter.** Runtime warmup is driven by the hoisted
+    # `pipeline.run_warmup_if_active()` call in `_run_cold` BEFORE the
+    # runner dispatches any stage, so warmup duration is excluded from
+    # `phase_timings.total.seconds` per FR-007 / SC-004. Warm-corpus
+    # mode reads `--gpu-warmup` directly from `args` in
+    # `pipeline.corpus_run` and does not touch this field.
+    warmup: bool = False
 
 
 StageCallable = Callable[[CLIInvocation, dict[str, Any]], Any]
@@ -229,6 +240,13 @@ _STAGE_COMPUTE_PHASE: dict[Stage, str] = {
 def _format_stage_exception(
     exc: Exception, *, profile: StageProfile | None = None
 ) -> str:
+    # Feature 016: preserve `cause_class` on the message so the cold CLI
+    # can reconstruct the canonical `error: warmup failed: <cause-class>:
+    # <msg>` literal stderr line without re-handling the exception object.
+    from ledgerlinc_ocr.preprocessing.errors import WarmupError as _WarmupError
+
+    if isinstance(exc, _WarmupError):
+        return f"warmup failed: {exc.cause_class}: {exc}"
     if isinstance(exc, ModuleNotFoundError):
         missing = exc.name or str(exc) or type(exc).__name__
         suffix = (
@@ -685,9 +703,19 @@ def _classify_stage_exception(exc: Exception) -> ExitCode:
     configuration error (R-013) -- exit 10, not the generic
     PROCESSING_FAILURE bucket -- because the user selected a profile
     whose live implementation is sequenced for FR-034 step 4.
+
+    Feature 016: ``WarmupError`` raised inside the live preprocessing
+    adapter on the GPU lane maps to ``ExitCode.WARMUP_FAILED`` (15) per
+    FR-007 / SC-011 / `contracts/cli-contract.md` §4. The cold-mode CLI
+    re-emits the canonical ``error: warmup failed: <cause-class>: <msg>``
+    stderr line on this exit code (matching the warm-corpus path) and
+    suppresses the generic ``StructuredFailureRecord`` JSON line.
     """
     from ledgerlinc_ocr.pipeline.stages import DeferredImplementationError
+    from ledgerlinc_ocr.preprocessing.errors import WarmupError
 
     if isinstance(exc, DeferredImplementationError):
         return ExitCode.USAGE_ERROR
+    if isinstance(exc, WarmupError):
+        return ExitCode.WARMUP_FAILED
     return ExitCode.PROCESSING_FAILURE

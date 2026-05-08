@@ -73,7 +73,17 @@ def bind_current_stage_timing(stage_timing: "StageTiming"):
 # gpu_inference_seconds}`) are preserved unchanged for one schema
 # version of back-compat (FR-014). Consumers built against 0.1.1
 # continue to read 0.1.2 output without changes.
-SCHEMA_VERSION = "0.1.2"
+#
+# Feature 016 (T003 / R-016.9 / FR-008 / /speckit.clarify Q2): codebase-level
+# patch bump 0.1.2 → 0.1.3 for additive optional `phase_timings.warmup:
+# {seconds: float}` per-document key. The bumped `schema_version` is emitted
+# on EVERY run of the new binary regardless of whether the warmup opt-in was
+# set, performed, skipped on CPU/stub, or failed; the `warmup` key itself is
+# absent in the run_summary unless the warmup pass actually completed
+# successfully (per feature 015 FR-016 "absent phases are omitted, not
+# zeroed"). Consumers built against 0.1.2 continue to read 0.1.3 output
+# without changes.
+SCHEMA_VERSION = "0.1.3"
 
 
 def _ns_to_seconds(ns: int) -> float:
@@ -194,17 +204,38 @@ def emit_run_summary(summary: RunSummary, *, stream: Any = None) -> None:
     target.write(summary.as_json_line() + "\n")
 
 
-def attach_one_time_gpu_phases(record: dict[str, Any], readout: Any) -> None:
+def attach_one_time_gpu_phases(
+    record: dict[str, Any],
+    readout: Any,
+    *,
+    warmup_seconds: float | None = None,
+) -> None:
     """Attach the GPU one-time phase keys (`paddle_import`,
-    `gpu_bind_probe`, `engine_init`) to a per-document run_summary record's
-    `phase_timings` block (feature 015 / T027 / R-015.4).
+    `gpu_bind_probe`, `engine_init`, and — feature 016 — `warmup`) to a
+    per-document run_summary record's `phase_timings` block (feature 015 /
+    T027 / R-015.4; feature 016 / T004 / R-016.8).
 
     `readout` is a `PreflightReadout` (or any object with an `evidence`
     attribute carrying the three `*_seconds` fields). Phases whose source
     value is None are omitted (FR-016). The record's `phase_timings`
-    sub-dict is created if absent."""
+    sub-dict is created if absent.
+
+    Feature 016 (T004): the keyword-only ``warmup_seconds`` parameter is
+    additive; when non-``None``, ``record["phase_timings"]["warmup"]`` is
+    set to ``{"seconds": round(warmup_seconds, 6)}`` (six-decimal rounding
+    per `contracts/run-summary-schema.md` §2). When ``None`` (default —
+    warmup not run, or warmup failed before completing), the ``warmup``
+    key is omitted (preserving feature 015 FR-016 "absent phases are
+    omitted, not zeroed"). The four first-doc one-time GPU phases form a
+    coherent set per `contracts/module-invariants.md` I-11."""
     ev = getattr(readout, "evidence", None)
     if ev is None:
+        # Even with no readout, warmup_seconds may have been captured;
+        # still attach it so callers can wire warmup independently of
+        # preflight evidence availability.
+        if warmup_seconds is not None:
+            phase_timings = record.setdefault("phase_timings", {})
+            phase_timings["warmup"] = {"seconds": round(warmup_seconds, 6)}
         return
     phase_timings = record.setdefault("phase_timings", {})
     paddle_import_seconds = getattr(ev, "paddle_import_seconds", None)
@@ -216,6 +247,8 @@ def attach_one_time_gpu_phases(record: dict[str, Any], readout: Any) -> None:
         phase_timings["gpu_bind_probe"] = {"seconds": gpu_bind_probe_seconds}
     if engine_init_seconds is not None:
         phase_timings["engine_init"] = {"seconds": engine_init_seconds}
+    if warmup_seconds is not None:
+        phase_timings["warmup"] = {"seconds": round(warmup_seconds, 6)}
 
 
 def build_per_document_success(

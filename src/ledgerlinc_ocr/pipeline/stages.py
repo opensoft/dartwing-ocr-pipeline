@@ -404,6 +404,14 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
             # the call to build the run_summary `phase_timings` block.
             from ledgerlinc_ocr.pipeline.timing import current_stage_timing
 
+            # Feature 016 (Copilot PR #24 round 2 finding 1): warmup is
+            # NOT threaded through the adapter anymore. `_run_inner` no
+            # longer fires warmup; the cold pipeline CLI hoists warmup
+            # via `pipeline.run_warmup_if_active()` BEFORE the runner's
+            # `measure_total` window opens, so warmup duration is
+            # excluded from per-doc `phase_timings.total` per
+            # FR-007 / SC-004. `Invocation.warmup` remains as a
+            # CLI-intent flag for diagnostics only.
             out_path = preprocessing_run(
                 PreInvocation(
                     document_folder=invocation.destination_folder,

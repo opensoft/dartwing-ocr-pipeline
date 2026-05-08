@@ -35,6 +35,7 @@ from ledgerlinc_ocr.preprocessing.version import (
     DPI,
     build_pipeline_version,
 )
+from ledgerlinc_ocr.preprocessing.warmup_optin import is_gpu_lane
 from ledgerlinc_ocr.preprocessing.warnings import build_warning, sort_warnings
 from ledgerlinc_ocr.pipeline.timing import StageTiming, measure_phase, measure_total
 
@@ -60,6 +61,15 @@ class Invocation:
     # reserved for future multi-GPU work). The lane is threaded into
     # build_pipeline_version() and ocr.run_page() per FR-016.
     preprocess_lane: str = "cpu"
+    # Feature 016 (Copilot PR #24 round 2 finding 1 / FR-007 / SC-004):
+    # CLI-intent flag set by the activation surface (`--gpu-warmup` /
+    # `LEDGERLINC_GPU_WARMUP=1` AND a GPU lane). Diagnostic only — runtime
+    # warmup is driven by `pipeline.run_warmup_if_active()` invoked by the
+    # caller BEFORE any `measure_total(stage_timing)` wrapper opens, so
+    # warmup duration is excluded from `phase_timings.total.seconds`.
+    # `_run_inner` does NOT read this field; tests assert on it to verify
+    # the CLI's activation logic produces the expected boolean.
+    warmup: bool = False
 
 
 def _derive_document_id(folder_name: str) -> str:
@@ -91,6 +101,45 @@ def _resolve_lane_to_device(lane: str) -> str:
     raise ValueError(f"unrecognized preprocess lane: {lane!r}")
 
 
+def run_warmup_if_active(
+    *,
+    preprocess_lane: str,
+    warmup_optin: bool,
+) -> None:
+    """Hoisted GPU warmup helper. Callers MUST invoke this BEFORE wrapping
+    ``pipeline.run`` in ``measure_total`` so warmup duration does not
+    inflate ``phase_timings.total.seconds`` (FR-007 / SC-004 / Copilot
+    PR #24 round-2 finding 1).
+
+    No-op when ``warmup_optin`` is False or the lane is not a GPU lane.
+    On the GPU + opt-in branch, calls ``preflight.ensure_gpu_ready()``
+    to adopt the engine (process-cached — subsequent calls inside
+    ``_run_inner`` are cache hits) and then ``warmup.run_warmup()``
+    against the adopted engine. Raises ``WarmupError`` on any failure;
+    callers translate that to exit code 15 + the canonical
+    ``error: warmup failed: <cause-class>: <message>`` stderr line.
+
+    This helper is the single source of truth for GPU warmup ordering;
+    the warm-corpus path in ``pipeline/corpus_run.py`` does the same
+    work inline (engine is adopted by ``_warm_initialize_live_preprocess``
+    rather than ``ensure_gpu_ready``, so it cannot share this helper
+    verbatim — see FR-001 / R-016.10).
+    """
+    if not warmup_optin:
+        return
+    if not is_gpu_lane(preprocess_lane):
+        return
+    from ledgerlinc_ocr.preprocessing.preflight import (
+        ensure_gpu_ready as _ensure_gpu_ready,
+    )
+    from ledgerlinc_ocr.preprocessing import (
+        ocr as _ocr_mod,
+        warmup as _warmup_mod,
+    )
+    _ensure_gpu_ready()
+    _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
+
+
 def run(invocation: Invocation, *, stage_timing: Optional[StageTiming] = None) -> Path:
     """Execute the preprocessing pipeline for one document.
 
@@ -101,6 +150,12 @@ def run(invocation: Invocation, *, stage_timing: Optional[StageTiming] = None) -
     `measure_total` — does not double-count `total_ns`. When
     `stage_timing` is None, a local one is constructed and `run()`
     wraps the body in `measure_total` itself.
+
+    Feature 016 (Copilot PR #24 round 2 finding 1): warmup MUST be
+    invoked by the caller via ``run_warmup_if_active()`` BEFORE
+    wrapping this call in ``measure_total``. ``_run_inner`` no longer
+    runs warmup (FR-007 / SC-004: warmup time is excluded from
+    ``phase_timings.total``).
     """
     if stage_timing is None:
         local_timing = StageTiming(stage="preprocess")
@@ -248,6 +303,16 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
             ensure_gpu_ready as _ensure_gpu_ready,
         )
         _ensure_gpu_ready()
+
+    # Feature 016 (Copilot PR #24 round 2 finding 1): warmup is no longer
+    # invoked here — running it inside `_run_inner` placed it within the
+    # caller's `measure_total(stage_timing)` window, inflating
+    # `phase_timings.total.seconds` with warmup duration and violating
+    # FR-007 / SC-004 ("total excludes warmup"). The hoisted helper
+    # `pipeline.run_warmup_if_active(...)` MUST be called by the caller
+    # before any timing wrapper opens. `Invocation.warmup` is preserved as
+    # a CLI-intent flag for diagnostic purposes but no longer drives
+    # runtime behavior here.
 
     pdf_path = _validate_input(invocation)
     document_id = _derive_document_id(invocation.document_folder.name)

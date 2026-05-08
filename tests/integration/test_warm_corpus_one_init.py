@@ -88,7 +88,7 @@ def test_t019_warm_corpus_constructs_engine_once_across_two_docs(
             summary = obj
     assert summary is not None, "run_summary line not found in stdout"
 
-    assert summary["schema_version"] == "0.1.2"
+    assert summary["schema_version"] == "0.1.3"
     assert summary["documents_total"] == 2
     assert summary["documents_succeeded"] == 2
     assert summary["preprocess_lane"] == "gpu0"

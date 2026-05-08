@@ -47,6 +47,12 @@ from ledgerlinc_ocr.pipeline.timing import (
     build_per_document_success,
     emit_run_summary,
 )
+from ledgerlinc_ocr.preprocessing.errors import WarmupError
+from ledgerlinc_ocr.preprocessing.warmup_optin import (
+    is_gpu_lane,
+    is_warmup_optin_set,
+    warn_and_proceed_message,
+)
 # Feature 014 / VT-003: `preflight` types are imported lazily inside
 # the GPU warm factory. Module-level import would break collection
 # for unrelated tests when `preflight.py` is temporarily unavailable
@@ -277,6 +283,70 @@ def run_warm_corpus(
             emit_failure=_emit_failure,
         )
 
+    # Feature 016 (T007 / R-016.10 / FR-001 / FR-007 / SC-011): the warm
+    # corpus warmup hook fires AFTER `_warm_initialize_live_preprocess`
+    # succeeded (engine adopted via `ocr._adopt_engine`) and BEFORE the
+    # per-document loop opens any `measure_total`/`measure_phase` block.
+    # The activation surface mirrors the single-doc path: CLI flag
+    # `--gpu-warmup` plus env var `LEDGERLINC_GPU_WARMUP=1` (CLI wins).
+    # On non-GPU profiles we emit the FR-010 warn-and-proceed line and
+    # skip the warmup invocation. When preprocess is outside the executed
+    # slice, warmup is also skipped because no engine was initialized for
+    # this run. On WarmupError we exit 15 with stderr
+    # `error: warmup failed: <cause>` and emit NO run_summary at all
+    # (SC-011 (c)).
+    _gpu_warmup_optin = is_warmup_optin_set(getattr(args, "gpu_warmup", False))
+    _preprocess_profile_raw = getattr(args, "preprocess_profile", None)
+    _preprocess_in_slice = "preprocess" in plan.slice_.stages_in_slice
+    # Resolve the plan's preprocess profile to the same lane-string form the
+    # single-doc CLI uses ("cpu" / "gpu0") so the activation check goes
+    # through `is_gpu_lane()` — single source of truth shared with
+    # preprocessing/cli.py per warmup_optin.is_gpu_lane.
+    _warm_preprocess_profile = plan.profiles.get("preprocess")
+    _warmup_lane = (
+        "gpu0"
+        if (
+            _warm_preprocess_profile is not None
+            and _warm_preprocess_profile.implementation == "ppstructurev3"
+            and _warm_preprocess_profile.lane == "gpu"
+        )
+        else "cpu"
+    )
+    _is_gpu_warmup_active = (
+        _gpu_warmup_optin and _preprocess_in_slice and is_gpu_lane(_warmup_lane)
+    )
+    if _gpu_warmup_optin and _preprocess_in_slice and not _is_gpu_warmup_active:
+        # Warn-and-proceed: opt-in set but profile is not ppstructurev3@gpu.
+        # Source the warning's profile name from the resolved plan
+        # (`plan.profiles["preprocess"].raw_value`) so it reflects the
+        # active profile after stack-preset / defaults resolution, not
+        # only the raw `--preprocess-profile` flag the user typed
+        # (Copilot PR #24 round 4).
+        if _warm_preprocess_profile is not None:
+            _profile_name_for_warning = _warm_preprocess_profile.raw_value
+        elif _preprocess_profile_raw:
+            _profile_name_for_warning = _preprocess_profile_raw
+        else:
+            _profile_name_for_warning = "ppstructurev3@cpu"
+        print(warn_and_proceed_message(_profile_name_for_warning), file=sys.stderr)
+    if _is_gpu_warmup_active:
+        try:
+            from ledgerlinc_ocr.preprocessing import (
+                ocr as _ocr_mod,
+                warmup as _warmup_mod,
+            )
+            _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
+        except WarmupError as _warmup_exc:
+            print(
+                f"error: warmup failed: {_warmup_exc.cause_class}: {_warmup_exc}",
+                file=sys.stderr,
+            )
+            # Per SC-011: no run_summary is emitted on warmup failure.
+            # Use the canonical ExitCode enum (single source of truth) per
+            # Copilot review: avoids drift with the duplicate
+            # `EXIT_WARMUP_FAILED` symbol in `preprocessing.errors`.
+            return int(ExitCode.WARMUP_FAILED)
+
     per_document_records: list[dict[str, Any]] = []
     observed_exit_codes: list[ExitCode] = []
     succeeded = 0
@@ -409,7 +479,7 @@ def run_warm_corpus(
             # that this was a GPU-lane-forced abort, distinct from a
             # user-requested fail-fast.
             preprocess_profile = plan.profiles.get("preprocess")
-            is_gpu_lane = (
+            preprocess_is_gpu = (
                 preprocess_profile is not None
                 and preprocess_profile.implementation == "ppstructurev3"
                 and preprocess_profile.lane == "gpu"
@@ -418,7 +488,7 @@ def run_warm_corpus(
             # field so a downstream consumer can identify the failed
             # GPU-profile run (analyze finding VT-010).
             failure_message = result.message
-            if is_gpu_lane:
+            if preprocess_is_gpu:
                 failure_message = (
                     f"[ppstructurev3@gpu] document_id={invocation.document_id}: "
                     f"{result.message}"
@@ -438,7 +508,7 @@ def run_warm_corpus(
             # Phases that did not run are absent from the dict per FR-016.
             from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
 
-            preprocess_lane_now = "gpu0" if is_gpu_lane else "cpu"
+            preprocess_lane_now = "gpu0" if preprocess_is_gpu else "cpu"
             failure_phase_timings: dict[str, dict[str, float]] = {}
             preprocess_st = result.timings.stages.get("preprocess")
             if preprocess_st is not None:
@@ -465,12 +535,12 @@ def run_warm_corpus(
                     exit_code=int(result.exit_code),
                     message=failure_message,
                     timings=result.timings,
-                    gpu_lane_forced_abort=is_gpu_lane,
+                    gpu_lane_forced_abort=preprocess_is_gpu,
                     phase_timings=failure_phase_timings if failure_phase_timings else None,
                     per_page_inference=failure_per_page,
                 )
             )
-            if plan.failure_policy.fail_fast or is_gpu_lane:
+            if plan.failure_policy.fail_fast or preprocess_is_gpu:
                 # GPU lane forces abort even when user requested
                 # --on-failure=continue (R-014.4). The summary's
                 # top-level on_failure field still reports the
@@ -506,6 +576,16 @@ def run_warm_corpus(
         and _PREFLIGHT_READOUT.evidence.ppstructurev3_init_seconds is not None
     ):
         _init_seconds = _PREFLIGHT_READOUT.evidence.ppstructurev3_init_seconds
+        # Feature 016 (T007 / R-016.8 / contracts/module-invariants.md I-11):
+        # if warmup ran successfully on this process, capture the cached
+        # seconds so the same first-successful-doc record carries the
+        # additive `phase_timings.warmup` key alongside `paddle_import` /
+        # `gpu_bind_probe` / `engine_init`. The four first-doc one-time
+        # GPU phases form a coherent set per I-11.
+        _warmup_seconds_for_attach: float | None = None
+        if _is_gpu_warmup_active:
+            from ledgerlinc_ocr.preprocessing import warmup as _warmup_mod
+            _warmup_seconds_for_attach = _warmup_mod.get_cached_warmup_seconds()
         for record in per_document_records:
             if record.get("status") == "success":
                 stages_map = record.setdefault("stages", {})
@@ -517,7 +597,12 @@ def run_warm_corpus(
                 # (paddle_import / gpu_bind_probe / engine_init) so warm-
                 # corpus and single-doc paths stay in sync on field names
                 # and None-omission rules.
-                attach_one_time_gpu_phases(record, _PREFLIGHT_READOUT)
+                # Feature 016: also attach `warmup` (or omit if None).
+                attach_one_time_gpu_phases(
+                    record,
+                    _PREFLIGHT_READOUT,
+                    warmup_seconds=_warmup_seconds_for_attach,
+                )
                 break
 
     summary = RunSummary(
@@ -661,15 +746,15 @@ def _maybe_register_warm_preprocess(
     if not is_live_capable("preprocess", profile.implementation, profile.lane):
         return
 
-    is_gpu_lane = profile.lane == "gpu"
-    device_str = "gpu:0" if is_gpu_lane else "cpu"
+    profile_is_gpu = profile.lane == "gpu"
+    device_str = "gpu:0" if profile_is_gpu else "cpu"
 
     class _PPStructureV3WarmInstance:
         def initialize(self) -> None:
             from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
 
             global _PREFLIGHT_READOUT
-            if is_gpu_lane:
+            if profile_is_gpu:
                 # Feature 014 (T021 / T023 / FR-009): inline GPU gate.
                 # Raises GpuPrerequisiteError on any non-success FR-001
                 # state; caller (_warm_initialize_live_preprocess) catches

@@ -23,6 +23,8 @@ Stage 1 is intentionally narrow:
   - product requirements for the full-structure preprocessing profile migration from PaddleOCR 2.10 to PPStructureV3 / PP-OCRv5
 - `prd-paddle-gpu-preprocessing.md`
   - product requirements for feature 014: validating whether PPStructureV3 can run on the workstation GPU and, if viable, adding an explicit opt-in `ppstructurev3@gpu` preprocessing profile without replacing the CPU default
+- `gpu-warmup-and-cache.md`
+  - operator guide for feature 016: GPU warmup activation, MIOpen/COMGR cache locations and clearing, cold-vs-warm timing interpretation, and workspace-warning guidance
 - `ollama-runtime.md`
   - how host Ollama and optional containerized Ollama fit into the stage 1 architecture
 - `../../docker/compose.ollama-rocm-linux.yml`

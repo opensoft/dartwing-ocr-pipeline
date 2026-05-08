@@ -20,6 +20,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from ledgerlinc_ocr.preprocessing import pipeline
 from ledgerlinc_ocr.preprocessing.errors import (
@@ -27,9 +28,16 @@ from ledgerlinc_ocr.preprocessing.errors import (
     EXIT_INTERNAL_ERROR,
     EXIT_OK,
     EXIT_UNEXPECTED,
+    EXIT_WARMUP_FAILED,
     ArtifactInvalidError,
     EngineInitError,
     InputRejectedError,
+    WarmupError,
+)
+from ledgerlinc_ocr.preprocessing.warmup_optin import (
+    is_warmup_optin_set,
+    is_gpu_lane,
+    warn_and_proceed_message,
 )
 from ledgerlinc_ocr.pipeline.profiles import (
     PPSTRUCTUREV3_CPU,
@@ -79,6 +87,24 @@ def _build_parser() -> argparse.ArgumentParser:
             "ledgerlinc_ocr.pipeline.profiles."
         ),
     )
+    # Feature 016 (T008 / FR-002 / R-016.1 / contracts/cli-contract.md §1):
+    # opt-in GPU warmup pass for ppstructurev3@gpu. Off by default; orthogonal
+    # to --preprocess-profile. Also accepted via the LEDGERLINC_GPU_WARMUP=1
+    # env var (CLI flag wins when both set).
+    p.add_argument(
+        "--gpu-warmup",
+        action="store_true",
+        default=False,
+        help=(
+            "Run a one-time PPStructureV3 warmup pass after engine "
+            "construction so MIOpen/COMGR kernel-selection cost is paid up "
+            "front. Reported as phase_timings.warmup on the first successful "
+            "per-document run_summary entry. Has no effect on "
+            "ppstructurev3@cpu or stub adapters (a stderr warning is emitted "
+            "in those cases). Can also be set via the LEDGERLINC_GPU_WARMUP=1 "
+            "environment variable; the CLI flag wins when both are present."
+        ),
+    )
     return p
 
 
@@ -98,6 +124,66 @@ def _resolve_preprocess_lane(raw_value: str | None) -> str:
     )
 
 
+def _handle_gpu_prerequisite_error(
+    *,
+    exc: Any,
+    invocation: pipeline.Invocation,
+    preprocess_lane: str,
+    stage_timing: StageTiming,
+    exit_code_for_state: Any,
+) -> int:
+    """Common handler for GpuPrerequisiteError raised either during the
+    hoisted warmup pass or during `pipeline.run()` itself.
+
+    Emits the FR-009 stderr envelope, then a partial single-doc
+    `run_summary` carrying whatever phases the preflight probe captured
+    before failing (paddle_import is the most common; gpu_bind_probe /
+    engine_init only when the failure happened later in the classify
+    ladder).
+    """
+    print(
+        f"error: --preprocess-profile=ppstructurev3@gpu: "
+        f"{exc.state.value}; {exc.recommendation}",
+        file=sys.stderr,
+    )
+    _emit_single_doc_run_summary(
+        invocation=invocation,
+        preprocess_lane=preprocess_lane,
+        stage_timing=stage_timing,
+        success=False,
+        failed_stage="preprocess",
+        exit_code=exit_code_for_state(exc.state),
+        message=f"--preprocess-profile=ppstructurev3@gpu: {exc.state.value}; {exc.recommendation}",
+    )
+    return exit_code_for_state(exc.state)
+
+
+def _emit_engine_init_failed(exc: EngineInitError) -> None:
+    """Emit the FR-016 `kind: "engine_init_failed"` stderr JSON envelope
+    with optional weight-download diagnostic fields."""
+    payload: dict[str, object] = {
+        "status": "error",
+        "kind": "engine_init_failed",
+        "cause_class": exc.cause_class,
+        "cause_module": exc.cause_module,
+        "message": str(exc),
+    }
+    if exc.missing_weight is not None:
+        payload["missing_weight"] = exc.missing_weight
+    if exc.weight_hoster_url is not None:
+        payload["weight_hoster_url"] = exc.weight_hoster_url
+    print(json.dumps(payload), file=sys.stderr)
+
+
+def _emit_simple_error_kind(kind: str, message: str) -> None:
+    """Emit the simple `{status:error, kind:<kind>, message:<msg>}` envelope
+    used by input_rejected / artifact_invalid / unexpected branches."""
+    print(
+        json.dumps({"status": "error", "kind": kind, "message": message}),
+        file=sys.stderr,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -114,11 +200,21 @@ def main(argv: list[str] | None = None) -> int:
     try:
         preprocess_lane = _resolve_preprocess_lane(args.preprocess_profile)
     except ProfileValidationError as exc:
-        print(
-            json.dumps({"status": "error", "kind": "input_rejected", "message": str(exc)}),
-            file=sys.stderr,
-        )
+        _emit_simple_error_kind("input_rejected", str(exc))
         return EXIT_INPUT_REJECTED
+
+    # Feature 016 (T008 / T010 / T021 / FR-010 / SC-007): resolve the warmup
+    # opt-in surface (CLI flag + LEDGERLINC_GPU_WARMUP env var). When set on
+    # a non-GPU lane, emit the FR-010 warn-and-proceed line and force the
+    # threaded `warmup` flag to False so `_run_inner` does not import or
+    # invoke `preprocessing.warmup` (FR-011 / I-6).
+    warmup_optin = is_warmup_optin_set(args.gpu_warmup)
+    warmup_threaded = warmup_optin and is_gpu_lane(preprocess_lane)
+    if warmup_optin and not is_gpu_lane(preprocess_lane):
+        active_profile_name = (
+            args.preprocess_profile if args.preprocess_profile else "ppstructurev3@cpu"
+        )
+        print(warn_and_proceed_message(active_profile_name), file=sys.stderr)
 
     invocation = pipeline.Invocation(
         document_folder=args.document_folder,
@@ -126,7 +222,38 @@ def main(argv: list[str] | None = None) -> int:
         write_page_images=args.write_page_images,
         pipeline_version=args.pipeline_version,
         preprocess_lane=preprocess_lane,
+        warmup=warmup_threaded,
     )
+
+    # Feature 016 (Copilot PR #24 round 2 finding 1 / FR-007 / SC-004):
+    # warmup MUST run BEFORE the `measure_total(stage_timing)` window so
+    # the captured warmup duration does not inflate
+    # `phase_timings.total.seconds`. `run_warmup_if_active` is a no-op on
+    # CPU/stub lanes — the warn-and-proceed line was already emitted
+    # above. WarmupError translates to exit 15 + the canonical literal
+    # stderr line per cli-contract.md §3-§4.
+    try:
+        pipeline.run_warmup_if_active(
+            preprocess_lane=preprocess_lane,
+            warmup_optin=warmup_optin,
+        )
+    except WarmupError as exc:
+        print(
+            f"error: warmup failed: {exc.cause_class}: {exc}",
+            file=sys.stderr,
+        )
+        return EXIT_WARMUP_FAILED
+    except _GpuPrerequisiteError as exc:
+        # GPU prereq probing during warmup's `ensure_gpu_ready()` call
+        # raises here. Pre-measure_total path: stage_timing is empty
+        # because no per-doc timing has started yet.
+        return _handle_gpu_prerequisite_error(
+            exc=exc,
+            invocation=invocation,
+            preprocess_lane=preprocess_lane,
+            stage_timing=StageTiming(stage="preprocess"),
+            exit_code_for_state=_exit_code_for_state,
+        )
 
     # Feature 015 (T017): construct a StageTiming so pipeline.run() can
     # record the rasterization / artifact_write phase deltas. Per the
@@ -142,59 +269,26 @@ def main(argv: list[str] | None = None) -> int:
         with out_path.open("r", encoding="utf-8") as f:
             written = json.load(f)
     except _GpuPrerequisiteError as exc:
-        # Feature 014 (T022 / FR-009): name both the selected profile
-        # and the FR-001 state in stderr; exit with the FR-001-state
-        # exit code (10/11/12/13/14) per Contracts §1.
-        print(
-            f"error: --preprocess-profile=ppstructurev3@gpu: "
-            f"{exc.state.value}; {exc.recommendation}",
-            file=sys.stderr,
-        )
-        # Feature 015 (T018): emit a partial run_summary with whatever
-        # phases the GPU prereq probe completed before failure (paddle
-        # import is the most likely; gpu_bind_probe / engine_init only
-        # if the failure happened later in the classify ladder).
-        _emit_single_doc_run_summary(
+        # Post-measure_total path: stage_timing carries whatever phases
+        # the GPU prereq probe completed before failing.
+        return _handle_gpu_prerequisite_error(
+            exc=exc,
             invocation=invocation,
             preprocess_lane=preprocess_lane,
             stage_timing=stage_timing,
-            success=False,
-            failed_stage="preprocess",
-            exit_code=_exit_code_for_state(exc.state),
-            message=f"--preprocess-profile=ppstructurev3@gpu: {exc.state.value}; {exc.recommendation}",
+            exit_code_for_state=_exit_code_for_state,
         )
-        return _exit_code_for_state(exc.state)
     except InputRejectedError as exc:
-        print(
-            json.dumps({"status": "error", "kind": "input_rejected", "message": str(exc)}),
-            file=sys.stderr,
-        )
+        _emit_simple_error_kind("input_rejected", str(exc))
         return EXIT_INPUT_REJECTED
     except EngineInitError as exc:
-        payload: dict[str, object] = {
-            "status": "error",
-            "kind": "engine_init_failed",
-            "cause_class": exc.cause_class,
-            "cause_module": exc.cause_module,
-            "message": str(exc),
-        }
-        if exc.missing_weight is not None:
-            payload["missing_weight"] = exc.missing_weight
-        if exc.weight_hoster_url is not None:
-            payload["weight_hoster_url"] = exc.weight_hoster_url
-        print(json.dumps(payload), file=sys.stderr)
+        _emit_engine_init_failed(exc)
         return EXIT_INTERNAL_ERROR
     except ArtifactInvalidError as exc:
-        print(
-            json.dumps({"status": "error", "kind": "artifact_invalid", "message": str(exc)}),
-            file=sys.stderr,
-        )
+        _emit_simple_error_kind("artifact_invalid", str(exc))
         return EXIT_INTERNAL_ERROR
     except Exception as exc:
-        print(
-            json.dumps({"status": "error", "kind": "unexpected", "message": f"{type(exc).__name__}: {exc}"}),
-            file=sys.stderr,
-        )
+        _emit_simple_error_kind("unexpected", f"{type(exc).__name__}: {exc}")
         return EXIT_UNEXPECTED
 
     print(
@@ -210,12 +304,20 @@ def main(argv: list[str] | None = None) -> int:
 
     # Feature 015 (T017 / R-015.6 / FR-014): emit the run_summary line
     # with the new structured phase_timings + per_page_inference blocks.
+    # Feature 016 (T006 / T008 / R-016.8): thread the cached warmup seconds
+    # into the run_summary's first-doc one-time-GPU-phases attachment when
+    # warmup actually ran.
+    warmup_seconds: float | None = None
+    if invocation.warmup and is_gpu_lane(preprocess_lane):
+        from ledgerlinc_ocr.preprocessing import warmup as _warmup_mod
+        warmup_seconds = _warmup_mod.get_cached_warmup_seconds()
     _emit_single_doc_run_summary(
         invocation=invocation,
         preprocess_lane=preprocess_lane,
         stage_timing=stage_timing,
         success=True,
         document_id=written["document_id"],
+        warmup_seconds=warmup_seconds,
     )
 
     return EXIT_OK
@@ -242,15 +344,23 @@ def _build_phase_timings_from_stage(
 def _attach_one_time_gpu_phases(
     phase_timings: dict[str, dict[str, float]],
     preprocess_lane: str,
+    *,
+    warmup_seconds: float | None = None,
 ) -> None:
     """On a successful first GPU-lane document, attach the GPU one-time
-    phase keys (`paddle_import`, `gpu_bind_probe`, `engine_init`) from
-    the cached preflight readout. CPU runs leave `phase_timings`
-    untouched (FR-017 / ISO1).
+    phase keys (`paddle_import`, `gpu_bind_probe`, `engine_init`, and —
+    feature 016 — `warmup`) from the cached preflight readout and the
+    captured warmup seconds. CPU runs leave `phase_timings` untouched
+    (FR-017 / ISO1).
 
-    Delegates field-name mapping and None-omission rules to
-    `pipeline.timing.attach_one_time_gpu_phases` so the warm-corpus
-    and single-doc paths cannot drift.
+    Feature 016 (T008 / R-016.8 / contracts/module-invariants.md I-11):
+    the four "first-doc one-time GPU phase" keys form a coherent set —
+    `attach_one_time_gpu_phases` is the single source of truth for the
+    set's joint-presence rule.
+
+    Delegates field-name mapping, six-decimal rounding, and None-omission
+    rules to `pipeline.timing.attach_one_time_gpu_phases` so the warm-
+    corpus and single-doc paths cannot drift.
     """
     if not preprocess_lane.startswith("gpu"):
         return
@@ -261,10 +371,12 @@ def _attach_one_time_gpu_phases(
     except ImportError:
         return
     readout = _get_last_readout()
-    if readout is None:
+    if readout is None and warmup_seconds is None:
         return
     timing_attach_one_time_gpu_phases(
-        {"phase_timings": phase_timings}, readout
+        {"phase_timings": phase_timings},
+        readout,
+        warmup_seconds=warmup_seconds,
     )
 
 
@@ -278,17 +390,26 @@ def _emit_single_doc_run_summary(
     failed_stage: str | None = None,
     exit_code: int | None = None,
     message: str | None = None,
+    warmup_seconds: float | None = None,
 ) -> None:
     """Emit the final `kind: "run_summary"` JSON line for a single-doc run.
 
     Single-doc emits the same shape as warm-corpus mode (R-015.6) so
     SC-005's "identify the slowest phase" analysis works the same way
     in both contexts. Output is the very last stdout line, after the
-    existing `{"status": "ok", ...}` summary line."""
+    existing `{"status": "ok", ...}` summary line.
+
+    Feature 016 (T008 / R-016.8): the optional `warmup_seconds` keyword
+    threads the captured warmup duration through to the run_summary's
+    first-doc one-time-GPU-phases attachment. ``None`` means warmup did
+    not run (CPU/stub or warmup opt-in absent); a float means warmup
+    completed successfully."""
     phase_timings = _build_phase_timings_from_stage(stage_timing)
 
     # GPU one-time phases attach only on the GPU lane.
-    _attach_one_time_gpu_phases(phase_timings, preprocess_lane)
+    _attach_one_time_gpu_phases(
+        phase_timings, preprocess_lane, warmup_seconds=warmup_seconds
+    )
 
     # GPU per-page inference array (drained from ocr accumulator).
     per_page_inference: list[tuple[int, float]] | None = None
