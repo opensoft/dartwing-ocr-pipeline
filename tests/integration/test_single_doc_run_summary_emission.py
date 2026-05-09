@@ -67,7 +67,7 @@ def test_t014_single_doc_emits_run_summary_with_phase_timings(tmp_path: Path) ->
     summary = summary_lines[0]
 
     # Top-level shape (FR-014)
-    assert summary["schema_version"] == "0.1.3"
+    assert summary["schema_version"] == "0.1.4"  # feature 017: 0.1.3 → 0.1.4 (additive top-level fields)
     assert summary["documents_total"] == 1
     assert summary["documents_succeeded"] == 1
     assert summary["preprocess_lane"] == "gpu0"

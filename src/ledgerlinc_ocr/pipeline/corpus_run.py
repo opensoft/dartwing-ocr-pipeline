@@ -622,6 +622,12 @@ def run_warm_corpus(
         profile_initialization_seconds=registry.initialization_seconds(),
         per_document=per_document_records,
         preprocess_lane=_resolved_preprocess_lane,
+        # Feature 017 (T006a): three additive top-level identifier fields.
+        # Threading scaffold — values default to RunSummary's CPU-lane
+        # defaults (`cpu-default` / `cpu-default` / `[]`) at Phase 2;
+        # US1 (T009) and US2 (T020) override these via the resolved
+        # `PresetResolution` once preset registries land in T007/T018.
+        # Stub-adapter discrimination (writing `stub-default`) lands in US4.
     )
     emit_run_summary(summary)
 
@@ -684,6 +690,10 @@ def _emit_warm_init_failure_summary(
         },
         on_failure=plan.failure_policy.mode,
         preprocess_lane=_warm_lane,
+        # Feature 017 (T006a): identifier fields default via RunSummary's
+        # `cpu-default` defaults on warm-init failure (US1/US2 do not
+        # override on the failure path because preset resolution may not
+        # have occurred yet — the failure happened during init).
         documents_total=len(documents),
         documents_succeeded=0,
         documents_failed=1,

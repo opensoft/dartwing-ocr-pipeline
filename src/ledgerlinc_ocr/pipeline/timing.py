@@ -83,7 +83,18 @@ def bind_current_stage_timing(stage_timing: "StageTiming"):
 # successfully (per feature 015 FR-016 "absent phases are omitted, not
 # zeroed"). Consumers built against 0.1.2 continue to read 0.1.3 output
 # without changes.
-SCHEMA_VERSION = "0.1.3"
+#
+# Feature 017 (T004 / R-017.8 / FR-008 / FR-010 / contracts/run-summary-schema.md §1):
+# codebase-level patch bump 0.1.3 → 0.1.4 for THREE additive top-level
+# `run_summary` fields — `module_set_id` (string), `det_rec_variant_id`
+# (string), and `ppstructure_modules_invoked` (list of strings drawn from
+# the closed `AUDIT_SUB_MODULE_VOCABULARY`). All three are emitted on EVERY
+# run of the new binary regardless of profile or preset selection; CPU/stub
+# defaults flow from `preprocessing/identifiers.py` (`cpu-default` /
+# `stub-default`). 0.1.4 is a strict superset of 0.1.3 — no existing
+# field is renamed, removed, or retyped (FR-009 / FR-019). Consumers built
+# against 0.1.3 continue to read 0.1.4 output without changes.
+SCHEMA_VERSION = "0.1.4"
 
 
 def _ns_to_seconds(ns: int) -> float:
@@ -160,6 +171,18 @@ class RunSummary:
     "cpu" or "gpu<N>"). Per-document timing maps may also carry the
     additive `gpu_init_seconds` and `gpu_inference_seconds` phase
     keys per R-009's phase-key-absence policy (T028 / T029 / T030).
+
+    Feature 017 (T006 / R-017.5 / R-017.7 / R-017.8 /
+    contracts/run-summary-schema.md §2–§3) adds three additive
+    top-level fields: ``module_set_id``, ``det_rec_variant_id``, and
+    ``ppstructure_modules_invoked``. All three are emitted on every
+    run regardless of profile (FR-008 / FR-010); their default values
+    reflect the CPU lane defaults from
+    ``preprocessing/identifiers.py``. Stub-adapter runs override
+    these via ``stub-default`` strings; GPU-lane runs override via
+    the resolved preset names from
+    ``preprocessing/presets.py::resolve_module_set`` /
+    ``resolve_det_rec_variant`` (US1/US2 wiring lands those values).
     """
     stack_preset: str | None
     resolved_profiles: dict[Stage, str]
@@ -171,6 +194,12 @@ class RunSummary:
     profile_initialization_seconds: dict[Stage, float] = field(default_factory=dict)
     per_document: list[dict[str, Any]] = field(default_factory=list)
     preprocess_lane: str = "cpu"  # T027: additive (default for backward compat)
+    # Feature 017 (T006): three additive top-level fields. Defaults reflect
+    # the CPU lane / no-preset case so existing call sites compile without
+    # change; US1/US2 wiring overrides on GPU/stub lanes.
+    module_set_id: str = "cpu-default"
+    det_rec_variant_id: str = "cpu-default"
+    ppstructure_modules_invoked: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -188,6 +217,12 @@ class RunSummary:
             ),
             "per_document": list(self.per_document),
             "preprocess_lane": self.preprocess_lane,  # T027 additive
+            # Feature 017 additive top-level fields (T006 /
+            # contracts/run-summary-schema.md §3): emitted in fixed
+            # order between `preprocess_lane` and the closing brace.
+            "module_set_id": self.module_set_id,
+            "det_rec_variant_id": self.det_rec_variant_id,
+            "ppstructure_modules_invoked": list(self.ppstructure_modules_invoked),
         }
 
     def as_json_line(self) -> str:

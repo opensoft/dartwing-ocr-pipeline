@@ -13,6 +13,14 @@ EXPECTED = {
     "INVALID_PDF": 12,
     "OUTPUT_IN_USE": 13,
     "OUTPUT_PATH_NOT_USABLE": 14,
+    # Feature 016: GPU warmup pass failed (preprocessing/warmup.py raises
+    # WarmupError) — exit 15. Slots immediately after feature 014's preflight
+    # 10–14 codes per research R-016.6.
+    "WARMUP_FAILED": 15,
+    # Feature 017: unknown `module_set_id` or `det_rec_variant_id` value
+    # selected via CLI flag or env var — exit 16. CLI parse boundary fails
+    # fast before any Paddle import (R-017.9 / R-017.12).
+    "UNKNOWN_PRESET": 16,
     "PROCESSING_FAILURE": 20,
     "SCHEMA_VALIDATION_FAILURE": 30,
 }

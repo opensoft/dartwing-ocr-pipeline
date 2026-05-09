@@ -303,7 +303,12 @@ def _recommendation_for(state: PreflightState, evidence: PreflightEvidence) -> s
     return f"Unknown state {state}. See {doc_ref}."
 
 
-def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
+def classify(
+    *,
+    attempt_ppstructurev3_init: bool = True,
+    module_set: "ModuleSetPreset | None" = None,
+    det_rec_variant: "DetRecVariant | None" = None,
+) -> PreflightReadout:
     """Run the FR-001 classifier per Research R-014.7 step ordering.
 
     Parameters
@@ -319,7 +324,30 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
         parameter per `docs/stage1-vendor-identity/paddle-gpu-preflight.md`
         (NOT `PADDLE_DOWNLOAD=0` — that knob is not part of official
         PaddleX/PaddleOCR documentation).
+
+    module_set:
+        Feature 017 (T008 / R-017.6): when non-`None`, the preset's
+        `use_kwargs` Mapping is splatted into the `PPStructureV3(...)`
+        constructor in step 6 (replacing the literal legacy `use_*=False`
+        kwargs). When `None` (default — backward-compat), the literal
+        legacy GPU defaults are used so callers without preset awareness
+        (e.g., the `preflight_cli.py` smoke test) preserve existing
+        behavior.
+
+    det_rec_variant:
+        Feature 017 (T019 / R-017.6 / R-017.4): when non-`None` and
+        the variant carries non-`None` model names, those names are
+        passed to `PPStructureV3(text_detection_model_name=...,
+        text_recognition_model_name=...)` in step 6. When `None`
+        (default), or when the variant carries `None` model names
+        (e.g., `legacy`), PaddleOCR's default model selection for
+        `lang="en"` is used unchanged.
     """
+    # Lazy reference to avoid circular type import at module-load
+    from ledgerlinc_ocr.preprocessing.presets import (  # noqa: F401
+        DetRecVariant,
+        ModuleSetPreset,
+    )
     interpreter_path, interpreter_version, venv_path = _interpreter_evidence()
     runtime_device_exposure = _detect_runtime_device_exposure()
 
@@ -444,13 +472,36 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
         # persist it into the runtime singleton instead of `del`-ing it.
         # The runtime path (`ocr._get_engine`) will return this same
         # instance on its first call rather than constructing a second.
+        #
+        # Feature 017 (T008 / R-017.6 / contracts/module-invariants.md I-7
+        # step 3): the legacy literal `use_*=False` kwargs are now sourced
+        # from a `ModuleSetPreset.use_kwargs` Mapping when one is provided.
+        # When `module_set is None`, the literal legacy defaults are used
+        # so backward-compat callers (preflight_cli, internal tests) keep
+        # working unchanged. Same pattern for `det_rec_variant` (T019):
+        # `text_detection_model_name` / `text_recognition_model_name`
+        # kwargs are added only when the variant carries non-None values
+        # (R-017.4 Appendix A).
+        if module_set is not None:
+            _use_kwargs: dict[str, bool] = dict(module_set.use_kwargs)
+        else:
+            _use_kwargs = {
+                "use_doc_orientation_classify": False,
+                "use_doc_unwarping": False,
+                "use_textline_orientation": False,
+                "use_formula_recognition": False,
+                "use_seal_recognition": False,
+                "use_chart_recognition": False,
+            }
+        _det_rec_kwargs: dict[str, str] = {}
+        if det_rec_variant is not None:
+            if det_rec_variant.det_model_name is not None:
+                _det_rec_kwargs["text_detection_model_name"] = det_rec_variant.det_model_name
+            if det_rec_variant.rec_model_name is not None:
+                _det_rec_kwargs["text_recognition_model_name"] = det_rec_variant.rec_model_name
         engine = PPStructureV3(
-            use_doc_orientation_classify=False,
-            use_doc_unwarping=False,
-            use_textline_orientation=False,
-            use_formula_recognition=False,
-            use_seal_recognition=False,
-            use_chart_recognition=False,
+            **_use_kwargs,
+            **_det_rec_kwargs,
             cpu_threads=1,
             enable_mkldnn=False,
             device="gpu:0",

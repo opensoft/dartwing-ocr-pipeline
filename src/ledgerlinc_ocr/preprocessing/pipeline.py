@@ -70,6 +70,16 @@ class Invocation:
     # `_run_inner` does NOT read this field; tests assert on it to verify
     # the CLI's activation logic produces the expected boolean.
     warmup: bool = False
+    # Feature 017 (T009 / T020 / R-017.5 / R-017.8): resolved preset
+    # identifier strings threaded from CLI parse → preflight engine
+    # construction → run_summary identifier emission. Default `None`
+    # means "use the active profile's identity-preset default" (see
+    # `preprocessing/identifiers.py::CPU_DEFAULT_*`). On a non-GPU
+    # profile, even when the operator set the flag, these stay `None`
+    # because the warn-and-proceed branch (FR-013) drops the resolved
+    # values — the CPU/stub identifier defaults flow through unchanged.
+    module_set_id: str | None = None
+    det_rec_variant_id: str | None = None
 
 
 def _derive_document_id(folder_name: str) -> str:

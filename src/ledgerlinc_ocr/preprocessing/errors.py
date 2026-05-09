@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 EXIT_OK = 0
 EXIT_UNEXPECTED = 1
 EXIT_INPUT_REJECTED = 2
@@ -16,6 +18,10 @@ EXIT_INTERNAL_ERROR = 3
 from ledgerlinc_ocr.pipeline.exit_codes import ExitCode as _ExitCode
 
 EXIT_WARMUP_FAILED: int = int(_ExitCode.WARMUP_FAILED)
+# Feature 017 (T002 / T003 / R-017.9 / contracts/cli-contract.md §4): the
+# unknown-preset exit code, immediately following feature 016's WARMUP_FAILED.
+# Same single-source-of-truth pattern as EXIT_WARMUP_FAILED.
+EXIT_UNKNOWN_PRESET: int = int(_ExitCode.UNKNOWN_PRESET)
 
 
 class PreprocessingError(Exception):
@@ -109,3 +115,40 @@ class WarmupError(PreprocessingError):
         super().__init__(message)
         self.cause_class = cause_class
         self.cause_module = cause_module
+
+
+class UnknownPresetError(ValueError):
+    """Feature 017 fail-fast: an unknown preset value was selected.
+
+    Raised by `preprocessing/presets.py::resolve_module_set` and
+    `resolve_det_rec_variant` when the operator passes a value not in
+    the closed `MODULE_SET_PRESETS` / `DET_REC_VARIANTS` registries
+    (e.g., a typo like `--module-set=reduced-v99` or
+    `--det-rec-variant=ppocrv9_imaginary`). Caught at the CLI parse
+    boundary BEFORE any Paddle/preflight import; surfaced as
+    ``error: unknown <preset_axis>: <preset_value!r> — valid values
+    are: <comma-separated valid_values>`` on stderr with exit code 16
+    (``EXIT_UNKNOWN_PRESET``). Per spec FR-013 / R-017.9 / R-017.12,
+    on this failure no `run_summary` line is emitted, no engine is
+    constructed, and no `preprocess_output.json` is written.
+
+    Subclass of `ValueError` per data-model.md §UnknownPresetError so
+    the error reads as "you passed me a bad value" semantically; the
+    `exit_code` class attribute mirrors the WarmupError pattern so CLI
+    catch sites can route uniformly.
+    """
+
+    exit_code = EXIT_UNKNOWN_PRESET
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        preset_axis: Literal["module_set", "det_rec_variant"],
+        preset_value: str,
+        valid_values: tuple[str, ...],
+    ) -> None:
+        super().__init__(message)
+        self.preset_axis = preset_axis
+        self.preset_value = preset_value
+        self.valid_values = valid_values

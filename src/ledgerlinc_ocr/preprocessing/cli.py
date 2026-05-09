@@ -105,6 +105,39 @@ def _build_parser() -> argparse.ArgumentParser:
             "environment variable; the CLI flag wins when both are present."
         ),
     )
+    # Feature 017 (T009 / R-017.1 / contracts/cli-contract.md §1): two
+    # closed-vocabulary preset axes for the ppstructurev3@gpu lane. Both
+    # default to None — the CPU/legacy default kicks in. Resolution happens
+    # at argv parse time; UnknownPresetError fails fast with exit code 16
+    # BEFORE any Paddle import. Orthogonal to --preprocess-profile and
+    # --gpu-warmup. Also accepted via the LEDGERLINC_MODULE_SET= /
+    # LEDGERLINC_DET_REC_VARIANT= env vars (CLI flag wins when both set).
+    p.add_argument(
+        "--module-set",
+        type=str,
+        default=None,
+        help=(
+            "Select a named PPStructureV3 module-set preset for the "
+            "ppstructurev3@gpu lane. Valid values: legacy, reduced-v1. "
+            "Default on GPU: legacy. Default on CPU/stub: cpu-default / "
+            "stub-default (the flag is ignored on non-GPU profiles with a "
+            "stderr warning). Can also be set via the LEDGERLINC_MODULE_SET "
+            "environment variable; the CLI flag wins when both are present."
+        ),
+    )
+    p.add_argument(
+        "--det-rec-variant",
+        type=str,
+        default=None,
+        help=(
+            "Select a named detection/recognition model variant for the "
+            "ppstructurev3@gpu lane. Valid values: legacy, ppocrv5-mobile, "
+            "ppocrv4-mobile. Default on GPU: legacy. Default on CPU/stub: "
+            "cpu-default / stub-default (warn-and-proceed on non-GPU "
+            "profiles). Can also be set via the LEDGERLINC_DET_REC_VARIANT "
+            "environment variable; the CLI flag wins when both are present."
+        ),
+    )
     return p
 
 
@@ -203,6 +236,55 @@ def main(argv: list[str] | None = None) -> int:
         _emit_simple_error_kind("input_rejected", str(exc))
         return EXIT_INPUT_REJECTED
 
+    # Feature 017 (T009 / T020 / R-017.1 / R-017.9 / R-017.12 /
+    # contracts/cli-contract.md §3 / Plan §I-7 step 1 + 2 / I-11): resolve
+    # the two preset axes BEFORE Paddle import. UnknownPresetError fails
+    # fast with exit code 16 (R-017.12). When a known value is set on a
+    # non-GPU profile, emit FR-013 warn-and-proceed and drop the resolved
+    # value (the CPU/stub identity-preset default flows into run_summary).
+    from ledgerlinc_ocr.preprocessing.preset_optin import (
+        resolve_module_set_value as _resolve_module_set_value,
+        resolve_det_rec_variant_value as _resolve_det_rec_variant_value,
+        is_gpu_lane as _is_gpu_lane_017,
+        module_set_warn_message as _module_set_warn,
+        det_rec_variant_warn_message as _det_rec_warn,
+    )
+    from ledgerlinc_ocr.preprocessing.presets import (
+        resolve_module_set as _resolve_module_set,
+        resolve_det_rec_variant as _resolve_det_rec_variant,
+    )
+    from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError as _UnknownPresetError
+
+    _module_set_raw = _resolve_module_set_value(args.module_set)
+    _det_rec_raw = _resolve_det_rec_variant_value(args.det_rec_variant)
+    try:
+        if _module_set_raw is not None:
+            _resolve_module_set(_module_set_raw)
+        if _det_rec_raw is not None:
+            _resolve_det_rec_variant(_det_rec_raw)
+    except _UnknownPresetError as exc:
+        valid_str = ", ".join(exc.valid_values)
+        print(
+            f"error: unknown {exc.preset_axis}: {exc.preset_value!r} — "
+            f"valid values are: {valid_str}",
+            file=sys.stderr,
+        )
+        return int(exc.exit_code)
+    # Cross-profile fail-safe (FR-013 / Plan §I-7 step 2 / I-11): on a
+    # non-GPU profile, set values are warn-and-proceeded and dropped.
+    _module_set_threaded: str | None = _module_set_raw
+    _det_rec_threaded: str | None = _det_rec_raw
+    if not _is_gpu_lane_017(preprocess_lane):
+        active_profile_name_017 = (
+            args.preprocess_profile if args.preprocess_profile else "ppstructurev3@cpu"
+        )
+        if _module_set_raw is not None:
+            print(_module_set_warn(active_profile_name_017), file=sys.stderr)
+            _module_set_threaded = None
+        if _det_rec_raw is not None:
+            print(_det_rec_warn(active_profile_name_017), file=sys.stderr)
+            _det_rec_threaded = None
+
     # Feature 016 (T008 / T010 / T021 / FR-010 / SC-007): resolve the warmup
     # opt-in surface (CLI flag + LEDGERLINC_GPU_WARMUP env var). When set on
     # a non-GPU lane, emit the FR-010 warn-and-proceed line and force the
@@ -223,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
         pipeline_version=args.pipeline_version,
         preprocess_lane=preprocess_lane,
         warmup=warmup_threaded,
+        module_set_id=_module_set_threaded,
+        det_rec_variant_id=_det_rec_threaded,
     )
 
     # Feature 016 (Copilot PR #24 round 2 finding 1 / FR-007 / SC-004):
