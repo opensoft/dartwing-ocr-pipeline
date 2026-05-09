@@ -320,6 +320,8 @@ def main(argv: list[str] | None = None) -> int:
         pipeline.run_warmup_if_active(
             preprocess_lane=preprocess_lane,
             warmup_optin=warmup_optin,
+            module_set_id=_module_set_threaded,
+            det_rec_variant_id=_det_rec_threaded,
         )
     except WarmupError as exc:
         print(
@@ -535,6 +537,21 @@ def _emit_single_doc_run_summary(
         documents_succeeded = 0
         documents_failed = 1
 
+    # Feature 017 (review CRITICAL fix): thread the resolved preset
+    # identifiers from `Invocation` onto `RunSummary` so a GPU run with
+    # `--module-set=reduced-v1` actually emits `module_set_id="reduced-v1"`
+    # on the wire (FR-008 / FR-010 / SC-003). Previously the dataclass
+    # defaults (`cpu-default`) reached the wire on every run; now the
+    # CLI-resolved value flows through.
+    from ledgerlinc_ocr.preprocessing.preset_optin import (
+        derive_run_summary_identifiers as _derive_identifiers_017,
+    )
+
+    _module_set_id_017, _det_rec_variant_id_017 = _derive_identifiers_017(
+        threaded_module_set=invocation.module_set_id,
+        threaded_det_rec_variant=invocation.det_rec_variant_id,
+        preprocess_lane=preprocess_lane,
+    )
     summary = RunSummary(
         stack_preset=None,
         resolved_profiles={"preprocess": _profile_slug_for_lane(preprocess_lane)},
@@ -545,6 +562,10 @@ def _emit_single_doc_run_summary(
         documents_failed=documents_failed,
         per_document=[per_doc_record],
         preprocess_lane=preprocess_lane,
+        module_set_id=_module_set_id_017,
+        det_rec_variant_id=_det_rec_variant_id_017,
+        # ppstructure_modules_invoked left at default `[]` until T010's
+        # GPU audit-callable invocation lands (deferred per FR-024).
     )
     emit_run_summary(summary)
 

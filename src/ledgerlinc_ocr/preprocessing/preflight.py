@@ -560,7 +560,11 @@ def reset_cache() -> None:
     _LAST_READOUT = None
 
 
-def ensure_gpu_ready() -> PreflightReadout:
+def ensure_gpu_ready(
+    *,
+    module_set: "ModuleSetPreset | None" = None,
+    det_rec_variant: "DetRecVariant | None" = None,
+) -> PreflightReadout:
     """Inline GPU gate (T021 + T023). Returns the cached readout when a
     prior call succeeded; otherwise calls classify() and either caches
     the success result or raises GpuPrerequisiteError on a non-success
@@ -569,11 +573,25 @@ def ensure_gpu_ready() -> PreflightReadout:
     Raises GpuPrerequisiteError on any FR-001 fail state — the caller
     (preprocessing/cli.py T022 or pipeline/corpus_run.py T024) catches
     it and renders the FR-009 stderr message.
+
+    Feature 017 (T010 followon / FR-002 / FR-005 / FR-006): preset kwargs
+    are threaded into ``classify()`` on the first call so the GPU engine
+    constructor receives the resolved ``use_kwargs`` splat (R-017.6) and
+    the det/rec model-name overrides (R-017.4 Appendix A). Subsequent
+    calls return the cached readout — the engine is constructed exactly
+    once per process per feature 015 FR-001, so preset values are
+    "first-call wins". Within a process the resolved presets are
+    constant (CLI parse → fail-fast validation → cached resolution), so
+    first-call-wins is operationally correct.
     """
     global _LAST_READOUT
     if _LAST_READOUT is not None and _LAST_READOUT.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
         return _LAST_READOUT
-    readout = classify(attempt_ppstructurev3_init=True)
+    readout = classify(
+        attempt_ppstructurev3_init=True,
+        module_set=module_set,
+        det_rec_variant=det_rec_variant,
+    )
     if readout.state is not PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
         raise GpuPrerequisiteError(readout.state, readout.recommendation)
     return readout

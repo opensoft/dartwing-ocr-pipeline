@@ -418,6 +418,15 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
                     source_file=_SOURCE_PDF,
                     pipeline_version=invocation.pipeline_version,
                     preprocess_lane=lane,
+                    # Feature 017 (review CRITICAL fix): thread the
+                    # resolved presets into the preprocessing-stage
+                    # PreInvocation so `_run_inner`'s ensure_gpu_ready
+                    # call receives them. The cold-path's CLIInvocation
+                    # has these set by `pipeline/cli.py::main` after
+                    # warn-and-proceed; warm-corpus doesn't go through
+                    # this stage adapter.
+                    module_set_id=getattr(invocation, "module_set_id", None),
+                    det_rec_variant_id=getattr(invocation, "det_rec_variant_id", None),
                 ),
                 stage_timing=current_stage_timing(),
             )

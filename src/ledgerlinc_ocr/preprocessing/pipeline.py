@@ -115,6 +115,8 @@ def run_warmup_if_active(
     *,
     preprocess_lane: str,
     warmup_optin: bool,
+    module_set_id: str | None = None,
+    det_rec_variant_id: str | None = None,
 ) -> None:
     """Hoisted GPU warmup helper. Callers MUST invoke this BEFORE wrapping
     ``pipeline.run`` in ``measure_total`` so warmup duration does not
@@ -146,7 +148,28 @@ def run_warmup_if_active(
         ocr as _ocr_mod,
         warmup as _warmup_mod,
     )
-    _ensure_gpu_ready()
+    # Feature 017 (review CRITICAL fix): when this helper is the FIRST
+    # ensure_gpu_ready caller in the process (warmup path runs BEFORE
+    # `_run_inner` per FR-007 / SC-004), it must thread the resolved
+    # presets so the cached readout reflects the operator's choice.
+    # Otherwise `_run_inner` would see the cached preset-less readout
+    # and the GPU engine would have been constructed with legacy
+    # defaults regardless of `--module-set=reduced-v1`.
+    _module_set_obj = None
+    _det_rec_variant_obj = None
+    if module_set_id is not None or det_rec_variant_id is not None:
+        from ledgerlinc_ocr.preprocessing.presets import (
+            resolve_module_set as _resolve_module_set,
+            resolve_det_rec_variant as _resolve_det_rec_variant,
+        )
+        if module_set_id is not None:
+            _module_set_obj = _resolve_module_set(module_set_id)
+        if det_rec_variant_id is not None:
+            _det_rec_variant_obj = _resolve_det_rec_variant(det_rec_variant_id)
+    _ensure_gpu_ready(
+        module_set=_module_set_obj,
+        det_rec_variant=_det_rec_variant_obj,
+    )
     _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
 
 
@@ -308,11 +331,32 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
     # gate BEFORE any artifact write or input parsing. ensure_gpu_ready
     # is process-cached per Q2.
+    #
+    # Feature 017 (review CRITICAL fix): thread Invocation's resolved
+    # preset values into ensure_gpu_ready so the GPU engine constructor
+    # receives the use_kwargs splat (R-017.6) and det/rec model-name
+    # overrides (R-017.4 Appendix A). Lazy resolution from string ID →
+    # preset object happens here so the CLI doesn't need to import the
+    # presets module before fail-fast validation.
     if invocation.preprocess_lane != "cpu":
         from ledgerlinc_ocr.preprocessing.preflight import (
             ensure_gpu_ready as _ensure_gpu_ready,
         )
-        _ensure_gpu_ready()
+        _module_set_obj = None
+        _det_rec_variant_obj = None
+        if invocation.module_set_id is not None or invocation.det_rec_variant_id is not None:
+            from ledgerlinc_ocr.preprocessing.presets import (
+                resolve_module_set as _resolve_module_set,
+                resolve_det_rec_variant as _resolve_det_rec_variant,
+            )
+            if invocation.module_set_id is not None:
+                _module_set_obj = _resolve_module_set(invocation.module_set_id)
+            if invocation.det_rec_variant_id is not None:
+                _det_rec_variant_obj = _resolve_det_rec_variant(invocation.det_rec_variant_id)
+        _ensure_gpu_ready(
+            module_set=_module_set_obj,
+            det_rec_variant=_det_rec_variant_obj,
+        )
 
     # Feature 016 (Copilot PR #24 round 2 finding 1): warmup is no longer
     # invoked here — running it inside `_run_inner` placed it within the

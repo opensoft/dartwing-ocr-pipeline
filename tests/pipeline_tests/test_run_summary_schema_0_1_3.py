@@ -42,11 +42,16 @@ def test_schema_version_is_at_least_0_1_3_codebase_level() -> None:
     after feature 017). Enforces the additive-only invariant established
     by feature 016 — every later bump must preserve 0.1.3-shape parsers'
     ability to read newer output."""
-    assert timing.SCHEMA_VERSION >= "0.1.3", (
+    # Tuple comparison instead of lexical string comparison — string
+    # `>=` works for "0.1.4" but breaks at "0.1.10" lexically (review
+    # MEDIUM finding). Tuple of ints is monotonic.
+    _version_tuple = tuple(int(p) for p in timing.SCHEMA_VERSION.split("."))
+    assert _version_tuple >= (0, 1, 3), (
         f"feature 016 set SCHEMA_VERSION to 0.1.3 or higher; "
         f"got {timing.SCHEMA_VERSION!r} which is below the floor"
     )
-    assert SCHEMA_VERSION >= "0.1.3"
+    _version_tuple_2 = tuple(int(p) for p in SCHEMA_VERSION.split("."))
+    assert _version_tuple_2 >= (0, 1, 3)
 
 
 def test_run_summary_emits_at_least_0_1_3_in_json_line() -> None:
@@ -63,7 +68,8 @@ def test_run_summary_emits_at_least_0_1_3_in_json_line() -> None:
     )
     line = summary.as_json_line()
     parsed = json.loads(line)
-    assert parsed["schema_version"] >= "0.1.3"
+    _wire_tuple = tuple(int(p) for p in parsed["schema_version"].split("."))
+    assert _wire_tuple >= (0, 1, 3)
 
 
 # ---------------------------------------------------------------------------

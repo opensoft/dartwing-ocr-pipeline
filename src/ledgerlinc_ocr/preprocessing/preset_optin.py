@@ -104,6 +104,42 @@ def det_rec_variant_warn_message(active_profile: str) -> str:
     )
 
 
+def derive_run_summary_identifiers(
+    *,
+    threaded_module_set: Optional[str],
+    threaded_det_rec_variant: Optional[str],
+    preprocess_lane: str,
+) -> tuple[str, str]:
+    """Derive ``(module_set_id, det_rec_variant_id)`` for ``RunSummary``
+    construction at the run-summary build sites in ``corpus_run.py`` and
+    ``preprocessing/cli.py:_emit_single_doc_run_summary``.
+
+    ``threaded_module_set`` / ``threaded_det_rec_variant`` are the values
+    the CLI carried forward AFTER the warn-and-proceed branch (so on
+    non-GPU profiles they will be ``None`` even when the operator passed
+    a flag). Caller (the CLI) is responsible for the warn-and-proceed
+    reset; this helper just maps the CLI's threaded value → run_summary
+    identifier value.
+
+    Behavior:
+
+    - ``preprocess_lane`` is GPU and a value is threaded → return that value
+    - ``preprocess_lane`` is GPU and no value threaded → return "legacy"
+      (the GPU-lane no-flag default per R-017.2 / R-017.4)
+    - ``preprocess_lane`` is CPU/stub → return ("cpu-default", "cpu-default")
+      regardless of threaded value (warn-and-proceed already nulled it)
+
+    Stub-adapter discrimination beyond cpu/gpu lane is the caller's
+    responsibility; pass ``"stub-default"`` literals at the stub run-summary
+    build site (see ``data-model.md`` §"CPU/stub identifier constants").
+    """
+    if not is_gpu_lane(preprocess_lane):
+        return ("cpu-default", "cpu-default")
+    module_set_id = threaded_module_set if threaded_module_set is not None else "legacy"
+    det_rec_variant_id = threaded_det_rec_variant if threaded_det_rec_variant is not None else "legacy"
+    return (module_set_id, det_rec_variant_id)
+
+
 __all__ = (
     "MODULE_SET_ENV_VAR",
     "DET_REC_VARIANT_ENV_VAR",
@@ -112,4 +148,5 @@ __all__ = (
     "is_gpu_lane",
     "module_set_warn_message",
     "det_rec_variant_warn_message",
+    "derive_run_summary_identifiers",
 )

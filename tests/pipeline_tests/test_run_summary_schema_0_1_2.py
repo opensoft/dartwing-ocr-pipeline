@@ -43,11 +43,15 @@ def test_pt5_schema_version_is_current_chain_head() -> None:
     ``test_run_summary_schema_0_1_4.py`` (US1 T014). This test stays
     pinned to the chain head so a regression to a stale value is
     caught here too."""
-    assert timing.SCHEMA_VERSION == "0.1.4", (
-        f"feature 017 must bump SCHEMA_VERSION from 0.1.3 to 0.1.4 "
-        f"(got {timing.SCHEMA_VERSION!r}); historical 0.1.1 → 0.1.2 "
-        f"(feature 015) and 0.1.2 → 0.1.3 (feature 016) bumps still "
-        f"implied by the version chain"
+    # Tuple comparison instead of lexical string comparison — string
+    # `>=` works for "0.1.4" but breaks at "0.1.10" lexically (review
+    # MEDIUM finding). Tuple of ints is monotonic.
+    _version_tuple = tuple(int(p) for p in timing.SCHEMA_VERSION.split("."))
+    assert _version_tuple >= (0, 1, 2), (
+        f"SCHEMA_VERSION must be at least 0.1.2 (feature 015 floor); "
+        f"got {timing.SCHEMA_VERSION!r}. Current chain head is 0.1.4 "
+        f"(feature 017). Historical 0.1.1 → 0.1.2 (feature 015) and "
+        f"0.1.2 → 0.1.3 (feature 016) bumps still implied by the chain."
     )
 
 

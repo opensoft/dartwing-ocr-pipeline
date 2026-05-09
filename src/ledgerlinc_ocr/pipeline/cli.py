@@ -374,9 +374,16 @@ def _run_cold_warmup_if_active(invocation: CLIInvocation) -> int | None:
         _gpu_prerequisite_error_cls = None  # type: ignore[assignment]
         _exit_code_for_state = None  # type: ignore[assignment]
     try:
+        # Feature 017 (review CRITICAL fix): forward the resolved preset
+        # identifiers so `ensure_gpu_ready` adopts the engine with the
+        # operator-selected use_kwargs splat + det/rec model overrides
+        # on this first call (cold-path warmup runs BEFORE the runner's
+        # stage dispatch; subsequent ensure_gpu_ready calls are cache hits).
         _run_warmup_if_active(
             preprocess_lane="gpu0",  # ppstructurev3@gpu resolves here
             warmup_optin=True,
+            module_set_id=invocation.module_set_id,
+            det_rec_variant_id=invocation.det_rec_variant_id,
         )
     except WarmupError as exc:
         sys.stderr.write(f"error: warmup failed: {exc.cause_class}: {exc}\n")
@@ -542,6 +549,46 @@ def _run_cold(
     invocation.warmup = (
         _gpu_warmup_optin and _preprocess_in_slice and _preprocess_is_gpu
     )
+
+    # Feature 017 (review HIGH fix): cold-path warn-and-proceed for the
+    # two preset axes. Mirrors the warmup_optin block above. When the
+    # operator passes a known `--module-set` / `--det-rec-variant` value
+    # on a non-GPU profile (CPU or stub), emit one stderr warn line per
+    # ignored flag and drop the resolved value (FR-013 / cli-contract.md
+    # §3). Unknown values were already rejected at `main()`'s parse-time
+    # check (R-017.12 fail-fast → exit 16).
+    from ledgerlinc_ocr.preprocessing.preset_optin import (
+        resolve_module_set_value as _resolve_module_set_value_017,
+        resolve_det_rec_variant_value as _resolve_det_rec_variant_value_017,
+        module_set_warn_message as _module_set_warn_017,
+        det_rec_variant_warn_message as _det_rec_warn_017,
+    )
+    _module_set_raw_017 = _resolve_module_set_value_017(getattr(args, "module_set", None))
+    _det_rec_raw_017 = _resolve_det_rec_variant_value_017(getattr(args, "det_rec_variant", None))
+    if _module_set_raw_017 is not None and _preprocess_in_slice and not _preprocess_is_gpu:
+        sys.stderr.write(
+            _module_set_warn_017(
+                _resolve_warning_profile_name(
+                    _preprocess_profile, args.preprocess_profile
+                )
+            )
+            + "\n"
+        )
+        _module_set_raw_017 = None
+    if _det_rec_raw_017 is not None and _preprocess_in_slice and not _preprocess_is_gpu:
+        sys.stderr.write(
+            _det_rec_warn_017(
+                _resolve_warning_profile_name(
+                    _preprocess_profile, args.preprocess_profile
+                )
+            )
+            + "\n"
+        )
+        _det_rec_raw_017 = None
+    # Thread the post-warn-and-proceed values onto the cold-path
+    # invocation so `_run_inner`'s ensure_gpu_ready call receives them.
+    invocation.module_set_id = _module_set_raw_017
+    invocation.det_rec_variant_id = _det_rec_raw_017
 
     # Hoisted warmup: must run BEFORE the runner's stage dispatch so
     # warmup duration is excluded from per-doc `phase_timings.total`.

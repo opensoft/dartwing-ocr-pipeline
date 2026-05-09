@@ -43,7 +43,22 @@ _AMENDMENT_011 = {
     "--ollama-jetson-url",
 }
 
-_EXPECTED = _FROZEN_002 | _AMENDMENT_011
+# Feature 016 amendment (FR-002 / R-016.1 / contracts/cli-contract.md §1):
+# `--gpu-warmup` opt-in for the explicit GPU warmup pass on
+# ppstructurev3@gpu. Orthogonal to all other flags.
+_AMENDMENT_016 = {
+    "--gpu-warmup",
+}
+
+# Feature 017 amendment (FR-002 / FR-005 / FR-006 / R-017.1 /
+# contracts/cli-contract.md §1): two closed-vocabulary preset axes for the
+# ppstructurev3@gpu lane. Orthogonal to all other flags.
+_AMENDMENT_017 = {
+    "--module-set",
+    "--det-rec-variant",
+}
+
+_EXPECTED = _FROZEN_002 | _AMENDMENT_011 | _AMENDMENT_016 | _AMENDMENT_017
 
 
 def _collect_run_subparser_flags() -> set[str]:

@@ -118,6 +118,15 @@ class CLIInvocation:
     # mode reads `--gpu-warmup` directly from `args` in
     # `pipeline.corpus_run` and does not touch this field.
     warmup: bool = False
+    # Feature 017 (review CRITICAL fix): resolved preset identifier
+    # strings threaded from `pipeline/cli.py::main` after argv parse +
+    # cross-profile warn-and-proceed. `None` means either the operator
+    # did not pass the flag or the warn-and-proceed branch nulled the
+    # value (non-GPU profile). Read by `_run_cold_warmup_if_active` to
+    # forward to `run_warmup_if_active` and by the cold-path stage
+    # dispatcher to derive the per-stage Invocation's preset values.
+    module_set_id: str | None = None
+    det_rec_variant_id: str | None = None
 
 
 StageCallable = Callable[[CLIInvocation, dict[str, Any]], Any]
