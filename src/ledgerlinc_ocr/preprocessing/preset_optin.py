@@ -27,17 +27,17 @@ Public API:
 from __future__ import annotations
 
 import os
-from typing import Optional
 
+from ledgerlinc_ocr.preprocessing.warmup_optin import is_gpu_lane
 
 MODULE_SET_ENV_VAR: str = "LEDGERLINC_MODULE_SET"
 DET_REC_VARIANT_ENV_VAR: str = "LEDGERLINC_DET_REC_VARIANT"
 
 
 def resolve_module_set_value(
-    cli_value: Optional[str],
-    env: Optional[dict[str, str]] = None,
-) -> Optional[str]:
+    cli_value: str | None,
+    env: dict[str, str] | None = None,
+) -> str | None:
     """Return the `module_set_id` string the operator wants, or `None` if
     neither the CLI flag nor the env var is set.
 
@@ -55,9 +55,9 @@ def resolve_module_set_value(
 
 
 def resolve_det_rec_variant_value(
-    cli_value: Optional[str],
-    env: Optional[dict[str, str]] = None,
-) -> Optional[str]:
+    cli_value: str | None,
+    env: dict[str, str] | None = None,
+) -> str | None:
     """Return the `det_rec_variant_id` string the operator wants, or
     `None` if neither the CLI flag nor the env var is set.
 
@@ -70,16 +70,6 @@ def resolve_det_rec_variant_value(
     if raw == "":
         return None
     return raw
-
-
-def is_gpu_lane(preprocess_lane: str) -> bool:
-    """True if the resolved preprocess lane string indicates GPU.
-
-    Mirrors feature 016's `warmup_optin.is_gpu_lane`. A lane starting
-    with "gpu" (e.g., "gpu0", "gpu1") routes through GPU; "cpu" and
-    stub-adapter sentinels do not.
-    """
-    return isinstance(preprocess_lane, str) and preprocess_lane.startswith("gpu")
 
 
 def module_set_warn_message(active_profile: str) -> str:
@@ -106,8 +96,8 @@ def det_rec_variant_warn_message(active_profile: str) -> str:
 
 def derive_run_summary_identifiers(
     *,
-    threaded_module_set: Optional[str],
-    threaded_det_rec_variant: Optional[str],
+    threaded_module_set: str | None,
+    threaded_det_rec_variant: str | None,
     preprocess_lane: str,
 ) -> tuple[str, str]:
     """Derive ``(module_set_id, det_rec_variant_id)`` for ``RunSummary``
