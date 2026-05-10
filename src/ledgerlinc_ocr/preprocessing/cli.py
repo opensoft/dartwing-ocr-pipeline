@@ -165,6 +165,27 @@ def _build_parser() -> argparse.ArgumentParser:
             "flag wins when both are present."
         ),
     )
+    # Feature 018 (T019 / R-018.4 / contracts/cli-contract.md §1):
+    # region-strategy axis (page-area targeting). Mirrors --raster-profile
+    # above. Same parse-order, same UnknownPresetError → exit 16.
+    p.add_argument(
+        "--region-strategy",
+        type=str,
+        default=None,
+        help=(
+            "Select a named region-targeting strategy for the "
+            "ppstructurev3@gpu lane. Valid values: full-page, "
+            "header-first-v1, cpu-default, stub-default. Default on GPU: "
+            "full-page. The header-first-v1 strategy processes only "
+            "page 1's top-30%% header band; pages 2..N appear in "
+            "preprocess_output.json.pages[] as empty records. On a "
+            "no-evidence trigger (whitespace-stripped concat of "
+            "blocks[].text in the targeted region empty), the strategy "
+            "falls back to full-page on that document and increments "
+            "region_strategy_fallback_count on run_summary. Can also "
+            "be set via LEDGERLINC_REGION_STRATEGY; the CLI flag wins."
+        ),
+    )
     return p
 
 
@@ -291,10 +312,19 @@ def main(argv: list[str] | None = None) -> int:
     from ledgerlinc_ocr.preprocessing.raster_profiles import (
         resolve_raster_profile as _resolve_raster_profile,
     )
+    # Feature 018 (T019): region_strategy axis resolution.
+    from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
+        resolve_region_strategy_value as _resolve_region_strategy_value,
+        region_strategy_warn_message as _region_strategy_warn,
+    )
+    from ledgerlinc_ocr.preprocessing.region_strategies import (
+        resolve_region_strategy as _resolve_region_strategy,
+    )
 
     _module_set_raw = _resolve_module_set_value(args.module_set)
     _det_rec_raw = _resolve_det_rec_variant_value(args.det_rec_variant)
     _raster_profile_raw = _resolve_raster_profile_value(args.raster_profile)
+    _region_strategy_raw = _resolve_region_strategy_value(args.region_strategy)
     try:
         if _module_set_raw is not None:
             _resolve_module_set(_module_set_raw)
@@ -302,6 +332,8 @@ def main(argv: list[str] | None = None) -> int:
             _resolve_det_rec_variant(_det_rec_raw)
         if _raster_profile_raw is not None:
             _resolve_raster_profile(_raster_profile_raw)
+        if _region_strategy_raw is not None:
+            _resolve_region_strategy(_region_strategy_raw)
     except _UnknownPresetError as exc:
         valid_str = ", ".join(exc.valid_values)
         print(
@@ -316,6 +348,7 @@ def main(argv: list[str] | None = None) -> int:
     _module_set_threaded: str | None = _module_set_raw
     _det_rec_threaded: str | None = _det_rec_raw
     _raster_profile_threaded: str | None = _raster_profile_raw
+    _region_strategy_threaded: str | None = _region_strategy_raw
     if not _is_gpu_lane_017(preprocess_lane):
         active_profile_name_017 = (
             args.preprocess_profile if args.preprocess_profile else "ppstructurev3@cpu"
@@ -329,6 +362,9 @@ def main(argv: list[str] | None = None) -> int:
         if _raster_profile_raw is not None:
             print(_raster_profile_warn(active_profile_name_017), file=sys.stderr)
             _raster_profile_threaded = None
+        if _region_strategy_raw is not None:
+            print(_region_strategy_warn(active_profile_name_017), file=sys.stderr)
+            _region_strategy_threaded = None
 
     # Feature 016 (T008 / T010 / T021 / FR-010 / SC-007): resolve the warmup
     # opt-in surface (CLI flag + LEDGERLINC_GPU_WARMUP env var). When set on
@@ -357,6 +393,10 @@ def main(argv: list[str] | None = None) -> int:
         # (warn-and-proceed already nulled it). The pipeline orchestrator
         # (T010) reads this and passes the resolved DPI to rasterize_pdf.
         raster_profile_id=_raster_profile_threaded,
+        # Feature 018 (T019/T018): threaded region_strategy_id; same
+        # discipline as raster_profile_id. The pipeline orchestrator
+        # (T018) reads this and branches on the strategy class.
+        region_strategy_id=_region_strategy_threaded,
     )
 
     # Feature 016 (Copilot PR #24 round 2 finding 1 / FR-007 / SC-004):
@@ -601,6 +641,13 @@ def _emit_single_doc_run_summary(
     from ledgerlinc_ocr.preprocessing.raster_profile_optin import (
         derive_run_summary_raster_profile_id as _derive_raster_profile_id_018,
     )
+    # Feature 018 (T019 / T020 / R-018.4 / R-018.8): same threading
+    # discipline for the region_strategy axis. The fallback count comes
+    # from `invocation.region_strategy_fallback_fired` set by the
+    # orchestrator's region-first path on FR-007 trigger.
+    from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
+        derive_run_summary_region_strategy_id as _derive_region_strategy_id_018,
+    )
 
     _module_set_id_017, _det_rec_variant_id_017 = _derive_identifiers_017(
         threaded_module_set=invocation.module_set_id,
@@ -610,6 +657,15 @@ def _emit_single_doc_run_summary(
     _raster_profile_id_018 = _derive_raster_profile_id_018(
         threaded_raster_profile=invocation.raster_profile_id,
         preprocess_lane=preprocess_lane,
+    )
+    _region_strategy_id_018 = _derive_region_strategy_id_018(
+        threaded_region_strategy=invocation.region_strategy_id,
+        preprocess_lane=preprocess_lane,
+    )
+    # R-018.8 / Clarifications Q4: per-doc fallback flag from the
+    # orchestrator → per-run accumulator (single-doc CLI = 0 or 1).
+    _region_strategy_fallback_count_018 = (
+        1 if invocation.region_strategy_fallback_fired else 0
     )
     summary = RunSummary(
         stack_preset=None,
@@ -625,11 +681,14 @@ def _emit_single_doc_run_summary(
         det_rec_variant_id=_det_rec_variant_id_017,
         # ppstructure_modules_invoked left at default `[]` until T010's
         # GPU audit-callable invocation lands (deferred per FR-024).
-        # Feature 018 (T009): raster_profile_id flows from the resolved
-        # CLI flag / env var via derive_run_summary_raster_profile_id.
-        # region_strategy_id and region_strategy_fallback_count remain at
-        # dataclass defaults until US2 (T019/T020) wires them.
+        # Feature 018 (T009 / T019 / T020): all three additive top-level
+        # fields wired. raster_profile_id from US1's CLI; region_strategy_id
+        # from US2's CLI; region_strategy_fallback_count from the
+        # orchestrator's per-doc fallback flag (R-018.8 / Q4 — single-doc
+        # CLI = 0 or 1).
         raster_profile_id=_raster_profile_id_018,
+        region_strategy_id=_region_strategy_id_018,
+        region_strategy_fallback_count=_region_strategy_fallback_count_018,
     )
     emit_run_summary(summary)
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pypdfium2 as pdfium
 from PIL import Image
@@ -111,6 +112,86 @@ def _metadata_fallback_dims(page, dpi: int = DPI) -> tuple[int, int]:
         return int(w), int(h)
     except Exception:
         return FALLBACK_WIDTH, FALLBACK_HEIGHT
+
+
+def rasterize_page_band(
+    pdf_path: Path,
+    page_index: int,
+    band_bbox_pt: Any,
+    dpi: int = DPI,
+) -> tuple[Image.Image, tuple[int, int]]:
+    """Feature 018 (T017 / R-018.5 / R-018.15): rasterize ONLY the
+    targeted band of a single PDF page, returning the cropped PIL Image
+    plus the crop's top-left offset in pixel coordinates.
+
+    Used only by the `header-first-v1` region strategy. The orchestrator
+    in `preprocessing/pipeline.py` calls this once per document (page 1
+    only — pages 2..N are skipped entirely per Clarifications Q2 and
+    R-018.6) when `region_strategy_id == "header-first-v1"`.
+
+    `band_bbox_pt` is a `region_strategies.BBox` in TOP-LEFT-ORIGIN PDF
+    point coordinates. For `header-first-v1` (R-018.5):
+        BBox(x0_pt=0, y0_pt=0, x1_pt=width_pt, y1_pt=0.30 * height_pt)
+
+    `pypdfium2.PdfPage.render(crop=...)` accepts a `(left, bottom, right,
+    top)` 4-tuple in BOTTOM-LEFT-ORIGIN PDF native coordinates,
+    interpreted as "amount to remove from each edge". For top 30% of
+    height (top-left-origin), we need to remove 70% of height from the
+    BOTTOM in PDF native (so the visual top survives after pypdfium2's
+    render flip).
+
+    Returns `(cropped_image, (offset_x_px, offset_y_px))`. For
+    header-first-v1 the offset is `(0, 0)` because the crop keeps the
+    visual top-left corner. The orchestrator uses the offset to
+    translate PaddleOCR's crop-relative bboxes back to full-page pixel
+    coordinates via `region_strategies.translate_bbox` (R-018.15).
+
+    **Coordinate-axis verification (per Analysis U3 / tasks.md T017
+    note)**: implementer MUST verify visually at code-write time by
+    rendering page 1 of `inv_001_easy/source.pdf` cropped to
+    BBox(0, 0, width_pt, 0.30 * height_pt) and confirming the resulting
+    image covers the page HEADER (logo + company name area), NOT the
+    page footer. If the visual check fails, the y-axis interpretation
+    in `region_strategies._header_first_v1_targeting` needs to be
+    flipped BEFORE landing T018.
+    """
+    doc = open_pdf(pdf_path)
+    try:
+        page = doc[page_index]
+        try:
+            width_pt, height_pt = page.get_size()
+            # Convert top-left-origin BBox → bottom-left-origin pypdfium2
+            # crop "amount to remove" tuple. For
+            # BBox(x0_pt=0, y0_pt=0, x1_pt=width_pt, y1_pt=h_band):
+            #   left=0, right=0 (keep full width)
+            #   top=0 (don't remove from PDF-native top, which is the
+            #     visual top after pypdfium2's render flip)
+            #   bottom=height_pt - h_band (remove the PDF-native bottom
+            #     region, which is the visual bottom we don't want)
+            crop_left = float(band_bbox_pt.x0_pt)
+            crop_right = float(width_pt) - float(band_bbox_pt.x1_pt)
+            crop_top = float(band_bbox_pt.y0_pt)
+            crop_bottom = float(height_pt) - float(band_bbox_pt.y1_pt)
+            scale = dpi / 72.0
+            original_rotation = int(page.get_rotation() or 0)
+            snapped_rotation, _changed = _snap_rotation(original_rotation)
+            bitmap = page.render(
+                scale=scale,
+                rotation=snapped_rotation,
+                crop=(crop_left, crop_bottom, crop_right, crop_top),
+            )
+            crop_image = bitmap.to_pil().convert("RGB")
+            # The crop offset relative to the FULL-PAGE rendered image
+            # is (x0_px, y0_px) in top-left-origin pixel coordinates.
+            # For header-first-v1's BBox(0, 0, width_pt, 0.30 * h_pt)
+            # this is (0, 0) — the crop kept the top-left corner.
+            offset_x_px = int(round(float(band_bbox_pt.x0_pt) * scale))
+            offset_y_px = int(round(float(band_bbox_pt.y0_pt) * scale))
+            return crop_image, (offset_x_px, offset_y_px)
+        finally:
+            page.close()
+    finally:
+        doc.close()
 
 
 def rasterize_pdf(

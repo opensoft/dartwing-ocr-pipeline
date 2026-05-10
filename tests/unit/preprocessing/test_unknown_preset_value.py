@@ -136,3 +136,92 @@ def test_unknown_raster_profile_via_env_var_exits_16(
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
     assert result.returncode == 16
     assert "error: unknown raster_profile:" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# T026 / R-018.12: --region-strategy fail-fast (US2)
+# ---------------------------------------------------------------------------
+
+
+def test_unknown_region_strategy_exits_16(tmp_path: Path) -> None:
+    """`--region-strategy=header-first-v99` exits with code 16
+    (R-018.12). Reuses feature 017's exit code 16 (no new code added —
+    `UnknownPresetError.preset_axis: Literal[…]` widened additively)."""
+    folder = tmp_path / "inv_001_easy"
+    folder.mkdir()
+    (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
+    result = _invoke_cli(
+        "--document-folder",
+        str(folder),
+        "--preprocess-profile",
+        "ppstructurev3@cpu",
+        "--region-strategy",
+        "header-first-v99",
+    )
+    assert result.returncode == 16, (
+        f"expected exit 16, got {result.returncode}; "
+        f"stderr={result.stderr!r}; stdout={result.stdout!r}"
+    )
+
+
+def test_unknown_region_strategy_stderr_lists_valid_values(tmp_path: Path) -> None:
+    """The stderr line MUST contain `error: unknown region_strategy:`
+    and list all four valid values (per cli-contract.md §3)."""
+    folder = tmp_path / "inv_001_easy"
+    folder.mkdir()
+    (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
+    result = _invoke_cli(
+        "--document-folder",
+        str(folder),
+        "--preprocess-profile",
+        "ppstructurev3@cpu",
+        "--region-strategy",
+        "header-first-v99",
+    )
+    assert "error: unknown region_strategy:" in result.stderr
+    assert "'header-first-v99'" in result.stderr
+    for valid in ["full-page", "header-first-v1", "cpu-default", "stub-default"]:
+        assert valid in result.stderr, (
+            f"stderr must list valid value {valid!r}; got {result.stderr!r}"
+        )
+
+
+def test_unknown_region_strategy_emits_no_run_summary(tmp_path: Path) -> None:
+    """On the fail-fast path, NO `kind: "run_summary"` line is emitted."""
+    folder = tmp_path / "inv_001_easy"
+    folder.mkdir()
+    (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
+    result = _invoke_cli(
+        "--document-folder",
+        str(folder),
+        "--preprocess-profile",
+        "ppstructurev3@cpu",
+        "--region-strategy",
+        "header-first-v99",
+    )
+    assert '"kind": "run_summary"' not in result.stdout
+    assert '"kind":"run_summary"' not in result.stdout
+
+
+def test_unknown_region_strategy_via_env_var_exits_16(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`LEDGERLINC_REGION_STRATEGY=header-first-v99` (env var, no CLI
+    flag) exits with code 16 (R-018.1 / R-018.12)."""
+    folder = tmp_path / "inv_001_easy"
+    folder.mkdir()
+    (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
+    monkeypatch.setenv("LEDGERLINC_REGION_STRATEGY", "header-first-v99")
+    cmd = [
+        sys.executable,
+        "-m",
+        "ledgerlinc_ocr.preprocessing",
+        "--document-folder",
+        str(folder),
+        "--preprocess-profile",
+        "ppstructurev3@cpu",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    assert result.returncode == 16
+    assert "error: unknown region_strategy:" in result.stderr

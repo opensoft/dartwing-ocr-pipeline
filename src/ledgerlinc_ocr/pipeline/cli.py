@@ -175,6 +175,23 @@ def _build_parser() -> argparse.ArgumentParser:
             "also be set via LEDGERLINC_RASTER_PROFILE; the CLI flag wins."
         ),
     )
+    # Feature 018 (T019 / R-018.4 / contracts/cli-contract.md §1):
+    # region-strategy axis (page-area targeting). Mirrors --raster-profile.
+    run.add_argument(
+        "--region-strategy",
+        type=str,
+        default=None,
+        help=(
+            "Select a named region-targeting strategy for "
+            "ppstructurev3@gpu. Valid values: full-page, "
+            "header-first-v1, cpu-default, stub-default. Defaults to "
+            "full-page on GPU. The header-first-v1 strategy processes "
+            "only page 1's top-30%% header band; pages 2..N appear as "
+            "empty page records. On a no-evidence trigger the strategy "
+            "falls back to full-page on that document. Can also be set "
+            "via LEDGERLINC_REGION_STRATEGY; the CLI flag wins."
+        ),
+    )
     # Stack preset (FR-004A).
     run.add_argument(
         "--stack-preset",
@@ -608,16 +625,23 @@ def _run_cold(
             + "\n"
         )
         _det_rec_raw_017 = None
-    # Feature 018 (T009 / R-018.1 / R-018.12 / cli-contract.md §3):
-    # raster-profile axis cold-path warn-and-proceed mirrors the
-    # feature 017 axes above. Unknown values were already rejected at
+    # Feature 018 (T009 / T019 / R-018.1 / R-018.12 / cli-contract.md §3):
+    # raster-profile + region-strategy cold-path warn-and-proceed mirror
+    # the feature 017 axes above. Unknown values were already rejected at
     # `main()`'s parse-time check (R-018.12 fail-fast → exit 16).
     from ledgerlinc_ocr.preprocessing.raster_profile_optin import (
         resolve_raster_profile_value as _resolve_raster_profile_value_018,
         raster_profile_warn_message as _raster_profile_warn_018,
     )
+    from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
+        resolve_region_strategy_value as _resolve_region_strategy_value_018,
+        region_strategy_warn_message as _region_strategy_warn_018,
+    )
     _raster_profile_raw_018 = _resolve_raster_profile_value_018(
         getattr(args, "raster_profile", None)
+    )
+    _region_strategy_raw_018 = _resolve_region_strategy_value_018(
+        getattr(args, "region_strategy", None)
     )
     if _raster_profile_raw_018 is not None and _preprocess_in_slice and not _preprocess_is_gpu:
         sys.stderr.write(
@@ -629,11 +653,22 @@ def _run_cold(
             + "\n"
         )
         _raster_profile_raw_018 = None
+    if _region_strategy_raw_018 is not None and _preprocess_in_slice and not _preprocess_is_gpu:
+        sys.stderr.write(
+            _region_strategy_warn_018(
+                _resolve_warning_profile_name(
+                    _preprocess_profile, args.preprocess_profile
+                )
+            )
+            + "\n"
+        )
+        _region_strategy_raw_018 = None
     # Thread the post-warn-and-proceed values onto the cold-path
     # invocation so `_run_inner`'s ensure_gpu_ready call receives them.
     invocation.module_set_id = _module_set_raw_017
     invocation.det_rec_variant_id = _det_rec_raw_017
     invocation.raster_profile_id = _raster_profile_raw_018
+    invocation.region_strategy_id = _region_strategy_raw_018
 
     # Hoisted warmup: must run BEFORE the runner's stage dispatch so
     # warmup duration is excluded from per-doc `phase_timings.total`.
@@ -796,18 +831,26 @@ def main(argv: list[str] | None = None, *, runner: Runner | None = None) -> int:
         resolve_module_set as _resolve_module_set,
         resolve_det_rec_variant as _resolve_det_rec_variant,
     )
-    # Feature 018 (T009): raster-profile axis resolution at parse time.
+    # Feature 018 (T009 / T019): raster-profile + region-strategy
+    # axis resolution at parse time. Same fail-fast contract.
     from ledgerlinc_ocr.preprocessing.raster_profile_optin import (
         resolve_raster_profile_value as _resolve_raster_profile_value,
     )
     from ledgerlinc_ocr.preprocessing.raster_profiles import (
         resolve_raster_profile as _resolve_raster_profile,
     )
+    from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
+        resolve_region_strategy_value as _resolve_region_strategy_value,
+    )
+    from ledgerlinc_ocr.preprocessing.region_strategies import (
+        resolve_region_strategy as _resolve_region_strategy,
+    )
     from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError as _UnknownPresetError
 
     _module_set_raw = _resolve_module_set_value(getattr(args, "module_set", None))
     _det_rec_raw = _resolve_det_rec_variant_value(getattr(args, "det_rec_variant", None))
     _raster_profile_raw = _resolve_raster_profile_value(getattr(args, "raster_profile", None))
+    _region_strategy_raw = _resolve_region_strategy_value(getattr(args, "region_strategy", None))
     try:
         if _module_set_raw is not None:
             _resolve_module_set(_module_set_raw)
@@ -815,6 +858,8 @@ def main(argv: list[str] | None = None, *, runner: Runner | None = None) -> int:
             _resolve_det_rec_variant(_det_rec_raw)
         if _raster_profile_raw is not None:
             _resolve_raster_profile(_raster_profile_raw)
+        if _region_strategy_raw is not None:
+            _resolve_region_strategy(_region_strategy_raw)
     except _UnknownPresetError as exc:
         valid_str = ", ".join(exc.valid_values)
         sys.stderr.write(

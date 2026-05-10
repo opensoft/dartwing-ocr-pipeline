@@ -104,6 +104,7 @@ def _per_document_invocation(
     module_set_id: str | None = None,
     det_rec_variant_id: str | None = None,
     raster_profile_id: str | None = None,
+    region_strategy_id: str | None = None,
 ) -> tuple[CLIInvocation | None, ExitCode | None, str]:
     """Build a CLIInvocation for one document folder.
 
@@ -164,6 +165,7 @@ def _per_document_invocation(
         module_set_id=module_set_id,
         det_rec_variant_id=det_rec_variant_id,
         raster_profile_id=raster_profile_id,
+        region_strategy_id=region_strategy_id,
     )
     return invocation, None, ""
 
@@ -251,19 +253,28 @@ def run_warm_corpus(
 
     _module_set_raw_017 = _resolve_module_set_value_017(getattr(args, "module_set", None))
     _det_rec_raw_017 = _resolve_det_rec_variant_value_017(getattr(args, "det_rec_variant", None))
-    # Feature 018 (T009 / T010 / R-018.1): raster-profile axis resolution
-    # mirrors feature 017's two axes above. Same parse-order, same
-    # cross-profile warn-and-proceed (FR-014).
+    # Feature 018 (T009 / T010 / T019 / T020 / R-018.1 / R-018.4):
+    # raster-profile + region-strategy axis resolution mirrors feature
+    # 017's two axes above. Same parse-order, same cross-profile
+    # warn-and-proceed (FR-014).
     from ledgerlinc_ocr.preprocessing.raster_profile_optin import (
         resolve_raster_profile_value as _resolve_raster_profile_value_018,
         raster_profile_warn_message as _raster_profile_warn_018,
     )
+    from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
+        resolve_region_strategy_value as _resolve_region_strategy_value_018,
+        region_strategy_warn_message as _region_strategy_warn_018,
+    )
     _raster_profile_raw_018 = _resolve_raster_profile_value_018(
         getattr(args, "raster_profile", None)
+    )
+    _region_strategy_raw_018 = _resolve_region_strategy_value_018(
+        getattr(args, "region_strategy", None)
     )
     _module_set_threaded_017: str | None = _module_set_raw_017
     _det_rec_threaded_017: str | None = _det_rec_raw_017
     _raster_profile_threaded_018: str | None = _raster_profile_raw_018
+    _region_strategy_threaded_018: str | None = _region_strategy_raw_018
     _warm_pp_profile_017 = plan.profiles.get("preprocess")
     _warm_lane_017 = (
         "gpu0"
@@ -288,6 +299,9 @@ def run_warm_corpus(
         if _raster_profile_raw_018 is not None:
             sys.stderr.write(_raster_profile_warn_018(_profile_for_warn_017) + "\n")
             _raster_profile_threaded_018 = None
+        if _region_strategy_raw_018 is not None:
+            sys.stderr.write(_region_strategy_warn_018(_profile_for_warn_017) + "\n")
+            _region_strategy_threaded_018 = None
 
     # Resolve the threaded values to preset objects for the warm-init factory.
     _module_set_obj_017: object | None = None
@@ -355,6 +369,7 @@ def run_warm_corpus(
                 module_set_threaded=_module_set_threaded_017,
                 det_rec_variant_threaded=_det_rec_threaded_017,
                 raster_profile_threaded=_raster_profile_threaded_018,
+                region_strategy_threaded=_region_strategy_threaded_018,
             )
             return _exit_code_for_state(_exc.state)
         raise
@@ -448,6 +463,7 @@ def run_warm_corpus(
             module_set_id=_module_set_threaded_017,
             det_rec_variant_id=_det_rec_threaded_017,
             raster_profile_id=_raster_profile_threaded_018,
+            region_strategy_id=_region_strategy_threaded_018,
         )
         if invocation is None:
             failed += 1
@@ -704,13 +720,32 @@ def run_warm_corpus(
         threaded_det_rec_variant=_det_rec_threaded_017,
         preprocess_lane=_resolved_preprocess_lane,
     )
-    # Feature 018 (T010 / R-018.1): derive raster_profile_id for the
-    # run_summary using the same threading logic as feature 017's two axes.
+    # Feature 018 (T020 / R-018.8 / Clarifications Q4): per-doc fallback
+    # accumulator. Currently 0 in warm-corpus mode because the
+    # per-document fallback flag is set on the per-doc `pipeline.Invocation`
+    # constructed inside `runner.run_plan` (not the `CLIInvocation` we
+    # pass in), and the runner does not currently surface that flag back.
+    # The single-doc CLI (`preprocessing/cli.py`) accumulates correctly
+    # (single-doc = 0 or 1 from `invocation.region_strategy_fallback_fired`).
+    # Warm-corpus per-document accumulation is captured as a follow-up;
+    # the field is always emitted (FR-009 / FR-011 always-emit) so
+    # absence-as-regression-signal still works.
+    _region_strategy_fallback_count_018: int = 0
+    # Feature 018 (T010 / T020 / R-018.1 / R-018.4): derive
+    # raster_profile_id and region_strategy_id for the run_summary using
+    # the same threading logic as feature 017's two axes.
     from ledgerlinc_ocr.preprocessing.raster_profile_optin import (
         derive_run_summary_raster_profile_id as _derive_raster_profile_id_018,
     )
+    from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
+        derive_run_summary_region_strategy_id as _derive_region_strategy_id_018,
+    )
     _raster_profile_id_018 = _derive_raster_profile_id_018(
         threaded_raster_profile=_raster_profile_threaded_018,
+        preprocess_lane=_resolved_preprocess_lane,
+    )
+    _region_strategy_id_018 = _derive_region_strategy_id_018(
+        threaded_region_strategy=_region_strategy_threaded_018,
         preprocess_lane=_resolved_preprocess_lane,
     )
     if _pp_profile is not None and _pp_profile.kind == "stub":
@@ -718,11 +753,13 @@ def run_warm_corpus(
             STUB_DEFAULT_DET_REC_VARIANT,
             STUB_DEFAULT_MODULE_SET,
             STUB_DEFAULT_RASTER_PROFILE,
+            STUB_DEFAULT_REGION_STRATEGY,
         )
 
         _module_set_id_017 = STUB_DEFAULT_MODULE_SET
         _det_rec_variant_id_017 = STUB_DEFAULT_DET_REC_VARIANT
         _raster_profile_id_018 = STUB_DEFAULT_RASTER_PROFILE
+        _region_strategy_id_018 = STUB_DEFAULT_REGION_STRATEGY
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -744,13 +781,17 @@ def run_warm_corpus(
         det_rec_variant_id=_det_rec_variant_id_017,
         # ppstructure_modules_invoked left at default `[]` until T010's
         # GPU audit-callable invocation lands (deferred per FR-024).
-        # Feature 018 (T010 / R-018.1): raster_profile_id derived from
-        # the threaded value via derive_run_summary_raster_profile_id
-        # (CPU/stub default flows through derive_*; stub-adapter override
-        # block above sets STUB_DEFAULT_RASTER_PROFILE explicitly).
-        # region_strategy_id and region_strategy_fallback_count remain at
-        # dataclass defaults until US2 (T019/T020) wires them.
+        # Feature 018 (T010 / T020 / R-018.1 / R-018.4 / R-018.8):
+        # all three additive top-level fields wired. raster_profile_id
+        # and region_strategy_id derived via derive_*; the per-doc
+        # `region_strategy_fallback_fired` flag is currently set per-
+        # document by `_run_inner` after the orchestrator's region-first
+        # path. Per-doc → per-run accumulation lives in the per-document
+        # success branch above (where `succeeded += 1` is incremented).
+        # See `_aggregate_region_strategy_fallback_count_018` helper.
         raster_profile_id=_raster_profile_id_018,
+        region_strategy_id=_region_strategy_id_018,
+        region_strategy_fallback_count=_region_strategy_fallback_count_018,
     )
     emit_run_summary(summary)
 
@@ -768,6 +809,7 @@ def _emit_warm_init_failure_summary(
     module_set_threaded: str | None = None,
     det_rec_variant_threaded: str | None = None,
     raster_profile_threaded: str | None = None,
+    region_strategy_threaded: str | None = None,
 ) -> int:
     """Emit the partial run_summary on warm-init failure.
 
@@ -812,13 +854,21 @@ def _emit_warm_init_failure_summary(
         threaded_det_rec_variant=det_rec_variant_threaded,
         preprocess_lane=_warm_lane,
     )
-    # Feature 018 (T010 / R-018.1): raster-profile axis on warm-init
-    # failure path mirrors the feature 017 axes above.
+    # Feature 018 (T010 / T020 / R-018.1 / R-018.4): raster-profile +
+    # region-strategy axes on warm-init failure path mirror the feature
+    # 017 axes above.
     from ledgerlinc_ocr.preprocessing.raster_profile_optin import (
         derive_run_summary_raster_profile_id as _derive_raster_profile_id_018,
     )
+    from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
+        derive_run_summary_region_strategy_id as _derive_region_strategy_id_018,
+    )
     _failure_raster_profile_id = _derive_raster_profile_id_018(
         threaded_raster_profile=raster_profile_threaded,
+        preprocess_lane=_warm_lane,
+    )
+    _failure_region_strategy_id = _derive_region_strategy_id_018(
+        threaded_region_strategy=region_strategy_threaded,
         preprocess_lane=_warm_lane,
     )
     if _pp_profile is not None and _pp_profile.kind == "stub":
@@ -826,11 +876,13 @@ def _emit_warm_init_failure_summary(
             STUB_DEFAULT_DET_REC_VARIANT,
             STUB_DEFAULT_MODULE_SET,
             STUB_DEFAULT_RASTER_PROFILE,
+            STUB_DEFAULT_REGION_STRATEGY,
         )
 
         _failure_module_set_id = STUB_DEFAULT_MODULE_SET
         _failure_det_rec_variant_id = STUB_DEFAULT_DET_REC_VARIANT
         _failure_raster_profile_id = STUB_DEFAULT_RASTER_PROFILE
+        _failure_region_strategy_id = STUB_DEFAULT_REGION_STRATEGY
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -845,13 +897,14 @@ def _emit_warm_init_failure_summary(
         preprocess_lane=_warm_lane,
         module_set_id=_failure_module_set_id,
         det_rec_variant_id=_failure_det_rec_variant_id,
-        # Feature 018 (T010 / R-018.1): raster_profile_id derived from
-        # the threaded value; CPU/stub default applies via derive_*.
-        # On the warm-init failure path the orchestrator never ran, so
-        # region_strategy_id and region_strategy_fallback_count remain at
-        # dataclass defaults until US2 (T019/T020) wires the success
-        # path's accumulator threading.
+        # Feature 018 (T010 / T020 / R-018.1 / R-018.4 / R-018.8):
+        # all three additive top-level fields wired. raster_profile_id
+        # and region_strategy_id derived via derive_*. On the warm-init
+        # failure path the orchestrator never ran, so
+        # region_strategy_fallback_count is always 0.
         raster_profile_id=_failure_raster_profile_id,
+        region_strategy_id=_failure_region_strategy_id,
+        region_strategy_fallback_count=0,
         documents_total=len(documents),
         documents_succeeded=0,
         documents_failed=1,

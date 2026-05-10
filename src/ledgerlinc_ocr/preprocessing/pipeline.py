@@ -89,6 +89,21 @@ class Invocation:
     # Same warn-and-proceed-nulls-the-value contract as feature 017's
     # two preset axes above.
     raster_profile_id: str | None = None
+    # Feature 018 (T019 / T020 / R-018.4 / R-018.7): resolved
+    # region_strategy_id string from the CLI parse. Threaded into
+    # `_run_inner` so the orchestrator can target a specific page
+    # region (via `region_strategies.resolve_region_strategy`). Default
+    # `None` = full-page semantics. Same warn-and-proceed-nulls-the-value
+    # contract as feature 017's two preset axes above.
+    region_strategy_id: str | None = None
+    # Feature 018 (T020 / R-018.7 / R-018.8 / Clarifications Q1+Q4):
+    # mutable per-document fallback flag. The orchestrator sets this
+    # to `True` if the FR-007 trigger fires for this document (and the
+    # document is reprocessed under the full-page strategy). The CLI /
+    # corpus_run reads this AFTER `pipeline.run()` returns to increment
+    # the per-run `RunSummary.region_strategy_fallback_count`
+    # accumulator. Always-emit-with-default-False on every run kind.
+    region_strategy_fallback_fired: bool = False
 
 
 def _derive_document_id(folder_name: str) -> str:
@@ -338,6 +353,193 @@ def _process_page(pr: Any, invocation: Invocation) -> _PageResult:
     )
 
 
+def _run_region_first_path(
+    *,
+    pdf_path: Path,
+    region_strategy: Any,
+    dpi: int,
+    invocation: Invocation,
+) -> tuple[
+    list[dict[str, Any]],  # pages (page 1 populated + 2..N empty)
+    list[str],             # warnings_out
+    list[dict[str, Any]],  # tables
+    list[dict[str, Any]],  # all_lines
+    int,                   # pages_with_output
+    bool,                  # silent_empty_page_detected
+    bool,                  # trigger_fired
+]:
+    """Feature 018 (T018 / R-018.5 / R-018.7 / R-018.15 / Clarifications
+    Q1+Q2+Q3): execute the header-first-v1 region-strategy path on a
+    single PDF.
+
+    Page 1 is rasterized to its targeted band only via
+    `rasterize.rasterize_page_band` (R-018.5 / T017); the cropped image
+    is fed to `ocr.run_page` and PaddleOCR's crop-relative bboxes are
+    translated back to full-page pixel coordinates via
+    `region_strategies.translate_bbox` (R-018.15) so
+    `preprocess_output.json` field shape stays identical to a full-page
+    run (FR-002 / I-018.7).
+
+    Pages 2..N are NOT rasterized and NOT sent to inference; they
+    appear in `pages[]` as empty page records with valid geometry
+    derived from `pypdfium2.PdfPage.get_size()` (R-018.6) so the
+    `pages.length == page_count` invariant is preserved (Clarifications
+    Q2 / I-018.6).
+
+    After page 1 processing completes, the FR-007 trigger is evaluated
+    via `region_strategy.trigger_fired(blocks)` (Clarifications Q3 /
+    R-018.7). On `True`, this function returns `trigger_fired=True` and
+    EMPTY collected pages — the caller (`_run_inner`) discards
+    everything and re-runs the document under the full-page strategy
+    on the same engine instance (R-018.9). On `False`, the function
+    returns the collected pages with `trigger_fired=False`.
+    """
+    pages: list[dict[str, Any]] = []
+    warnings_out: list[str] = []
+    tables: list[dict[str, Any]] = []
+    all_lines: list[dict[str, Any]] = []
+    pages_with_output = 0
+    silent_empty = False
+
+    # Probe the PDF page count and per-page geometry up front. Use the
+    # rasterize module's open_pdf helper so PDF-validity errors (encrypted
+    # / malformed / zero-page) propagate identically to the full-page path.
+    doc = rasterize.open_pdf(pdf_path)
+    try:
+        page_count = len(doc)
+        # Collect per-page geometry for all pages (cheap; no rasterization).
+        # Used to (a) ask region_strategy for page 1's BBox; (b) build empty
+        # page records for pages 2..N per R-018.6.
+        per_page_geometry: list[tuple[int, int, int]] = []
+        for i in range(page_count):
+            page = doc[i]
+            try:
+                width_pt, height_pt = page.get_size()
+                rotation = int(page.get_rotation() or 0)
+                per_page_geometry.append((
+                    int(round(float(width_pt) * dpi / 72.0)),
+                    int(round(float(height_pt) * dpi / 72.0)),
+                    rotation,
+                ))
+            finally:
+                page.close()
+
+        # Page 1: ask the strategy for the targeted region.
+        page_1_band = region_strategy.page_targeting(doc, 0)
+    finally:
+        doc.close()
+
+    if page_1_band is None:
+        # Strategy returned None for page 0 — degenerate to full-page on
+        # this single page only. The strategy itself is responsible for
+        # this branch (e.g., a future preset that opts-out of page 1
+        # targeting); for header-first-v1 specifically, page_targeting
+        # always returns a BBox for page_index == 0 per R-018.5.
+        # Treat as trigger_fired so the caller falls back to full-page.
+        return [], [], [], [], 0, False, True
+
+    # Rasterize ONLY the band of page 1 (R-018.5 / T017).
+    crop_image, offset_px = rasterize.rasterize_page_band(
+        pdf_path=pdf_path,
+        page_index=0,
+        band_bbox_pt=page_1_band,
+        dpi=dpi,
+    )
+
+    # Build a synthetic PageRaster for `_process_page` to consume. Use
+    # the FULL-PAGE width/height (not crop dimensions) so the resulting
+    # page record's `width`/`height` reflect the full page per FR-002 /
+    # I-018.7 (downstream stages compare against full-page coordinates).
+    full_width_px, full_height_px, rotation = per_page_geometry[0]
+    snapped_rotation, _changed = rasterize._snap_rotation(rotation)
+    page_1_raster = rasterize.PageRaster(
+        page_number=1,
+        width=full_width_px,
+        height=full_height_px,
+        rotation_detected=snapped_rotation,
+        rotation_original=rotation,
+        rotation_snapped=False,
+        image=crop_image,
+    )
+    result = _process_page(page_1_raster, invocation)
+
+    # FR-002 / I-018.7 / R-018.15: translate PaddleOCR's crop-relative
+    # bboxes back to full-page pixel coordinates by adding the crop's
+    # top-left offset (0, 0 for header-first-v1 — but the helper handles
+    # any future preset's offset uniformly).
+    from ledgerlinc_ocr.preprocessing.region_strategies import (
+        translate_bbox as _translate_bbox_018,
+    )
+    dx, dy = offset_px
+    if dx != 0 or dy != 0:
+        # Translate every block bbox in the page record
+        for block_dict in result.page_dict.get("blocks", []):
+            bbox = block_dict.get("bbox")
+            if bbox is not None and len(bbox) == 4:
+                block_dict["bbox"] = list(
+                    _translate_bbox_018(tuple(bbox), (dx, dy))
+                )
+        # Translate every raw_ocr_line bbox
+        for line_dict in result.page_dict.get("raw_ocr_lines", []):
+            bbox = line_dict.get("bbox")
+            if bbox is not None and len(bbox) == 4:
+                line_dict["bbox"] = list(
+                    _translate_bbox_018(tuple(bbox), (dx, dy))
+                )
+
+    # FR-007 trigger evaluation (Clarifications Q3 / R-018.7).
+    # Build duck-typed objects with a `text` attribute from the block
+    # dicts; `trigger_fired` reads only `text` per I-018.5.
+    block_dicts_for_trigger = result.page_dict.get("blocks", [])
+
+    class _BlockProxy:
+        def __init__(self, text: str) -> None:
+            self.text = text
+
+    _trigger_blocks = [_BlockProxy(b.get("text", "")) for b in block_dicts_for_trigger]
+    trigger_fired = region_strategy.trigger_fired(_trigger_blocks)
+
+    if trigger_fired:
+        # Caller will discard everything and re-run as full-page (R-018.7).
+        return [], [], [], [], 0, False, True
+
+    # Build pages[] with page 1 populated + pages 2..N as empty page
+    # records (R-018.6 / Clarifications Q2 / I-018.6).
+    pages.append(result.page_dict)
+    warnings_out.extend(result.warnings)
+    tables.extend(result.tables)
+    all_lines.extend(result.lines)
+    if result.lines or result.blocks:
+        pages_with_output += 1
+    if result.silent_empty:
+        silent_empty = True
+
+    for i in range(1, page_count):
+        full_w_px, full_h_px, rot = per_page_geometry[i]
+        snapped_rot, _changed_rot = rasterize._snap_rotation(rot)
+        # R-018.6: empty page record. `blocks: []` and `raw_ocr_lines: []`
+        # are explicitly permitted by the v1.2.0 preprocess_output schema.
+        # No rasterization, no inference (FR-007 / I-018.6).
+        pages.append({
+            "page_number": i + 1,
+            "width": full_w_px,
+            "height": full_h_px,
+            "rotation_detected": snapped_rot,
+            "blocks": [],
+            "raw_ocr_lines": [],
+        })
+
+    return (
+        pages,
+        warnings_out,
+        tables,
+        all_lines,
+        pages_with_output,
+        silent_empty,
+        False,  # trigger_fired = False (clean region-first run)
+    )
+
+
 def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
     # gate BEFORE any artifact write or input parsing. ensure_gpu_ready
@@ -410,17 +612,85 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
             resolve_raster_profile as _resolve_raster_profile_018,
         )
         _resolved_dpi = _resolve_raster_profile_018(invocation.raster_profile_id).dpi
+
+    # Feature 018 (T018 / R-018.4 / R-018.5 / R-018.7): resolve the threaded
+    # region_strategy_id and branch on its strategy class. Full-page-class
+    # strategies (full-page / cpu-default / stub-default) use the existing
+    # rasterize_pdf loop unchanged. The header-first-v1 strategy uses the
+    # region-first path: page 1 rasterized via rasterize_page_band, pages
+    # 2..N skipped (empty page records per Clarifications Q2 / R-018.6).
+    # On FR-007 trigger fire, fall back to full-page on the SAME engine
+    # instance per R-018.9 (preserves feature 015 FR-001) and set
+    # invocation.region_strategy_fallback_fired so the caller can
+    # accumulate region_strategy_fallback_count on RunSummary.
+    _resolved_region_strategy = None
+    _is_region_first = False
+    if invocation.region_strategy_id is not None:
+        from ledgerlinc_ocr.preprocessing.region_strategies import (
+            resolve_region_strategy as _resolve_region_strategy_018,
+        )
+        _resolved_region_strategy = _resolve_region_strategy_018(
+            invocation.region_strategy_id
+        )
+        _is_region_first = _resolved_region_strategy.name == "header-first-v1"
+
     with measure_phase(stage_timing, "rasterization"):
-        for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
-            result = _process_page(pr, invocation)
-            pages.append(result.page_dict)
-            warnings_out.extend(result.warnings)
-            tables.extend(result.tables)
-            all_lines.extend(result.lines)
-            if result.lines or result.blocks:
-                pages_with_output += 1
-            if result.silent_empty:
-                silent_empty_page_detected = True
+        if _is_region_first and _resolved_region_strategy is not None:
+            # Region-first path: page 1 only via rasterize_page_band; pages
+            # 2..N as empty page records (R-018.6 / Clarifications Q2).
+            (
+                _region_pages,
+                _region_warnings,
+                _region_tables,
+                _region_lines,
+                _region_pages_with_output,
+                _region_silent_empty,
+                _trigger_fired,
+            ) = _run_region_first_path(
+                pdf_path=pdf_path,
+                region_strategy=_resolved_region_strategy,
+                dpi=_resolved_dpi,
+                invocation=invocation,
+            )
+            if _trigger_fired:
+                # FR-007 / R-018.7 / Clarifications Q1: discard the
+                # partial region-first output entirely and re-run the
+                # document under the full-page strategy on the SAME
+                # engine instance. The combined wall-clock cost
+                # (region-first attempt + full-page) accumulates into
+                # the SAME phase_timings.rasterization key per R-018.10.
+                invocation.region_strategy_fallback_fired = True
+                for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
+                    result = _process_page(pr, invocation)
+                    pages.append(result.page_dict)
+                    warnings_out.extend(result.warnings)
+                    tables.extend(result.tables)
+                    all_lines.extend(result.lines)
+                    if result.lines or result.blocks:
+                        pages_with_output += 1
+                    if result.silent_empty:
+                        silent_empty_page_detected = True
+            else:
+                pages.extend(_region_pages)
+                warnings_out.extend(_region_warnings)
+                tables.extend(_region_tables)
+                all_lines.extend(_region_lines)
+                pages_with_output += _region_pages_with_output
+                if _region_silent_empty:
+                    silent_empty_page_detected = True
+        else:
+            # Full-page path (existing code) — unchanged for
+            # full-page / cpu-default / stub-default / no-flag runs.
+            for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
+                result = _process_page(pr, invocation)
+                pages.append(result.page_dict)
+                warnings_out.extend(result.warnings)
+                tables.extend(result.tables)
+                all_lines.extend(result.lines)
+                if result.lines or result.blocks:
+                    pages_with_output += 1
+                if result.silent_empty:
+                    silent_empty_page_detected = True
 
     quality = compute_quality(all_lines, max_skew_deg=max_skew)
     ingestion_sources = build_ingestion_sources(
