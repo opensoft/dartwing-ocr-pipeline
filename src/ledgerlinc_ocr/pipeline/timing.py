@@ -27,6 +27,7 @@ from typing import Any, Iterator, Optional
 
 from ledgerlinc_ocr.pipeline.profiles import Stage
 from ledgerlinc_ocr.preprocessing.identifiers import (
+    AUDIT_SUB_MODULE_VOCABULARY,
     CPU_DEFAULT_DET_REC_VARIANT,
     CPU_DEFAULT_MODULE_SET,
 )
@@ -206,7 +207,16 @@ class RunSummary:
     ppstructure_modules_invoked: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        _canonical_audit_modules = sorted(set(self.ppstructure_modules_invoked))
+        # Last-line-of-defense canonicalization for the closed-vocabulary
+        # contract on `ppstructure_modules_invoked` (R-017.7). The audit
+        # callable in `presets.py` already filters to vocabulary on
+        # construction; this serializer enforces the same invariant on
+        # emit so a buggy caller cannot leak arbitrary strings onto the
+        # wire format.
+        _canonical_audit_modules = sorted(
+            {str(m) for m in self.ppstructure_modules_invoked}
+            & set(AUDIT_SUB_MODULE_VOCABULARY)
+        )
         return {
             "kind": "run_summary",
             "schema_version": SCHEMA_VERSION,

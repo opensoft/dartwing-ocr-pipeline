@@ -254,6 +254,22 @@ def test_ppstructure_modules_invoked_is_canonicalized_on_emit() -> None:
     assert set(parsed["ppstructure_modules_invoked"]) <= set(AUDIT_SUB_MODULE_VOCABULARY)
 
 
+def test_ppstructure_modules_invoked_drops_unknown_strings_at_emit() -> None:
+    """The serializer is the last line of defense for the closed-vocabulary
+    contract. A buggy caller that puts arbitrary strings into the field
+    must not be able to leak them onto the wire — emit-time intersection
+    with `AUDIT_SUB_MODULE_VOCABULARY` enforces R-017.7."""
+    summary = _make_minimal_run_summary()
+    summary.ppstructure_modules_invoked = [
+        "layout_detection",
+        "totally_bogus_module",
+        "ocr_rec",
+        "another_garbage_value",
+    ]
+    parsed = json.loads(summary.as_json_line())
+    assert parsed["ppstructure_modules_invoked"] == ["layout_detection", "ocr_rec"]
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
