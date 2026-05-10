@@ -28,9 +28,9 @@ def _repo_root() -> Path:
 
 def _resolve_diff_target(root: Path) -> str:
     """Return the first ref from a priority list that resolves locally.
-    Tries ``origin/main`` first (PR CI almost always has it), falls back
-    to ``main`` (developer checkouts), then a merge-base if neither
-    resolves directly. Skips the test when none of them work."""
+    Tries ``origin/main`` first (PR CI almost always has it), then
+    ``main`` (developer checkouts). Skips the test when neither
+    resolves — this guard is intended for CI runs against a PR base."""
     for ref in ("origin/main", "main"):
         result = subprocess.run(
             ["git", "rev-parse", "--verify", "--quiet", ref],

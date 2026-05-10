@@ -28,30 +28,32 @@ def test_cpu_profile_module_set_known_value_emits_warn_line(
     (the engine never receives the flag's effect)."""
     from ledgerlinc_ocr.preprocessing.cli import main as preprocess_main
 
-    folder = tmp_path / "inv_001_easy"
-    folder.mkdir()
-    (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    def _run(folder_name: str, *extra_args: str) -> int:
+        folder = tmp_path / folder_name
+        folder.mkdir()
+        (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+        return preprocess_main(
+            [
+                "--document-folder",
+                str(folder),
+                "--preprocess-profile",
+                "ppstructurev3@cpu",
+                *extra_args,
+            ]
+        )
 
-    # Note: the CPU run will fail with `EXIT_INPUT_REJECTED` or similar
-    # because we're using a minimal stub PDF — but the warn line should
-    # appear BEFORE that failure. We assert just on stderr here, not on
-    # exit code.
-    preprocess_main(
-        [
-            "--document-folder",
-            str(folder),
-            "--preprocess-profile",
-            "ppstructurev3@cpu",
-            "--module-set",
-            "reduced-v1",
-        ]
-    )
+    no_flag_rc = _run("inv_001_easy")
+    capsys.readouterr()
+    with_flag_rc = _run("inv_001_easy_with_flag", "--module-set", "reduced-v1")
     captured = capsys.readouterr()
+
     assert "--module-set ignored:" in captured.err
-    # Specifically, the warning names the active profile (FR-013)
     assert "ppstructurev3@cpu" in captured.err
-    # No fail-fast unknown-preset line — the value was known
     assert "unknown module_set:" not in captured.err
+    assert with_flag_rc == no_flag_rc, (
+        f"warn-and-proceed must not change exit status: "
+        f"with-flag rc={with_flag_rc} vs no-flag rc={no_flag_rc}"
+    )
 
 
 def test_cpu_profile_det_rec_variant_known_value_emits_warn_line(
