@@ -246,6 +246,35 @@ def test_ensure_gpu_ready_accepts_matching_presets_on_subsequent_call(monkeypatc
     assert readout1 is readout2
 
 
+def test_no_init_classify_does_not_short_circuit_subsequent_ensure_gpu_ready(monkeypatch) -> None:
+    """``classify(attempt_ppstructurev3_init=False)`` (used by the
+    diagnostic preflight CLI) caches ``_LAST_READOUT`` in SUCCEEDED state
+    without actually constructing PPStructureV3. A subsequent
+    ``ensure_gpu_ready()`` call must NOT short-circuit on that cache —
+    it must fall through and build the engine. Verified by counting
+    PPStructureV3 constructor calls."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    construction_calls = {"count": 0}
+
+    class _CountingPPStructure:
+        def __init__(self, *args, **kwargs):
+            construction_calls["count"] += 1
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_CountingPPStructure))
+
+    classify(attempt_ppstructurev3_init=False)
+    assert construction_calls["count"] == 0, "no-init classify must not construct"
+
+    readout = ensure_gpu_ready()
+    assert readout.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED
+    assert construction_calls["count"] == 1, (
+        "ensure_gpu_ready must construct after a prior no-init classify; "
+        f"got {construction_calls['count']} constructor calls"
+    )
+
+
 def test_classify_seeds_preset_key_so_subsequent_ensure_gpu_ready_does_not_raise(monkeypatch) -> None:
     """A direct ``classify(attempt_ppstructurev3_init=True)`` call sets
     ``_LAST_READOUT`` to SUCCEEDED via ``_make_readout``. A later

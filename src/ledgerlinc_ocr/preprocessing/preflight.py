@@ -606,8 +606,20 @@ def ensure_gpu_ready(
     """
     global _LAST_READOUT, _LAST_PRESET_KEY
     requested_key = _normalize_preset_key(module_set, det_rec_variant)
-    if _LAST_READOUT is not None and _LAST_READOUT.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
-        if _LAST_PRESET_KEY is not None and _LAST_PRESET_KEY != requested_key:
+    # The cache is only valid when a prior call actually constructed and
+    # adopted the engine. ``classify(attempt_ppstructurev3_init=False)``
+    # (used by ``preflight_cli`` for read-only GPU probes) sets
+    # ``_LAST_READOUT.state`` to SUCCEEDED without building an engine —
+    # short-circuiting on that readout here would skip engine
+    # construction entirely. ``_LAST_PRESET_KEY`` is set only at the
+    # engine-construction success site, so it doubles as the "engine
+    # actually adopted" signal.
+    if (
+        _LAST_READOUT is not None
+        and _LAST_READOUT.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED
+        and _LAST_PRESET_KEY is not None
+    ):
+        if _LAST_PRESET_KEY != requested_key:
             raise RuntimeError(
                 f"ensure_gpu_ready called with presets {requested_key!r} "
                 f"after the GPU engine was already initialized with "
