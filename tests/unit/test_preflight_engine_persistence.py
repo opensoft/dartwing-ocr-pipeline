@@ -246,6 +246,26 @@ def test_ensure_gpu_ready_accepts_matching_presets_on_subsequent_call(monkeypatc
     assert readout1 is readout2
 
 
+def test_classify_seeds_preset_key_so_subsequent_ensure_gpu_ready_does_not_raise(monkeypatch) -> None:
+    """A direct ``classify(attempt_ppstructurev3_init=True)`` call sets
+    ``_LAST_READOUT`` to SUCCEEDED via ``_make_readout``. A later
+    ``ensure_gpu_ready()`` must not raise a false-positive mismatch
+    just because the cache key was never seeded — classify() owns the
+    seeding so both entry points converge on the same cache state."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    class _PPStructure:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
+
+    classify(attempt_ppstructurev3_init=True)
+    readout = ensure_gpu_ready()
+    assert readout.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED
+
+
 def test_ensure_gpu_ready_treats_none_and_legacy_preset_as_equivalent(monkeypatch) -> None:
     """``None`` and the ``legacy`` preset produce the same engine
     (literal legacy ``use_kwargs``, PaddleOCR-default det/rec). The

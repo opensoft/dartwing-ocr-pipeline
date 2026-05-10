@@ -514,6 +514,8 @@ def classify(
         evidence = PreflightEvidence(
             **{**base_evidence, "ppstructurev3_init_seconds": elapsed}
         )
+        global _LAST_PRESET_KEY
+        _LAST_PRESET_KEY = _normalize_preset_key(module_set, det_rec_variant)
         return _make_readout(PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED, evidence)
     except Exception as exc:  # noqa: BLE001
         evidence = PreflightEvidence(
@@ -546,6 +548,22 @@ def _truncate(s: str, n: int) -> str:
 # `pipeline/corpus_run.py` (T023 warm-corpus gate; T029 timing read).
 _LAST_READOUT: Optional[PreflightReadout] = None
 _LAST_PRESET_KEY: Optional[tuple[str, str]] = None
+
+
+def _normalize_preset_key(
+    module_set: "ModuleSetPreset | None",
+    det_rec_variant: "DetRecVariant | None",
+) -> tuple[str, str]:
+    """Map a (module_set, det_rec_variant) pair to its cache-key form.
+
+    ``None`` maps to ``"legacy"`` for both axes — both produce the same
+    engine (literal legacy ``use_kwargs``, PaddleOCR-default det/rec
+    model names), so they must compare equal in the mismatch guard.
+    """
+    return (
+        module_set.name if module_set is not None else "legacy",
+        det_rec_variant.name if det_rec_variant is not None else "legacy",
+    )
 
 
 def get_last_readout() -> Optional[PreflightReadout]:
@@ -587,18 +605,9 @@ def ensure_gpu_ready(
     readout that does not reflect the requested presets.
     """
     global _LAST_READOUT, _LAST_PRESET_KEY
-    # Normalize: ``None`` and the ``legacy`` preset are operationally
-    # identical — both produce the literal legacy ``use_kwargs`` and
-    # leave the det/rec model names at PaddleOCR's defaults. Treating
-    # them as distinct cache keys would cause a false-positive
-    # mismatch when a backward-compat caller (no presets) follows a
-    # caller that passed ``MODULE_SET_PRESETS["legacy"]`` explicitly.
-    requested_key: tuple[str, str] = (
-        module_set.name if module_set is not None else "legacy",
-        det_rec_variant.name if det_rec_variant is not None else "legacy",
-    )
+    requested_key = _normalize_preset_key(module_set, det_rec_variant)
     if _LAST_READOUT is not None and _LAST_READOUT.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
-        if _LAST_PRESET_KEY != requested_key:
+        if _LAST_PRESET_KEY is not None and _LAST_PRESET_KEY != requested_key:
             raise RuntimeError(
                 f"ensure_gpu_ready called with presets {requested_key!r} "
                 f"after the GPU engine was already initialized with "
@@ -613,7 +622,6 @@ def ensure_gpu_ready(
     )
     if readout.state is not PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
         raise GpuPrerequisiteError(readout.state, readout.recommendation)
-    _LAST_PRESET_KEY = requested_key
     return readout
 
 
