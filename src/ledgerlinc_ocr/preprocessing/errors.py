@@ -125,7 +125,9 @@ class UnknownPresetError(ValueError):
     the closed `MODULE_SET_PRESETS` / `DET_REC_VARIANTS` registries
     (e.g., a typo like `--module-set=reduced-v99` or
     `--det-rec-variant=ppocrv9_imaginary`). Caught at the CLI parse
-    boundary BEFORE any Paddle/preflight import; surfaced as
+    boundary BEFORE any Paddle import (the lightweight ``preflight``
+    module is imported earlier — it is CPU-safe and does not pull in
+    Paddle until ``classify()`` actually runs); surfaced as
     ``error: unknown <preset_axis>: <preset_value!r> — valid values
     are: <comma-separated valid_values>`` on stderr with exit code 16
     (``EXIT_UNKNOWN_PRESET``). Per spec FR-013 / R-017.9 / R-017.12,

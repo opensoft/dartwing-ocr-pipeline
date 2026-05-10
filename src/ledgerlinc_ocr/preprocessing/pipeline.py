@@ -131,11 +131,13 @@ def run_warmup_if_active(
     callers translate that to exit code 15 + the canonical
     ``error: warmup failed: <cause-class>: <message>`` stderr line.
 
-    This helper is the single source of truth for GPU warmup ordering;
-    the warm-corpus path in ``pipeline/corpus_run.py`` does the same
-    work inline (engine is adopted by ``_warm_initialize_live_preprocess``
-    rather than ``ensure_gpu_ready``, so it cannot share this helper
-    verbatim — see FR-001 / R-016.10).
+    This helper is the single source of truth for the single-doc GPU
+    warmup ordering. The warm-corpus path in ``pipeline/corpus_run.py``
+    drives the same ``ensure_gpu_ready(...)`` call but from inside the
+    warm factory's ``initialize()`` (so the cached readout is shared
+    with the per-document loop) and bracketed by ``WarmProfileRegistry``
+    initialization timing rather than this helper's call ordering, so
+    it cannot share this helper verbatim — see FR-001 / R-016.10.
     """
     if not warmup_optin:
         return
