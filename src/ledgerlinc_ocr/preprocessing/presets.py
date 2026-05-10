@@ -203,15 +203,21 @@ def _audit_gpu_via_predict(engine: Any) -> list[str]:
     predict) raise `WarmupError` (cause class `AuditError`) so they
     surface on the same exit-15 fail-fast path as feature 016's warmup.
     """
-    np_img = _load_audit_fixture()
+    from ledgerlinc_ocr.preprocessing.errors import WarmupError
+
+    try:
+        np_img = _load_audit_fixture()
+    except WarmupError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise WarmupError(
+            f"audit failed: {type(exc).__name__}: {exc}",
+            cause_class="AuditError",
+            cause_module=type(exc).__module__ or "",
+        ) from exc
     try:
         results = engine.predict(np_img)
     except Exception as exc:  # noqa: BLE001
-        # R-017.7 audit-failure routing. Reuses feature 016's WarmupError
-        # taxonomy with a new cause_class so the exit-15 catch boundary is
-        # the same surface (no new exit code; no new catch site).
-        from ledgerlinc_ocr.preprocessing.errors import WarmupError
-
         raise WarmupError(
             f"audit failed: {type(exc).__name__}: {exc}",
             cause_class="AuditError",

@@ -332,6 +332,8 @@ def run_warm_corpus(
                 ),
                 emit_failure=_emit_failure,
                 gpu_prerequisite_failure=True,
+                module_set_threaded=_module_set_threaded_017,
+                det_rec_variant_threaded=_det_rec_threaded_017,
             )
             return _exit_code_for_state(_exc.state)
         raise
@@ -342,6 +344,8 @@ def run_warm_corpus(
             registry=registry,
             message=warm_init_failure,
             emit_failure=_emit_failure,
+            module_set_threaded=_module_set_threaded_017,
+            det_rec_variant_threaded=_det_rec_threaded_017,
         )
 
     # Feature 016 (T007 / R-016.10 / FR-001 / FR-007 / SC-011): the warm
@@ -717,6 +721,8 @@ def _emit_warm_init_failure_summary(
     message: str,
     emit_failure: Callable[[StructuredFailureRecord], None],
     gpu_prerequisite_failure: bool = False,
+    module_set_threaded: str | None = None,
+    det_rec_variant_threaded: str | None = None,
 ) -> int:
     """Emit the partial run_summary on warm-init failure.
 
@@ -753,12 +759,22 @@ def _emit_warm_init_failure_summary(
         attach_one_time_gpu_phases(_scratch, _PREFLIGHT_READOUT)
         _warm_init_failure_phase_timings = _scratch.get("phase_timings", {})
 
-    # Feature 017 (review CRITICAL fix): on warm-init failure the run
-    # never reached preset-axis resolution from CLI args (this is a
-    # separate `_emit_warm_init_failure_summary` path with no access to
-    # the outer args), so emit the CPU-lane defaults regardless. This
-    # matches the expected behavior — when init fails the engine was
-    # never constructed, so no GPU preset effectively took hold.
+    from ledgerlinc_ocr.preprocessing.preset_optin import (
+        derive_run_summary_identifiers as _derive_identifiers_017,
+    )
+    _failure_module_set_id, _failure_det_rec_variant_id = _derive_identifiers_017(
+        threaded_module_set=module_set_threaded,
+        threaded_det_rec_variant=det_rec_variant_threaded,
+        preprocess_lane=_warm_lane,
+    )
+    if _pp_profile is not None and _pp_profile.kind == "stub":
+        from ledgerlinc_ocr.preprocessing.identifiers import (
+            STUB_DEFAULT_DET_REC_VARIANT,
+            STUB_DEFAULT_MODULE_SET,
+        )
+
+        _failure_module_set_id = STUB_DEFAULT_MODULE_SET
+        _failure_det_rec_variant_id = STUB_DEFAULT_DET_REC_VARIANT
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -771,6 +787,8 @@ def _emit_warm_init_failure_summary(
         },
         on_failure=plan.failure_policy.mode,
         preprocess_lane=_warm_lane,
+        module_set_id=_failure_module_set_id,
+        det_rec_variant_id=_failure_det_rec_variant_id,
         documents_total=len(documents),
         documents_succeeded=0,
         documents_failed=1,
