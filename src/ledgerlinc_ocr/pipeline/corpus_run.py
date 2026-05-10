@@ -451,6 +451,7 @@ def run_warm_corpus(
     observed_exit_codes: list[ExitCode] = []
     succeeded = 0
     failed = 0
+    _region_strategy_fallback_count_018 = 0
 
     for entry in documents:
         folder_raw = entry.raw
@@ -500,6 +501,8 @@ def run_warm_corpus(
         )
 
         result = runner.run_plan(per_doc_plan, folder=folder_resolved)
+        if invocation.region_strategy_fallback_fired:
+            _region_strategy_fallback_count_018 += 1
         observed_exit_codes.append(result.exit_code)
         if result.exit_code == ExitCode.SUCCESS:
             succeeded += 1
@@ -719,16 +722,10 @@ def run_warm_corpus(
         preprocess_lane=_resolved_preprocess_lane,
     )
     # Feature 018 (T020 / R-018.8 / Clarifications Q4): per-doc fallback
-    # accumulator. Currently 0 in warm-corpus mode because the
-    # per-document fallback flag is set on the per-doc `pipeline.Invocation`
-    # constructed inside `runner.run_plan` (not the `CLIInvocation` we
-    # pass in), and the runner does not currently surface that flag back.
-    # The single-doc CLI (`preprocessing/cli.py`) accumulates correctly
-    # (single-doc = 0 or 1 from `invocation.region_strategy_fallback_fired`).
-    # Warm-corpus per-document accumulation is captured as a follow-up;
-    # the field is always emitted (FR-009 / FR-011 always-emit) so
-    # absence-as-regression-signal still works.
-    _region_strategy_fallback_count_018: int = 0
+    # accumulator. The live preprocessing adapter copies the per-document
+    # `preprocessing.pipeline.Invocation.region_strategy_fallback_fired`
+    # flag back onto this warm-corpus `CLIInvocation`; aggregate it once
+    # per document after `runner.run_plan()` returns.
     # Feature 018 (T010 / T020 / R-018.1 / R-018.4): derive
     # raster_profile_id and region_strategy_id for the run_summary using
     # the same threading logic as feature 017's two axes.
@@ -782,11 +779,9 @@ def run_warm_corpus(
         # Feature 018 (T010 / T020 / R-018.1 / R-018.4 / R-018.8):
         # all three additive top-level fields wired. raster_profile_id
         # and region_strategy_id derived via derive_*; the per-doc
-        # `region_strategy_fallback_fired` flag is currently set per-
-        # document by `_run_inner` after the orchestrator's region-first
-        # path. Per-doc → per-run accumulation lives in the per-document
-        # success branch above (where `succeeded += 1` is incremented).
-        # See `_aggregate_region_strategy_fallback_count_018` helper.
+        # `region_strategy_fallback_fired` flag is set per-document by
+        # `_run_inner` after the orchestrator's region-first path and is
+        # aggregated above immediately after each per-document run.
         raster_profile_id=_raster_profile_id_018,
         region_strategy_id=_region_strategy_id_018,
         region_strategy_fallback_count=_region_strategy_fallback_count_018,

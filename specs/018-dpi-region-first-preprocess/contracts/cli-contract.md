@@ -98,6 +98,6 @@ This order makes the stderr output for any single failing run unambiguous: at mo
 For `python -m ledgerlinc_ocr.preprocessing --document-folder X --preprocess-profile=ppstructurev3@gpu --region-strategy=header-first-v1`:
 
 - If the document does NOT trigger the fallback, the `kind: "run_summary"` line emits `region_strategy_fallback_count: 0`. The document's `preprocess_output.json` has page 1 populated and pages 2..N as empty records (Clarifications Q2).
-- If the document DOES trigger the fallback, the `kind: "run_summary"` line emits `region_strategy_fallback_count: 1`. The document's `preprocess_output.json` has all pages populated (the full-page strategy's output replaces the partial region-first attempt). `phase_timings.rasterization` and `phase_timings.per_page_inference` reflect the combined wall-clock cost (R-018.10).
+- If the document DOES trigger the fallback, the `kind: "run_summary"` line emits `region_strategy_fallback_count: 1`. The document's `preprocess_output.json` has all pages populated (the full-page strategy's output replaces the partial region-first attempt). `phase_timings.rasterization` and the sibling `per_page_inference` entries reflect the combined wall-clock cost (R-018.10).
 
 Operators can recover per-document attribution (which document fell back) from the `pages[]` shape per Clarifications Q4 — no extra metadata is needed on `run_summary` for that.

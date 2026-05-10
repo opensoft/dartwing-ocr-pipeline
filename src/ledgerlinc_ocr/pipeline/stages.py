@@ -418,19 +418,25 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
             # fire under the live adapter (R-018.1 / R-018.2 / R-018.4).
             # Without this, the CLI flags resolve correctly but the
             # adapter would silently drop them at the boundary.
-            out_path = preprocessing_run(
-                PreInvocation(
-                    document_folder=invocation.destination_folder,
-                    source_file=_SOURCE_PDF,
-                    pipeline_version=invocation.pipeline_version,
-                    preprocess_lane=lane,
-                    module_set_id=invocation.module_set_id,
-                    det_rec_variant_id=invocation.det_rec_variant_id,
-                    raster_profile_id=invocation.raster_profile_id,
-                    region_strategy_id=invocation.region_strategy_id,
-                ),
-                stage_timing=current_stage_timing(),
+            pre_invocation = PreInvocation(
+                document_folder=invocation.destination_folder,
+                source_file=_SOURCE_PDF,
+                pipeline_version=invocation.pipeline_version,
+                preprocess_lane=lane,
+                module_set_id=invocation.module_set_id,
+                det_rec_variant_id=invocation.det_rec_variant_id,
+                raster_profile_id=invocation.raster_profile_id,
+                region_strategy_id=invocation.region_strategy_id,
             )
+            try:
+                out_path = preprocessing_run(
+                    pre_invocation,
+                    stage_timing=current_stage_timing(),
+                )
+            finally:
+                invocation.region_strategy_fallback_fired = (
+                    pre_invocation.region_strategy_fallback_fired
+                )
             from ledgerlinc_ocr.pipeline.runner import StageRunOutput
 
             return StageRunOutput(

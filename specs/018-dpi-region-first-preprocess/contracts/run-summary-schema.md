@@ -27,14 +27,16 @@ Top-level fields on the `kind: "run_summary"` object (in deterministic emission 
 |---|---|---|---|---|
 | `kind` | `str` | pre-014 | `"run_summary"` | discriminator |
 | `schema_version` | `str` | pre-014 | `"0.1.5"` (this feature) | always emitted |
-| `paddle_import` | `float` (seconds) | feature 014 | — | wall-clock |
-| `gpu_bind_probe` | `float` (seconds) | feature 014 | — | wall-clock |
-| `engine_init` | `float` (seconds) | feature 014 | — | wall-clock |
-| `warmup` | `float` (seconds) | feature 016 | — | wall-clock; `0.0` if `--gpu-warmup` not set |
-| `rasterization` | `float` (seconds) | feature 014 | — | wall-clock; combined cost on fallen-back documents per R-018.10 |
-| `per_page_inference` | `float` (seconds) | feature 014 | — | wall-clock; combined cost on fallen-back documents per R-018.10 |
-| `artifact_write` | `float` (seconds) | feature 014 | — | wall-clock |
-| `total` | `float` (seconds) | feature 014 | — | wall-clock |
+| `stack_preset` | `str \| null` | feature 011 | `null` | selected stack preset, if any |
+| `resolved_profiles` | `object` | feature 011 | — | per-stage profile names |
+| `execution_slice` | `object` | feature 011 | — | `start_at` / `stop_after` |
+| `on_failure` | `str` | feature 011 | `"continue"` or `"fail-fast"` | warm-corpus policy |
+| `documents_total` | `int` | feature 011 | — | run document count |
+| `documents_succeeded` | `int` | feature 011 | — | success count |
+| `documents_failed` | `int` | feature 011 | — | failure count |
+| `profile_initialization_seconds` | `object` | feature 011 | `{}` | warm profile initialization timings |
+| `per_document` | `list[object]` | feature 011+015 | `[]` | per-document status, legacy `stages`, optional `phase_timings`, optional `per_page_inference` |
+| `preprocess_lane` | `str` | feature 014 | `"cpu"` | resolved preprocess lane |
 | `module_set_id` | `str` | feature 017 | `"cpu-default"` | always emitted |
 | `det_rec_variant_id` | `str` | feature 017 | `"cpu-default"` | always emitted |
 | `ppstructure_modules_invoked` | `list[str]` | feature 017 | `[]` | always emitted; values from `AUDIT_SUB_MODULE_VOCABULARY` |
@@ -90,9 +92,9 @@ The count of documents in this run that triggered the FR-007 fallback (per R-018
 
 This feature MUST NOT:
 
-- Add a new field inside `phase_timings.*` (the eight existing keys are immutable in shape per FR-010 / FR-022).
+- Add a new field inside `per_document[*].phase_timings.*` (the existing scalar phase keys are immutable in shape per FR-010 / FR-022).
 - Add a new field inside `preprocess_output.json` for fallback bookkeeping (Clarifications Q4 explicitly forbids this — `region_strategy_fallback_count` lives only on `run_summary`).
-- Rename, remove, or retype any field added by features 014 / 015 / 016 / 017 (`schema_version`, `paddle_import`, `gpu_bind_probe`, `engine_init`, `warmup`, `rasterization`, `per_page_inference`, `artifact_write`, `total`, `module_set_id`, `det_rec_variant_id`, `ppstructure_modules_invoked`).
+- Rename, remove, or retype any field added by features 014 / 015 / 016 / 017 (`schema_version`, per-document `phase_timings.paddle_import`, `phase_timings.gpu_bind_probe`, `phase_timings.engine_init`, `phase_timings.warmup`, `phase_timings.rasterization`, `per_page_inference`, `phase_timings.artifact_write`, `phase_timings.total`, `module_set_id`, `det_rec_variant_id`, `ppstructure_modules_invoked`).
 - Add a new persisted artifact (FR-021 — escape hatch only with `/speckit.plan`-time evidence that `run_summary` + harness/evaluator outputs are insufficient; this feature concludes that they are sufficient per Assumptions §9 and the four-corner benchmark cells fitting cleanly into per-document `phase_timings.*` + the existing evaluator outputs).
 
 ## 5. Sample emission (CPU run with both flags ignored, post-feature-018)
@@ -101,14 +103,26 @@ This feature MUST NOT:
 {
   "kind": "run_summary",
   "schema_version": "0.1.5",
-  "paddle_import": 0.0,
-  "gpu_bind_probe": 0.0,
-  "engine_init": 0.85,
-  "warmup": 0.0,
-  "rasterization": 1.42,
-  "per_page_inference": 7.31,
-  "artifact_write": 0.05,
-  "total": 9.63,
+  "stack_preset": null,
+  "resolved_profiles": {"preprocess": "ppstructurev3@cpu"},
+  "execution_slice": {"start_at": "preprocess", "stop_after": "preprocess"},
+  "on_failure": "continue",
+  "documents_total": 1,
+  "documents_succeeded": 1,
+  "documents_failed": 0,
+  "profile_initialization_seconds": {},
+  "per_document": [{
+    "document_id": "inv_001_easy",
+    "folder": "/tmp/inv_001_easy",
+    "status": "success",
+    "stages": {"preprocess": {"total_seconds": 1.47}},
+    "phase_timings": {
+      "rasterization": {"seconds": 1.42},
+      "artifact_write": {"seconds": 0.05},
+      "total": {"seconds": 1.47}
+    }
+  }],
+  "preprocess_lane": "cpu",
   "module_set_id": "cpu-default",
   "det_rec_variant_id": "cpu-default",
   "ppstructure_modules_invoked": [],
@@ -124,14 +138,31 @@ This feature MUST NOT:
 {
   "kind": "run_summary",
   "schema_version": "0.1.5",
-  "paddle_import": 4.10,
-  "gpu_bind_probe": 0.32,
-  "engine_init": 12.58,
-  "warmup": 8.21,
-  "rasterization": 0.41,
-  "per_page_inference": 2.13,
-  "artifact_write": 0.04,
-  "total": 27.79,
+  "stack_preset": null,
+  "resolved_profiles": {"preprocess": "ppstructurev3@gpu"},
+  "execution_slice": {"start_at": "preprocess", "stop_after": "preprocess"},
+  "on_failure": "continue",
+  "documents_total": 1,
+  "documents_succeeded": 1,
+  "documents_failed": 0,
+  "profile_initialization_seconds": {},
+  "per_document": [{
+    "document_id": "inv_001_easy",
+    "folder": "/tmp/inv_001_easy",
+    "status": "success",
+    "stages": {"preprocess": {"total_seconds": 27.79}},
+    "phase_timings": {
+      "paddle_import": {"seconds": 4.10},
+      "gpu_bind_probe": {"seconds": 0.32},
+      "engine_init": {"seconds": 12.58},
+      "warmup": {"seconds": 8.21},
+      "rasterization": {"seconds": 0.41},
+      "artifact_write": {"seconds": 0.04},
+      "total": {"seconds": 27.79}
+    },
+    "per_page_inference": [{"page": 1, "seconds": 2.13}]
+  }],
+  "preprocess_lane": "gpu0",
   "module_set_id": "legacy",
   "det_rec_variant_id": "legacy",
   "ppstructure_modules_invoked": ["layout_detection", "ocr_det", "ocr_rec"],
@@ -147,14 +178,29 @@ This feature MUST NOT:
 {
   "kind": "run_summary",
   "schema_version": "0.1.5",
-  "paddle_import": 4.10,
-  "gpu_bind_probe": 0.32,
-  "engine_init": 12.58,
-  "warmup": 8.21,
-  "rasterization": 3.07,
-  "per_page_inference": 12.76,
-  "artifact_write": 0.21,
-  "total": 41.25,
+  "stack_preset": null,
+  "resolved_profiles": {"preprocess": "ppstructurev3@gpu"},
+  "execution_slice": {"start_at": "preprocess", "stop_after": "preprocess"},
+  "on_failure": "continue",
+  "documents_total": 5,
+  "documents_succeeded": 5,
+  "documents_failed": 0,
+  "profile_initialization_seconds": {"preprocess": 12.58},
+  "per_document": [
+    {
+      "document_id": "inv_001_easy",
+      "folder": "/tmp/inv_001_easy",
+      "status": "success",
+      "stages": {"preprocess": {"total_seconds": 16.04}},
+      "phase_timings": {
+        "rasterization": {"seconds": 3.07},
+        "artifact_write": {"seconds": 0.21},
+        "total": {"seconds": 16.04}
+      },
+      "per_page_inference": [{"page": 1, "seconds": 12.76}]
+    }
+  ],
+  "preprocess_lane": "gpu0",
   "module_set_id": "legacy",
   "det_rec_variant_id": "legacy",
   "ppstructure_modules_invoked": ["layout_detection", "ocr_det", "ocr_rec"],
@@ -164,4 +210,4 @@ This feature MUST NOT:
 }
 ```
 
-In sample 7, `phase_timings.rasterization = 3.07` includes the combined wall-clock cost of the 1 document that fell back (page-1 header-band rasterization + full-page rasterization of all that document's pages) plus the 4 documents that did not fall back (page-1 header band only). Per R-018.10, this is the honest reading; readers comparing against `(reduced-v1, full-page)` on the same subset can attribute the difference to the fallback overhead via `region_strategy_fallback_count`.
+In sample 7, `per_document[*].phase_timings.rasterization.seconds` includes the combined wall-clock cost for any document that fell back (page-1 header-band rasterization + full-page rasterization of all that document's pages). Per R-018.10, this is the honest reading; readers comparing against `(reduced-v1, full-page)` on the same subset can attribute the difference to the fallback overhead via `region_strategy_fallback_count`.

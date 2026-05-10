@@ -138,6 +138,11 @@ class CLIInvocation:
     # `RunSummary.region_strategy_fallback_count`.
     raster_profile_id: str | None = None
     region_strategy_id: str | None = None
+    # Feature 018: mutable per-document signal surfaced by the live
+    # preprocessing adapter after `preprocessing.pipeline.run()` returns.
+    # Warm-corpus mode reads it to aggregate
+    # `RunSummary.region_strategy_fallback_count`.
+    region_strategy_fallback_fired: bool = False
 
 
 StageCallable = Callable[[CLIInvocation, dict[str, Any]], Any]

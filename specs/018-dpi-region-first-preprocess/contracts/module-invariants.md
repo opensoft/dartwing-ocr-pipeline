@@ -77,9 +77,9 @@ Per R-018.15, integer pixel bbox values may differ by ±1 between `(legacy, full
 
 ## I-018.8: `phase_timings.*` shape unchanged (FR-022 carry-forward)
 
-This feature MUST NOT add, remove, rename, or retype any key in `phase_timings.*`. The eight existing keys (`paddle_import`, `gpu_bind_probe`, `engine_init`, `rasterization`, `per_page_inference`, `artifact_write`, `total`, `warmup`) are immutable in shape from features 015/016. The combined-cost rule from R-018.10 (fallen-back documents accumulate both region-first and full-page wall-clock time into the same `phase_timings.rasterization` / `phase_timings.per_page_inference` keys) does NOT change shape — it only changes content for documents that fell back.
+This feature MUST NOT add, remove, rename, or retype any key in `phase_timings.*`. The seven existing keys (`paddle_import`, `gpu_bind_probe`, `engine_init`, `rasterization`, `artifact_write`, `total`, `warmup`) are immutable in shape from features 015/016. The combined-cost rule from R-018.10 (fallen-back documents accumulate both region-first and full-page rasterization wall-clock time into the same `phase_timings.rasterization` key, and both inference attempts into the sibling `per_page_inference` entries) does NOT change shape — it only changes content for documents that fell back.
 
-**Verification**: `test_run_summary_schema_0_1_5.py` (CPU-safe) asserts the `phase_timings.*` key set is exactly the eight keys above on every run.
+**Verification**: `test_run_summary_schema_0_1_5.py` (CPU-safe) asserts the `phase_timings.*` key set is exactly the seven keys above on every run.
 
 ## I-018.9: `run_summary` always-emit invariant (FR-008 / FR-009 / FR-011)
 

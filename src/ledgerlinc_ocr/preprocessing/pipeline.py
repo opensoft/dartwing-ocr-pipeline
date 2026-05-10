@@ -255,6 +255,48 @@ class _PageResult:
     silent_empty: bool
 
 
+def _scaled_page_pixel_dims(
+    width_pt: float,
+    height_pt: float,
+    *,
+    dpi: int,
+    snapped_rotation: int,
+) -> tuple[int, int]:
+    """Return full-render pixel dimensions for a PDF page.
+
+    pypdfium2's full-page render swaps width/height for 90/270 degree
+    rotations. Region-first page records must use the same dimensions as
+    the full-page path so OCR bboxes and page geometry share one coordinate
+    system.
+    """
+    render_width_pt = float(width_pt)
+    render_height_pt = float(height_pt)
+    if snapped_rotation in {90, 270}:
+        render_width_pt, render_height_pt = render_height_pt, render_width_pt
+    return (
+        max(rasterize.FALLBACK_WIDTH, int(round(render_width_pt * dpi / 72.0))),
+        max(rasterize.FALLBACK_HEIGHT, int(round(render_height_pt * dpi / 72.0))),
+    )
+
+
+def _append_empty_page_records(
+    pages: list[dict[str, Any]],
+    per_page_geometry: list[tuple[int, int, int, int, bool]],
+    *,
+    start_index: int,
+) -> None:
+    for i in range(start_index, len(per_page_geometry)):
+        full_w_px, full_h_px, _rot_orig, snapped_rot, _changed_rot = per_page_geometry[i]
+        pages.append({
+            "page_number": i + 1,
+            "width": full_w_px,
+            "height": full_h_px,
+            "rotation_detected": snapped_rot,
+            "blocks": [],
+            "raw_ocr_lines": [],
+        })
+
+
 def _build_page_warnings(
     pr: Any, lines: list[dict[str, Any]], blocks: list[dict[str, Any]]
 ) -> tuple[list[str], bool]:
@@ -435,11 +477,15 @@ def _run_region_first_path(
                 width_pt, height_pt = page.get_size()
                 rotation = int(page.get_rotation() or 0)
                 snapped_rotation, snapped_changed = rasterize.snap_rotation(rotation)
+                full_width_px, full_height_px = _scaled_page_pixel_dims(
+                    float(width_pt),
+                    float(height_pt),
+                    dpi=dpi,
+                    snapped_rotation=snapped_rotation,
+                )
                 per_page_geometry.append((
-                    max(rasterize.FALLBACK_WIDTH,
-                        int(round(float(width_pt) * dpi / 72.0))),
-                    max(rasterize.FALLBACK_HEIGHT,
-                        int(round(float(height_pt) * dpi / 72.0))),
+                    full_width_px,
+                    full_height_px,
                     rotation,
                     snapped_rotation,
                     snapped_changed,
@@ -461,13 +507,46 @@ def _run_region_first_path(
         # Treat as trigger_fired so the caller falls back to full-page.
         return [], [], [], [], 0, False, True
 
-    # Rasterize ONLY the band of page 1 (R-018.5 / T017).
-    crop_image, offset_px = rasterize.rasterize_page_band(
-        pdf_path=pdf_path,
-        page_index=0,
-        band_bbox_pt=page_1_band,
-        dpi=dpi,
-    )
+    (
+        full_width_px,
+        full_height_px,
+        rotation_original,
+        snapped_rotation,
+        snapped_changed,
+    ) = per_page_geometry[0]
+    # Rasterize ONLY the band of page 1 (R-018.5 / T017). Match the
+    # full-page path's page-level failure containment: a crop-render
+    # failure yields a schema-valid failed page record instead of aborting
+    # the whole document.
+    try:
+        crop_image, offset_px = rasterize.rasterize_page_band(
+            pdf_path=pdf_path,
+            page_index=0,
+            band_bbox_pt=page_1_band,
+            dpi=dpi,
+        )
+    except Exception as exc:  # noqa: BLE001 - convert page render failure to artifact data
+        failure = rasterize.PageRasterFailure(
+            page_number=1,
+            width=full_width_px,
+            height=full_height_px,
+            rotation_detected=snapped_rotation,
+            error=f"{type(exc).__name__}: {exc}",
+        )
+        pages.append(_build_failed_page_dict(failure))
+        warnings_out.append(
+            f"page 1: rasterization failed: {failure.error}"
+        )
+        _append_empty_page_records(pages, per_page_geometry, start_index=1)
+        return (
+            pages,
+            warnings_out,
+            tables,
+            all_lines,
+            pages_with_output,
+            silent_empty,
+            False,
+        )
 
     # Build a synthetic PageRaster for `_process_page` to consume. Use
     # the FULL-PAGE width/height (not crop dimensions) so the resulting
@@ -476,13 +555,6 @@ def _run_region_first_path(
     # H1 fix: surface the actual `rotation_snapped` flag so a rotated
     # page-1 still triggers the rotation-normalized warning per
     # `_build_page_warnings`.
-    (
-        full_width_px,
-        full_height_px,
-        rotation_original,
-        snapped_rotation,
-        snapped_changed,
-    ) = per_page_geometry[0]
     page_1_raster = rasterize.PageRaster(
         page_number=1,
         width=full_width_px,
@@ -552,21 +624,11 @@ def _run_region_first_path(
     if result.silent_empty:
         silent_empty = True
 
-    for i in range(1, page_count):
-        # M3 fix: rotation already snapped at per_page_geometry collection.
-        full_w_px, full_h_px, _rot_orig, snapped_rot, _changed_rot = per_page_geometry[i]
-        # R-018.6: empty page record. `blocks: []` and `raw_ocr_lines: []`
-        # are explicitly permitted by the v1.2.0 preprocess_output schema.
-        # `width` / `height` already floored at 1 in per_page_geometry per
-        # H2 fix. No rasterization, no inference (FR-007 / I-018.6).
-        pages.append({
-            "page_number": i + 1,
-            "width": full_w_px,
-            "height": full_h_px,
-            "rotation_detected": snapped_rot,
-            "blocks": [],
-            "raw_ocr_lines": [],
-        })
+    # R-018.6: empty page records for pages 2..N. `blocks: []` and
+    # `raw_ocr_lines: []` are explicitly permitted by the v1.2.0
+    # preprocess_output schema. `width` / `height` were computed with the
+    # same rotation-aware dimensions as the full-page renderer.
+    _append_empty_page_records(pages, per_page_geometry, start_index=1)
 
     return (
         pages,

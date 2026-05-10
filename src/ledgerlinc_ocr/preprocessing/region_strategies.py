@@ -199,7 +199,7 @@ def _header_first_v1_trigger(blocks: list[Any]) -> bool:
     the fallback ACTION: discard the partial output, re-preprocess the
     document under the full-page strategy on the same engine instance
     (R-018.9), accumulate combined wall-clock cost into the per-document
-    `phase_timings.rasterization` / `phase_timings.per_page_inference`
+    `phase_timings.rasterization` / sibling `per_page_inference` fields
     (R-018.10), and increment the run-level
     `region_strategy_fallback_count` by 1.
 

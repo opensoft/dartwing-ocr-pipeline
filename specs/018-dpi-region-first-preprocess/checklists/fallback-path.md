@@ -39,10 +39,10 @@
 - [x] CHK019 - Is the prohibition on constructing a second engine for the fallback predict explicit so a future refactor doesn't introduce per-fallback engine init cost? [Clarity, R-018.9]
 - [x] CHK020 - Is the assumption "PPStructureV3 is stateless across `predict` calls" documented so the engine-reuse safety claim is auditable? [Assumption, R-018.9]
 
-## `phase_timings.*` Accounting Under Fallback (R-018.10)
+## Timing Accounting Under Fallback (R-018.10)
 
 - [x] CHK021 - Is the rule "`phase_timings.rasterization` reports the COMBINED wall-clock time on fallen-back documents (region-first attempt + full-page rasterization)" explicit? [Completeness, R-018.10]
-- [x] CHK022 - Is the same combined-cost rule applied to `phase_timings.per_page_inference` explicit? [Consistency, R-018.10]
+- [x] CHK022 - Is the same combined-cost rule applied to the sibling `per_page_inference` entries explicit? [Consistency, R-018.10]
 - [x] CHK023 - Is the prohibition on adding a new `phase_timings.*` sub-key for the region-first attempt's separate cost explicit (FR-022 — `phase_timings.*` shape is frozen)? [Completeness, R-018.10, Spec §FR-022, contracts/module-invariants.md I-018.8]
 - [x] CHK024 - Is the operator-facing reading rule explicit ("readers comparing `(reduced-v1, header-first-v1)` to `(reduced-v1, full-page)` can attribute timing differences to fallback overhead via `region_strategy_fallback_count`")? [Clarity, R-018.10, quickstart.md Appendix A]
 - [x] CHK025 - Is the rule "header-first CAN be slower than full-page on documents that fell back" explicitly named so benchmark readers don't interpret a higher-than-legacy timing as a code bug? [Clarity, R-018.10]

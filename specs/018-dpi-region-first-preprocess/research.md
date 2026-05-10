@@ -180,7 +180,7 @@ if region_strategy.name == "header-first-v1":
 
 "Whitespace-stripped" uses Python's default `str.strip()` (Unicode whitespace categories — spaces, tabs, newlines, NBSPs, etc.). The trigger check inspects only `blocks[].text` — not `raw_ocr_lines[].text`, not bounding-box presence, not block count. Per /speckit.clarify Q3, the trigger is a pure string-emptiness check on the targeted region's blocks.
 
-On a triggered fallback the partial region-first output is **fully discarded**: the `pages[0]` populated by the page-1 region-first attempt is replaced by `pages[0]` from the full-page strategy; `pages[1..N]` are populated by the full-page strategy (not empty records); the document's `phase_timings.rasterization` / `phase_timings.per_page_inference` accumulate the wall-clock cost of BOTH attempts (R-018.10); the run-level `region_strategy_fallback_count` increments by exactly 1.
+On a triggered fallback the partial region-first output is **fully discarded**: the `pages[0]` populated by the page-1 region-first attempt is replaced by `pages[0]` from the full-page strategy; `pages[1..N]` are populated by the full-page strategy (not empty records); the document's `phase_timings.rasterization` and `per_page_inference` accumulate the wall-clock cost of BOTH attempts (R-018.10); the run-level `region_strategy_fallback_count` increments by exactly 1.
 
 **Rationale**:
 - Clarifications Q3 fixed the trigger condition explicitly; this decision just maps it into pseudocode for `pipeline.py` so the planner does not have to re-derive it.
@@ -228,7 +228,7 @@ On a triggered fallback the partial region-first output is **fully discarded**: 
 
 ## R-018.10: `phase_timings.rasterization` accounting on fallen-back documents
 
-**Decision**: For a document that triggers the FR-007 fallback, the document's `phase_timings.rasterization` reports the **combined wall-clock time** of (a) the page-1 header-band rasterization that triggered fallback PLUS (b) the full-page rasterization of pages 1..N performed by the fallback path. Same combination rule for `phase_timings.per_page_inference`. No new field is added to break out the two phases — the existing `phase_timings.rasterization` key is honest about total work done.
+**Decision**: For a document that triggers the FR-007 fallback, the document's `phase_timings.rasterization` reports the **combined wall-clock time** of (a) the page-1 header-band rasterization that triggered fallback PLUS (b) the full-page rasterization of pages 1..N performed by the fallback path. Same combination rule for the per-document `per_page_inference` array: duplicate page timings are summed into one page entry. No new field is added to break out the two phases — the existing `phase_timings.rasterization` and `per_page_inference` keys are honest about total work done.
 
 **Rationale**:
 - "Honest cost reporting" — the wall clock spent rasterizing for that document IS the sum of both attempts. Hiding the page-1 attempt's cost would make the FR-005 four-corner benchmark for `header-first-v1` look artificially good vs. `full-page` on documents that fell back, which is exactly the wrong signal for the FR-016 promotion gate.

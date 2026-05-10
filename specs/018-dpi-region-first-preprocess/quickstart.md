@@ -59,7 +59,7 @@ tail -1 /tmp/legacy.stdout | jq '{schema_version, raster_profile_id, region_stra
 # }
 ```
 
-`preprocess_output.json` is byte-identical to a no-flag (pre-018) GPU run on this fixture (verified by `test_legacy_byte_identity.py`). Record `phase_timings.rasterization` and `phase_timings.per_page_inference` for the legacy baseline cell of Appendix A.
+`preprocess_output.json` is byte-identical to a no-flag (pre-018) GPU run on this fixture (verified by `test_legacy_byte_identity.py`). Record `per_document[0].phase_timings.rasterization.seconds` and `per_document[0].per_page_inference` for the legacy baseline cell of Appendix A.
 
 ## 2. Reduced-DPI GPU run
 
@@ -76,7 +76,7 @@ python -m ledgerlinc_ocr.preprocessing \
   > /tmp/reduced_dpi.stdout \
   2> /tmp/reduced_dpi.stderr
 
-tail -1 /tmp/reduced_dpi.stdout | jq '{raster_profile_id, region_strategy_id, region_strategy_fallback_count, rasterization, per_page_inference}'
+tail -1 /tmp/reduced_dpi.stdout | jq '{raster_profile_id, region_strategy_id, region_strategy_fallback_count, rasterization: .per_document[0].phase_timings.rasterization.seconds, per_page_inference: .per_document[0].per_page_inference}'
 # Expected:
 # {
 #   "raster_profile_id": "reduced-v1",
@@ -239,7 +239,7 @@ python -m ledgerlinc_ocr.preprocessing \
   > /tmp/fallback.stdout \
   2> /tmp/fallback.stderr
 
-tail -1 /tmp/fallback.stdout | jq '{region_strategy_id, region_strategy_fallback_count, rasterization, per_page_inference}'
+tail -1 /tmp/fallback.stdout | jq '{region_strategy_id, region_strategy_fallback_count, rasterization: .per_document[0].phase_timings.rasterization.seconds, per_page_inference: .per_document[0].per_page_inference}'
 # Expected:
 # {
 #   "region_strategy_id": "header-first-v1",
@@ -307,9 +307,9 @@ The fixed 5-doc subset is the same one feature 017 used (R-017.11 / R-018.13).
 | `inv_005_challenging` | _filled_ | _filled_ | _filled_ | _filled_ | yes / no |
 | **Cell total** | _sum_ | _sum_ | _sum_ | _sum_ | n/a |
 
-### A.2: Per-document `phase_timings.per_page_inference` (seconds)
+### A.2: Per-document `per_page_inference` (seconds)
 
-Same table shape as A.1, replace `phase_timings.rasterization` with `phase_timings.per_page_inference`.
+Same table shape as A.1, replace `phase_timings.rasterization.seconds` with the sum of `per_page_inference[*].seconds`.
 
 ### A.3: Per-cell `region_strategy_fallback_count` (corpus aggregate)
 

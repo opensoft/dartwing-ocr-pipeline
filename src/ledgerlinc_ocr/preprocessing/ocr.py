@@ -82,15 +82,25 @@ def take_gpu_inference_per_page() -> Optional[list[tuple[int, float]]]:
     """T009 (R-015.3): drain the accumulator and return per-page records.
 
     Returns a list of `(page_number, seconds)` tuples (six-decimal-rounded
-    seconds), in the order pages were recorded. Resets the underlying
-    list. Returns `None` if no GPU inference has been recorded since the
-    last drain — callers (`corpus_run.py`, `preprocessing/cli.py`) treat
-    `None` as "omit the `per_page_inference` array per FR-016."
+    seconds), sorted by page number. If a page is inferred more than once
+    during one document run (feature 018's region-first fallback reprocesses
+    page 1), timings are summed into a single page entry so the emitted
+    `per_page_inference` array remains strictly ascending and 1-based.
+    Resets the underlying list. Returns `None` if no GPU inference has
+    been recorded since the last drain — callers (`corpus_run.py`,
+    `preprocessing/cli.py`) treat `None` as "omit the `per_page_inference`
+    array per FR-016."
     """
     global _GPU_INFERENCE_NS_BY_PAGE
     if not _GPU_INFERENCE_NS_BY_PAGE:
         return None
-    drained = [(p, round(ns / 1e9, 6)) for p, ns in _GPU_INFERENCE_NS_BY_PAGE]
+    totals_by_page: dict[int, int] = {}
+    for page_number, ns in _GPU_INFERENCE_NS_BY_PAGE:
+        totals_by_page[int(page_number)] = totals_by_page.get(int(page_number), 0) + ns
+    drained = [
+        (page_number, round(ns / 1e9, 6))
+        for page_number, ns in sorted(totals_by_page.items())
+    ]
     _GPU_INFERENCE_NS_BY_PAGE = []
     return drained
 

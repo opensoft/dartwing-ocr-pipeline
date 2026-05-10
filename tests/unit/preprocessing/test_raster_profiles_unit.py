@@ -137,9 +137,9 @@ def test_raster_profiles_module_imports_without_paddle(
 ) -> None:
     """A host without Paddle GPU MUST be able to
     `import ledgerlinc_ocr.preprocessing.raster_profiles` cleanly
-    (FR-015 / I-018.2). Mock `paddleocr` and `paddle` to raise
-    `ImportError` at import time and verify the registry module reloads
-    successfully — proving no module-level Paddle import."""
+    (FR-015 / I-018.2). Poison `paddleocr` and `paddle` in
+    `sys.modules` and verify the registry module reloads successfully
+    without touching either dependency."""
     import importlib
 
     # Drop any cached references first
