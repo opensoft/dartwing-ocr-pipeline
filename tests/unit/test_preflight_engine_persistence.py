@@ -244,3 +244,26 @@ def test_ensure_gpu_ready_accepts_matching_presets_on_subsequent_call(monkeypatc
     readout1 = ensure_gpu_ready(module_set=legacy)
     readout2 = ensure_gpu_ready(module_set=legacy)
     assert readout1 is readout2
+
+
+def test_ensure_gpu_ready_treats_none_and_legacy_preset_as_equivalent(monkeypatch) -> None:
+    """``None`` and the ``legacy`` preset produce the same engine
+    (literal legacy ``use_kwargs``, PaddleOCR-default det/rec). The
+    mismatch guard must normalize ``None`` so backward-compat callers
+    that pass no presets do not collide with callers that pass
+    ``MODULE_SET_PRESETS["legacy"]`` explicitly."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    class _PPStructure:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
+
+    presets = pytest.importorskip("ledgerlinc_ocr.preprocessing.presets")
+    legacy = presets.MODULE_SET_PRESETS["legacy"]
+
+    readout1 = ensure_gpu_ready()
+    readout2 = ensure_gpu_ready(module_set=legacy)
+    assert readout1 is readout2

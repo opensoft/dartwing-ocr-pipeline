@@ -255,7 +255,8 @@ def run_warm_corpus(
         and _warm_pp_profile_017.lane == "gpu"
         else "cpu"
     )
-    if not _is_gpu_lane_017(_warm_lane_017):
+    _preprocess_in_slice_for_warn_017 = "preprocess" in plan.slice_.stages_in_slice
+    if _preprocess_in_slice_for_warn_017 and not _is_gpu_lane_017(_warm_lane_017):
         _profile_for_warn_017 = (
             _warm_pp_profile_017.raw_value
             if _warm_pp_profile_017 is not None

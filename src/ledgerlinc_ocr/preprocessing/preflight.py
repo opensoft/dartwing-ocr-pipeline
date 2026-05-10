@@ -545,7 +545,7 @@ def _truncate(s: str, n: int) -> str:
 # `preprocessing/pipeline.py` (T021 single-doc gate) and
 # `pipeline/corpus_run.py` (T023 warm-corpus gate; T029 timing read).
 _LAST_READOUT: Optional[PreflightReadout] = None
-_LAST_PRESET_KEY: Optional[tuple[Optional[str], Optional[str]]] = None
+_LAST_PRESET_KEY: Optional[tuple[str, str]] = None
 
 
 def get_last_readout() -> Optional[PreflightReadout]:
@@ -587,9 +587,15 @@ def ensure_gpu_ready(
     readout that does not reflect the requested presets.
     """
     global _LAST_READOUT, _LAST_PRESET_KEY
-    requested_key: tuple[Optional[str], Optional[str]] = (
-        module_set.name if module_set is not None else None,
-        det_rec_variant.name if det_rec_variant is not None else None,
+    # Normalize: ``None`` and the ``legacy`` preset are operationally
+    # identical — both produce the literal legacy ``use_kwargs`` and
+    # leave the det/rec model names at PaddleOCR's defaults. Treating
+    # them as distinct cache keys would cause a false-positive
+    # mismatch when a backward-compat caller (no presets) follows a
+    # caller that passed ``MODULE_SET_PRESETS["legacy"]`` explicitly.
+    requested_key: tuple[str, str] = (
+        module_set.name if module_set is not None else "legacy",
+        det_rec_variant.name if det_rec_variant is not None else "legacy",
     )
     if _LAST_READOUT is not None and _LAST_READOUT.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
         if _LAST_PRESET_KEY != requested_key:

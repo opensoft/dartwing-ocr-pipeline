@@ -27,6 +27,7 @@ Public API:
 from __future__ import annotations
 
 import os
+from typing import Mapping
 
 from ledgerlinc_ocr.preprocessing.warmup_optin import is_gpu_lane
 
@@ -36,7 +37,7 @@ DET_REC_VARIANT_ENV_VAR: str = "LEDGERLINC_DET_REC_VARIANT"
 
 def resolve_module_set_value(
     cli_value: str | None,
-    env: dict[str, str] | None = None,
+    env: Mapping[str, str] | None = None,
 ) -> str | None:
     """Return the `module_set_id` string the operator wants, or `None` if
     neither the CLI flag nor the env var is set.
@@ -56,7 +57,7 @@ def resolve_module_set_value(
 
 def resolve_det_rec_variant_value(
     cli_value: str | None,
-    env: dict[str, str] | None = None,
+    env: Mapping[str, str] | None = None,
 ) -> str | None:
     """Return the `det_rec_variant_id` string the operator wants, or
     `None` if neither the CLI flag nor the env var is set.
