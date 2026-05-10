@@ -80,6 +80,15 @@ class Invocation:
     # values — the CPU/stub identifier defaults flow through unchanged.
     module_set_id: str | None = None
     det_rec_variant_id: str | None = None
+    # Feature 018 (T009 / T010 / R-018.1 / R-018.2): resolved
+    # raster_profile_id string from the CLI parse. Threaded into
+    # `_run_inner` so the rasterizer call site uses the resolved DPI
+    # (via `raster_profiles.resolve_raster_profile`). Default `None` =
+    # use the active profile's identity-preset default DPI (CPU lane
+    # always uses the module-level `DPI = 300` per FR-015 / I-018.2).
+    # Same warn-and-proceed-nulls-the-value contract as feature 017's
+    # two preset axes above.
+    raster_profile_id: str | None = None
 
 
 def _derive_document_id(folder_name: str) -> str:
@@ -389,8 +398,20 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # iterator raises before yielding (e.g., ZeroPagePdfError on the first
     # `next()`) — the context manager's finally clause guarantees the delta
     # is captured for FR-016 / FP2 partial-failure timings.
+    #
+    # Feature 018 (T010 / R-018.2): resolve the threaded raster_profile_id
+    # to the actual integer DPI used for this run. CPU lane / unset flag
+    # falls through to the module-level `DPI = 300` per FR-015 / I-018.2.
+    # Resolution is CPU-safe (no Paddle import); the closed-vocabulary
+    # registry was created in T007.
+    _resolved_dpi = DPI
+    if invocation.raster_profile_id is not None:
+        from ledgerlinc_ocr.preprocessing.raster_profiles import (
+            resolve_raster_profile as _resolve_raster_profile_018,
+        )
+        _resolved_dpi = _resolve_raster_profile_018(invocation.raster_profile_id).dpi
     with measure_phase(stage_timing, "rasterization"):
-        for pr in rasterize.rasterize_pdf(pdf_path, dpi=DPI):
+        for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
             result = _process_page(pr, invocation)
             pages.append(result.page_dict)
             warnings_out.extend(result.warnings)

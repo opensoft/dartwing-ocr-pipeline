@@ -94,12 +94,20 @@ def open_pdf(pdf_path: Path) -> pdfium.PdfDocument:
     return doc
 
 
-def _metadata_fallback_dims(page) -> tuple[int, int]:
-    """FR-005a: point dims × DPI / 72, rounded, minimum 1 (schema constraint)."""
+def _metadata_fallback_dims(page, dpi: int = DPI) -> tuple[int, int]:
+    """FR-005a: point dims × DPI / 72, rounded, minimum 1 (schema constraint).
+
+    Feature 018 (T008): the `dpi` parameter is now threaded from the
+    caller (`rasterize_pdf`) so that `--raster-profile=reduced-v1` runs
+    with page-level rasterization failures produce fallback dims
+    consistent with the resolved RasterProfile's DPI (rather than always
+    falling back to the module-level `DPI = 300`). Default preserves
+    legacy behavior for callers that don't yet pass dpi explicitly.
+    """
     try:
         width_pt, height_pt = page.get_size()
-        w = max(FALLBACK_WIDTH, round(float(width_pt) * DPI / 72.0))
-        h = max(FALLBACK_HEIGHT, round(float(height_pt) * DPI / 72.0))
+        w = max(FALLBACK_WIDTH, round(float(width_pt) * dpi / 72.0))
+        h = max(FALLBACK_HEIGHT, round(float(height_pt) * dpi / 72.0))
         return int(w), int(h)
     except Exception:
         return FALLBACK_WIDTH, FALLBACK_HEIGHT
@@ -114,6 +122,12 @@ def rasterize_pdf(
     each page before iterating to the next — that is the entire point of the
     streaming contract. A zero-page PDF raises `ZeroPagePdfError` inside
     `open_pdf` on the first `next()`, before any page is yielded.
+
+    Feature 018 (T008 / R-018.2 / contracts/cli-contract.md §1): the
+    `dpi` parameter is driven by the resolved
+    `RasterProfile.dpi` from `preprocessing/raster_profiles.py` on the
+    GPU lane (default `legacy` = 300; `reduced-v1` = 200). The CPU lane
+    keeps the module-level `DPI = 300` default per FR-015 / I-018.2.
     """
     doc = open_pdf(pdf_path)
     try:
@@ -148,7 +162,7 @@ def rasterize_pdf(
                         image=pil_image,
                     )
                 except Exception as exc:
-                    fb_w, fb_h = _metadata_fallback_dims(page)
+                    fb_w, fb_h = _metadata_fallback_dims(page, dpi=dpi)
                     yield PageRasterFailure(
                         page_number=page_number,
                         width=fb_w,

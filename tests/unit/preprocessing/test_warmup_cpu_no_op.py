@@ -302,7 +302,9 @@ def test_cpu_warmup_optin_run_summary_has_no_warmup_key(
     summary_line = stdout_lines[-1]
     summary = json.loads(summary_line)
     assert summary.get("kind") == "run_summary"
-    assert summary.get("schema_version") == "0.1.4"  # feature 017: 0.1.3 → 0.1.4 (additive top-level fields)
+    # Feature 018 (T004 / R-018.14): bumped 0.1.4 → 0.1.5 (additive top-level fields).
+    # Assert chain-head value here so a backslide is caught by this test too.
+    assert summary.get("schema_version") == "0.1.5"
     assert len(summary.get("per_document", [])) == 1
     per_doc = summary["per_document"][0]
     phase_timings = per_doc.get("phase_timings", {})

@@ -30,6 +30,8 @@ from ledgerlinc_ocr.preprocessing.identifiers import (
     AUDIT_SUB_MODULE_VOCABULARY,
     CPU_DEFAULT_DET_REC_VARIANT,
     CPU_DEFAULT_MODULE_SET,
+    CPU_DEFAULT_RASTER_PROFILE,
+    CPU_DEFAULT_REGION_STRATEGY,
 )
 
 
@@ -99,7 +101,19 @@ def bind_current_stage_timing(stage_timing: "StageTiming"):
 # `stub-default`). 0.1.4 is a strict superset of 0.1.3 — no existing
 # field is renamed, removed, or retyped (FR-009 / FR-019). Consumers built
 # against 0.1.3 continue to read 0.1.4 output without changes.
-SCHEMA_VERSION = "0.1.4"
+#
+# Feature 018 (T004 / R-018.14 / FR-008 / FR-009 / FR-010 / FR-011 /
+# contracts/run-summary-schema.md §1): codebase-level patch bump
+# 0.1.4 → 0.1.5 for THREE additive top-level `run_summary` fields —
+# `raster_profile_id` (string), `region_strategy_id` (string), and
+# `region_strategy_fallback_count` (integer). All three are emitted on
+# EVERY run of the new binary regardless of profile or preset selection;
+# CPU/stub defaults flow from `preprocessing/identifiers.py`
+# (`cpu-default` / `stub-default` / `0`). 0.1.5 is a strict superset of
+# 0.1.4 — no existing field is renamed, removed, or retyped (FR-010 /
+# FR-022). Consumers built against 0.1.4 continue to read 0.1.5 output
+# without changes.
+SCHEMA_VERSION = "0.1.5"
 
 
 def _ns_to_seconds(ns: int) -> float:
@@ -188,6 +202,22 @@ class RunSummary:
     the resolved preset names from
     ``preprocessing/presets.py::resolve_module_set`` /
     ``resolve_det_rec_variant`` (US1/US2 wiring lands those values).
+
+    Feature 018 (T006 / R-018.8 / R-018.14 /
+    contracts/run-summary-schema.md §2–§3) adds three additive
+    top-level fields: ``raster_profile_id``, ``region_strategy_id``,
+    and ``region_strategy_fallback_count``. All three are emitted on
+    every run regardless of profile (FR-008 / FR-009 / FR-011);
+    their default values reflect the CPU lane defaults from
+    ``preprocessing/identifiers.py`` (CPU_DEFAULT_RASTER_PROFILE /
+    CPU_DEFAULT_REGION_STRATEGY / 0). Stub-adapter runs override via
+    ``stub-default`` strings; GPU-lane runs override via the resolved
+    preset names from
+    ``preprocessing/raster_profiles.py::resolve_raster_profile``
+    (US1) / ``preprocessing/region_strategies.py::resolve_region_strategy``
+    (US2). The ``region_strategy_fallback_count`` accumulator is
+    incremented per fallen-back document by the orchestrator in
+    ``preprocessing/pipeline.py`` (US2 wiring) per R-018.7 / R-018.8.
     """
     stack_preset: str | None
     resolved_profiles: dict[Stage, str]
@@ -205,6 +235,12 @@ class RunSummary:
     module_set_id: str = CPU_DEFAULT_MODULE_SET
     det_rec_variant_id: str = CPU_DEFAULT_DET_REC_VARIANT
     ppstructure_modules_invoked: list[str] = field(default_factory=list)
+    # Feature 018 (T006 / R-018.14): three additive top-level fields.
+    # Defaults reflect the CPU lane / no-preset case; US1/US2 wiring
+    # overrides on GPU/stub lanes per contracts/cli-contract.md §1.
+    raster_profile_id: str = CPU_DEFAULT_RASTER_PROFILE
+    region_strategy_id: str = CPU_DEFAULT_REGION_STRATEGY
+    region_strategy_fallback_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         # Last-line-of-defense canonicalization for the closed-vocabulary
@@ -238,6 +274,13 @@ class RunSummary:
             "module_set_id": self.module_set_id,
             "det_rec_variant_id": self.det_rec_variant_id,
             "ppstructure_modules_invoked": _canonical_audit_modules,
+            # Feature 018 additive top-level fields (T006 /
+            # contracts/run-summary-schema.md §2): emitted AFTER
+            # feature 017's three fields and before the closing brace
+            # in fixed order. Always-emit per FR-008 / FR-009 / FR-011.
+            "raster_profile_id": self.raster_profile_id,
+            "region_strategy_id": self.region_strategy_id,
+            "region_strategy_fallback_count": self.region_strategy_fallback_count,
         }
 
     def as_json_line(self) -> str:
