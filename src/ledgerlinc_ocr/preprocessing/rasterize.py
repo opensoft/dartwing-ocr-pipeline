@@ -162,14 +162,12 @@ def rasterize_page_band(
     translate PaddleOCR's crop-relative bboxes back to full-page pixel
     coordinates via `region_strategies.translate_bbox` (R-018.15).
 
-    **Coordinate-axis verification (per Analysis U3 / tasks.md T017
-    note)**: implementer MUST verify visually at code-write time by
-    rendering page 1 of `inv_001_easy/source.pdf` cropped to
-    BBox(0, 0, width_pt, 0.30 * height_pt) and confirming the resulting
-    image covers the page HEADER (logo + company name area), NOT the
-    page footer. If the visual check fails, the y-axis interpretation
-    in `region_strategies._header_first_v1_targeting` needs to be
-    flipped BEFORE landing T018.
+    Coordinate convention: `band_bbox_pt` is interpreted in
+    top-left-origin PDF-point space. The y-axis flip required by
+    pypdfium2's bottom-left-origin `crop=` argument is performed below.
+    The header-first crop targets the visual TOP of the page (logo +
+    company-name area) — see `tests/integration/preprocessing/`
+    coverage that asserts this for known fixtures.
     """
     doc = open_pdf(pdf_path)
     try:

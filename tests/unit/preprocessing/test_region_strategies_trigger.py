@@ -59,9 +59,9 @@ def test_single_empty_string_block_fires_trigger() -> None:
         " ",
         "  \t\n",
         "\r\n\t",
-        " ",       # NBSP (Unicode non-breaking space)
-        "  ", # line / paragraph separator
-        "​‌", # zero-width space / ZWNJ — NOT in str.strip() set
+        "\u00A0",          # NBSP (Unicode non-breaking space)
+        "\u2028\u2029",   # LINE / PARAGRAPH SEPARATOR
+        "\u200B\u200C",   # ZWSP + ZWNJ -- NOT in str.strip() set
     ],
 )
 def test_whitespace_only_block_text_fires_trigger(whitespace_only: str) -> None:

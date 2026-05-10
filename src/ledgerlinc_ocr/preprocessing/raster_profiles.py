@@ -123,4 +123,4 @@ def resolve_raster_profile(name: str) -> RasterProfile:
             preset_axis="raster_profile",
             preset_value=name,
             valid_values=tuple(RASTER_PROFILES.keys()),
-        )
+        ) from None

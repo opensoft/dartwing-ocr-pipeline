@@ -66,14 +66,14 @@ def test_reduced_v1_dpi_is_200() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_identity_preset_dpis_are_300() -> None:
-    """CPU-default and stub-default identity presets carry `dpi = 300`
-    (matching the CPU rasterizer's existing module-level `DPI` constant
-    and the stub adapter, which never actually rasterizes). Identity
-    presets exist for the run_summary identifier surface (FR-011), not
-    to mutate the CPU rasterizer (FR-015 / I-018.2)."""
-    assert RASTER_PROFILES["cpu-default"].dpi == 300
-    assert RASTER_PROFILES["stub-default"].dpi == 300
+def test_identity_preset_dpis_track_version_dpi() -> None:
+    """CPU-default and stub-default identity presets MUST carry
+    `dpi = preprocessing.version.DPI` (the single source of truth, per
+    I-018.11). Identity presets exist for the run_summary identifier
+    surface (FR-011), not to mutate the CPU rasterizer
+    (FR-015 / I-018.2)."""
+    assert RASTER_PROFILES["cpu-default"].dpi == DPI
+    assert RASTER_PROFILES["stub-default"].dpi == DPI
 
 
 # ---------------------------------------------------------------------------
@@ -137,9 +137,11 @@ def test_raster_profiles_module_imports_without_paddle(
 ) -> None:
     """A host without Paddle GPU MUST be able to
     `import ledgerlinc_ocr.preprocessing.raster_profiles` cleanly
-    (FR-015 / I-018.2). Poison `paddleocr` and `paddle` in
-    `sys.modules` and verify the registry module reloads successfully
-    without touching either dependency."""
+    (FR-015 / I-018.2). Block `paddleocr` and `paddle` by setting their
+    `sys.modules` entries to `None` — CPython's import machinery treats
+    `None` as a sentinel and raises `ImportError` if the registry module
+    were to attempt either import at module load. The reload below
+    therefore succeeds iff the registry truly avoids both imports."""
     import importlib
 
     # Drop any cached references first

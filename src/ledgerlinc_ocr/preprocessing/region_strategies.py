@@ -24,8 +24,9 @@ action and the per-document fallback accumulator.
 
 Module is **CPU-safe at module-load** — no `import paddleocr` / `import
 paddle` at module level (FR-015 / contracts/module-invariants.md
-I-018.2). The `pypdfium2` import inside `page_targeting` is deferred to
-call-time so a host without Paddle GPU can `import
+I-018.2). `page_targeting` callbacks operate on a duck-typed `pdf_doc`
+passed in by the orchestrator; this module does not import `pypdfium2`
+itself, so a host without Paddle GPU can `import
 ledgerlinc_ocr.preprocessing.region_strategies` cleanly. No Paddle
 dependency anywhere in this module.
 
@@ -133,16 +134,19 @@ class RegionStrategy:
 # ---------------------------------------------------------------------------
 
 
-def _full_page_targeting(pdf_doc: Any, page_index: int) -> Optional[BBox]:
+def _full_page_targeting(_pdf_doc: Any, _page_index: int) -> Optional[BBox]:
     """Identity strategy: process the whole page (no cropping). The
     orchestrator interprets `None` from a `full-page`-class strategy as
-    'process whole page'."""
+    'process whole page'. Args are part of the `RegionStrategy.page_targeting`
+    Callable signature; this implementation ignores them."""
     return None
 
 
-def _no_fallback(blocks: list[Any]) -> bool:
+def _no_fallback(_blocks: list[Any]) -> bool:
     """Identity trigger predicate: full-page / cpu-default / stub-default
-    strategies have no fallback path, so the trigger never fires."""
+    strategies have no fallback path, so the trigger never fires. The
+    `blocks` arg is part of the `RegionStrategy.trigger_fired` Callable
+    signature; this implementation ignores it."""
     return False
 
 
@@ -272,7 +276,7 @@ def resolve_region_strategy(name: str) -> RegionStrategy:
             preset_axis="region_strategy",
             preset_value=name,
             valid_values=tuple(REGION_STRATEGIES.keys()),
-        )
+        ) from None
 
 
 # ---------------------------------------------------------------------------

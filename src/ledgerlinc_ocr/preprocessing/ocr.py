@@ -94,12 +94,14 @@ def take_gpu_inference_per_page() -> Optional[list[tuple[int, float]]]:
     global _GPU_INFERENCE_NS_BY_PAGE
     if not _GPU_INFERENCE_NS_BY_PAGE:
         return None
-    totals_by_page: dict[int, int] = {}
+    totals_ns_by_page: dict[int, int] = {}
     for page_number, ns in _GPU_INFERENCE_NS_BY_PAGE:
-        totals_by_page[int(page_number)] = totals_by_page.get(int(page_number), 0) + ns
+        totals_ns_by_page[int(page_number)] = (
+            totals_ns_by_page.get(int(page_number), 0) + ns
+        )
     drained = [
-        (page_number, round(ns / 1e9, 6))
-        for page_number, ns in sorted(totals_by_page.items())
+        (page_number, round(total_ns / 1e9, 6))
+        for page_number, total_ns in sorted(totals_ns_by_page.items())
     ]
     _GPU_INFERENCE_NS_BY_PAGE = []
     return drained

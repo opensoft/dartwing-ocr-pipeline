@@ -255,6 +255,21 @@ class _PageResult:
     silent_empty: bool
 
 
+class _BlockProxy:
+    """Duck-typed shim with a `text` attribute for the FR-007 trigger.
+
+    `region_strategies.RegionStrategy.trigger_fired` reads `b.text` via
+    `getattr(b, "text", "")`. Block dicts have no `.text` attribute, so
+    they would silently make the trigger fire on every document if passed
+    raw — see `_run_region_first_path` for the wrap site.
+    """
+
+    __slots__ = ("text",)
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+
 def _scaled_page_pixel_dims(
     width_pt: float,
     height_pt: float,
@@ -592,18 +607,11 @@ def _run_region_first_path(
                 _translate_bbox_018(tuple(bbox), (dx, dy))
             )
 
-    # FR-007 trigger evaluation (Clarifications Q3 / R-018.7).
-    # Build duck-typed objects with a `text` attribute from the block
-    # dicts; `trigger_fired` reads only `text` per I-018.5. The proxy
-    # is required: `getattr(some_dict, "text", "")` returns `""` (the
-    # default) because Python dicts have no `.text` attribute, so
-    # passing the dicts directly would silently make the trigger fire
-    # on every document (a real correctness bug).
-    class _BlockProxy:
-        __slots__ = ("text",)
-        def __init__(self, text: str) -> None:
-            self.text = text
-
+    # FR-007 trigger evaluation (Clarifications Q3 / R-018.7). Wrap each
+    # block dict in `_BlockProxy` (module-level) so `trigger_fired`'s
+    # `getattr(b, "text", "")` reads the actual block text rather than
+    # the empty default — see `_BlockProxy` docstring for the bug this
+    # avoids.
     _trigger_blocks = [
         _BlockProxy(b.get("text", "")) for b in result.page_dict.get("blocks", [])
     ]
