@@ -323,7 +323,7 @@ def _translate_record_bboxes(
 
     for record in records:
         bbox = record.get("bbox")
-        if bbox is not None and len(bbox) == 4:
+        if isinstance(bbox, (list, tuple)) and len(bbox) == 4:
             record["bbox"] = list(translate_bbox(tuple(bbox), offset_px))
 
 
