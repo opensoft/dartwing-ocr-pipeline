@@ -101,6 +101,8 @@ def _per_document_invocation(
     *,
     base: argparse.Namespace,
     folder: Path,
+    module_set_id: str | None = None,
+    det_rec_variant_id: str | None = None,
 ) -> tuple[CLIInvocation | None, ExitCode | None, str]:
     """Build a CLIInvocation for one document folder.
 
@@ -158,6 +160,8 @@ def _per_document_invocation(
         timeout=base.timeout,
         ollama_cpu_url=base.ollama_cpu_url,
         ollama_jetson_url=base.ollama_jetson_url,
+        module_set_id=module_set_id,
+        det_rec_variant_id=det_rec_variant_id,
     )
     return invocation, None, ""
 
@@ -421,7 +425,10 @@ def run_warm_corpus(
         folder_raw = entry.raw
         folder_resolved = entry.resolved
         invocation, code, msg = _per_document_invocation(
-            base=args, folder=folder_resolved
+            base=args,
+            folder=folder_resolved,
+            module_set_id=_module_set_threaded_017,
+            det_rec_variant_id=_det_rec_threaded_017,
         )
         if invocation is None:
             failed += 1

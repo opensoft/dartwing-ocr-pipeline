@@ -29,6 +29,10 @@ from __future__ import annotations
 import os
 from typing import Mapping
 
+from ledgerlinc_ocr.preprocessing.identifiers import (
+    CPU_DEFAULT_DET_REC_VARIANT,
+    CPU_DEFAULT_MODULE_SET,
+)
 from ledgerlinc_ocr.preprocessing.warmup_optin import is_gpu_lane
 
 MODULE_SET_ENV_VAR: str = "LEDGERLINC_MODULE_SET"
@@ -125,7 +129,7 @@ def derive_run_summary_identifiers(
     build site (see ``data-model.md`` §"CPU/stub identifier constants").
     """
     if not is_gpu_lane(preprocess_lane):
-        return ("cpu-default", "cpu-default")
+        return (CPU_DEFAULT_MODULE_SET, CPU_DEFAULT_DET_REC_VARIANT)
     module_set_id = threaded_module_set if threaded_module_set is not None else "legacy"
     det_rec_variant_id = threaded_det_rec_variant if threaded_det_rec_variant is not None else "legacy"
     return (module_set_id, det_rec_variant_id)

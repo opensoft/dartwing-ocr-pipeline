@@ -26,6 +26,10 @@ from dataclasses import dataclass, field
 from typing import Any, Iterator, Optional
 
 from ledgerlinc_ocr.pipeline.profiles import Stage
+from ledgerlinc_ocr.preprocessing.identifiers import (
+    CPU_DEFAULT_DET_REC_VARIANT,
+    CPU_DEFAULT_MODULE_SET,
+)
 
 
 # Feature 015 (T021): contextvar that the Runner populates with the
@@ -197,8 +201,8 @@ class RunSummary:
     # Feature 017 (T006): three additive top-level fields. Defaults reflect
     # the CPU lane / no-preset case so existing call sites compile without
     # change; US1/US2 wiring overrides on GPU/stub lanes.
-    module_set_id: str = "cpu-default"
-    det_rec_variant_id: str = "cpu-default"
+    module_set_id: str = CPU_DEFAULT_MODULE_SET
+    det_rec_variant_id: str = CPU_DEFAULT_DET_REC_VARIANT
     ppstructure_modules_invoked: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
