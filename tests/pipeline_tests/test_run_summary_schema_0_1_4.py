@@ -3,11 +3,19 @@ T021 / T026 / FR-008 / FR-009 / FR-010 / R-017.8 / R-017.5 / R-017.7).
 
 Sibling of `test_run_summary_schema_0_1_3.py` (feature 016) and
 `test_run_summary_schema_0_1_2.py` (feature 015). Adds the 0.1.4-specific
-regression checks: codebase-level `SCHEMA_VERSION = "0.1.4"`, three new
-additive top-level fields (`module_set_id`, `det_rec_variant_id`,
-`ppstructure_modules_invoked`) emitted on every run, fixed emission
-order between `preprocess_lane` and the closing brace, default values
-reflecting CPU-lane defaults from `preprocessing/identifiers.py`.
+regression checks: feature 017's three additive top-level fields
+(`module_set_id`, `det_rec_variant_id`, `ppstructure_modules_invoked`)
+emitted on every run, fixed emission order between `preprocess_lane`
+and the feature-018 fields, default values reflecting CPU-lane
+defaults from `preprocessing/identifiers.py`.
+
+Feature 018 (T004 / R-018.14) bumped 0.1.4 → 0.1.5 (additive top-level
+fields `raster_profile_id`, `region_strategy_id`,
+`region_strategy_fallback_count`). The binding contract this file
+enforces is "SCHEMA_VERSION >= 0.1.4" — set when feature 017 landed
+the three feature-017 fields. The producer's current chain head is
+`0.1.5` (feature 018 / T004 / R-018.14); strict-pin `== 0.1.5` lives
+in `test_run_summary_schema_0_1_5.py`.
 
 T014 lands the `module_set_id` slice; T021 extends with
 `det_rec_variant_id`; T026 extends with `ppstructure_modules_invoked`
@@ -41,24 +49,32 @@ from ledgerlinc_ocr.preprocessing.identifiers import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 
-def test_schema_version_is_0_1_4_codebase_level() -> None:
-    """`SCHEMA_VERSION` is exactly `"0.1.4"` for every run of the new
-    binary regardless of preset selection (per R-017.8 +
-    `contracts/run-summary-schema.md` §1)."""
-    assert timing.SCHEMA_VERSION == "0.1.4", (
-        f"feature 017 must bump SCHEMA_VERSION from 0.1.3 to 0.1.4 "
-        f"(got {timing.SCHEMA_VERSION!r})"
+def test_schema_version_is_at_least_0_1_4_codebase_level() -> None:
+    """`SCHEMA_VERSION` is at least `"0.1.4"` (current chain head: 0.1.5
+    after feature 018). The 0.1.4 floor was established by feature 017
+    when it landed the three feature-017 additive top-level fields —
+    every later bump must preserve 0.1.4-shape parsers' ability to read
+    the three feature-017 fields. Strict-pin `== 0.1.5` lives in
+    `test_run_summary_schema_0_1_5.py`."""
+    _version_tuple = tuple(int(p) for p in timing.SCHEMA_VERSION.split("."))
+    assert _version_tuple >= (0, 1, 4), (
+        f"SCHEMA_VERSION must be at least 0.1.4 (feature 017 floor); "
+        f"got {timing.SCHEMA_VERSION!r}."
     )
-    assert SCHEMA_VERSION == "0.1.4"
+    assert tuple(int(p) for p in SCHEMA_VERSION.split(".")) >= (0, 1, 4)
 
 
-def test_run_summary_emits_0_1_4_in_json_line() -> None:
-    """A serialized `run_summary` line carries `schema_version: "0.1.4"`
-    on the wire."""
+def test_run_summary_emits_at_least_0_1_4_in_json_line() -> None:
+    """A serialized `run_summary` line carries
+    `schema_version >= "0.1.4"` on the wire (current chain head: 0.1.5)."""
     summary = _make_minimal_run_summary()
     line = summary.as_json_line()
     parsed = json.loads(line)
-    assert parsed["schema_version"] == "0.1.4"
+    _version_tuple = tuple(int(p) for p in parsed["schema_version"].split("."))
+    assert _version_tuple >= (0, 1, 4), (
+        f"on-wire schema_version must be at least 0.1.4; "
+        f"got {parsed['schema_version']!r}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -180,25 +196,26 @@ def test_stub_default_can_be_set_explicitly(
 
 
 def test_three_new_fields_emit_after_preprocess_lane_in_order() -> None:
-    """The three new top-level fields land in fixed order between
-    `preprocess_lane` and the run_summary's terminating brace, in the
+    """Feature 017's three top-level fields land in fixed order between
+    `preprocess_lane` and the run_summary's later additive fields, in the
     order `module_set_id` → `det_rec_variant_id` →
-    `ppstructure_modules_invoked` (contracts/run-summary-schema.md §3)."""
+    `ppstructure_modules_invoked` (contracts/run-summary-schema.md §3).
+
+    Feature 018 (T006 / R-018.14) added three more additive top-level
+    fields AFTER feature 017's three (`raster_profile_id`,
+    `region_strategy_id`, `region_strategy_fallback_count`); this test
+    no longer asserts on the trailing-edge of the run_summary — that
+    strict-pin lives in `test_run_summary_schema_0_1_5.py` per the
+    chain-head convention. The 3-tuple immediately after
+    `preprocess_lane` is the binding contract this file enforces."""
     summary = _make_minimal_run_summary()
     parsed = json.loads(summary.as_json_line())
     keys = list(parsed.keys())
-    # Locate preprocess_lane index; the three new fields follow it in order
+    # Locate preprocess_lane index; the three feature-017 fields follow it in order
     pl_idx = keys.index("preprocess_lane")
     assert keys[pl_idx + 1] == "module_set_id"
     assert keys[pl_idx + 2] == "det_rec_variant_id"
     assert keys[pl_idx + 3] == "ppstructure_modules_invoked"
-    # Last 4 keys overall (no fields after ppstructure_modules_invoked)
-    assert keys[-4:] == [
-        "preprocess_lane",
-        "module_set_id",
-        "det_rec_variant_id",
-        "ppstructure_modules_invoked",
-    ]
 
 
 # ---------------------------------------------------------------------------
@@ -207,8 +224,10 @@ def test_three_new_fields_emit_after_preprocess_lane_in_order() -> None:
 
 
 def test_schema_version_unchanged_across_preset_selections() -> None:
-    """`schema_version` is `"0.1.4"` for every emission regardless of
-    which preset the run used — fixed at the codebase level (Plan §I-9)."""
+    """`schema_version` is at least `"0.1.4"` for every emission regardless
+    of which preset the run used — fixed at the codebase level (Plan §I-9).
+    The 0.1.4 floor was set by feature 017; current chain head is 0.1.5
+    after feature 018 (R-018.14)."""
     for module_set_id, det_rec_variant_id in [
         ("cpu-default", "cpu-default"),
         ("stub-default", "stub-default"),
@@ -219,7 +238,11 @@ def test_schema_version_unchanged_across_preset_selections() -> None:
         summary.module_set_id = module_set_id
         summary.det_rec_variant_id = det_rec_variant_id
         parsed = json.loads(summary.as_json_line())
-        assert parsed["schema_version"] == "0.1.4"
+        _version_tuple = tuple(int(p) for p in parsed["schema_version"].split("."))
+        assert _version_tuple >= (0, 1, 4), (
+            f"schema_version must be at least 0.1.4 across all preset "
+            f"selections; got {parsed['schema_version']!r}"
+        )
 
 
 # ---------------------------------------------------------------------------

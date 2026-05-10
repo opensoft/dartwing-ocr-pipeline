@@ -58,7 +58,19 @@ _AMENDMENT_017 = {
     "--det-rec-variant",
 }
 
-_EXPECTED = _FROZEN_002 | _AMENDMENT_011 | _AMENDMENT_016 | _AMENDMENT_017
+# Feature 018 amendment (FR-001 / FR-004 / R-018.1 /
+# contracts/cli-contract.md §1): two closed-vocabulary preset axes for the
+# ppstructurev3@gpu lane (DPI + region strategy). Orthogonal to all other
+# flags. US1 (T009) lands `--raster-profile`; US2 (T019) lands
+# `--region-strategy`.
+_AMENDMENT_018 = {
+    "--raster-profile",
+    "--region-strategy",
+}
+
+_EXPECTED = (
+    _FROZEN_002 | _AMENDMENT_011 | _AMENDMENT_016 | _AMENDMENT_017 | _AMENDMENT_018
+)
 
 
 def _collect_run_subparser_flags() -> set[str]:

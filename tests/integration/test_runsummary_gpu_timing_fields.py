@@ -134,3 +134,15 @@ def test_take_gpu_inference_per_page_returns_tuples() -> None:
     assert ocr_mod.take_gpu_inference_per_page() is None
 
 
+def test_take_gpu_inference_per_page_sums_duplicate_pages() -> None:
+    """Feature 018 fallback may infer page 1 twice; emit one sorted page entry."""
+    from ledgerlinc_ocr.preprocessing import ocr as ocr_mod
+
+    ocr_mod.reset_gpu_inference_ns()
+    ocr_mod._record_gpu_inference_ns(1, 500_000_000)
+    ocr_mod._record_gpu_inference_ns(1, 250_000_000)
+    ocr_mod._record_gpu_inference_ns(2, 125_000_000)
+    drained = ocr_mod.take_gpu_inference_per_page()
+    assert drained == [(1, 0.75), (2, 0.125)]
+    assert ocr_mod.take_gpu_inference_per_page() is None
+

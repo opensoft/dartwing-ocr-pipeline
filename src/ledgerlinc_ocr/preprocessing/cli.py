@@ -142,6 +142,50 @@ def _build_parser() -> argparse.ArgumentParser:
             "variable; the CLI flag wins when both are present."
         ),
     )
+    # Feature 018 (T009 / R-018.1 / contracts/cli-contract.md §1): one new
+    # closed-vocabulary preset axis for the ppstructurev3@gpu lane (DPI).
+    # Defaults to None — the CPU/legacy default kicks in. Resolution
+    # happens at argv parse time; UnknownPresetError fails fast with exit
+    # code 16 BEFORE any Paddle import (R-018.12). Orthogonal to
+    # --preprocess-profile, --gpu-warmup, --module-set, --det-rec-variant.
+    # Also accepted via the LEDGERLINC_RASTER_PROFILE env var (CLI flag
+    # wins when both set).
+    p.add_argument(
+        "--raster-profile",
+        type=str,
+        default=None,
+        help=(
+            "Select a named rasterization-DPI preset for the "
+            "ppstructurev3@gpu lane. Valid values: legacy, reduced-v1, "
+            "cpu-default, stub-default. Default on GPU: legacy. The "
+            "cpu-default / stub-default identity values are accepted on "
+            "non-GPU profiles; any GPU value passed on a non-GPU profile "
+            "is ignored with a stderr warning. Can also be set via the "
+            "LEDGERLINC_RASTER_PROFILE environment variable; the CLI "
+            "flag wins when both are present."
+        ),
+    )
+    # Feature 018 (T019 / R-018.4 / contracts/cli-contract.md §1):
+    # region-strategy axis (page-area targeting). Mirrors --raster-profile
+    # above. Same parse-order, same UnknownPresetError → exit 16.
+    p.add_argument(
+        "--region-strategy",
+        type=str,
+        default=None,
+        help=(
+            "Select a named region-targeting strategy for the "
+            "ppstructurev3@gpu lane. Valid values: full-page, "
+            "header-first-v1, cpu-default, stub-default. Default on GPU: "
+            "full-page. The header-first-v1 strategy processes only "
+            "page 1's top-30%% header band; pages 2..N appear in "
+            "preprocess_output.json.pages[] as empty records. On a "
+            "no-evidence trigger (whitespace-stripped concat of "
+            "blocks[].text in the targeted region empty), the strategy "
+            "falls back to full-page on that document and increments "
+            "region_strategy_fallback_count on run_summary. Can also "
+            "be set via LEDGERLINC_REGION_STRATEGY; the CLI flag wins."
+        ),
+    )
     return p
 
 
@@ -258,14 +302,38 @@ def main(argv: list[str] | None = None) -> int:
         resolve_det_rec_variant as _resolve_det_rec_variant,
     )
     from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError as _UnknownPresetError
+    # Feature 018 (T009 / R-018.1 / R-018.12 / contracts/cli-contract.md §3 / §5):
+    # raster_profile axis resolution mirrors feature 017's module_set
+    # axis. Same parse order: env-var → resolve → cross-profile warn.
+    from ledgerlinc_ocr.preprocessing.raster_profile_optin import (
+        resolve_raster_profile_value as _resolve_raster_profile_value,
+        raster_profile_warn_message as _raster_profile_warn,
+    )
+    from ledgerlinc_ocr.preprocessing.raster_profiles import (
+        resolve_raster_profile as _resolve_raster_profile,
+    )
+    # Feature 018 (T019): region_strategy axis resolution.
+    from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
+        resolve_region_strategy_value as _resolve_region_strategy_value,
+        region_strategy_warn_message as _region_strategy_warn,
+    )
+    from ledgerlinc_ocr.preprocessing.region_strategies import (
+        resolve_region_strategy as _resolve_region_strategy,
+    )
 
     _module_set_raw = _resolve_module_set_value(args.module_set)
     _det_rec_raw = _resolve_det_rec_variant_value(args.det_rec_variant)
+    _raster_profile_raw = _resolve_raster_profile_value(args.raster_profile)
+    _region_strategy_raw = _resolve_region_strategy_value(args.region_strategy)
     try:
         if _module_set_raw is not None:
             _resolve_module_set(_module_set_raw)
         if _det_rec_raw is not None:
             _resolve_det_rec_variant(_det_rec_raw)
+        if _raster_profile_raw is not None:
+            _resolve_raster_profile(_raster_profile_raw)
+        if _region_strategy_raw is not None:
+            _resolve_region_strategy(_region_strategy_raw)
     except _UnknownPresetError as exc:
         valid_str = ", ".join(exc.valid_values)
         print(
@@ -274,10 +342,13 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return int(exc.exit_code)
-    # Cross-profile fail-safe (FR-013 / Plan §I-7 step 2 / I-11): on a
-    # non-GPU profile, set values are warn-and-proceeded and dropped.
+    # Cross-profile fail-safe (FR-013 / FR-014 / Plan §I-7 step 2 / I-11):
+    # on a non-GPU profile, set values are warn-and-proceeded and dropped
+    # (covers BOTH feature 017's two axes and feature 018's two axes).
     _module_set_threaded: str | None = _module_set_raw
     _det_rec_threaded: str | None = _det_rec_raw
+    _raster_profile_threaded: str | None = _raster_profile_raw
+    _region_strategy_threaded: str | None = _region_strategy_raw
     if not _is_gpu_lane_017(preprocess_lane):
         active_profile_name_017 = (
             args.preprocess_profile if args.preprocess_profile else "ppstructurev3@cpu"
@@ -288,6 +359,12 @@ def main(argv: list[str] | None = None) -> int:
         if _det_rec_raw is not None:
             print(_det_rec_warn(active_profile_name_017), file=sys.stderr)
             _det_rec_threaded = None
+        if _raster_profile_raw is not None:
+            print(_raster_profile_warn(active_profile_name_017), file=sys.stderr)
+            _raster_profile_threaded = None
+        if _region_strategy_raw is not None:
+            print(_region_strategy_warn(active_profile_name_017), file=sys.stderr)
+            _region_strategy_threaded = None
 
     # Feature 016 (T008 / T010 / T021 / FR-010 / SC-007): resolve the warmup
     # opt-in surface (CLI flag + LEDGERLINC_GPU_WARMUP env var). When set on
@@ -311,6 +388,15 @@ def main(argv: list[str] | None = None) -> int:
         warmup=warmup_threaded,
         module_set_id=_module_set_threaded,
         det_rec_variant_id=_det_rec_threaded,
+        # Feature 018 (T009/T010): threaded raster_profile_id flows from
+        # the resolved CLI flag / env var. None on non-GPU profiles
+        # (warn-and-proceed already nulled it). The pipeline orchestrator
+        # (T010) reads this and passes the resolved DPI to rasterize_pdf.
+        raster_profile_id=_raster_profile_threaded,
+        # Feature 018 (T019/T018): threaded region_strategy_id; same
+        # discipline as raster_profile_id. The pipeline orchestrator
+        # (T018) reads this and branches on the strategy class.
+        region_strategy_id=_region_strategy_threaded,
     )
 
     # Feature 016 (Copilot PR #24 round 2 finding 1 / FR-007 / SC-004):
@@ -470,6 +556,20 @@ def _attach_one_time_gpu_phases(
     )
 
 
+def _drain_per_page_inference(
+    preprocess_lane: str,
+) -> list[tuple[int, float]] | None:
+    """Drain the GPU per-page inference accumulator. Returns the recorded
+    pages on the GPU lane; returns None on CPU/stub but still drains the
+    accumulator so state cannot leak across calls (FR-017 / ISO1)."""
+    from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+    drained = _ocr_mod.take_gpu_inference_per_page()
+    if not preprocess_lane.startswith("gpu"):
+        return None
+    return drained
+
+
 def _emit_single_doc_run_summary(
     *,
     invocation: pipeline.Invocation,
@@ -502,17 +602,7 @@ def _emit_single_doc_run_summary(
     )
 
     # GPU per-page inference array (drained from ocr accumulator).
-    per_page_inference: list[tuple[int, float]] | None = None
-    if preprocess_lane.startswith("gpu"):
-        from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
-
-        per_page_inference = _ocr_mod.take_gpu_inference_per_page()
-    else:
-        # CPU lane: drain to avoid leaking accumulator state across calls
-        # but do NOT attach to the run_summary (FR-017 / ISO1).
-        from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
-
-        _ocr_mod.take_gpu_inference_per_page()
+    per_page_inference = _drain_per_page_inference(preprocess_lane)
 
     folder_str = str(invocation.document_folder)
     doc_timings = DocumentTimings(stages={"preprocess": stage_timing})
@@ -550,11 +640,36 @@ def _emit_single_doc_run_summary(
     from ledgerlinc_ocr.preprocessing.preset_optin import (
         derive_run_summary_identifiers as _derive_identifiers_017,
     )
+    # Feature 018 (T009 / T010 / R-018.1 / FR-008 / FR-011 / SC-004):
+    # same threading discipline for the raster_profile axis.
+    from ledgerlinc_ocr.preprocessing.raster_profile_optin import (
+        derive_run_summary_raster_profile_id as _derive_raster_profile_id_018,
+    )
+    # Feature 018 (T019 / T020 / R-018.4 / R-018.8): same threading
+    # discipline for the region_strategy axis. The fallback count comes
+    # from `invocation.region_strategy_fallback_fired` set by the
+    # orchestrator's region-first path on FR-007 trigger.
+    from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
+        derive_run_summary_region_strategy_id as _derive_region_strategy_id_018,
+    )
 
     _module_set_id_017, _det_rec_variant_id_017 = _derive_identifiers_017(
         threaded_module_set=invocation.module_set_id,
         threaded_det_rec_variant=invocation.det_rec_variant_id,
         preprocess_lane=preprocess_lane,
+    )
+    _raster_profile_id_018 = _derive_raster_profile_id_018(
+        threaded_raster_profile=invocation.raster_profile_id,
+        preprocess_lane=preprocess_lane,
+    )
+    _region_strategy_id_018 = _derive_region_strategy_id_018(
+        threaded_region_strategy=invocation.region_strategy_id,
+        preprocess_lane=preprocess_lane,
+    )
+    # R-018.8 / Clarifications Q4: per-doc fallback flag from the
+    # orchestrator → per-run accumulator (single-doc CLI = 0 or 1).
+    _region_strategy_fallback_count_018 = (
+        1 if invocation.region_strategy_fallback_fired else 0
     )
     summary = RunSummary(
         stack_preset=None,
@@ -570,6 +685,14 @@ def _emit_single_doc_run_summary(
         det_rec_variant_id=_det_rec_variant_id_017,
         # ppstructure_modules_invoked left at default `[]` until T010's
         # GPU audit-callable invocation lands (deferred per FR-024).
+        # Feature 018 (T009 / T019 / T020): all three additive top-level
+        # fields wired. raster_profile_id from US1's CLI; region_strategy_id
+        # from US2's CLI; region_strategy_fallback_count from the
+        # orchestrator's per-doc fallback flag (R-018.8 / Q4 — single-doc
+        # CLI = 0 or 1).
+        raster_profile_id=_raster_profile_id_018,
+        region_strategy_id=_region_strategy_id_018,
+        region_strategy_fallback_count=_region_strategy_fallback_count_018,
     )
     emit_run_summary(summary)
 

@@ -127,6 +127,22 @@ class CLIInvocation:
     # dispatcher to derive the per-stage Invocation's preset values.
     module_set_id: str | None = None
     det_rec_variant_id: str | None = None
+    # Feature 018 (T006a): same shape and threading discipline as
+    # feature 017's `module_set_id` / `det_rec_variant_id` above. `None`
+    # means either the operator did not pass `--raster-profile` /
+    # `--region-strategy` or the warn-and-proceed branch nulled the
+    # value (non-GPU profile per FR-014). US1 (T009/T010) writes the
+    # resolved `RasterProfile.name` here on GPU runs;
+    # US2 (T019/T020) writes the resolved `RegionStrategy.name` and
+    # increments the per-run fallback accumulator that lands on
+    # `RunSummary.region_strategy_fallback_count`.
+    raster_profile_id: str | None = None
+    region_strategy_id: str | None = None
+    # Feature 018: mutable per-document signal surfaced by the live
+    # preprocessing adapter after `preprocessing.pipeline.run()` returns.
+    # Warm-corpus mode reads it to aggregate
+    # `RunSummary.region_strategy_fallback_count`.
+    region_strategy_fallback_fired: bool = False
 
 
 StageCallable = Callable[[CLIInvocation, dict[str, Any]], Any]

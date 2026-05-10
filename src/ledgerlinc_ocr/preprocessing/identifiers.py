@@ -5,6 +5,14 @@ constants for the closed-vocabulary `run_summary` identifiers
 (`module_set_id`, `det_rec_variant_id`) on the CPU lane and stub adapter,
 plus the `AUDIT_SUB_MODULE_VOCABULARY` tuple — the closed set of strings
 allowed in `run_summary.ppstructure_modules_invoked` at landing.
+
+Feature 018 (T005 / R-018.2 / R-018.4 / data-model.md §Identifier-string
+constants): adds module-level constants for the two new closed-vocabulary
+`run_summary` identifiers (`raster_profile_id`, `region_strategy_id`) on
+the CPU lane, stub adapter, and GPU-lane legacy default. Default selection
+flows through `preprocessing/cli.py` and `pipeline/cli.py` per
+contracts/cli-contract.md §1 (CLI sets the GPU-default to LEGACY_*; CPU
+profile uses CPU_DEFAULT_*; stub adapter uses STUB_DEFAULT_*).
 """
 
 from __future__ import annotations
@@ -45,3 +53,17 @@ AUDIT_SUB_MODULE_VOCABULARY: tuple[str, ...] = (
     "ocr_det",
     "ocr_rec",
 )
+
+# Feature 018 (T005 / R-018.2 / R-018.4 / data-model.md §Identifier-string
+# constants): closed-vocabulary `run_summary` identifier defaults for the
+# two new preset axes added by feature 018. CPU lane writes `cpu-default`
+# for both axes; stub adapter writes `stub-default`; GPU lane defaults to
+# `legacy` (raster) / `full-page` (region) when no flag is set. Distinct
+# strings preserve absence-as-regression-signal discrimination (FR-011).
+LEGACY_RASTER_PROFILE: str = "legacy"
+CPU_DEFAULT_RASTER_PROFILE: str = "cpu-default"
+STUB_DEFAULT_RASTER_PROFILE: str = "stub-default"
+
+LEGACY_REGION_STRATEGY: str = "full-page"
+CPU_DEFAULT_REGION_STRATEGY: str = "cpu-default"
+STUB_DEFAULT_REGION_STRATEGY: str = "stub-default"

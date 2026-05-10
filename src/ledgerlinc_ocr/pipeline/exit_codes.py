@@ -53,6 +53,14 @@ class ExitCode(IntEnum):
     # See `preprocessing/presets.py::resolve_module_set` /
     # `resolve_det_rec_variant` (US1/US2) and the catch sites in
     # `preprocessing/cli.py` and `pipeline/cli.py`.
+    #
+    # Feature 018 (T003 / R-018.12 / contracts/cli-contract.md §4): REUSED
+    # for the two new preset axes added by feature 018 — `raster_profile`
+    # and `region_strategy`. No new exit code; `UnknownPresetError`'s
+    # `preset_axis: Literal[…]` widened additively from 2 to 4 values.
+    # See `preprocessing/raster_profiles.py::resolve_raster_profile`
+    # (US1) and `preprocessing/region_strategies.py::resolve_region_strategy`
+    # (US2) — same fail-fast envelope as feature 017's two axes.
     UNKNOWN_PRESET = 16
     PROCESSING_FAILURE = 20
     SCHEMA_VALIDATION_FAILURE = 30
