@@ -104,7 +104,7 @@ def test_t020_warm_corpus_partial_failure_phase_timings_round_trip() -> None:
     )
     line = summary.as_json_line()
     parsed = json.loads(line)
-    assert parsed["schema_version"] == "0.1.3"
+    assert parsed["schema_version"] == "0.1.4"  # feature 017: 0.1.3 → 0.1.4 (additive top-level fields)
     assert parsed["documents_succeeded"] == 1
     assert parsed["documents_failed"] == 1
     assert parsed["per_document"][0]["status"] == "success"

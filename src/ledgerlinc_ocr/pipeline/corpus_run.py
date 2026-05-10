@@ -101,6 +101,8 @@ def _per_document_invocation(
     *,
     base: argparse.Namespace,
     folder: Path,
+    module_set_id: str | None = None,
+    det_rec_variant_id: str | None = None,
 ) -> tuple[CLIInvocation | None, ExitCode | None, str]:
     """Build a CLIInvocation for one document folder.
 
@@ -158,6 +160,8 @@ def _per_document_invocation(
         timeout=base.timeout,
         ollama_cpu_url=base.ollama_cpu_url,
         ollama_jetson_url=base.ollama_jetson_url,
+        module_set_id=module_set_id,
+        det_rec_variant_id=det_rec_variant_id,
     )
     return invocation, None, ""
 
@@ -226,9 +230,70 @@ def run_warm_corpus(
         )
         return int(code)
 
+    # Feature 017 (review CRITICAL fix): resolve the two preset axes
+    # for the warm-corpus path BEFORE registering the warm factory so
+    # `ensure_gpu_ready(module_set=..., det_rec_variant=...)` receives
+    # the resolved values on the first-and-only `classify(...)` call
+    # (R-017.6 / preflight.py:ensure_gpu_ready). Cross-profile
+    # warn-and-proceed (FR-013) is also applied here for the warm
+    # corpus path — previously this branch was missing (review HIGH).
+    # Unknown values were already rejected at `pipeline/cli.py::main`
+    # before reaching this point (R-017.12 fail-fast).
+    from ledgerlinc_ocr.preprocessing.preset_optin import (
+        resolve_module_set_value as _resolve_module_set_value_017,
+        resolve_det_rec_variant_value as _resolve_det_rec_variant_value_017,
+        is_gpu_lane as _is_gpu_lane_017,
+        module_set_warn_message as _module_set_warn_017,
+        det_rec_variant_warn_message as _det_rec_warn_017,
+    )
+
+    _module_set_raw_017 = _resolve_module_set_value_017(getattr(args, "module_set", None))
+    _det_rec_raw_017 = _resolve_det_rec_variant_value_017(getattr(args, "det_rec_variant", None))
+    _module_set_threaded_017: str | None = _module_set_raw_017
+    _det_rec_threaded_017: str | None = _det_rec_raw_017
+    _warm_pp_profile_017 = plan.profiles.get("preprocess")
+    _warm_lane_017 = (
+        "gpu0"
+        if _warm_pp_profile_017 is not None
+        and _warm_pp_profile_017.implementation == "ppstructurev3"
+        and _warm_pp_profile_017.lane == "gpu"
+        else "cpu"
+    )
+    _preprocess_in_slice_for_warn_017 = "preprocess" in plan.slice_.stages_in_slice
+    if _preprocess_in_slice_for_warn_017 and not _is_gpu_lane_017(_warm_lane_017):
+        _profile_for_warn_017 = (
+            _warm_pp_profile_017.raw_value
+            if _warm_pp_profile_017 is not None
+            else (getattr(args, "preprocess_profile", None) or "ppstructurev3@cpu")
+        )
+        if _module_set_raw_017 is not None:
+            sys.stderr.write(_module_set_warn_017(_profile_for_warn_017) + "\n")
+            _module_set_threaded_017 = None
+        if _det_rec_raw_017 is not None:
+            sys.stderr.write(_det_rec_warn_017(_profile_for_warn_017) + "\n")
+            _det_rec_threaded_017 = None
+
+    # Resolve the threaded values to preset objects for the warm-init factory.
+    _module_set_obj_017: object | None = None
+    _det_rec_variant_obj_017: object | None = None
+    if _is_gpu_lane_017(_warm_lane_017):
+        from ledgerlinc_ocr.preprocessing.presets import (
+            resolve_module_set as _resolve_module_set_017,
+            resolve_det_rec_variant as _resolve_det_rec_variant_017,
+        )
+        if _module_set_threaded_017 is not None:
+            _module_set_obj_017 = _resolve_module_set_017(_module_set_threaded_017)
+        if _det_rec_threaded_017 is not None:
+            _det_rec_variant_obj_017 = _resolve_det_rec_variant_017(_det_rec_threaded_017)
+
     runner = runner if runner is not None else Runner()
     registry = WarmProfileRegistry.empty()
-    _maybe_register_warm_preprocess(registry, plan)
+    _maybe_register_warm_preprocess(
+        registry,
+        plan,
+        module_set=_module_set_obj_017,
+        det_rec_variant=_det_rec_variant_obj_017,
+    )
     # Feature 014 (Contracts §2 Pre-write GPU gate): warm-corpus GPU
     # preflight failures emit the FR-009 stderr form and exit with the
     # FR-001-state-mapped exit code (10–14) before any artifact write,
@@ -271,6 +336,8 @@ def run_warm_corpus(
                 ),
                 emit_failure=_emit_failure,
                 gpu_prerequisite_failure=True,
+                module_set_threaded=_module_set_threaded_017,
+                det_rec_variant_threaded=_det_rec_threaded_017,
             )
             return _exit_code_for_state(_exc.state)
         raise
@@ -281,6 +348,8 @@ def run_warm_corpus(
             registry=registry,
             message=warm_init_failure,
             emit_failure=_emit_failure,
+            module_set_threaded=_module_set_threaded_017,
+            det_rec_variant_threaded=_det_rec_threaded_017,
         )
 
     # Feature 016 (T007 / R-016.10 / FR-001 / FR-007 / SC-011): the warm
@@ -356,7 +425,10 @@ def run_warm_corpus(
         folder_raw = entry.raw
         folder_resolved = entry.resolved
         invocation, code, msg = _per_document_invocation(
-            base=args, folder=folder_resolved
+            base=args,
+            folder=folder_resolved,
+            module_set_id=_module_set_threaded_017,
+            det_rec_variant_id=_det_rec_threaded_017,
         )
         if invocation is None:
             failed += 1
@@ -605,6 +677,22 @@ def run_warm_corpus(
                 )
                 break
 
+    from ledgerlinc_ocr.preprocessing.preset_optin import (
+        derive_run_summary_identifiers as _derive_identifiers_017,
+    )
+    _module_set_id_017, _det_rec_variant_id_017 = _derive_identifiers_017(
+        threaded_module_set=_module_set_threaded_017,
+        threaded_det_rec_variant=_det_rec_threaded_017,
+        preprocess_lane=_resolved_preprocess_lane,
+    )
+    if _pp_profile is not None and _pp_profile.kind == "stub":
+        from ledgerlinc_ocr.preprocessing.identifiers import (
+            STUB_DEFAULT_DET_REC_VARIANT,
+            STUB_DEFAULT_MODULE_SET,
+        )
+
+        _module_set_id_017 = STUB_DEFAULT_MODULE_SET
+        _det_rec_variant_id_017 = STUB_DEFAULT_DET_REC_VARIANT
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -622,6 +710,10 @@ def run_warm_corpus(
         profile_initialization_seconds=registry.initialization_seconds(),
         per_document=per_document_records,
         preprocess_lane=_resolved_preprocess_lane,
+        module_set_id=_module_set_id_017,
+        det_rec_variant_id=_det_rec_variant_id_017,
+        # ppstructure_modules_invoked left at default `[]` until T010's
+        # GPU audit-callable invocation lands (deferred per FR-024).
     )
     emit_run_summary(summary)
 
@@ -636,6 +728,8 @@ def _emit_warm_init_failure_summary(
     message: str,
     emit_failure: Callable[[StructuredFailureRecord], None],
     gpu_prerequisite_failure: bool = False,
+    module_set_threaded: str | None = None,
+    det_rec_variant_threaded: str | None = None,
 ) -> int:
     """Emit the partial run_summary on warm-init failure.
 
@@ -672,6 +766,22 @@ def _emit_warm_init_failure_summary(
         attach_one_time_gpu_phases(_scratch, _PREFLIGHT_READOUT)
         _warm_init_failure_phase_timings = _scratch.get("phase_timings", {})
 
+    from ledgerlinc_ocr.preprocessing.preset_optin import (
+        derive_run_summary_identifiers as _derive_identifiers_017,
+    )
+    _failure_module_set_id, _failure_det_rec_variant_id = _derive_identifiers_017(
+        threaded_module_set=module_set_threaded,
+        threaded_det_rec_variant=det_rec_variant_threaded,
+        preprocess_lane=_warm_lane,
+    )
+    if _pp_profile is not None and _pp_profile.kind == "stub":
+        from ledgerlinc_ocr.preprocessing.identifiers import (
+            STUB_DEFAULT_DET_REC_VARIANT,
+            STUB_DEFAULT_MODULE_SET,
+        )
+
+        _failure_module_set_id = STUB_DEFAULT_MODULE_SET
+        _failure_det_rec_variant_id = STUB_DEFAULT_DET_REC_VARIANT
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -684,6 +794,8 @@ def _emit_warm_init_failure_summary(
         },
         on_failure=plan.failure_policy.mode,
         preprocess_lane=_warm_lane,
+        module_set_id=_failure_module_set_id,
+        det_rec_variant_id=_failure_det_rec_variant_id,
         documents_total=len(documents),
         documents_succeeded=0,
         documents_failed=1,
@@ -709,7 +821,11 @@ def _emit_warm_init_failure_summary(
 
 
 def _maybe_register_warm_preprocess(
-    registry: WarmProfileRegistry, plan: ResolvedRunPlan
+    registry: WarmProfileRegistry,
+    plan: ResolvedRunPlan,
+    *,
+    module_set: object | None = None,
+    det_rec_variant: object | None = None,
 ) -> None:
     """Register a warm-instance factory for the live preprocessing profile.
 
@@ -763,7 +879,14 @@ def _maybe_register_warm_preprocess(
                     ensure_gpu_ready as _ensure_gpu_ready,
                 )
 
-                _PREFLIGHT_READOUT = _ensure_gpu_ready()
+                # Feature 017 (review CRITICAL fix): thread the resolved
+                # presets into ensure_gpu_ready so the GPU engine
+                # constructor receives the use_kwargs splat (R-017.6) and
+                # det/rec model-name overrides (R-017.4 Appendix A).
+                _PREFLIGHT_READOUT = _ensure_gpu_ready(
+                    module_set=module_set,
+                    det_rec_variant=det_rec_variant,
+                )
             _ocr_mod._get_engine(device=device_str)  # type: ignore[attr-defined]
 
         def close(self) -> None:

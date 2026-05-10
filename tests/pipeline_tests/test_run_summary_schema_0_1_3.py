@@ -27,23 +27,36 @@ from ledgerlinc_ocr.pipeline.timing import (
 
 # ---------------------------------------------------------------------------
 # I-9 / FR-008 / R-016.9: codebase-level SCHEMA_VERSION bump 0.1.2 → 0.1.3
+# Feature 017 bumped 0.1.3 → 0.1.4 (additive top-level fields). The
+# binding contract this file enforces is "SCHEMA_VERSION >= 0.1.3" — set
+# in feature 016 and preserved by every later additive bump. The
+# producer's current chain head is `0.1.4` (feature 017 / T004 /
+# R-017.8); strict-pin `== 0.1.4` lives in
+# `test_run_summary_schema_0_1_4.py` (US1 T014). Same pattern as
+# `test_run_summary_schema_0_1_2.py` after feature 016's bump.
 # ---------------------------------------------------------------------------
 
 
-def test_schema_version_is_0_1_3_codebase_level() -> None:
-    """`SCHEMA_VERSION` is exactly `"0.1.3"` for every run of the new
-    binary regardless of warmup state (per /speckit.clarify Q2 +
-    `contracts/run-summary-schema.md` §1)."""
-    assert timing.SCHEMA_VERSION == "0.1.3", (
-        f"feature 016 must bump SCHEMA_VERSION from 0.1.2 to 0.1.3 "
-        f"(got {timing.SCHEMA_VERSION!r})"
+def test_schema_version_is_at_least_0_1_3_codebase_level() -> None:
+    """`SCHEMA_VERSION` is at least `"0.1.3"` (current chain head: 0.1.4
+    after feature 017). Enforces the additive-only invariant established
+    by feature 016 — every later bump must preserve 0.1.3-shape parsers'
+    ability to read newer output."""
+    # Tuple comparison instead of lexical string comparison — string
+    # `>=` works for "0.1.4" but breaks at "0.1.10" lexically (review
+    # MEDIUM finding). Tuple of ints is monotonic.
+    _version_tuple = tuple(int(p) for p in timing.SCHEMA_VERSION.split("."))
+    assert _version_tuple >= (0, 1, 3), (
+        f"feature 016 set SCHEMA_VERSION to 0.1.3 or higher; "
+        f"got {timing.SCHEMA_VERSION!r} which is below the floor"
     )
-    assert SCHEMA_VERSION == "0.1.3"
+    _version_tuple_2 = tuple(int(p) for p in SCHEMA_VERSION.split("."))
+    assert _version_tuple_2 >= (0, 1, 3)
 
 
-def test_run_summary_emits_0_1_3_in_json_line() -> None:
-    """A serialized `run_summary` line carries `schema_version: "0.1.3"`
-    on the wire."""
+def test_run_summary_emits_at_least_0_1_3_in_json_line() -> None:
+    """A serialized `run_summary` line carries `schema_version: ">= 0.1.3"`
+    on the wire (current chain head: 0.1.4 after feature 017)."""
     summary = RunSummary(
         stack_preset=None,
         resolved_profiles={"preprocess": "ppstructurev3@cpu"},
@@ -55,7 +68,8 @@ def test_run_summary_emits_0_1_3_in_json_line() -> None:
     )
     line = summary.as_json_line()
     parsed = json.loads(line)
-    assert parsed["schema_version"] == "0.1.3"
+    _wire_tuple = tuple(int(p) for p in parsed["schema_version"].split("."))
+    assert _wire_tuple >= (0, 1, 3)
 
 
 # ---------------------------------------------------------------------------

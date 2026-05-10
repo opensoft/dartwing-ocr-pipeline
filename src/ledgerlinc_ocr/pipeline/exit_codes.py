@@ -45,6 +45,15 @@ class ExitCode(IntEnum):
     # as `error: warmup failed: <cause-class>: <message>` on stderr with
     # no run_summary line emitted (SC-011).
     WARMUP_FAILED = 15
+    # Feature 017 (T003 / R-017.9 / R-017.12 / contracts/cli-contract.md §4):
+    # an unknown `module_set_id` or `det_rec_variant_id` value was selected
+    # (typo / unknown preset). Caught at the CLI parse boundary BEFORE any
+    # Paddle import; surfaced as `error: unknown <preset_axis>: <value!r> —
+    # valid values are: <…>` on stderr with no run_summary line emitted.
+    # See `preprocessing/presets.py::resolve_module_set` /
+    # `resolve_det_rec_variant` (US1/US2) and the catch sites in
+    # `preprocessing/cli.py` and `pipeline/cli.py`.
+    UNKNOWN_PRESET = 16
     PROCESSING_FAILURE = 20
     SCHEMA_VALIDATION_FAILURE = 30
 

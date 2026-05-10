@@ -303,7 +303,12 @@ def _recommendation_for(state: PreflightState, evidence: PreflightEvidence) -> s
     return f"Unknown state {state}. See {doc_ref}."
 
 
-def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
+def classify(
+    *,
+    attempt_ppstructurev3_init: bool = True,
+    module_set: "ModuleSetPreset | None" = None,
+    det_rec_variant: "DetRecVariant | None" = None,
+) -> PreflightReadout:
     """Run the FR-001 classifier per Research R-014.7 step ordering.
 
     Parameters
@@ -319,7 +324,30 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
         parameter per `docs/stage1-vendor-identity/paddle-gpu-preflight.md`
         (NOT `PADDLE_DOWNLOAD=0` — that knob is not part of official
         PaddleX/PaddleOCR documentation).
+
+    module_set:
+        Feature 017 (T008 / R-017.6): when non-`None`, the preset's
+        `use_kwargs` Mapping is splatted into the `PPStructureV3(...)`
+        constructor in step 6 (replacing the literal legacy `use_*=False`
+        kwargs). When `None` (default — backward-compat), the literal
+        legacy GPU defaults are used so callers without preset awareness
+        (e.g., the `preflight_cli.py` smoke test) preserve existing
+        behavior.
+
+    det_rec_variant:
+        Feature 017 (T019 / R-017.6 / R-017.4): when non-`None` and
+        the variant carries non-`None` model names, those names are
+        passed to `PPStructureV3(text_detection_model_name=...,
+        text_recognition_model_name=...)` in step 6. When `None`
+        (default), or when the variant carries `None` model names
+        (e.g., `legacy`), PaddleOCR's default model selection for
+        `lang="en"` is used unchanged.
     """
+    # Lazy reference to avoid circular type import at module-load
+    from ledgerlinc_ocr.preprocessing.presets import (  # noqa: F401
+        DetRecVariant,
+        ModuleSetPreset,
+    )
     interpreter_path, interpreter_version, venv_path = _interpreter_evidence()
     runtime_device_exposure = _detect_runtime_device_exposure()
 
@@ -444,13 +472,36 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
         # persist it into the runtime singleton instead of `del`-ing it.
         # The runtime path (`ocr._get_engine`) will return this same
         # instance on its first call rather than constructing a second.
+        #
+        # Feature 017 (T008 / R-017.6 / contracts/module-invariants.md I-7
+        # step 3): the legacy literal `use_*=False` kwargs are now sourced
+        # from a `ModuleSetPreset.use_kwargs` Mapping when one is provided.
+        # When `module_set is None`, the literal legacy defaults are used
+        # so backward-compat callers (preflight_cli, internal tests) keep
+        # working unchanged. Same pattern for `det_rec_variant` (T019):
+        # `text_detection_model_name` / `text_recognition_model_name`
+        # kwargs are added only when the variant carries non-None values
+        # (R-017.4 Appendix A).
+        if module_set is not None:
+            _use_kwargs: dict[str, bool] = dict(module_set.use_kwargs)
+        else:
+            _use_kwargs = {
+                "use_doc_orientation_classify": False,
+                "use_doc_unwarping": False,
+                "use_textline_orientation": False,
+                "use_formula_recognition": False,
+                "use_seal_recognition": False,
+                "use_chart_recognition": False,
+            }
+        _det_rec_kwargs: dict[str, str] = {}
+        if det_rec_variant is not None:
+            if det_rec_variant.det_model_name is not None:
+                _det_rec_kwargs["text_detection_model_name"] = det_rec_variant.det_model_name
+            if det_rec_variant.rec_model_name is not None:
+                _det_rec_kwargs["text_recognition_model_name"] = det_rec_variant.rec_model_name
         engine = PPStructureV3(
-            use_doc_orientation_classify=False,
-            use_doc_unwarping=False,
-            use_textline_orientation=False,
-            use_formula_recognition=False,
-            use_seal_recognition=False,
-            use_chart_recognition=False,
+            **_use_kwargs,
+            **_det_rec_kwargs,
             cpu_threads=1,
             enable_mkldnn=False,
             device="gpu:0",
@@ -463,6 +514,8 @@ def classify(*, attempt_ppstructurev3_init: bool = True) -> PreflightReadout:
         evidence = PreflightEvidence(
             **{**base_evidence, "ppstructurev3_init_seconds": elapsed}
         )
+        global _LAST_PRESET_KEY
+        _LAST_PRESET_KEY = _normalize_preset_key(module_set, det_rec_variant)
         return _make_readout(PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED, evidence)
     except Exception as exc:  # noqa: BLE001
         evidence = PreflightEvidence(
@@ -494,6 +547,23 @@ def _truncate(s: str, n: int) -> str:
 # `preprocessing/pipeline.py` (T021 single-doc gate) and
 # `pipeline/corpus_run.py` (T023 warm-corpus gate; T029 timing read).
 _LAST_READOUT: Optional[PreflightReadout] = None
+_LAST_PRESET_KEY: Optional[tuple[str, str]] = None
+
+
+def _normalize_preset_key(
+    module_set: "ModuleSetPreset | None",
+    det_rec_variant: "DetRecVariant | None",
+) -> tuple[str, str]:
+    """Map a (module_set, det_rec_variant) pair to its cache-key form.
+
+    ``None`` maps to ``"legacy"`` for both axes — both produce the same
+    engine (literal legacy ``use_kwargs``, PaddleOCR-default det/rec
+    model names), so they must compare equal in the mismatch guard.
+    """
+    return (
+        module_set.name if module_set is not None else "legacy",
+        det_rec_variant.name if det_rec_variant is not None else "legacy",
+    )
 
 
 def get_last_readout() -> Optional[PreflightReadout]:
@@ -505,11 +575,16 @@ def get_last_readout() -> Optional[PreflightReadout]:
 def reset_cache() -> None:
     """Test-only: clear the process-level cache. Production code MUST
     NOT call this."""
-    global _LAST_READOUT
+    global _LAST_READOUT, _LAST_PRESET_KEY
     _LAST_READOUT = None
+    _LAST_PRESET_KEY = None
 
 
-def ensure_gpu_ready() -> PreflightReadout:
+def ensure_gpu_ready(
+    *,
+    module_set: "ModuleSetPreset | None" = None,
+    det_rec_variant: "DetRecVariant | None" = None,
+) -> PreflightReadout:
     """Inline GPU gate (T021 + T023). Returns the cached readout when a
     prior call succeeded; otherwise calls classify() and either caches
     the success result or raises GpuPrerequisiteError on a non-success
@@ -518,11 +593,45 @@ def ensure_gpu_ready() -> PreflightReadout:
     Raises GpuPrerequisiteError on any FR-001 fail state — the caller
     (preprocessing/cli.py T022 or pipeline/corpus_run.py T024) catches
     it and renders the FR-009 stderr message.
+
+    Feature 017 (T010 followon / FR-002 / FR-005 / FR-006): preset kwargs
+    are threaded into ``classify()`` on the first call so the GPU engine
+    constructor receives the resolved ``use_kwargs`` splat (R-017.6) and
+    the det/rec model-name overrides (R-017.4 Appendix A). The engine is
+    constructed exactly once per process (feature 015 FR-001), so the
+    presets used on that first call are pinned for the lifetime of the
+    process. A subsequent call asking for different presets is a caller
+    bug — raise ``RuntimeError`` rather than silently returning a
+    readout that does not reflect the requested presets.
     """
-    global _LAST_READOUT
-    if _LAST_READOUT is not None and _LAST_READOUT.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
+    global _LAST_READOUT, _LAST_PRESET_KEY
+    requested_key = _normalize_preset_key(module_set, det_rec_variant)
+    # The cache is only valid when a prior call actually constructed and
+    # adopted the engine. ``classify(attempt_ppstructurev3_init=False)``
+    # (used by ``preflight_cli`` for read-only GPU probes) sets
+    # ``_LAST_READOUT.state`` to SUCCEEDED without building an engine —
+    # short-circuiting on that readout here would skip engine
+    # construction entirely. ``_LAST_PRESET_KEY`` is set only at the
+    # engine-construction success site, so it doubles as the "engine
+    # actually adopted" signal.
+    if (
+        _LAST_READOUT is not None
+        and _LAST_READOUT.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED
+        and _LAST_PRESET_KEY is not None
+    ):
+        if _LAST_PRESET_KEY != requested_key:
+            raise RuntimeError(
+                f"ensure_gpu_ready called with presets {requested_key!r} "
+                f"after the GPU engine was already initialized with "
+                f"{_LAST_PRESET_KEY!r}. Preset selection is process-wide "
+                f"and resolved once at CLI parse time."
+            )
         return _LAST_READOUT
-    readout = classify(attempt_ppstructurev3_init=True)
+    readout = classify(
+        attempt_ppstructurev3_init=True,
+        module_set=module_set,
+        det_rec_variant=det_rec_variant,
+    )
     if readout.state is not PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
         raise GpuPrerequisiteError(readout.state, readout.recommendation)
     return readout

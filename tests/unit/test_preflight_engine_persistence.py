@@ -198,3 +198,121 @@ def test_ff2_second_ensure_gpu_ready_short_circuits_no_reconstruction(monkeypatc
     )
     # Same readout instance should be returned (cache short-circuit).
     assert readout1 is readout2, "FF2: cached readout must be returned by reference"
+
+
+def test_ensure_gpu_ready_rejects_mismatched_presets_after_first_call(monkeypatch) -> None:
+    """Feature 017: after the engine is built with one preset, a second
+    call asking for a different preset is a caller bug — the engine is
+    pinned for the lifetime of the process. Raise ``RuntimeError`` rather
+    than silently returning a readout that does not reflect the request."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    class _PPStructure:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
+
+    presets = pytest.importorskip("ledgerlinc_ocr.preprocessing.presets")
+    legacy = presets.MODULE_SET_PRESETS["legacy"]
+    reduced = presets.MODULE_SET_PRESETS["reduced-v1"]
+
+    readout1 = ensure_gpu_ready(module_set=legacy)
+    assert readout1.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED
+
+    with pytest.raises(RuntimeError, match="reduced-v1.*after.*legacy"):
+        ensure_gpu_ready(module_set=reduced)
+
+
+def test_ensure_gpu_ready_accepts_matching_presets_on_subsequent_call(monkeypatch) -> None:
+    """The mismatch guard must NOT trigger when the same presets are
+    passed again — that's the normal warm-corpus path, where every
+    document repeats the same preset selection."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    class _PPStructure:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
+
+    presets = pytest.importorskip("ledgerlinc_ocr.preprocessing.presets")
+    legacy = presets.MODULE_SET_PRESETS["legacy"]
+
+    readout1 = ensure_gpu_ready(module_set=legacy)
+    readout2 = ensure_gpu_ready(module_set=legacy)
+    assert readout1 is readout2
+
+
+def test_no_init_classify_does_not_short_circuit_subsequent_ensure_gpu_ready(monkeypatch) -> None:
+    """``classify(attempt_ppstructurev3_init=False)`` (used by the
+    diagnostic preflight CLI) caches ``_LAST_READOUT`` in SUCCEEDED state
+    without actually constructing PPStructureV3. A subsequent
+    ``ensure_gpu_ready()`` call must NOT short-circuit on that cache —
+    it must fall through and build the engine. Verified by counting
+    PPStructureV3 constructor calls."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    construction_calls = {"count": 0}
+
+    class _CountingPPStructure:
+        def __init__(self, *args, **kwargs):
+            construction_calls["count"] += 1
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_CountingPPStructure))
+
+    classify(attempt_ppstructurev3_init=False)
+    assert construction_calls["count"] == 0, "no-init classify must not construct"
+
+    readout = ensure_gpu_ready()
+    assert readout.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED
+    assert construction_calls["count"] == 1, (
+        "ensure_gpu_ready must construct after a prior no-init classify; "
+        f"got {construction_calls['count']} constructor calls"
+    )
+
+
+def test_classify_seeds_preset_key_so_subsequent_ensure_gpu_ready_does_not_raise(monkeypatch) -> None:
+    """A direct ``classify(attempt_ppstructurev3_init=True)`` call sets
+    ``_LAST_READOUT`` to SUCCEEDED via ``_make_readout``. A later
+    ``ensure_gpu_ready()`` must not raise a false-positive mismatch
+    just because the cache key was never seeded — classify() owns the
+    seeding so both entry points converge on the same cache state."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    class _PPStructure:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
+
+    classify(attempt_ppstructurev3_init=True)
+    readout = ensure_gpu_ready()
+    assert readout.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED
+
+
+def test_ensure_gpu_ready_treats_none_and_legacy_preset_as_equivalent(monkeypatch) -> None:
+    """``None`` and the ``legacy`` preset produce the same engine
+    (literal legacy ``use_kwargs``, PaddleOCR-default det/rec). The
+    mismatch guard must normalize ``None`` so backward-compat callers
+    that pass no presets do not collide with callers that pass
+    ``MODULE_SET_PRESETS["legacy"]`` explicitly."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    class _PPStructure:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
+
+    presets = pytest.importorskip("ledgerlinc_ocr.preprocessing.presets")
+    legacy = presets.MODULE_SET_PRESETS["legacy"]
+
+    readout1 = ensure_gpu_ready()
+    readout2 = ensure_gpu_ready(module_set=legacy)
+    assert readout1 is readout2

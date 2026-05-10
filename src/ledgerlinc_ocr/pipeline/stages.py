@@ -418,6 +418,8 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
                     source_file=_SOURCE_PDF,
                     pipeline_version=invocation.pipeline_version,
                     preprocess_lane=lane,
+                    module_set_id=invocation.module_set_id,
+                    det_rec_variant_id=invocation.det_rec_variant_id,
                 ),
                 stage_timing=current_stage_timing(),
             )

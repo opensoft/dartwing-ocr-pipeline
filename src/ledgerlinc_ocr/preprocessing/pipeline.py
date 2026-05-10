@@ -70,6 +70,16 @@ class Invocation:
     # `_run_inner` does NOT read this field; tests assert on it to verify
     # the CLI's activation logic produces the expected boolean.
     warmup: bool = False
+    # Feature 017 (T009 / T020 / R-017.5 / R-017.8): resolved preset
+    # identifier strings threaded from CLI parse → preflight engine
+    # construction → run_summary identifier emission. Default `None`
+    # means "use the active profile's identity-preset default" (see
+    # `preprocessing/identifiers.py::CPU_DEFAULT_*`). On a non-GPU
+    # profile, even when the operator set the flag, these stay `None`
+    # because the warn-and-proceed branch (FR-013) drops the resolved
+    # values — the CPU/stub identifier defaults flow through unchanged.
+    module_set_id: str | None = None
+    det_rec_variant_id: str | None = None
 
 
 def _derive_document_id(folder_name: str) -> str:
@@ -105,6 +115,8 @@ def run_warmup_if_active(
     *,
     preprocess_lane: str,
     warmup_optin: bool,
+    module_set_id: str | None = None,
+    det_rec_variant_id: str | None = None,
 ) -> None:
     """Hoisted GPU warmup helper. Callers MUST invoke this BEFORE wrapping
     ``pipeline.run`` in ``measure_total`` so warmup duration does not
@@ -119,11 +131,13 @@ def run_warmup_if_active(
     callers translate that to exit code 15 + the canonical
     ``error: warmup failed: <cause-class>: <message>`` stderr line.
 
-    This helper is the single source of truth for GPU warmup ordering;
-    the warm-corpus path in ``pipeline/corpus_run.py`` does the same
-    work inline (engine is adopted by ``_warm_initialize_live_preprocess``
-    rather than ``ensure_gpu_ready``, so it cannot share this helper
-    verbatim — see FR-001 / R-016.10).
+    This helper is the single source of truth for the single-doc GPU
+    warmup ordering. The warm-corpus path in ``pipeline/corpus_run.py``
+    drives the same ``ensure_gpu_ready(...)`` call but from inside the
+    warm factory's ``initialize()`` (so the cached readout is shared
+    with the per-document loop) and bracketed by ``WarmProfileRegistry``
+    initialization timing rather than this helper's call ordering, so
+    it cannot share this helper verbatim — see FR-001 / R-016.10.
     """
     if not warmup_optin:
         return
@@ -136,7 +150,28 @@ def run_warmup_if_active(
         ocr as _ocr_mod,
         warmup as _warmup_mod,
     )
-    _ensure_gpu_ready()
+    # Feature 017 (review CRITICAL fix): when this helper is the FIRST
+    # ensure_gpu_ready caller in the process (warmup path runs BEFORE
+    # `_run_inner` per FR-007 / SC-004), it must thread the resolved
+    # presets so the cached readout reflects the operator's choice.
+    # Otherwise `_run_inner` would see the cached preset-less readout
+    # and the GPU engine would have been constructed with legacy
+    # defaults regardless of `--module-set=reduced-v1`.
+    _module_set_obj = None
+    _det_rec_variant_obj = None
+    if module_set_id is not None or det_rec_variant_id is not None:
+        from ledgerlinc_ocr.preprocessing.presets import (
+            resolve_module_set as _resolve_module_set,
+            resolve_det_rec_variant as _resolve_det_rec_variant,
+        )
+        if module_set_id is not None:
+            _module_set_obj = _resolve_module_set(module_set_id)
+        if det_rec_variant_id is not None:
+            _det_rec_variant_obj = _resolve_det_rec_variant(det_rec_variant_id)
+    _ensure_gpu_ready(
+        module_set=_module_set_obj,
+        det_rec_variant=_det_rec_variant_obj,
+    )
     _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
 
 
@@ -298,11 +333,32 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
     # gate BEFORE any artifact write or input parsing. ensure_gpu_ready
     # is process-cached per Q2.
+    #
+    # Feature 017 (review CRITICAL fix): thread Invocation's resolved
+    # preset values into ensure_gpu_ready so the GPU engine constructor
+    # receives the use_kwargs splat (R-017.6) and det/rec model-name
+    # overrides (R-017.4 Appendix A). Lazy resolution from string ID →
+    # preset object happens here so the CLI doesn't need to import the
+    # presets module before fail-fast validation.
     if invocation.preprocess_lane != "cpu":
         from ledgerlinc_ocr.preprocessing.preflight import (
             ensure_gpu_ready as _ensure_gpu_ready,
         )
-        _ensure_gpu_ready()
+        _module_set_obj = None
+        _det_rec_variant_obj = None
+        if invocation.module_set_id is not None or invocation.det_rec_variant_id is not None:
+            from ledgerlinc_ocr.preprocessing.presets import (
+                resolve_module_set as _resolve_module_set,
+                resolve_det_rec_variant as _resolve_det_rec_variant,
+            )
+            if invocation.module_set_id is not None:
+                _module_set_obj = _resolve_module_set(invocation.module_set_id)
+            if invocation.det_rec_variant_id is not None:
+                _det_rec_variant_obj = _resolve_det_rec_variant(invocation.det_rec_variant_id)
+        _ensure_gpu_ready(
+            module_set=_module_set_obj,
+            det_rec_variant=_det_rec_variant_obj,
+        )
 
     # Feature 016 (Copilot PR #24 round 2 finding 1): warmup is no longer
     # invoked here — running it inside `_run_inner` placed it within the

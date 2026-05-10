@@ -122,6 +122,40 @@ def _build_parser() -> argparse.ArgumentParser:
             "the CLI flag wins when both are present."
         ),
     )
+    # Feature 017 (T009 / T020 / R-017.1 / contracts/cli-contract.md §1):
+    # two closed-vocabulary preset axes for the ppstructurev3@gpu lane.
+    # Mirrors the preprocess CLI's flags. Resolution happens at argv parse
+    # time; UnknownPresetError fails fast with exit code 16 BEFORE any
+    # Paddle import. Also accepted via LEDGERLINC_MODULE_SET= /
+    # LEDGERLINC_DET_REC_VARIANT= env vars.
+    run.add_argument(
+        "--module-set",
+        type=str,
+        default=None,
+        help=(
+            "Select a named PPStructureV3 module-set preset for "
+            "ppstructurev3@gpu. Valid values: legacy, reduced-v1, "
+            "cpu-default, stub-default. Defaults to legacy on GPU. "
+            "The cpu-default / stub-default identity values are "
+            "accepted on non-GPU profiles; any GPU value passed on a "
+            "non-GPU profile is ignored with a stderr warning. Can "
+            "also be set via LEDGERLINC_MODULE_SET; the CLI flag wins."
+        ),
+    )
+    run.add_argument(
+        "--det-rec-variant",
+        type=str,
+        default=None,
+        help=(
+            "Select a named detection/recognition model variant for "
+            "ppstructurev3@gpu. Valid values: legacy, ppocrv5-mobile, "
+            "ppocrv4-mobile, cpu-default, stub-default. Defaults to "
+            "legacy on GPU. The cpu-default / stub-default identity "
+            "values are accepted on non-GPU profiles; any GPU value "
+            "passed on a non-GPU profile is ignored with a stderr "
+            "warning. Can also be set via LEDGERLINC_DET_REC_VARIANT."
+        ),
+    )
     # Stack preset (FR-004A).
     run.add_argument(
         "--stack-preset",
@@ -344,9 +378,16 @@ def _run_cold_warmup_if_active(invocation: CLIInvocation) -> int | None:
         _gpu_prerequisite_error_cls = None  # type: ignore[assignment]
         _exit_code_for_state = None  # type: ignore[assignment]
     try:
+        # Feature 017 (review CRITICAL fix): forward the resolved preset
+        # identifiers so `ensure_gpu_ready` adopts the engine with the
+        # operator-selected use_kwargs splat + det/rec model overrides
+        # on this first call (cold-path warmup runs BEFORE the runner's
+        # stage dispatch; subsequent ensure_gpu_ready calls are cache hits).
         _run_warmup_if_active(
             preprocess_lane="gpu0",  # ppstructurev3@gpu resolves here
             warmup_optin=True,
+            module_set_id=invocation.module_set_id,
+            det_rec_variant_id=invocation.det_rec_variant_id,
         )
     except WarmupError as exc:
         sys.stderr.write(f"error: warmup failed: {exc.cause_class}: {exc}\n")
@@ -513,6 +554,46 @@ def _run_cold(
         _gpu_warmup_optin and _preprocess_in_slice and _preprocess_is_gpu
     )
 
+    # Feature 017 (review HIGH fix): cold-path warn-and-proceed for the
+    # two preset axes. Mirrors the warmup_optin block above. When the
+    # operator passes a known `--module-set` / `--det-rec-variant` value
+    # on a non-GPU profile (CPU or stub), emit one stderr warn line per
+    # ignored flag and drop the resolved value (FR-013 / cli-contract.md
+    # §3). Unknown values were already rejected at `main()`'s parse-time
+    # check (R-017.12 fail-fast → exit 16).
+    from ledgerlinc_ocr.preprocessing.preset_optin import (
+        resolve_module_set_value as _resolve_module_set_value_017,
+        resolve_det_rec_variant_value as _resolve_det_rec_variant_value_017,
+        module_set_warn_message as _module_set_warn_017,
+        det_rec_variant_warn_message as _det_rec_warn_017,
+    )
+    _module_set_raw_017 = _resolve_module_set_value_017(getattr(args, "module_set", None))
+    _det_rec_raw_017 = _resolve_det_rec_variant_value_017(getattr(args, "det_rec_variant", None))
+    if _module_set_raw_017 is not None and _preprocess_in_slice and not _preprocess_is_gpu:
+        sys.stderr.write(
+            _module_set_warn_017(
+                _resolve_warning_profile_name(
+                    _preprocess_profile, args.preprocess_profile
+                )
+            )
+            + "\n"
+        )
+        _module_set_raw_017 = None
+    if _det_rec_raw_017 is not None and _preprocess_in_slice and not _preprocess_is_gpu:
+        sys.stderr.write(
+            _det_rec_warn_017(
+                _resolve_warning_profile_name(
+                    _preprocess_profile, args.preprocess_profile
+                )
+            )
+            + "\n"
+        )
+        _det_rec_raw_017 = None
+    # Thread the post-warn-and-proceed values onto the cold-path
+    # invocation so `_run_inner`'s ensure_gpu_ready call receives them.
+    invocation.module_set_id = _module_set_raw_017
+    invocation.det_rec_variant_id = _det_rec_raw_017
+
     # Hoisted warmup: must run BEFORE the runner's stage dispatch so
     # warmup duration is excluded from per-doc `phase_timings.total`.
     early_exit = _run_cold_warmup_if_active(invocation)
@@ -659,6 +740,36 @@ def main(argv: list[str] | None = None, *, runner: Runner | None = None) -> int:
     err = _check_input_selector_exclusive(args)
     if err is not None:
         return int(_emit_usage_error(err))
+
+    # Feature 017 (T009 / T020 / R-017.9 / R-017.12): validate the two
+    # preset axes BEFORE any Paddle import. UnknownPresetError fails
+    # fast with exit code 16. Cross-profile warn-and-proceed (FR-013) is
+    # handled in `_run_cold_warmup_if_active` / `corpus_run.py` because
+    # those paths know the resolved preprocess lane.
+    from ledgerlinc_ocr.preprocessing.preset_optin import (
+        resolve_module_set_value as _resolve_module_set_value,
+        resolve_det_rec_variant_value as _resolve_det_rec_variant_value,
+    )
+    from ledgerlinc_ocr.preprocessing.presets import (
+        resolve_module_set as _resolve_module_set,
+        resolve_det_rec_variant as _resolve_det_rec_variant,
+    )
+    from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError as _UnknownPresetError
+
+    _module_set_raw = _resolve_module_set_value(getattr(args, "module_set", None))
+    _det_rec_raw = _resolve_det_rec_variant_value(getattr(args, "det_rec_variant", None))
+    try:
+        if _module_set_raw is not None:
+            _resolve_module_set(_module_set_raw)
+        if _det_rec_raw is not None:
+            _resolve_det_rec_variant(_det_rec_raw)
+    except _UnknownPresetError as exc:
+        valid_str = ", ".join(exc.valid_values)
+        sys.stderr.write(
+            f"error: unknown {exc.preset_axis}: {exc.preset_value!r} — "
+            f"valid values are: {valid_str}\n"
+        )
+        return int(exc.exit_code)
 
     try:
         load_contract_set(args.contract_set_version)
