@@ -16,6 +16,7 @@ All tests are CPU-safe (no Paddle import).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Optional
 
 import pytest
 
@@ -132,7 +133,7 @@ class _StubBlockWithExtraFields:
     I-018.5."""
 
     text: str
-    bbox: list = None
+    bbox: Optional[list] = None
     block_type: str = "text"
 
 

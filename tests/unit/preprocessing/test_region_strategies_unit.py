@@ -43,7 +43,7 @@ class _StubPage:
         return 0
 
     def close(self) -> None:
-        pass
+        """Mirror `pypdfium2.PdfPage.close`; nothing to release in a stub."""
 
 
 @dataclass
@@ -60,7 +60,7 @@ class _StubDoc:
         return self.pages[idx]
 
     def close(self) -> None:
-        pass
+        """Mirror `pypdfium2.PdfDocument.close`; nothing to release in a stub."""
 
 
 # ---------------------------------------------------------------------------
@@ -140,9 +140,9 @@ def test_header_first_v1_page_targeting_page_0_returns_top_band() -> None:
     s = resolve_region_strategy("header-first-v1")
     bbox = s.page_targeting(doc, 0)
     assert isinstance(bbox, BBox)
-    assert bbox.x0_pt == 0.0
-    assert bbox.y0_pt == 0.0
-    assert bbox.x1_pt == 612.0
+    assert bbox.x0_pt == pytest.approx(0.0)
+    assert bbox.y0_pt == pytest.approx(0.0)
+    assert bbox.x1_pt == pytest.approx(612.0)
     assert bbox.y1_pt == pytest.approx(792.0 * 0.30)
 
 
@@ -188,7 +188,7 @@ def test_header_first_v1_page_targeting_handles_various_page_sizes(
     s = resolve_region_strategy("header-first-v1")
     bbox = s.page_targeting(doc, 0)
     assert bbox is not None
-    assert bbox.x1_pt == width_pt
+    assert bbox.x1_pt == pytest.approx(width_pt)
     assert bbox.y1_pt == pytest.approx(height_pt * 0.30)
 
 

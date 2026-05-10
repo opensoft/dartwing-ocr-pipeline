@@ -556,6 +556,20 @@ def _attach_one_time_gpu_phases(
     )
 
 
+def _drain_per_page_inference(
+    preprocess_lane: str,
+) -> list[tuple[int, float]] | None:
+    """Drain the GPU per-page inference accumulator. Returns the recorded
+    pages on the GPU lane; returns None on CPU/stub but still drains the
+    accumulator so state cannot leak across calls (FR-017 / ISO1)."""
+    from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+    drained = _ocr_mod.take_gpu_inference_per_page()
+    if not preprocess_lane.startswith("gpu"):
+        return None
+    return drained
+
+
 def _emit_single_doc_run_summary(
     *,
     invocation: pipeline.Invocation,
@@ -588,17 +602,7 @@ def _emit_single_doc_run_summary(
     )
 
     # GPU per-page inference array (drained from ocr accumulator).
-    per_page_inference: list[tuple[int, float]] | None = None
-    if preprocess_lane.startswith("gpu"):
-        from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
-
-        per_page_inference = _ocr_mod.take_gpu_inference_per_page()
-    else:
-        # CPU lane: drain to avoid leaking accumulator state across calls
-        # but do NOT attach to the run_summary (FR-017 / ISO1).
-        from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
-
-        _ocr_mod.take_gpu_inference_per_page()
+    per_page_inference = _drain_per_page_inference(preprocess_lane)
 
     folder_str = str(invocation.document_folder)
     doc_timings = DocumentTimings(stages={"preprocess": stage_timing})

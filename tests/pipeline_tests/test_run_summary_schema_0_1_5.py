@@ -47,15 +47,15 @@ from ledgerlinc_ocr.preprocessing.identifiers import (  # noqa: E402
 def _make_minimal_run_summary(**overrides: Any) -> RunSummary:
     """Build a minimal RunSummary with the smallest valid construction
     args; tests override individual fields."""
-    base: dict[str, Any] = dict(
-        stack_preset=None,
-        resolved_profiles={"preprocess": "ppstructurev3@cpu"},
-        execution_slice={"start_at": "preprocess", "stop_after": "preprocess"},
-        on_failure="continue",
-        documents_total=1,
-        documents_succeeded=1,
-        documents_failed=0,
-    )
+    base: dict[str, Any] = {
+        "stack_preset": None,
+        "resolved_profiles": {"preprocess": "ppstructurev3@cpu"},
+        "execution_slice": {"start_at": "preprocess", "stop_after": "preprocess"},
+        "on_failure": "continue",
+        "documents_total": 1,
+        "documents_succeeded": 1,
+        "documents_failed": 0,
+    }
     base.update(overrides)
     return RunSummary(**base)
 

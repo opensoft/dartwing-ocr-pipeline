@@ -312,6 +312,21 @@ def _append_empty_page_records(
         })
 
 
+def _translate_record_bboxes(
+    records: list[dict[str, Any]],
+    offset_px: tuple[int, int],
+) -> None:
+    """In-place: shift each record's `bbox` by `offset_px` so PaddleOCR's
+    crop-relative coordinates land in the full-page coordinate system
+    (R-018.15). Records with missing or malformed bboxes are skipped."""
+    from ledgerlinc_ocr.preprocessing.region_strategies import translate_bbox
+
+    for record in records:
+        bbox = record.get("bbox")
+        if bbox is not None and len(bbox) == 4:
+            record["bbox"] = list(translate_bbox(tuple(bbox), offset_px))
+
+
 def _build_page_warnings(
     pr: Any, lines: list[dict[str, Any]], blocks: list[dict[str, Any]]
 ) -> tuple[list[str], bool]:
@@ -582,30 +597,14 @@ def _run_region_first_path(
     result = _process_page(page_1_raster, invocation)
 
     # FR-002 / I-018.7 / R-018.15: translate PaddleOCR's crop-relative
-    # bboxes back to full-page pixel coordinates by adding the crop's
-    # top-left offset. For header-first-v1 the offset is (0, 0) so the
-    # translation is the identity; we still run it unconditionally to
-    # honor `region_strategies.translate_bbox`'s documented contract
-    # ("orchestrator should ALWAYS run PaddleOCR's bbox returns through
-    # this helper") so future presets cropping a non-top-left band do
-    # not need to re-add a guard here. The cost is a few additions per
-    # bbox — negligible.
-    from ledgerlinc_ocr.preprocessing.region_strategies import (
-        translate_bbox as _translate_bbox_018,
-    )
-    dx, dy = offset_px
-    for block_dict in result.page_dict.get("blocks", []):
-        bbox = block_dict.get("bbox")
-        if bbox is not None and len(bbox) == 4:
-            block_dict["bbox"] = list(
-                _translate_bbox_018(tuple(bbox), (dx, dy))
-            )
-    for line_dict in result.page_dict.get("raw_ocr_lines", []):
-        bbox = line_dict.get("bbox")
-        if bbox is not None and len(bbox) == 4:
-            line_dict["bbox"] = list(
-                _translate_bbox_018(tuple(bbox), (dx, dy))
-            )
+    # bboxes back to full-page pixel coordinates. For header-first-v1 the
+    # offset is (0, 0) so the translation is the identity, but we still
+    # run it unconditionally — `translate_bbox`'s contract is "orchestrator
+    # should ALWAYS run PaddleOCR's bbox returns through this helper" so
+    # future presets cropping a non-top-left band do not need to re-add a
+    # guard here.
+    _translate_record_bboxes(result.page_dict.get("blocks", []), offset_px)
+    _translate_record_bboxes(result.page_dict.get("raw_ocr_lines", []), offset_px)
 
     # FR-007 trigger evaluation (Clarifications Q3 / R-018.7). Wrap each
     # block dict in `_BlockProxy` (module-level) so `trigger_fired`'s
