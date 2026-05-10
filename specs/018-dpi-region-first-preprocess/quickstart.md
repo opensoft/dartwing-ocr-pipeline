@@ -344,9 +344,9 @@ Count of documents in the subset where `evaluation_document.json.pass_status == 
 
 The promotion gate (FR-016) passes for a cell iff its scores in A.4 AND A.5 are both ≥ the legacy baseline. If any cell passes the gate AND the team chooses to promote it, record the decision in `research.md` Appendix B.
 
-## Appendix B: Deferred-GPU-verification follow-ups (if FR-025 deferral is taken at landing)
+## Appendix B: Deferred-GPU-verification follow-ups (FR-025 deferral taken at landing)
 
-If workstation GPU hardware is unavailable at landing time and the FR-005 / FR-016 verification is deferred per FR-025, capture the deferral in `tasks.md` and reference it here. Verification items deferred:
+Workstation GPU verification was deferred per FR-025 at this feature's landing. The deferral set is owned by the follow-up feature **`019-feature-018-gpu-verification`** (created off `main` once feature 018 lands). Verification items deferred to feature 019:
 
 - Section 1: legacy GPU run (no flags). Test: `test_run_summary_schema_0_1_5.py @gpu` (or the legacy-byte-identity subset).
 - Section 2: reduced-DPI GPU run. Test: `test_dpi_benchmark.py @gpu` (cell `(reduced-v1, full-page)` row).
@@ -357,4 +357,4 @@ If workstation GPU hardware is unavailable at landing time and the FR-005 / FR-0
 - Appendix A: all four benchmark cells, all five rows of A.1 / A.2.
 - Appendix A: A.3 / A.4 / A.5 quality-gate evidence.
 
-The deferral MUST be captured in this feature's `tasks.md` and is referenced here so the verification cannot be quietly skipped (FR-025 / Spec §Edge Cases / failure-handling.md CHK033).
+Tasks tracked in feature 019: **T014 / T015 / T027 / T028 / T035 / T036 / T037** (the ⏸ DEFERRED entries in this feature's `tasks.md`). Feature 019's PR is the durable record of the actual GPU run results, the recorded benchmark numbers (filling in this Appendix A's rows), and the T037 promotion decision. The deferral is captured in this feature's `tasks.md` (T038) and referenced here so the verification cannot be quietly skipped (FR-025 / Spec §Edge Cases / failure-handling.md CHK033).
