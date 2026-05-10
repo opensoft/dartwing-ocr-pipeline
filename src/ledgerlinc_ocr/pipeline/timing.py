@@ -206,6 +206,7 @@ class RunSummary:
     ppstructure_modules_invoked: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
+        _canonical_audit_modules = sorted(set(self.ppstructure_modules_invoked))
         return {
             "kind": "run_summary",
             "schema_version": SCHEMA_VERSION,
@@ -226,7 +227,7 @@ class RunSummary:
             # order between `preprocess_lane` and the closing brace.
             "module_set_id": self.module_set_id,
             "det_rec_variant_id": self.det_rec_variant_id,
-            "ppstructure_modules_invoked": list(self.ppstructure_modules_invoked),
+            "ppstructure_modules_invoked": _canonical_audit_modules,
         }
 
     def as_json_line(self) -> str:

@@ -19,6 +19,7 @@ All tests are CPU-safe (no Paddle import, no GPU dependency).
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -32,8 +33,6 @@ from ledgerlinc_ocr.preprocessing.identifiers import (  # noqa: E402
     AUDIT_SUB_MODULE_VOCABULARY,
     CPU_DEFAULT_DET_REC_VARIANT,
     CPU_DEFAULT_MODULE_SET,
-    STUB_DEFAULT_DET_REC_VARIANT,
-    STUB_DEFAULT_MODULE_SET,
 )
 
 
@@ -115,13 +114,62 @@ def test_ppstructure_modules_invoked_defaults_to_empty_list() -> None:
     assert parsed["ppstructure_modules_invoked"] == []
 
 
-def test_stub_default_can_be_set_explicitly() -> None:
-    """Stub-adapter runs override the dataclass defaults to write
-    `stub-default` for both identifiers (R-017.5)."""
-    summary = _make_minimal_run_summary()
-    summary.module_set_id = STUB_DEFAULT_MODULE_SET
-    summary.det_rec_variant_id = STUB_DEFAULT_DET_REC_VARIANT
-    parsed = json.loads(summary.as_json_line())
+def test_stub_default_can_be_set_explicitly(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Stub-adapter warm-corpus summaries use the real stub override path,
+    not the CPU defaults."""
+    from ledgerlinc_ocr.pipeline.corpus import DocumentEntry, WarmProfileRegistry
+    from ledgerlinc_ocr.pipeline.corpus_run import _emit_warm_init_failure_summary
+    from ledgerlinc_ocr.pipeline.failure_policy import FailurePolicy
+    from ledgerlinc_ocr.pipeline.ollama_lanes import resolve_endpoints
+    from ledgerlinc_ocr.pipeline.profiles import parse_profile
+    from ledgerlinc_ocr.pipeline.runner import CLIInvocation, ResolvedRunPlan
+    from ledgerlinc_ocr.pipeline.slice_control import ExecutionSlice
+
+    folder = tmp_path / "inv_001_easy"
+    folder.mkdir()
+    invocation = CLIInvocation(
+        input_pdf=folder / "source.pdf",
+        destination_folder=folder,
+        document_id="inv_001_easy",
+        overwrite=False,
+        pipeline_version=None,
+        policy_version="p0",
+        contract_set_version="1.2.0",
+        ollama_url="http://localhost:11434",
+        log_level="INFO",
+        timeout=60,
+    )
+    plan = ResolvedRunPlan(
+        mode="warm_corpus",
+        cli_invocation=invocation,
+        profiles={
+            "preprocess": parse_profile("preprocess", "stub"),
+            "extract": parse_profile("extract", "stub"),
+            "routing": parse_profile("routing", "stub"),
+            "final_payload": parse_profile("final_payload", "stub"),
+        },
+        slice_=ExecutionSlice(start_at="preprocess", stop_after="final_payload"),
+        ollama_endpoints=resolve_endpoints(
+            gpu_flag=None,
+            cpu_flag=None,
+            jetson_flag=None,
+        ),
+        failure_policy=FailurePolicy(mode="continue"),
+        stack_preset_name=None,
+        documents=(folder,),
+    )
+    docs = (DocumentEntry(raw=str(folder), resolved=folder),)
+
+    _emit_warm_init_failure_summary(
+        documents=docs,
+        plan=plan,
+        registry=WarmProfileRegistry.empty(),
+        message="stub summary probe",
+        emit_failure=lambda _record: None,
+    )
+    parsed = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert parsed["module_set_id"] == "stub-default"
     assert parsed["det_rec_variant_id"] == "stub-default"
 
@@ -187,12 +235,22 @@ def test_ppstructure_modules_invoked_is_list_type() -> None:
     assert isinstance(parsed["ppstructure_modules_invoked"], list)
 
 
-def test_ppstructure_modules_invoked_accepts_subset_values() -> None:
-    """When set explicitly (e.g., from a GPU audit invocation), values
-    must be a subset of `AUDIT_SUB_MODULE_VOCABULARY` (Plan §I-6)."""
+def test_ppstructure_modules_invoked_is_canonicalized_on_emit() -> None:
+    """Audit lists on the wire are de-duplicated, lex-sorted, and remain
+    within the closed vocabulary."""
     summary = _make_minimal_run_summary()
-    summary.ppstructure_modules_invoked = ["layout_detection", "ocr_det", "ocr_rec"]
+    summary.ppstructure_modules_invoked = [
+        "ocr_rec",
+        "layout_detection",
+        "ocr_rec",
+        "ocr_det",
+    ]
     parsed = json.loads(summary.as_json_line())
+    assert parsed["ppstructure_modules_invoked"] == [
+        "layout_detection",
+        "ocr_det",
+        "ocr_rec",
+    ]
     assert set(parsed["ppstructure_modules_invoked"]) <= set(AUDIT_SUB_MODULE_VOCABULARY)
 
 

@@ -13,12 +13,15 @@ The walkthrough assumes you are inside the worktree at `/workspace/projects/ledg
 source .venv-paddle-rocm/bin/activate
 
 # Confirm Paddle GPU bind works (feature 014 preflight smoke-test).
-python -m ledgerlinc_ocr.preprocessing.preflight --device gpu:0
+python -m ledgerlinc_ocr.preprocessing.preflight
 # Expected: state=ppstructurev3_init_succeeded; exit code 0.
 
 # Confirm the new identifier surface lands on every run_summary (CPU-safe).
+rm -rf /tmp/inv_001_easy_cpu_no_flag
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_cpu_no_flag
+
 python -m ledgerlinc_ocr.preprocessing \
-  --document-folder tests/stage1_vendor_identity/inv_001_easy \
+  --document-folder /tmp/inv_001_easy_cpu_no_flag \
   --preprocess-profile=ppstructurev3@cpu \
   > /tmp/cpu_no_flag.stdout
 tail -1 /tmp/cpu_no_flag.stdout | jq '{schema_version, module_set_id, det_rec_variant_id, ppstructure_modules_invoked}'
@@ -47,16 +50,20 @@ python -m ledgerlinc_ocr.preprocessing \
   2> /tmp/legacy.stderr
 
 tail -1 /tmp/legacy.stdout | jq '{schema_version, module_set_id, det_rec_variant_id, ppstructure_modules_invoked}'
-# Expected (illustrative — exact list pinned at landing per research.md Appendix B):
+# Expected identifiers:
 # {
 #   "schema_version": "0.1.4",
 #   "module_set_id": "legacy",
 #   "det_rec_variant_id": "legacy",
-#   "ppstructure_modules_invoked": ["layout_detection", "ocr_det", "ocr_rec", "table_recognition"]
+#   "ppstructure_modules_invoked": <GPU verification result; see T016/T017 if still deferred under FR-024>
 # }
 ```
 
-Record the observed `ppstructure_modules_invoked` list in **`research.md` Appendix B** (the FR-001 audit landing observation).
+If workstation GPU verification is in scope for this pass, record the observed
+`ppstructure_modules_invoked` list in **`research.md` Appendix B** (the FR-001
+audit landing observation). If GPU verification is still deferred under FR-024,
+leave Appendix B/T040 as the audit-trail source of truth for the missing
+observation.
 
 ## 2. Reduced module set GPU run
 
@@ -74,11 +81,11 @@ python -m ledgerlinc_ocr.preprocessing \
   2> /tmp/reduced.stderr
 
 tail -1 /tmp/reduced.stdout | jq '{module_set_id, det_rec_variant_id, ppstructure_modules_invoked}'
-# Expected (illustrative):
+# Expected identifiers:
 # {
 #   "module_set_id": "reduced-v1",
 #   "det_rec_variant_id": "legacy",
-#   "ppstructure_modules_invoked": ["layout_detection", "ocr_det", "ocr_rec"]
+#   "ppstructure_modules_invoked": <GPU verification result; compare against the legacy run when T016/T017 are executed>
 # }
 ```
 
@@ -86,8 +93,8 @@ Then assert preprocess_output.json validates against the existing v1.2.0 schema:
 
 ```bash
 python -m ledgerlinc_ocr.validator validate artifact \
-  --kind preprocess_output \
-  --path /tmp/inv_001_easy_reduced/preprocess_output.json
+  /tmp/inv_001_easy_reduced/preprocess_output.json \
+  --contract preprocess_output
 # Expected: validates against contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json (FR-003 / SC-001).
 ```
 
@@ -111,7 +118,8 @@ tail -1 /tmp/v5mobile.stdout | jq '{module_set_id, det_rec_variant_id, ppstructu
 # {
 #   "module_set_id": "legacy",
 #   "det_rec_variant_id": "ppocrv5-mobile",
-#   "ppstructure_modules_invoked": ["layout_detection", "ocr_det", "ocr_rec", "table_recognition"]
+#   "ppstructure_modules_invoked": <same GPU audit result as the legacy module-set run once T016/T017 are executed>,
+#   "per_doc": <per_page_inference timing block>
 # }
 ```
 
@@ -145,7 +153,9 @@ tail -1 /tmp/cpu_with_flags.stdout | jq '{module_set_id, det_rec_variant_id}'
 # { "module_set_id": "cpu-default", "det_rec_variant_id": "cpu-default" }
 
 # preprocess_output.json is byte-identical to the no-flag CPU run:
-sha256sum /tmp/inv_001_easy_cpu_with_flags/preprocess_output.json /tmp/cpu_no_flag.stdout
+sha256sum \
+  /tmp/inv_001_easy_cpu_with_flags/preprocess_output.json \
+  /tmp/inv_001_easy_cpu_no_flag/preprocess_output.json
 # (Compare against the no-flag CPU run from §0 — preprocess_output.json sha256 must match.)
 ```
 
@@ -178,23 +188,33 @@ echo $?
 Verifies the FR-015 / SC-008 two-metric gate against the legacy GPU baseline, using only existing evaluator outputs (R-017.10).
 
 ```bash
-# 1. Run the full pipeline (preprocess → evidence-packet → extract → route → assemble → evaluate)
-#    on the fixed 5-doc subset under the legacy GPU configuration. The evaluator emits
-#    evaluation_run_summary.json under the corpus root.
+# 1. Run the full pipeline on the fixed 5-doc subset under the legacy GPU
+#    configuration. Capture outputs under the corpus root.
 python -m ledgerlinc_ocr.pipeline run \
   --documents-file <path-to-fixed-5-doc-list> \
   --preprocess-profile=ppstructurev3@gpu \
-  --module-set=legacy --det-rec-variant=legacy \
-  --evaluate
+  --module-set=legacy \
+  --det-rec-variant=legacy
 
-# 2. Repeat for the candidate configuration (e.g., reduced-v1 + ppocrv5-mobile).
+# 2. Evaluate that corpus after the pipeline run. The evaluator, not the
+#    pipeline CLI, emits evaluation_run_summary.json.
+python -m ledgerlinc_ocr.evaluator evaluate corpus \
+  <corpus-root> \
+  --refresh
+
+# 3. Repeat the same two-step sequence for the candidate configuration
+#    (e.g., reduced-v1 + ppocrv5-mobile).
 python -m ledgerlinc_ocr.pipeline run \
   --documents-file <path-to-fixed-5-doc-list> \
   --preprocess-profile=ppstructurev3@gpu \
-  --module-set=reduced-v1 --det-rec-variant=ppocrv5-mobile \
-  --evaluate
+  --module-set=reduced-v1 \
+  --det-rec-variant=ppocrv5-mobile
 
-# 3. Read both metrics from each run's evaluation_run_summary.json:
+python -m ledgerlinc_ocr.evaluator evaluate corpus \
+  <corpus-root> \
+  --refresh
+
+# 4. Read both metrics from each run's evaluation_run_summary.json:
 #    - aggregate.field_score
 #    - documents_passed
 #    Promotion gate: candidate >= legacy on BOTH metrics simultaneously.
