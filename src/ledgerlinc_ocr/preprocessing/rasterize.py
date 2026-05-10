@@ -56,11 +56,27 @@ class PageRasterFailure:
     error: str
 
 
-def _snap_rotation(angle_deg: float) -> tuple[int, bool]:
+def snap_rotation(angle_deg: float) -> tuple[int, bool]:
+    """Snap a rotation angle to the closest member of ALLOWED_ROTATIONS.
+
+    Returns ``(snapped_angle, changed)`` where ``changed`` is True iff
+    the input did not exactly match an allowed rotation. Promoted from
+    private (`_snap_rotation`) to public for cross-module use by
+    `preprocessing/pipeline.py::_run_region_first_path` (feature 018 /
+    M4 fix — region-first path needs the same snapping logic on its
+    synthetic PageRaster).
+    """
     normalized = angle_deg % 360
     snapped = min(ALLOWED_ROTATIONS, key=lambda a: min(abs(normalized - a), 360 - abs(normalized - a)))
     changed = int(normalized) != snapped or normalized != float(snapped)
     return snapped, changed
+
+
+# Backwards-compat alias for any callers that still reference the
+# private name (none in-tree as of feature 018; the alias exists only
+# to avoid a hard breakage if a downstream feature picks up the old
+# name from the git history).
+_snap_rotation = snap_rotation
 
 
 def _check_pdf_magic(pdf_path: Path) -> None:
@@ -174,7 +190,7 @@ def rasterize_page_band(
             crop_bottom = float(height_pt) - float(band_bbox_pt.y1_pt)
             scale = dpi / 72.0
             original_rotation = int(page.get_rotation() or 0)
-            snapped_rotation, _changed = _snap_rotation(original_rotation)
+            snapped_rotation, _changed = snap_rotation(original_rotation)
             bitmap = page.render(
                 scale=scale,
                 rotation=snapped_rotation,
@@ -229,7 +245,7 @@ def rasterize_pdf(
             try:
                 try:
                     original_rotation = int(page.get_rotation() or 0)
-                    snapped_rotation, changed = _snap_rotation(original_rotation)
+                    snapped_rotation, changed = snap_rotation(original_rotation)
                     bitmap = page.render(scale=scale, rotation=snapped_rotation)
                     pil_image = bitmap.to_pil().convert("RGB")
                     width, height = pil_image.size

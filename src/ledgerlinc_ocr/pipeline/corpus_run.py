@@ -25,9 +25,7 @@ import argparse
 import os
 import sys
 from pathlib import Path
-from typing import Any, Callable
-
-from typing import Optional
+from typing import Any, Callable, Optional
 
 from ledgerlinc_ocr.pipeline.corpus import DocumentEntry, WarmProfileRegistry
 from ledgerlinc_ocr.pipeline.exit_codes import ExitCode, StructuredFailureRecord
@@ -172,7 +170,6 @@ def _per_document_invocation(
 
 def _resolve_gpu_url(args: argparse.Namespace) -> str:
     """Mirror cli._resolve_ollama_url without importing it (avoids cycle)."""
-    import os
     if args.ollama_url is not None:
         return args.ollama_url
     env = os.environ.get("OLLAMA_BASE_URL")
@@ -383,6 +380,7 @@ def run_warm_corpus(
             module_set_threaded=_module_set_threaded_017,
             det_rec_variant_threaded=_det_rec_threaded_017,
             raster_profile_threaded=_raster_profile_threaded_018,
+            region_strategy_threaded=_region_strategy_threaded_018,
         )
 
     # Feature 016 (T007 / R-016.10 / FR-001 / FR-007 / SC-011): the warm

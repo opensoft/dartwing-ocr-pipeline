@@ -33,14 +33,15 @@ Public API:
 
 - `BBox` — frozen dataclass (PDF-pt coordinates: `x0_pt`, `y0_pt`,
   `x1_pt`, `y1_pt`)
-- `Block` — protocol/duck-type for the `text` attribute
-  `RegionStrategy.trigger_fired` reads
 - `RegionStrategy` — frozen dataclass; carries `name`, `page_targeting`,
-  `trigger_fired`
+  `trigger_fired`. `trigger_fired` reads each block's `.text` attribute
+  via `getattr(b, "text", "")`; orchestrator-side callers must pass
+  duck-typed objects (NOT raw block dicts — `getattr({...}, "text", "")`
+  returns the default for dicts because they have no `.text` attribute).
 - `REGION_STRATEGIES` — closed-vocabulary registry for region_strategy names
 - `resolve_region_strategy(name: str) -> RegionStrategy` — dict-lookup;
   raises `UnknownPresetError(preset_axis="region_strategy", ...)` on miss
-- `translate_bbox(crop_relative_bbox, crop_offset_px) -> tuple[int, ...]`
+- `translate_bbox(crop_relative_bbox, crop_offset_px) -> tuple[int, int, int, int]`
   — coordinate translation helper (T021 / R-018.15) used by the
   orchestrator after PaddleOCR returns crop-relative bboxes.
 
@@ -62,7 +63,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Callable, Mapping, Optional, Protocol
+from typing import Any, Callable, Mapping, Optional
 
 from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError
 from ledgerlinc_ocr.preprocessing.identifiers import (
@@ -100,24 +101,6 @@ class BBox:
     y0_pt: float
     x1_pt: float
     y1_pt: float
-
-
-# ---------------------------------------------------------------------------
-# Block protocol (duck-type for trigger_fired)
-# ---------------------------------------------------------------------------
-
-
-class Block(Protocol):
-    """Duck-type for the `text` attribute `trigger_fired` reads.
-
-    The actual block class lives in `preprocessing/pipeline.py` (it
-    builds the `preprocess_output.json` per-page block records). Using a
-    Protocol here avoids a circular import and lets unit tests pass
-    simple stubs to `trigger_fired` without instantiating real
-    pipeline-side block records.
-    """
-
-    text: str
 
 
 # ---------------------------------------------------------------------------
@@ -323,7 +306,6 @@ def translate_bbox(
 
 __all__ = (
     "BBox",
-    "Block",
     "RegionStrategy",
     "REGION_STRATEGIES",
     "resolve_region_strategy",

@@ -215,6 +215,17 @@ def run(invocation: Invocation, *, stage_timing: Optional[StageTiming] = None) -
     wrapping this call in ``measure_total``. ``_run_inner`` no longer
     runs warmup (FR-007 / SC-004: warmup time is excluded from
     ``phase_timings.total``).
+
+    Feature 018 (T010 / T018 / R-018.7): when
+    ``invocation.region_strategy_id`` resolves to a region-first
+    preset (e.g. ``"header-first-v1"``), ``_run_inner`` branches to
+    ``_run_region_first_path`` for page 1 + empty records for pages
+    2..N (R-018.6 / Clarifications Q2). On the FR-007 fallback trigger
+    the orchestrator re-runs the document under the full-page strategy
+    on the same engine instance (R-018.9) and MUTATES
+    ``invocation.region_strategy_fallback_fired = True`` so the caller
+    can accumulate ``RunSummary.region_strategy_fallback_count``. The
+    flag is reset to ``False`` at the top of every ``_run_inner`` call.
     """
     if stage_timing is None:
         local_timing = StageTiming(stage="preprocess")
@@ -410,16 +421,28 @@ def _run_region_first_path(
         # Collect per-page geometry for all pages (cheap; no rasterization).
         # Used to (a) ask region_strategy for page 1's BBox; (b) build empty
         # page records for pages 2..N per R-018.6.
-        per_page_geometry: list[tuple[int, int, int]] = []
+        # H2 fix: floor width/height at FALLBACK_WIDTH/HEIGHT (= 1) so a
+        # degenerate tiny PDF page can never produce 0 px and violate the
+        # schema's `width >= 1` / `height >= 1` constraint. Mirrors the
+        # full-page rasterizer's _metadata_fallback_dims helper
+        # (rasterize.py:97).
+        # M3 fix: snap rotation once at collection time; rasterize_page_band
+        # snaps internally too but its result is not surfaced to us.
+        per_page_geometry: list[tuple[int, int, int, int, bool]] = []
         for i in range(page_count):
             page = doc[i]
             try:
                 width_pt, height_pt = page.get_size()
                 rotation = int(page.get_rotation() or 0)
+                snapped_rotation, snapped_changed = rasterize.snap_rotation(rotation)
                 per_page_geometry.append((
-                    int(round(float(width_pt) * dpi / 72.0)),
-                    int(round(float(height_pt) * dpi / 72.0)),
+                    max(rasterize.FALLBACK_WIDTH,
+                        int(round(float(width_pt) * dpi / 72.0))),
+                    max(rasterize.FALLBACK_HEIGHT,
+                        int(round(float(height_pt) * dpi / 72.0))),
                     rotation,
+                    snapped_rotation,
+                    snapped_changed,
                 ))
             finally:
                 page.close()
@@ -450,53 +473,68 @@ def _run_region_first_path(
     # the FULL-PAGE width/height (not crop dimensions) so the resulting
     # page record's `width`/`height` reflect the full page per FR-002 /
     # I-018.7 (downstream stages compare against full-page coordinates).
-    full_width_px, full_height_px, rotation = per_page_geometry[0]
-    snapped_rotation, _changed = rasterize._snap_rotation(rotation)
+    # H1 fix: surface the actual `rotation_snapped` flag so a rotated
+    # page-1 still triggers the rotation-normalized warning per
+    # `_build_page_warnings`.
+    (
+        full_width_px,
+        full_height_px,
+        rotation_original,
+        snapped_rotation,
+        snapped_changed,
+    ) = per_page_geometry[0]
     page_1_raster = rasterize.PageRaster(
         page_number=1,
         width=full_width_px,
         height=full_height_px,
         rotation_detected=snapped_rotation,
-        rotation_original=rotation,
-        rotation_snapped=False,
+        rotation_original=rotation_original,
+        rotation_snapped=snapped_changed,
         image=crop_image,
     )
     result = _process_page(page_1_raster, invocation)
 
     # FR-002 / I-018.7 / R-018.15: translate PaddleOCR's crop-relative
     # bboxes back to full-page pixel coordinates by adding the crop's
-    # top-left offset (0, 0 for header-first-v1 — but the helper handles
-    # any future preset's offset uniformly).
+    # top-left offset. For header-first-v1 the offset is (0, 0) so the
+    # translation is the identity; we still run it unconditionally to
+    # honor `region_strategies.translate_bbox`'s documented contract
+    # ("orchestrator should ALWAYS run PaddleOCR's bbox returns through
+    # this helper") so future presets cropping a non-top-left band do
+    # not need to re-add a guard here. The cost is a few additions per
+    # bbox — negligible.
     from ledgerlinc_ocr.preprocessing.region_strategies import (
         translate_bbox as _translate_bbox_018,
     )
     dx, dy = offset_px
-    if dx != 0 or dy != 0:
-        # Translate every block bbox in the page record
-        for block_dict in result.page_dict.get("blocks", []):
-            bbox = block_dict.get("bbox")
-            if bbox is not None and len(bbox) == 4:
-                block_dict["bbox"] = list(
-                    _translate_bbox_018(tuple(bbox), (dx, dy))
-                )
-        # Translate every raw_ocr_line bbox
-        for line_dict in result.page_dict.get("raw_ocr_lines", []):
-            bbox = line_dict.get("bbox")
-            if bbox is not None and len(bbox) == 4:
-                line_dict["bbox"] = list(
-                    _translate_bbox_018(tuple(bbox), (dx, dy))
-                )
+    for block_dict in result.page_dict.get("blocks", []):
+        bbox = block_dict.get("bbox")
+        if bbox is not None and len(bbox) == 4:
+            block_dict["bbox"] = list(
+                _translate_bbox_018(tuple(bbox), (dx, dy))
+            )
+    for line_dict in result.page_dict.get("raw_ocr_lines", []):
+        bbox = line_dict.get("bbox")
+        if bbox is not None and len(bbox) == 4:
+            line_dict["bbox"] = list(
+                _translate_bbox_018(tuple(bbox), (dx, dy))
+            )
 
     # FR-007 trigger evaluation (Clarifications Q3 / R-018.7).
     # Build duck-typed objects with a `text` attribute from the block
-    # dicts; `trigger_fired` reads only `text` per I-018.5.
-    block_dicts_for_trigger = result.page_dict.get("blocks", [])
-
+    # dicts; `trigger_fired` reads only `text` per I-018.5. The proxy
+    # is required: `getattr(some_dict, "text", "")` returns `""` (the
+    # default) because Python dicts have no `.text` attribute, so
+    # passing the dicts directly would silently make the trigger fire
+    # on every document (a real correctness bug).
     class _BlockProxy:
+        __slots__ = ("text",)
         def __init__(self, text: str) -> None:
             self.text = text
 
-    _trigger_blocks = [_BlockProxy(b.get("text", "")) for b in block_dicts_for_trigger]
+    _trigger_blocks = [
+        _BlockProxy(b.get("text", "")) for b in result.page_dict.get("blocks", [])
+    ]
     trigger_fired = region_strategy.trigger_fired(_trigger_blocks)
 
     if trigger_fired:
@@ -515,11 +553,12 @@ def _run_region_first_path(
         silent_empty = True
 
     for i in range(1, page_count):
-        full_w_px, full_h_px, rot = per_page_geometry[i]
-        snapped_rot, _changed_rot = rasterize._snap_rotation(rot)
+        # M3 fix: rotation already snapped at per_page_geometry collection.
+        full_w_px, full_h_px, _rot_orig, snapped_rot, _changed_rot = per_page_geometry[i]
         # R-018.6: empty page record. `blocks: []` and `raw_ocr_lines: []`
         # are explicitly permitted by the v1.2.0 preprocess_output schema.
-        # No rasterization, no inference (FR-007 / I-018.6).
+        # `width` / `height` already floored at 1 in per_page_geometry per
+        # H2 fix. No rasterization, no inference (FR-007 / I-018.6).
         pages.append({
             "page_number": i + 1,
             "width": full_w_px,
@@ -541,6 +580,13 @@ def _run_region_first_path(
 
 
 def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
+    # Feature 018 (H5 fix): defensive reset of the per-document fallback
+    # flag at the top of every `_run_inner` call so a re-used Invocation
+    # cannot inherit `True` from a prior call. corpus_run constructs a
+    # fresh Invocation per document so this is belt-and-braces, but the
+    # invariant ("flag reflects THIS run only") is now guaranteed.
+    invocation.region_strategy_fallback_fired = False
+
     # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
     # gate BEFORE any artifact write or input parsing. ensure_gpu_ready
     # is process-cached per Q2.
