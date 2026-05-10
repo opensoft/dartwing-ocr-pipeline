@@ -119,14 +119,14 @@ def _inspect_predict_result(predict_results: Any) -> list[str]:
     interface or attribute access; common keys/attrs that signal a
     given sub-module ran:
 
-    - layout detection: `layout_det_res`, `layout_det_results`, `boxes`,
-      or `layout_parsing_res` containing layout regions
-    - table recognition: `table_res`, `table_results`, `html`, or any
-      `table_*` keyed result
-    - text detection (ocr_det): `dt_polys`, `rec_polys`, `ocr_det_res`,
-      or per-region detection bboxes
-    - text recognition (ocr_rec): `rec_texts`, `ocr_rec_res`, or
-      per-region recognized text content
+    - layout detection: any of `layout_det_res`, `layout_det_results`,
+      `layout_parsing_res`, `boxes`
+    - table recognition: any of `table_res`, `table_results`,
+      `table_recognition_res`, `html`
+    - text detection (ocr_det): any of `dt_polys`, `rec_polys`,
+      `ocr_det_res`, `text_det_res`
+    - text recognition (ocr_rec): any of `rec_texts`, `ocr_rec_res`,
+      `text_rec_res`
 
     Per R-017.7's "silently drop unknown" policy + Plan §I-6: any string
     outside `AUDIT_SUB_MODULE_VOCABULARY` is dropped. Returns a
@@ -255,14 +255,16 @@ def _load_audit_fixture() -> Any:
             cause_module="ledgerlinc_ocr.preprocessing.presets",
         )
 
-    # Render page 1 at the same DPI as preprocessing
     pdf = pdfium.PdfDocument(str(fixture_path))
     try:
         page = pdf[0]
-        scale = DPI / 72.0  # PDF user-space units → DPI
-        bitmap = page.render(scale=scale)
-        pil_img = bitmap.to_pil()
-        return np.asarray(pil_img)
+        try:
+            scale = DPI / 72.0
+            bitmap = page.render(scale=scale)
+            pil_img = bitmap.to_pil()
+            return np.asarray(pil_img)
+        finally:
+            page.close()
     finally:
         pdf.close()
 

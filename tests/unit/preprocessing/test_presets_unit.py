@@ -209,24 +209,31 @@ def test_presets_module_top_level_imports_dont_load_paddle() -> None:
     )
 
 
-def test_resolve_module_set_does_not_invoke_audit_callable() -> None:
-    """Resolving a preset must NOT trigger the audit callable (which on
-    GPU presets would invoke fixture loading + `engine.predict`).
-    Resolution is a pure dict lookup (R-017.6)."""
-    # Sentinel: replace the audit callable to detect any call
-    called = {"flag": False}
+def test_resolve_module_set_does_not_invoke_audit_callable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Resolving a preset must NOT trigger the audit callable. Audit
+    runs only at the audit call site (`run_module_audit`), not during
+    registry lookup. Verified by replacing one preset with a spy and
+    asserting the spy is not called by `resolve_module_set`."""
+    import ledgerlinc_ocr.preprocessing.presets as presets_mod
 
-    def _spy(_engine: object) -> list[str]:
-        called["flag"] = True
+    spy_calls: list[object] = []
+
+    def _spy(engine: object) -> list[str]:
+        spy_calls.append(engine)
         return []
 
-    # Note: production registry is frozen MappingProxyType, so we test
-    # the property by inspecting return type — not by mutation.
-    preset = resolve_module_set("legacy")
-    assert isinstance(preset, ModuleSetPreset)
-    # The audit callable is set at module load time and is a function
-    # object; we did not invoke it during resolve_module_set.
-    assert callable(preset.audit_callable)
+    spy_preset = ModuleSetPreset(
+        name="legacy",
+        use_kwargs=presets_mod.MODULE_SET_PRESETS["legacy"].use_kwargs,
+        audit_callable=_spy,
+    )
+    spied_registry = dict(presets_mod.MODULE_SET_PRESETS)
+    spied_registry["legacy"] = spy_preset
+    monkeypatch.setattr(presets_mod, "MODULE_SET_PRESETS", spied_registry)
+
+    resolved = presets_mod.resolve_module_set("legacy")
+    assert resolved is spy_preset
+    assert spy_calls == [], "resolve_module_set must not invoke audit_callable"
 
 
 def test_resolve_returns_dataclass_instances() -> None:

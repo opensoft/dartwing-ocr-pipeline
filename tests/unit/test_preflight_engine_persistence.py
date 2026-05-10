@@ -198,3 +198,49 @@ def test_ff2_second_ensure_gpu_ready_short_circuits_no_reconstruction(monkeypatc
     )
     # Same readout instance should be returned (cache short-circuit).
     assert readout1 is readout2, "FF2: cached readout must be returned by reference"
+
+
+def test_ensure_gpu_ready_rejects_mismatched_presets_after_first_call(monkeypatch) -> None:
+    """Feature 017: after the engine is built with one preset, a second
+    call asking for a different preset is a caller bug — the engine is
+    pinned for the lifetime of the process. Raise ``RuntimeError`` rather
+    than silently returning a readout that does not reflect the request."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    class _PPStructure:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
+
+    presets = pytest.importorskip("ledgerlinc_ocr.preprocessing.presets")
+    legacy = presets.MODULE_SET_PRESETS["legacy"]
+    reduced = presets.MODULE_SET_PRESETS["reduced-v1"]
+
+    readout1 = ensure_gpu_ready(module_set=legacy)
+    assert readout1.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED
+
+    with pytest.raises(RuntimeError, match="reduced-v1.*after.*legacy"):
+        ensure_gpu_ready(module_set=reduced)
+
+
+def test_ensure_gpu_ready_accepts_matching_presets_on_subsequent_call(monkeypatch) -> None:
+    """The mismatch guard must NOT trigger when the same presets are
+    passed again — that's the normal warm-corpus path, where every
+    document repeats the same preset selection."""
+    _patch_versions_present(monkeypatch)
+    _patch_paddle(monkeypatch, _stub_paddle())
+
+    class _PPStructure:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
+
+    presets = pytest.importorskip("ledgerlinc_ocr.preprocessing.presets")
+    legacy = presets.MODULE_SET_PRESETS["legacy"]
+
+    readout1 = ensure_gpu_ready(module_set=legacy)
+    readout2 = ensure_gpu_ready(module_set=legacy)
+    assert readout1 is readout2

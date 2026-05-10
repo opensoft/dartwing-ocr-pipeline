@@ -134,10 +134,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Select a named PPStructureV3 module-set preset for "
-            "ppstructurev3@gpu. Valid values: legacy, reduced-v1. "
-            "Defaults to legacy on GPU; cpu-default / stub-default on "
-            "non-GPU profiles (warn-and-proceed). Can also be set via "
-            "LEDGERLINC_MODULE_SET; the CLI flag wins."
+            "ppstructurev3@gpu. Valid values: legacy, reduced-v1, "
+            "cpu-default, stub-default. Defaults to legacy on GPU. "
+            "The cpu-default / stub-default identity values are "
+            "accepted on non-GPU profiles; any GPU value passed on a "
+            "non-GPU profile is ignored with a stderr warning. Can "
+            "also be set via LEDGERLINC_MODULE_SET; the CLI flag wins."
         ),
     )
     run.add_argument(
@@ -147,9 +149,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Select a named detection/recognition model variant for "
             "ppstructurev3@gpu. Valid values: legacy, ppocrv5-mobile, "
-            "ppocrv4-mobile. Defaults to legacy on GPU; cpu-default / "
-            "stub-default on non-GPU profiles (warn-and-proceed). Can "
-            "also be set via LEDGERLINC_DET_REC_VARIANT."
+            "ppocrv4-mobile, cpu-default, stub-default. Defaults to "
+            "legacy on GPU. The cpu-default / stub-default identity "
+            "values are accepted on non-GPU profiles; any GPU value "
+            "passed on a non-GPU profile is ignored with a stderr "
+            "warning. Can also be set via LEDGERLINC_DET_REC_VARIANT."
         ),
     )
     # Stack preset (FR-004A).

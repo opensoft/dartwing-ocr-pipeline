@@ -665,10 +665,6 @@ def run_warm_corpus(
                 )
                 break
 
-    # Feature 017 (review CRITICAL fix): derive the run_summary
-    # identifier values from the threaded preset values. On non-GPU
-    # lanes the warn-and-proceed branch above already nulled the
-    # threaded values, so the helper returns CPU-lane defaults.
     from ledgerlinc_ocr.preprocessing.preset_optin import (
         derive_run_summary_identifiers as _derive_identifiers_017,
     )
@@ -677,6 +673,14 @@ def run_warm_corpus(
         threaded_det_rec_variant=_det_rec_threaded_017,
         preprocess_lane=_resolved_preprocess_lane,
     )
+    if _pp_profile is not None and _pp_profile.kind == "stub":
+        from ledgerlinc_ocr.preprocessing.identifiers import (
+            STUB_DEFAULT_DET_REC_VARIANT,
+            STUB_DEFAULT_MODULE_SET,
+        )
+
+        _module_set_id_017 = STUB_DEFAULT_MODULE_SET
+        _det_rec_variant_id_017 = STUB_DEFAULT_DET_REC_VARIANT
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={

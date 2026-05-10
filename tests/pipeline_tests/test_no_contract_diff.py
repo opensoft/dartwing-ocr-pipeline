@@ -26,10 +26,32 @@ def _repo_root() -> Path:
     raise RuntimeError("Could not locate repo root (looking for contracts/stage1_vendor_identity/)")
 
 
+def _resolve_diff_target(root: Path) -> str:
+    """Return the first ref from a priority list that resolves locally.
+    Tries ``origin/main`` first (PR CI almost always has it), falls back
+    to ``main`` (developer checkouts), then a merge-base if neither
+    resolves directly. Skips the test when none of them work."""
+    for ref in ("origin/main", "main"):
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", "--quiet", ref],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return ref
+    pytest.skip(
+        "neither origin/main nor main resolves in this checkout; "
+        "this guard is intended for CI runs against a PR base"
+    )
+
+
 def test_no_diff_against_main_in_canonical_contracts_directory() -> None:
     """Per SC-010 / FR-019: this feature must not change any file under
-    `contracts/stage1_vendor_identity/`. Verified via `git diff main`
-    against the canonical contracts directory.
+    `contracts/stage1_vendor_identity/`. Verified via `git diff` against
+    the resolved base ref (``origin/main`` in CI, ``main`` for local
+    developer checkouts).
 
     If this test fails, the feature has either: (a) accidentally
     touched a contract file (revert the change), or (b) intentionally
@@ -40,32 +62,33 @@ def test_no_diff_against_main_in_canonical_contracts_directory() -> None:
     """
     root = _repo_root()
     try:
-        result = subprocess.run(
-            [
-                "git",
-                "diff",
-                "--name-only",
-                "main",
-                "--",
-                "contracts/stage1_vendor_identity/",
-            ],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        target_ref = _resolve_diff_target(root)
     except FileNotFoundError:
         pytest.skip("git not installed")
-    if result.returncode != 0:
-        # `main` may not exist in the test environment; skip rather than fail
-        if "unknown revision" in result.stderr or "bad revision" in result.stderr:
-            pytest.skip(f"main branch not found locally: {result.stderr.strip()}")
-        pytest.skip(f"git diff failed: rc={result.returncode} stderr={result.stderr.strip()}")
+
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-only",
+            target_ref,
+            "--",
+            "contracts/stage1_vendor_identity/",
+        ],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        f"git diff against {target_ref!r} failed: rc={result.returncode} "
+        f"stderr={result.stderr.strip()!r}"
+    )
 
     changed_files = [line.strip() for line in result.stdout.splitlines() if line.strip()]
     assert not changed_files, (
         f"feature 017 must not modify contracts/stage1_vendor_identity/ "
-        f"(SC-010 / FR-019). Changed files: {changed_files}\n"
+        f"(SC-010 / FR-019). Changed files (vs {target_ref}): {changed_files}\n"
         f"If a contract change is needed, follow the FR-020 escape "
         f"hatch: update data-model.md + research.md + "
         f"contracts/stage1_vendor_identity/AMENDMENTS.md."

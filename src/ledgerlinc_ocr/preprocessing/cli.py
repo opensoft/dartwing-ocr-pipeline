@@ -118,11 +118,13 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Select a named PPStructureV3 module-set preset for the "
-            "ppstructurev3@gpu lane. Valid values: legacy, reduced-v1. "
-            "Default on GPU: legacy. Default on CPU/stub: cpu-default / "
-            "stub-default (the flag is ignored on non-GPU profiles with a "
-            "stderr warning). Can also be set via the LEDGERLINC_MODULE_SET "
-            "environment variable; the CLI flag wins when both are present."
+            "ppstructurev3@gpu lane. Valid values: legacy, reduced-v1, "
+            "cpu-default, stub-default. Default on GPU: legacy. The "
+            "cpu-default / stub-default identity values are accepted on "
+            "non-GPU profiles; any GPU value passed on a non-GPU profile "
+            "is ignored with a stderr warning. Can also be set via the "
+            "LEDGERLINC_MODULE_SET environment variable; the CLI flag "
+            "wins when both are present."
         ),
     )
     p.add_argument(
@@ -132,10 +134,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Select a named detection/recognition model variant for the "
             "ppstructurev3@gpu lane. Valid values: legacy, ppocrv5-mobile, "
-            "ppocrv4-mobile. Default on GPU: legacy. Default on CPU/stub: "
-            "cpu-default / stub-default (warn-and-proceed on non-GPU "
-            "profiles). Can also be set via the LEDGERLINC_DET_REC_VARIANT "
-            "environment variable; the CLI flag wins when both are present."
+            "ppocrv4-mobile, cpu-default, stub-default. Default on GPU: "
+            "legacy. The cpu-default / stub-default identity values are "
+            "accepted on non-GPU profiles; any GPU value passed on a "
+            "non-GPU profile is ignored with a stderr warning. Can also "
+            "be set via the LEDGERLINC_DET_REC_VARIANT environment "
+            "variable; the CLI flag wins when both are present."
         ),
     )
     return p

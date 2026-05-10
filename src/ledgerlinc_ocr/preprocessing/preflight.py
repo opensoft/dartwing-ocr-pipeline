@@ -545,6 +545,7 @@ def _truncate(s: str, n: int) -> str:
 # `preprocessing/pipeline.py` (T021 single-doc gate) and
 # `pipeline/corpus_run.py` (T023 warm-corpus gate; T029 timing read).
 _LAST_READOUT: Optional[PreflightReadout] = None
+_LAST_PRESET_KEY: Optional[tuple[Optional[str], Optional[str]]] = None
 
 
 def get_last_readout() -> Optional[PreflightReadout]:
@@ -556,8 +557,9 @@ def get_last_readout() -> Optional[PreflightReadout]:
 def reset_cache() -> None:
     """Test-only: clear the process-level cache. Production code MUST
     NOT call this."""
-    global _LAST_READOUT
+    global _LAST_READOUT, _LAST_PRESET_KEY
     _LAST_READOUT = None
+    _LAST_PRESET_KEY = None
 
 
 def ensure_gpu_ready(
@@ -577,15 +579,26 @@ def ensure_gpu_ready(
     Feature 017 (T010 followon / FR-002 / FR-005 / FR-006): preset kwargs
     are threaded into ``classify()`` on the first call so the GPU engine
     constructor receives the resolved ``use_kwargs`` splat (R-017.6) and
-    the det/rec model-name overrides (R-017.4 Appendix A). Subsequent
-    calls return the cached readout — the engine is constructed exactly
-    once per process per feature 015 FR-001, so preset values are
-    "first-call wins". Within a process the resolved presets are
-    constant (CLI parse → fail-fast validation → cached resolution), so
-    first-call-wins is operationally correct.
+    the det/rec model-name overrides (R-017.4 Appendix A). The engine is
+    constructed exactly once per process (feature 015 FR-001), so the
+    presets used on that first call are pinned for the lifetime of the
+    process. A subsequent call asking for different presets is a caller
+    bug — raise ``RuntimeError`` rather than silently returning a
+    readout that does not reflect the requested presets.
     """
-    global _LAST_READOUT
+    global _LAST_READOUT, _LAST_PRESET_KEY
+    requested_key: tuple[Optional[str], Optional[str]] = (
+        module_set.name if module_set is not None else None,
+        det_rec_variant.name if det_rec_variant is not None else None,
+    )
     if _LAST_READOUT is not None and _LAST_READOUT.state is PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
+        if _LAST_PRESET_KEY != requested_key:
+            raise RuntimeError(
+                f"ensure_gpu_ready called with presets {requested_key!r} "
+                f"after the GPU engine was already initialized with "
+                f"{_LAST_PRESET_KEY!r}. Preset selection is process-wide "
+                f"and resolved once at CLI parse time."
+            )
         return _LAST_READOUT
     readout = classify(
         attempt_ppstructurev3_init=True,
@@ -594,6 +607,7 @@ def ensure_gpu_ready(
     )
     if readout.state is not PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
         raise GpuPrerequisiteError(readout.state, readout.recommendation)
+    _LAST_PRESET_KEY = requested_key
     return readout
 
 
