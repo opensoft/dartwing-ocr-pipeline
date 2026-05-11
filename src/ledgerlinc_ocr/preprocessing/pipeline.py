@@ -104,6 +104,24 @@ class Invocation:
     # the per-run `RunSummary.region_strategy_fallback_count`
     # accumulator. Always-emit-with-default-False on every run kind.
     region_strategy_fallback_fired: bool = False
+    # Feature 019 (T006a / T009 / T011 / T021 / R-019.1 / R-019.10):
+    # resolved preprocess_strategy_id string from the CLI parse. Threaded
+    # into `_run_inner` so the orchestrator can dispatch on
+    # `PreprocessStrategy.kind` (ppstructurev3 / ocr-only / identity).
+    # Default `None` = use the active profile's identity-preset default
+    # (CPU/stub: identity; GPU no-flag: ppstructurev3). Same warn-and-
+    # proceed-nulls-the-value contract as features 017/018's preset axes.
+    preprocess_strategy_id: str | None = None
+    # Feature 019 (T021 / T022 / R-019.10 / I-019.4): mutable per-document
+    # OCR-only fallback flag. The US3 orchestrator sets this to `True` if
+    # the FR-005 combined two-threshold eligibility check trips for this
+    # document (and the document is reprocessed under the `ppstructurev3`
+    # strategy on the same engine). The CLI / corpus_run reads this AFTER
+    # `pipeline.run()` returns to increment the per-run
+    # `RunSummary.ocr_only_fallback_count` accumulator. Always-emit-with-
+    # default-False on every run kind. Per I-019.4, granularity is per-
+    # document — never per-page, never per threshold trip.
+    ocr_only_fallback_fired: bool = False
 
 
 def _derive_document_id(folder_name: str) -> str:

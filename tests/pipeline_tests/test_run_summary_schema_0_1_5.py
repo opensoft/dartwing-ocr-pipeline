@@ -65,24 +65,32 @@ def _make_minimal_run_summary(**overrides: Any) -> RunSummary:
 # ---------------------------------------------------------------------------
 
 
-def test_schema_version_is_0_1_5_codebase_level() -> None:
-    """`SCHEMA_VERSION` is exactly `"0.1.5"` for every run of the new
-    binary regardless of preset selection (per R-018.14 +
-    `contracts/run-summary-schema.md` §1)."""
-    assert timing.SCHEMA_VERSION == "0.1.5", (
-        f"feature 018 must bump SCHEMA_VERSION from 0.1.4 to 0.1.5 "
-        f"(got {timing.SCHEMA_VERSION!r})"
+def test_schema_version_is_at_least_0_1_5_codebase_level() -> None:
+    """`SCHEMA_VERSION` is at least `"0.1.5"` (current chain head: 0.1.6
+    after feature 019). The 0.1.5 floor was established by feature 018
+    when it landed the three feature-018 additive top-level fields —
+    every later bump must preserve 0.1.5-shape parsers' ability to read
+    the three feature-018 fields. Strict-pin `== 0.1.6` lives in
+    `test_run_summary_schema_0_1_6.py`."""
+    _version_tuple = tuple(int(p) for p in timing.SCHEMA_VERSION.split("."))
+    assert _version_tuple >= (0, 1, 5), (
+        f"SCHEMA_VERSION must be at least 0.1.5 (feature 018 floor); "
+        f"got {timing.SCHEMA_VERSION!r}."
     )
-    assert SCHEMA_VERSION == "0.1.5"
+    assert tuple(int(p) for p in SCHEMA_VERSION.split(".")) >= (0, 1, 5)
 
 
-def test_run_summary_emits_0_1_5_in_json_line() -> None:
-    """A serialized `run_summary` line carries `schema_version: "0.1.5"`
-    on the wire."""
+def test_run_summary_emits_at_least_0_1_5_in_json_line() -> None:
+    """A serialized `run_summary` line carries `schema_version >= "0.1.5"`
+    on the wire (current chain head: 0.1.6)."""
     summary = _make_minimal_run_summary()
     line = summary.as_json_line()
     parsed = json.loads(line)
-    assert parsed["schema_version"] == "0.1.5"
+    _version_tuple = tuple(int(p) for p in parsed["schema_version"].split("."))
+    assert _version_tuple >= (0, 1, 5), (
+        f"on-wire schema_version must be at least 0.1.5; "
+        f"got {parsed['schema_version']!r}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -147,20 +155,25 @@ def test_region_strategy_fallback_count_present_on_every_run() -> None:
 
 def test_three_feature_018_fields_emit_after_feature_017_fields_in_order() -> None:
     """Feature 018's three additive top-level fields land in fixed order
-    AFTER feature 017's three fields and before the run_summary's
-    terminating brace (contracts/run-summary-schema.md §2). The full
-    order at the trailing edge is:
+    AFTER feature 017's three fields (contracts/run-summary-schema.md §2).
+    The seven-field run is:
 
       preprocess_lane (014)
       module_set_id, det_rec_variant_id, ppstructure_modules_invoked (017)
       raster_profile_id, region_strategy_id, region_strategy_fallback_count (018)
+      … additive feature-019+ fields may appear AFTER this run …
+
+    Feature 019 (T006) added two more trailing fields (`preprocess_strategy_id`,
+    `ocr_only_fallback_count`) — this test no longer asserts "last 3 keys";
+    that strict-end-of-run assertion moves to
+    `test_run_summary_schema_0_1_6.py`. The "feature 018 fields appear in
+    fixed order after feature 017 fields" invariant is what this file pins.
     """
     summary = _make_minimal_run_summary()
     parsed = json.loads(summary.as_json_line())
     keys = list(parsed.keys())
-    # Anchor at preprocess_lane (014's last additive)
     pl_idx = keys.index("preprocess_lane")
-    expected_tail = [
+    expected_run = [
         "preprocess_lane",
         "module_set_id",
         "det_rec_variant_id",
@@ -169,13 +182,7 @@ def test_three_feature_018_fields_emit_after_feature_017_fields_in_order() -> No
         "region_strategy_id",
         "region_strategy_fallback_count",
     ]
-    assert keys[pl_idx:pl_idx + len(expected_tail)] == expected_tail
-    # Feature 018's three are the LAST three keys (no later additive)
-    assert keys[-3:] == [
-        "raster_profile_id",
-        "region_strategy_id",
-        "region_strategy_fallback_count",
-    ]
+    assert keys[pl_idx:pl_idx + len(expected_run)] == expected_run
 
 
 # ---------------------------------------------------------------------------
@@ -184,15 +191,23 @@ def test_three_feature_018_fields_emit_after_feature_017_fields_in_order() -> No
 # ---------------------------------------------------------------------------
 
 
-def test_schema_version_unchanged_across_raster_profile_selections() -> None:
-    """`schema_version` is `"0.1.5"` for every emission regardless of
-    which raster_profile the run used — fixed at the codebase level
-    (R-018.14)."""
+def test_schema_version_stable_across_raster_profile_selections() -> None:
+    """`schema_version` is identical (whatever the producer's current
+    chain head — 0.1.5 floor) for every emission regardless of which
+    raster_profile the run used — fixed at the codebase level (R-018.14;
+    R-019.14 keeps this invariant for the bumped 0.1.6 chain head)."""
+    observed: set[str] = set()
     for raster_profile_id in ["cpu-default", "stub-default", "legacy", "reduced-v1"]:
         summary = _make_minimal_run_summary(raster_profile_id=raster_profile_id)
         parsed = json.loads(summary.as_json_line())
-        assert parsed["schema_version"] == "0.1.5", (
-            f"schema_version must stay 0.1.5 across all raster_profile "
+        observed.add(parsed["schema_version"])
+        _version_tuple = tuple(int(p) for p in parsed["schema_version"].split("."))
+        assert _version_tuple >= (0, 1, 5), (
+            f"schema_version must be >= 0.1.5 across all raster_profile "
             f"selections; got {parsed['schema_version']!r} for "
             f"raster_profile_id={raster_profile_id!r}"
         )
+    assert len(observed) == 1, (
+        f"schema_version must be identical across raster_profile selections; "
+        f"observed {sorted(observed)!r}"
+    )

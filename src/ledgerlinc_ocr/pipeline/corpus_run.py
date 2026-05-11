@@ -272,6 +272,16 @@ def run_warm_corpus(
     _det_rec_threaded_017: str | None = _det_rec_raw_017
     _raster_profile_threaded_018: str | None = _raster_profile_raw_018
     _region_strategy_threaded_018: str | None = _region_strategy_raw_018
+    # Feature 019 (T006a / T009 / T010 / T028): preprocess-strategy axis
+    # raw CLI value + threading variable. The CLI flag `--preprocess-strategy`
+    # is registered in T009 (US1); at Phase 2 there is no CLI flag yet so
+    # `getattr(args, "preprocess_strategy", None)` is always None. The
+    # warn-and-proceed nulling on CPU/stub lands in T028 (US4) alongside
+    # features 017/018's existing nulling.
+    _preprocess_strategy_raw_019: str | None = getattr(
+        args, "preprocess_strategy", None
+    )
+    _preprocess_strategy_threaded_019: str | None = _preprocess_strategy_raw_019
     _warm_pp_profile_017 = plan.profiles.get("preprocess")
     _warm_lane_017 = (
         "gpu0"
@@ -365,6 +375,7 @@ def run_warm_corpus(
                 gpu_prerequisite_failure=True,
                 module_set_threaded=_module_set_threaded_017,
                 det_rec_variant_threaded=_det_rec_threaded_017,
+                preprocess_strategy_threaded=_preprocess_strategy_threaded_019,
                 raster_profile_threaded=_raster_profile_threaded_018,
                 region_strategy_threaded=_region_strategy_threaded_018,
             )
@@ -381,6 +392,7 @@ def run_warm_corpus(
             det_rec_variant_threaded=_det_rec_threaded_017,
             raster_profile_threaded=_raster_profile_threaded_018,
             region_strategy_threaded=_region_strategy_threaded_018,
+            preprocess_strategy_threaded=_preprocess_strategy_threaded_019,
         )
 
     # Feature 016 (T007 / R-016.10 / FR-001 / FR-007 / SC-011): the warm
@@ -452,6 +464,14 @@ def run_warm_corpus(
     succeeded = 0
     failed = 0
     _region_strategy_fallback_count_018 = 0
+    # Feature 019 (T006a / T022): per-doc OCR-only fallback accumulator.
+    # Incremented by 1 per document whose `--preprocess-strategy=ocr-only-v1`
+    # output fails the FR-005 combined two-threshold eligibility check and
+    # falls back to `ppstructurev3` on that document (I-019.4 per-document
+    # granularity). US3's wiring (T021) sets `Invocation.ocr_only_fallback_fired`;
+    # this loop aggregates the flag the same way feature 018 does for
+    # `region_strategy_fallback_fired`.
+    _ocr_only_fallback_count_019 = 0
 
     for entry in documents:
         folder_raw = entry.raw
@@ -503,6 +523,13 @@ def run_warm_corpus(
         result = runner.run_plan(per_doc_plan, folder=folder_resolved)
         if invocation.region_strategy_fallback_fired:
             _region_strategy_fallback_count_018 += 1
+        # Feature 019 (T006a / T022): aggregate per-doc OCR-only fallback
+        # flag. The live preprocessing adapter (T021) copies the per-document
+        # `preprocessing.pipeline.Invocation.ocr_only_fallback_fired` flag
+        # back onto this warm-corpus `CLIInvocation` exactly like feature
+        # 018 does for `region_strategy_fallback_fired`.
+        if getattr(invocation, "ocr_only_fallback_fired", False):
+            _ocr_only_fallback_count_019 += 1
         observed_exit_codes.append(result.exit_code)
         if result.exit_code == ExitCode.SUCCESS:
             succeeded += 1
@@ -743,10 +770,27 @@ def run_warm_corpus(
         threaded_region_strategy=_region_strategy_threaded_018,
         preprocess_lane=_resolved_preprocess_lane,
     )
+    # Feature 019 (T006a / T011 / R-019.1 / R-019.4): derive
+    # preprocess_strategy_id for the run_summary using the same threading
+    # logic as feature 017/018 axes. T011 (US1 wiring) plumbs the CLI/env
+    # value into `_preprocess_strategy_threaded_019` upstream; the warn-
+    # and-proceed CPU/stub nulling lands in T028 (US4). At Phase 2 there
+    # is no CLI flag yet, so `_preprocess_strategy_threaded_019` is None
+    # and the helper falls through to the GPU/CPU lane default
+    # (LEGACY_PREPROCESS_STRATEGY on GPU; CPU_DEFAULT_PREPROCESS_STRATEGY
+    # on CPU).
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        derive_run_summary_preprocess_strategy_id as _derive_preprocess_strategy_id_019,
+    )
+    _preprocess_strategy_id_019 = _derive_preprocess_strategy_id_019(
+        threaded_preprocess_strategy=_preprocess_strategy_threaded_019,
+        preprocess_lane=_resolved_preprocess_lane,
+    )
     if _pp_profile is not None and _pp_profile.kind == "stub":
         from ledgerlinc_ocr.preprocessing.identifiers import (
             STUB_DEFAULT_DET_REC_VARIANT,
             STUB_DEFAULT_MODULE_SET,
+            STUB_DEFAULT_PREPROCESS_STRATEGY,
             STUB_DEFAULT_RASTER_PROFILE,
             STUB_DEFAULT_REGION_STRATEGY,
         )
@@ -755,6 +799,9 @@ def run_warm_corpus(
         _det_rec_variant_id_017 = STUB_DEFAULT_DET_REC_VARIANT
         _raster_profile_id_018 = STUB_DEFAULT_RASTER_PROFILE
         _region_strategy_id_018 = STUB_DEFAULT_REGION_STRATEGY
+        # Feature 019 (T006a / US4): stub adapter uses stub-default
+        # discrimination for the preprocess-strategy axis as well.
+        _preprocess_strategy_id_019 = STUB_DEFAULT_PREPROCESS_STRATEGY
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -785,6 +832,12 @@ def run_warm_corpus(
         raster_profile_id=_raster_profile_id_018,
         region_strategy_id=_region_strategy_id_018,
         region_strategy_fallback_count=_region_strategy_fallback_count_018,
+        # Feature 019 (T006a / T011 / T022 / R-019.14): two additive
+        # top-level fields. preprocess_strategy_id derived via derive_*;
+        # ocr_only_fallback_count is the per-doc accumulator above
+        # (increments per fallen-back document per I-019.4).
+        preprocess_strategy_id=_preprocess_strategy_id_019,
+        ocr_only_fallback_count=_ocr_only_fallback_count_019,
     )
     emit_run_summary(summary)
 
@@ -803,6 +856,7 @@ def _emit_warm_init_failure_summary(
     det_rec_variant_threaded: str | None = None,
     raster_profile_threaded: str | None = None,
     region_strategy_threaded: str | None = None,
+    preprocess_strategy_threaded: str | None = None,
 ) -> int:
     """Emit the partial run_summary on warm-init failure.
 
@@ -864,10 +918,20 @@ def _emit_warm_init_failure_summary(
         threaded_region_strategy=region_strategy_threaded,
         preprocess_lane=_warm_lane,
     )
+    # Feature 019 (T006a / T011 / R-019.1 / R-019.4): preprocess-strategy
+    # axis on warm-init failure path mirrors the feature 017/018 axes above.
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        derive_run_summary_preprocess_strategy_id as _derive_preprocess_strategy_id_019,
+    )
+    _failure_preprocess_strategy_id = _derive_preprocess_strategy_id_019(
+        threaded_preprocess_strategy=preprocess_strategy_threaded,
+        preprocess_lane=_warm_lane,
+    )
     if _pp_profile is not None and _pp_profile.kind == "stub":
         from ledgerlinc_ocr.preprocessing.identifiers import (
             STUB_DEFAULT_DET_REC_VARIANT,
             STUB_DEFAULT_MODULE_SET,
+            STUB_DEFAULT_PREPROCESS_STRATEGY,
             STUB_DEFAULT_RASTER_PROFILE,
             STUB_DEFAULT_REGION_STRATEGY,
         )
@@ -876,6 +940,7 @@ def _emit_warm_init_failure_summary(
         _failure_det_rec_variant_id = STUB_DEFAULT_DET_REC_VARIANT
         _failure_raster_profile_id = STUB_DEFAULT_RASTER_PROFILE
         _failure_region_strategy_id = STUB_DEFAULT_REGION_STRATEGY
+        _failure_preprocess_strategy_id = STUB_DEFAULT_PREPROCESS_STRATEGY
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -898,6 +963,11 @@ def _emit_warm_init_failure_summary(
         raster_profile_id=_failure_raster_profile_id,
         region_strategy_id=_failure_region_strategy_id,
         region_strategy_fallback_count=0,
+        # Feature 019 (T006a / R-019.14): preprocess-strategy axis on
+        # warm-init failure path. The orchestrator never ran, so
+        # ocr_only_fallback_count is always 0.
+        preprocess_strategy_id=_failure_preprocess_strategy_id,
+        ocr_only_fallback_count=0,
         documents_total=len(documents),
         documents_succeeded=0,
         documents_failed=1,

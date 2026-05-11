@@ -652,6 +652,13 @@ def _emit_single_doc_run_summary(
     from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
         derive_run_summary_region_strategy_id as _derive_region_strategy_id_018,
     )
+    # Feature 019 (T006a / T009 / T011 / R-019.1 / R-019.10 / FR-007 / FR-008):
+    # same threading discipline for the preprocess_strategy axis. The
+    # ocr_only_fallback count comes from `invocation.ocr_only_fallback_fired`
+    # set by the orchestrator's OCR-only path on FR-005 trigger (US3 / T021).
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        derive_run_summary_preprocess_strategy_id as _derive_preprocess_strategy_id_019,
+    )
 
     _module_set_id_017, _det_rec_variant_id_017 = _derive_identifiers_017(
         threaded_module_set=invocation.module_set_id,
@@ -666,10 +673,19 @@ def _emit_single_doc_run_summary(
         threaded_region_strategy=invocation.region_strategy_id,
         preprocess_lane=preprocess_lane,
     )
+    _preprocess_strategy_id_019 = _derive_preprocess_strategy_id_019(
+        threaded_preprocess_strategy=invocation.preprocess_strategy_id,
+        preprocess_lane=preprocess_lane,
+    )
     # R-018.8 / Clarifications Q4: per-doc fallback flag from the
     # orchestrator → per-run accumulator (single-doc CLI = 0 or 1).
     _region_strategy_fallback_count_018 = (
         1 if invocation.region_strategy_fallback_fired else 0
+    )
+    # R-019.10 / I-019.4: same per-doc → per-run mapping for the OCR-only
+    # fallback flag (single-doc CLI = 0 or 1).
+    _ocr_only_fallback_count_019 = (
+        1 if getattr(invocation, "ocr_only_fallback_fired", False) else 0
     )
     summary = RunSummary(
         stack_preset=None,
@@ -693,6 +709,12 @@ def _emit_single_doc_run_summary(
         raster_profile_id=_raster_profile_id_018,
         region_strategy_id=_region_strategy_id_018,
         region_strategy_fallback_count=_region_strategy_fallback_count_018,
+        # Feature 019 (T006a / T011 / T022): two additive top-level fields.
+        # preprocess_strategy_id derived via derive_*; ocr_only_fallback_count
+        # from the orchestrator's per-doc fallback flag (R-019.10 / I-019.4 —
+        # single-doc CLI = 0 or 1).
+        preprocess_strategy_id=_preprocess_strategy_id_019,
+        ocr_only_fallback_count=_ocr_only_fallback_count_019,
     )
     emit_run_summary(summary)
 

@@ -13,6 +13,12 @@ the CPU lane, stub adapter, and GPU-lane legacy default. Default selection
 flows through `preprocessing/cli.py` and `pipeline/cli.py` per
 contracts/cli-contract.md §1 (CLI sets the GPU-default to LEGACY_*; CPU
 profile uses CPU_DEFAULT_*; stub adapter uses STUB_DEFAULT_*).
+
+Feature 019 (T005 / R-019.2 / R-019.3 / R-019.4 / data-model.md §Identifier-string
+constants): adds module-level constants for the closed-vocabulary
+`run_summary` identifier (`preprocess_strategy_id`) on the CPU lane,
+stub adapter, GPU-lane legacy default, and the OCR-only candidate
+preset. Same flow pattern as features 017/018.
 """
 
 from __future__ import annotations
@@ -67,3 +73,16 @@ STUB_DEFAULT_RASTER_PROFILE: str = "stub-default"
 LEGACY_REGION_STRATEGY: str = "full-page"
 CPU_DEFAULT_REGION_STRATEGY: str = "cpu-default"
 STUB_DEFAULT_REGION_STRATEGY: str = "stub-default"
+
+# Feature 019 (T005 / R-019.2 / R-019.3 / R-019.4 / data-model.md §Identifier-string
+# constants): closed-vocabulary `run_summary` identifier defaults for the
+# preprocess-strategy axis added by feature 019. CPU lane writes `cpu-default`;
+# stub adapter writes `stub-default`; GPU lane defaults to `ppstructurev3`
+# (the layout-aware strategy on `main` at landing time of feature 018) when
+# no flag is set. The OCR-only candidate preset is named `ocr-only-v1`.
+# Distinct strings preserve absence-as-regression-signal discrimination
+# (FR-010).
+LEGACY_PREPROCESS_STRATEGY: str = "ppstructurev3"
+OCR_ONLY_V1_PREPROCESS_STRATEGY: str = "ocr-only-v1"
+CPU_DEFAULT_PREPROCESS_STRATEGY: str = "cpu-default"
+STUB_DEFAULT_PREPROCESS_STRATEGY: str = "stub-default"

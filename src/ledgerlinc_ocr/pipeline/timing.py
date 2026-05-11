@@ -30,6 +30,7 @@ from ledgerlinc_ocr.preprocessing.identifiers import (
     AUDIT_SUB_MODULE_VOCABULARY,
     CPU_DEFAULT_DET_REC_VARIANT,
     CPU_DEFAULT_MODULE_SET,
+    CPU_DEFAULT_PREPROCESS_STRATEGY,
     CPU_DEFAULT_RASTER_PROFILE,
     CPU_DEFAULT_REGION_STRATEGY,
 )
@@ -113,7 +114,18 @@ def bind_current_stage_timing(stage_timing: "StageTiming"):
 # 0.1.4 — no existing field is renamed, removed, or retyped (FR-010 /
 # FR-022). Consumers built against 0.1.4 continue to read 0.1.5 output
 # without changes.
-SCHEMA_VERSION = "0.1.5"
+#
+# Feature 019 (T004 / R-019.14 / FR-007 / FR-008 / FR-010 /
+# contracts/run-summary-schema.md §1): codebase-level patch bump
+# 0.1.5 → 0.1.6 for TWO additive top-level `run_summary` fields —
+# `preprocess_strategy_id` (string) and `ocr_only_fallback_count`
+# (integer). Both are emitted on EVERY run of the new binary regardless
+# of profile or preset selection; CPU/stub defaults flow from
+# `preprocessing/identifiers.py` (`cpu-default` / `stub-default` / `0`).
+# 0.1.6 is a strict superset of 0.1.5 — no existing field is renamed,
+# removed, or retyped (FR-009 / FR-022). Consumers built against 0.1.5
+# continue to read 0.1.6 output without changes.
+SCHEMA_VERSION = "0.1.6"
 
 
 def _ns_to_seconds(ns: int) -> float:
@@ -218,6 +230,20 @@ class RunSummary:
     (US2). The ``region_strategy_fallback_count`` accumulator is
     incremented per fallen-back document by the orchestrator in
     ``preprocessing/pipeline.py`` (US2 wiring) per R-018.7 / R-018.8.
+
+    Feature 019 (T006 / R-019.14 /
+    contracts/run-summary-schema.md §2–§3) adds two additive
+    top-level fields: ``preprocess_strategy_id`` (string) and
+    ``ocr_only_fallback_count`` (integer). Both are emitted on every
+    run regardless of profile (FR-007 / FR-008 / FR-010); their
+    default values reflect the CPU lane defaults from
+    ``preprocessing/identifiers.py`` (CPU_DEFAULT_PREPROCESS_STRATEGY
+    / 0). Stub-adapter runs override via ``stub-default`` strings;
+    GPU-lane runs override via the resolved preset name from
+    ``preprocessing/preprocess_strategies.py::resolve_preprocess_strategy``
+    (US1 wiring). The ``ocr_only_fallback_count`` accumulator is
+    incremented per fallen-back document by the orchestrator in
+    ``preprocessing/pipeline.py`` (US3 wiring) per R-019.10 / I-019.4.
     """
     stack_preset: str | None
     resolved_profiles: dict[Stage, str]
@@ -241,6 +267,15 @@ class RunSummary:
     raster_profile_id: str = CPU_DEFAULT_RASTER_PROFILE
     region_strategy_id: str = CPU_DEFAULT_REGION_STRATEGY
     region_strategy_fallback_count: int = 0
+    # Feature 019 (T006 / R-019.14): two additive top-level fields.
+    # Defaults reflect the CPU lane / no-preset case; US1 wiring
+    # overrides on GPU runs (resolved preset name from
+    # `preprocess_strategies.py::resolve_preprocess_strategy`); stub
+    # adapter overrides to `stub-default`. US3 wiring increments
+    # `ocr_only_fallback_count` per fallen-back document via the
+    # orchestrator in `preprocessing/pipeline.py` per R-019.10 / I-019.4.
+    preprocess_strategy_id: str = CPU_DEFAULT_PREPROCESS_STRATEGY
+    ocr_only_fallback_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         # Last-line-of-defense canonicalization for the closed-vocabulary
@@ -281,6 +316,12 @@ class RunSummary:
             "raster_profile_id": self.raster_profile_id,
             "region_strategy_id": self.region_strategy_id,
             "region_strategy_fallback_count": self.region_strategy_fallback_count,
+            # Feature 019 additive top-level fields (T006 /
+            # contracts/run-summary-schema.md §4): emitted AFTER
+            # feature 018's three fields and before the closing brace
+            # in fixed order. Always-emit per FR-007 / FR-008 / FR-010.
+            "preprocess_strategy_id": self.preprocess_strategy_id,
+            "ocr_only_fallback_count": self.ocr_only_fallback_count,
         }
 
     def as_json_line(self) -> str:
