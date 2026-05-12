@@ -247,8 +247,13 @@ def run_warmup_if_active(
                 resolve_det_rec_variant as _resolve_det_rec_variant_017,
             )
             _variant = _resolve_det_rec_variant_017(det_rec_variant_id)
-            _text_det_name = getattr(_variant, "text_detection_model_name", None)
-            _text_rec_name = getattr(_variant, "text_recognition_model_name", None)
+            # Pre-PR QA review: `DetRecVariant` exposes `det_model_name`
+            # / `rec_model_name` (see presets.py:352–353); using the
+            # PaddleOCR kwarg names directly via getattr silently
+            # returns None and breaks variant selection. Read the
+            # actual attributes.
+            _text_det_name = _variant.det_model_name
+            _text_rec_name = _variant.rec_model_name
         # Construct (or reuse) the OCR-only singleton engine on the GPU
         # device. I-019.2 single-construction guarantee applies per-engine.
         _ocr_only_mod._get_ocr_engine(
@@ -571,8 +576,13 @@ def _run_ocr_only_path(
             resolve_det_rec_variant as _resolve_det_rec_variant_017,
         )
         variant = _resolve_det_rec_variant_017(invocation.det_rec_variant_id)
-        text_det_name = getattr(variant, "text_detection_model_name", None)
-        text_rec_name = getattr(variant, "text_recognition_model_name", None)
+        # Pre-PR QA review: `DetRecVariant` exposes `det_model_name` /
+        # `rec_model_name` (presets.py:352–353); the PaddleOCR kwarg
+        # names (`text_detection_model_name` / `text_recognition_model_name`)
+        # are NOT attributes on `DetRecVariant`. Reading the actual
+        # attribute names so the variant selection is honored.
+        text_det_name = variant.det_model_name
+        text_rec_name = variant.rec_model_name
     # Construct (or reuse) the OCR-only singleton engine.
     engine = _ocr_only_mod._get_ocr_engine(
         device=device,

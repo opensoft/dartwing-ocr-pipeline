@@ -303,14 +303,14 @@ def test_cpu_warmup_optin_run_summary_has_no_warmup_key(
     summary = json.loads(summary_line)
     assert summary.get("kind") == "run_summary"
     # Feature 018 (T004 / R-018.14): bumped 0.1.4 → 0.1.5 (additive top-level fields).
-    # Feature 019 (T004 / R-019.14): bumped 0.1.5 → 0.1.6. This test only
-    # cares that the chain head hasn't slid backward — strict-pin
+    # Feature 019 (T004 / R-019.14): bumped 0.1.5 → 0.1.6 (current chain head).
+    # This test enforces "no backslide below 0.1.6" — strict-pin
     # `== 0.1.6` lives in `test_run_summary_schema_0_1_6.py` (T015).
     _version_tuple = tuple(
         int(p) for p in summary.get("schema_version", "0.0.0").split(".")
     )
-    assert _version_tuple >= (0, 1, 5), (
-        f"schema_version must be at least 0.1.5; "
+    assert _version_tuple >= (0, 1, 6), (
+        f"schema_version must be at least 0.1.6 (feature 019 chain head); "
         f"got {summary.get('schema_version')!r}"
     )
     assert len(summary.get("per_document", [])) == 1

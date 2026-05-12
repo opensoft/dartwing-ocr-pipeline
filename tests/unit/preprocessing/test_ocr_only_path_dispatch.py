@@ -93,6 +93,24 @@ def test_get_ocr_engine_rejects_model_name_change_on_same_device() -> None:
     assert "different det/rec variant" in str(exc_info.value)
 
 
+def test_get_ocr_engine_rejects_rec_model_name_change_on_same_device() -> None:
+    """Companion to the det-only test above — rec-only model name change
+    must also raise (pre-PR QA review: the singleton guard's `det OR rec
+    mismatch` semantics must reject either half independently)."""
+    ocr_only_mod._OCR_ENGINE = object()
+    ocr_only_mod._OCR_ENGINE_DEVICE = "gpu:0"
+    ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = "PP-OCRv5_server_det"
+    ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = "en_PP-OCRv4_mobile_rec"
+    with pytest.raises(RuntimeError) as exc_info:
+        ocr_only_mod._get_ocr_engine(
+            device="gpu:0",
+            text_detection_model_name="PP-OCRv5_server_det",  # unchanged
+            text_recognition_model_name="en_PP-OCRv5_server_rec",  # changed
+        )
+    assert "refusing to rebuild" in str(exc_info.value)
+    assert "different det/rec variant" in str(exc_info.value)
+
+
 def test_get_ocr_engine_returns_existing_when_device_matches() -> None:
     """Same-device subsequent call returns the existing singleton (no rebuild)."""
     sentinel = object()
@@ -192,6 +210,11 @@ def test_orchestrator_dispatches_to_ocr_only_path_when_strategy_kind_is_ocr_only
                        text_recognition_model_name=None):
         ocr_only_mod._OCR_ENGINE = object()
         ocr_only_mod._OCR_ENGINE_DEVICE = device
+        # Mirror real `_get_ocr_engine` singleton-state assignment
+        # so subsequent same-process calls compare correctly
+        # (pre-PR QA review: mock must reset all 4 globals).
+        ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = text_detection_model_name
+        ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = text_recognition_model_name
         return ocr_only_mod._OCR_ENGINE
 
     def fake_run_ocr_only_page(engine, page_image, *, page_number):
@@ -239,6 +262,11 @@ def test_orchestrator_ocr_only_output_validates_against_v1_2_0_schema(
                        text_recognition_model_name=None):
         ocr_only_mod._OCR_ENGINE = object()
         ocr_only_mod._OCR_ENGINE_DEVICE = device
+        # Mirror real `_get_ocr_engine` singleton-state assignment
+        # so subsequent same-process calls compare correctly
+        # (pre-PR QA review: mock must reset all 4 globals).
+        ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = text_detection_model_name
+        ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = text_recognition_model_name
         return ocr_only_mod._OCR_ENGINE
 
     def fake_run_ocr_only_page(engine, page_image, *, page_number):
@@ -289,6 +317,11 @@ def test_orchestrator_fallback_path_fires_when_eligibility_insufficient(
                        text_recognition_model_name=None):
         ocr_only_mod._OCR_ENGINE = object()
         ocr_only_mod._OCR_ENGINE_DEVICE = device
+        # Mirror real `_get_ocr_engine` singleton-state assignment
+        # so subsequent same-process calls compare correctly
+        # (pre-PR QA review: mock must reset all 4 globals).
+        ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = text_detection_model_name
+        ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = text_recognition_model_name
         return ocr_only_mod._OCR_ENGINE
 
     def fake_run_ocr_only_page(engine, page_image, *, page_number):

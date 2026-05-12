@@ -293,7 +293,7 @@ def run_ocr_only_page(
                 OcrOnlyLine(
                     bbox=bbox,
                     text=str(text or ""),
-                    detector_confidence=float(score) if score is not None else 0.0,
+                    detector_confidence=_coerce_confidence(score),
                 )
             )
 
@@ -303,6 +303,31 @@ def run_ocr_only_page(
         page_width=width,
         page_height=height,
     )
+
+
+def _coerce_confidence(score: Any) -> float:
+    """Defensively convert a PaddleOCR confidence score to a float in [0, 1].
+
+    Pre-PR QA review #1: `float(score)` raises ``TypeError`` / ``ValueError``
+    on non-numeric types (ndarray, dict, str). Falling through to 0.0 on
+    coercion failure keeps the per-page predict robust to PaddleOCR version
+    drift without masking real bugs further upstream — the eligibility
+    check (FR-005) will see the low confidence and trigger fallback if
+    enough scores are unparseable.
+    """
+    if score is None:
+        return 0.0
+    try:
+        value = float(score)
+    except (TypeError, ValueError):
+        return 0.0
+    if value != value:  # NaN check via reflexivity
+        return 0.0
+    if value < 0.0:
+        return 0.0
+    if value > 1.0:
+        return 1.0
+    return value
 
 
 def _result_field(result: Any, name: str) -> Any:
@@ -362,6 +387,11 @@ def _polygon_to_bbox(
 # Named here so it appears as a tunable invariant rather than a magic
 # literal at the call site (pre-PR QA review finding).
 CLUSTER_PROXIMITY_RATIO: float = 1.5
+# Minimum line-height clamp (pixels) used when median line height is 0 —
+# guards against malformed OCR output (lines with `y0 == y1`) collapsing
+# the proximity threshold to 0 and splitting every line into its own
+# block. Named per pre-PR QA review finding #5.
+MIN_LINE_HEIGHT_PX: int = 1
 
 
 @dataclass(frozen=True)
@@ -423,7 +453,9 @@ def cluster_lines_into_blocks(lines: Sequence[OcrOnlyLine]) -> list[OcrOnlyBlock
     # doesn't collapse the proximity threshold to 0 (which would split
     # every line into its own block). Defensive against malformed OCR
     # output; well-formed PaddleOCR boxes always have height >= 1.
-    proximity_threshold = CLUSTER_PROXIMITY_RATIO * max(1, median_height)
+    proximity_threshold = CLUSTER_PROXIMITY_RATIO * max(
+        MIN_LINE_HEIGHT_PX, median_height
+    )
     # 4. Greedy clustering
     clusters: list[list[OcrOnlyLine]] = []
     current: list[OcrOnlyLine] = [centers[0][0]]

@@ -1077,15 +1077,17 @@ def _maybe_register_warm_preprocess(
             if _is_ocr_only_strategy:
                 from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
 
+                # Pre-PR QA review: `DetRecVariant` exposes
+                # `det_model_name` / `rec_model_name` (presets.py:352–353);
+                # the PaddleOCR-side kwarg names
+                # (`text_detection_model_name` / `text_recognition_model_name`)
+                # are NOT attributes on `DetRecVariant`. Using the actual
+                # attribute names so the variant selection is honored.
                 _text_det_name: str | None = None
                 _text_rec_name: str | None = None
                 if det_rec_variant is not None:
-                    _text_det_name = getattr(
-                        det_rec_variant, "text_detection_model_name", None
-                    )
-                    _text_rec_name = getattr(
-                        det_rec_variant, "text_recognition_model_name", None
-                    )
+                    _text_det_name = det_rec_variant.det_model_name
+                    _text_rec_name = det_rec_variant.rec_model_name
                 _ocr_only_mod._get_ocr_engine(
                     device=device_str,
                     text_detection_model_name=_text_det_name,

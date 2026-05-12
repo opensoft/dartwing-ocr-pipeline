@@ -4,6 +4,8 @@ deterministic Y-axis block clustering in `preprocessing/ocr_only.py`.
 
 from __future__ import annotations
 
+import pytest
+
 from ledgerlinc_ocr.preprocessing.ocr_only import (
     OcrOnlyLine,
     cluster_lines_into_blocks,
@@ -25,14 +27,16 @@ def test_empty_input_returns_empty() -> None:
 
 
 def test_single_line_yields_single_block() -> None:
-    """One line ⇒ one block; bbox = line bbox; text = line text."""
-    line = _line(10, 20, 100, 30, text="Acme")
+    """One line ⇒ one block; bbox = line bbox; text = line text;
+    mean_confidence = line's detector_confidence verbatim."""
+    line = _line(10, 20, 100, 30, text="Acme", conf=0.9)
     blocks = cluster_lines_into_blocks([line])
     assert len(blocks) == 1
     b = blocks[0]
     assert b.bbox == (10, 20, 100, 30)
     assert b.text == "Acme"
     assert b.block_type == "text"  # I-019.6
+    assert b.mean_confidence == pytest.approx(0.9)
 
 
 def test_close_lines_cluster_into_one_block() -> None:
@@ -181,9 +185,9 @@ def test_block_carries_cluster_local_mean_confidence() -> None:
     blocks = cluster_lines_into_blocks(lines)
     assert len(blocks) == 2
     # Cluster 1 mean: (0.9 + 0.95) / 2 = 0.925
-    assert abs(blocks[0].mean_confidence - 0.925) < 1e-9
+    assert blocks[0].mean_confidence == pytest.approx(0.925)
     # Cluster 2 mean: (0.3 + 0.35) / 2 = 0.325
-    assert abs(blocks[1].mean_confidence - 0.325) < 1e-9
+    assert blocks[1].mean_confidence == pytest.approx(0.325)
     # The means MUST differ — proves it's cluster-local, not page-mean
     # (page-mean would be (0.9+0.95+0.3+0.35)/4 = 0.625 for both blocks).
     assert blocks[0].mean_confidence != blocks[1].mean_confidence
