@@ -55,8 +55,8 @@ def test_ocr_only_v1_kind_and_thresholds() -> None:
     assert s.kind == "ocr-only"
     assert s.token_threshold == 8
     assert s.token_threshold == OCR_ONLY_MIN_TOKEN_COUNT
-    assert s.confidence_threshold == 0.60
-    assert s.confidence_threshold == OCR_ONLY_MIN_CONFIDENCE_MEAN
+    assert s.confidence_threshold == pytest.approx(0.60)
+    assert s.confidence_threshold == pytest.approx(OCR_ONLY_MIN_CONFIDENCE_MEAN)
     assert s.confidence_aggregator == "mean"
 
 
