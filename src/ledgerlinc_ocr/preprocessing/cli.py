@@ -186,6 +186,28 @@ def _build_parser() -> argparse.ArgumentParser:
             "be set via LEDGERLINC_REGION_STRATEGY; the CLI flag wins."
         ),
     )
+    # Feature 019 (T009 / R-019.1 / R-019.2 / contracts/cli-contract.md §1):
+    # preprocess-strategy axis (which preprocessing pipeline to invoke).
+    # Mirrors --raster-profile / --region-strategy. Same parse-order, same
+    # UnknownPresetError → exit 16.
+    p.add_argument(
+        "--preprocess-strategy",
+        type=str,
+        default=None,
+        help=(
+            "Select a named preprocessing-strategy preset for the "
+            "ppstructurev3@gpu lane. Valid values: ppstructurev3, "
+            "ocr-only-v1, cpu-default, stub-default. Default on GPU: "
+            "ppstructurev3. The ocr-only-v1 strategy invokes PaddleOCR "
+            "text-detection + text-recognition only (no layout / table "
+            "/ formula / seal modules); on the FR-005 combined two-"
+            "threshold trigger (token count < 8 OR mean detector "
+            "confidence < 0.60), the strategy falls back to "
+            "ppstructurev3 on that document and increments "
+            "ocr_only_fallback_count on run_summary. Can also be set "
+            "via LEDGERLINC_PREPROCESS_STRATEGY; the CLI flag wins."
+        ),
+    )
     return p
 
 
@@ -320,11 +342,24 @@ def main(argv: list[str] | None = None) -> int:
     from ledgerlinc_ocr.preprocessing.region_strategies import (
         resolve_region_strategy as _resolve_region_strategy,
     )
+    # Feature 019 (T009 / R-019.1 / R-019.12 / contracts/cli-contract.md §3 / §4):
+    # preprocess_strategy axis resolution mirrors feature 017/018 axes.
+    # Same parse order: env-var → resolve → cross-profile warn.
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value,
+        preprocess_strategy_warn_message as _preprocess_strategy_warn,
+    )
+    from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+        resolve_preprocess_strategy as _resolve_preprocess_strategy,
+    )
 
     _module_set_raw = _resolve_module_set_value(args.module_set)
     _det_rec_raw = _resolve_det_rec_variant_value(args.det_rec_variant)
     _raster_profile_raw = _resolve_raster_profile_value(args.raster_profile)
     _region_strategy_raw = _resolve_region_strategy_value(args.region_strategy)
+    _preprocess_strategy_raw = _resolve_preprocess_strategy_value(
+        args.preprocess_strategy
+    )
     try:
         if _module_set_raw is not None:
             _resolve_module_set(_module_set_raw)
@@ -334,6 +369,8 @@ def main(argv: list[str] | None = None) -> int:
             _resolve_raster_profile(_raster_profile_raw)
         if _region_strategy_raw is not None:
             _resolve_region_strategy(_region_strategy_raw)
+        if _preprocess_strategy_raw is not None:
+            _resolve_preprocess_strategy(_preprocess_strategy_raw)
     except _UnknownPresetError as exc:
         valid_str = ", ".join(exc.valid_values)
         print(
@@ -349,6 +386,7 @@ def main(argv: list[str] | None = None) -> int:
     _det_rec_threaded: str | None = _det_rec_raw
     _raster_profile_threaded: str | None = _raster_profile_raw
     _region_strategy_threaded: str | None = _region_strategy_raw
+    _preprocess_strategy_threaded: str | None = _preprocess_strategy_raw
     if not _is_gpu_lane_017(preprocess_lane):
         active_profile_name_017 = (
             args.preprocess_profile if args.preprocess_profile else "ppstructurev3@cpu"
@@ -365,6 +403,12 @@ def main(argv: list[str] | None = None) -> int:
         if _region_strategy_raw is not None:
             print(_region_strategy_warn(active_profile_name_017), file=sys.stderr)
             _region_strategy_threaded = None
+        # Feature 019 (T028 / FR-013 / I-019.14): warn-and-proceed for the
+        # preprocess_strategy axis on CPU/stub profiles. Same shape as
+        # features 017/018 above.
+        if _preprocess_strategy_raw is not None:
+            print(_preprocess_strategy_warn(active_profile_name_017), file=sys.stderr)
+            _preprocess_strategy_threaded = None
 
     # Feature 016 (T008 / T010 / T021 / FR-010 / SC-007): resolve the warmup
     # opt-in surface (CLI flag + LEDGERLINC_GPU_WARMUP env var). When set on
@@ -397,6 +441,11 @@ def main(argv: list[str] | None = None) -> int:
         # discipline as raster_profile_id. The pipeline orchestrator
         # (T018) reads this and branches on the strategy class.
         region_strategy_id=_region_strategy_threaded,
+        # Feature 019 (T009/T011): threaded preprocess_strategy_id; same
+        # discipline as raster_profile_id / region_strategy_id. The
+        # pipeline orchestrator (T011) reads this and dispatches on
+        # PreprocessStrategy.kind (ppstructurev3 / ocr-only / identity).
+        preprocess_strategy_id=_preprocess_strategy_threaded,
     )
 
     # Feature 016 (Copilot PR #24 round 2 finding 1 / FR-007 / SC-004):
@@ -412,6 +461,9 @@ def main(argv: list[str] | None = None) -> int:
             warmup_optin=warmup_optin,
             module_set_id=_module_set_threaded,
             det_rec_variant_id=_det_rec_threaded,
+            # Feature 019 (T035 / R-019.16 / I-019.16): warmup binds the
+            # engine implied by the selected preprocess_strategy_id.
+            preprocess_strategy_id=_preprocess_strategy_threaded,
         )
     except WarmupError as exc:
         print(
