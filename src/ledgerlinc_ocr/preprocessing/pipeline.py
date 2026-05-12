@@ -604,29 +604,55 @@ def _run_ocr_only_path(
             continue
 
         predict = _run_ocr_only_page(engine, pr.image, page_number=pr.page_number)
-        # Build raw_ocr_lines schema-compatible dicts.
+        # Build raw_ocr_lines schema-compatible dicts per
+        # contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json
+        # §$defs.ocr_line: required keys {line_id, bbox, text, confidence};
+        # `additionalProperties: false` forbids any extra keys.
         page_lines: list[dict[str, Any]] = []
         for li, ocr_line in enumerate(predict.lines, start=1):
             page_lines.append({
                 "line_id": line_id(pr.page_number, li),
-                "page_number": pr.page_number,
                 "bbox": list(ocr_line.bbox),
                 "text": ocr_line.text,
                 "confidence": float(ocr_line.detector_confidence),
             })
-        # Cluster into blocks (R-019.8).
+        # Cluster into blocks (R-019.8). Schema §$defs.block: required keys
+        # {block_id, block_type, bbox, reading_order, text, confidence};
+        # `additionalProperties: false` forbids any extra keys.
+        # Per I-019.6 every OCR-only block has block_type="text". Per-block
+        # `confidence` is the mean of cluster-member detector confidences
+        # (not page-mean — code-reviewer finding #7).
         ocr_blocks = _cluster_lines_into_blocks(predict.lines)
+        # Build a quick index from line-bbox tuple → confidence so each
+        # block can compute its cluster-local mean cheaply.
+        _line_conf_by_bbox = {
+            tuple(li.bbox): li.detector_confidence for li in predict.lines
+        }
         page_blocks: list[dict[str, Any]] = []
         for ob in ocr_blocks:
+            # Cluster-local mean confidence: lines whose text appears in
+            # this block's `text` (joined by newline). Use bbox lookup
+            # for robustness across whitespace edits.
+            block_line_confs = [
+                conf
+                for bbox_t, conf in _line_conf_by_bbox.items()
+                if (
+                    bbox_t[0] >= ob.bbox[0]
+                    and bbox_t[1] >= ob.bbox[1]
+                    and bbox_t[2] <= ob.bbox[2]
+                    and bbox_t[3] <= ob.bbox[3]
+                )
+            ]
             page_blocks.append({
                 "block_id": block_id(pr.page_number, ob.reading_order),
-                "page_number": pr.page_number,
                 "block_type": "text",  # I-019.6: OCR-only always emits text
                 "bbox": list(ob.bbox),
+                "reading_order": ob.reading_order,
                 "text": ob.text,
                 "confidence": (
-                    sum(li.detector_confidence for li in predict.lines)
-                    / max(1, len(predict.lines))
+                    sum(block_line_confs) / len(block_line_confs)
+                    if block_line_confs
+                    else 0.0
                 ),
             })
 
