@@ -41,7 +41,7 @@ def test_single_line_yields_single_block() -> None:
 
 def test_close_lines_cluster_into_one_block() -> None:
     """Two lines within 1.5 * H cy distance ⇒ single block."""
-    # Line heights = 10; cy[0]=15, cy[1]=27 → distance=12 ≤ 1.5*10=15
+    # Each line has height ten; vertical centers fifteen and twenty-seven give distance twelve, within the threshold of fifteen.
     l1 = _line(0, 10, 100, 20, text="Acme")
     l2 = _line(0, 22, 100, 32, text="Corp")
     blocks = cluster_lines_into_blocks([l1, l2])
@@ -53,7 +53,7 @@ def test_close_lines_cluster_into_one_block() -> None:
 
 def test_far_lines_split_into_separate_blocks() -> None:
     """Two lines with cy distance > 1.5 * H ⇒ two separate blocks."""
-    # Heights=10; cy[0]=15, cy[1]=200 → distance=185 > 1.5*10=15
+    # Each line has height ten; centers fifteen and two hundred give distance one hundred eighty-five, far above the fifteen-pixel threshold.
     l1 = _line(0, 10, 100, 20, text="Top")
     l2 = _line(0, 195, 100, 205, text="Bottom")
     blocks = cluster_lines_into_blocks([l1, l2])
@@ -130,8 +130,8 @@ def test_reading_order_is_sequential() -> None:
 def test_cy_distance_exactly_equals_threshold_clusters_together() -> None:
     """Inclusive `<=` comparison: cy distance == 1.5 * median_height MUST
     cluster (the threshold edge is part of the same-block half-space)."""
-    # Two lines with height 10 → median_height = 10 → threshold = 15.
-    # cy[0] = 15, cy[1] = 30 → distance = 15 (exact threshold).
+    # Two height-ten lines yield a median height of ten and a fifteen-pixel proximity threshold;
+    # centers at fifteen and thirty give distance fifteen — sitting exactly at the threshold.
     l1 = _line(0, 10, 100, 20, text="A")  # cy = 15
     l2 = _line(0, 25, 100, 35, text="B")  # cy = 30; distance = 15
     blocks = cluster_lines_into_blocks([l1, l2])
@@ -144,7 +144,7 @@ def test_cy_distance_exactly_equals_threshold_clusters_together() -> None:
 def test_cy_distance_one_greater_than_threshold_splits() -> None:
     """One unit past the inclusive threshold MUST split into two blocks
     (the strict-less-or-equal boundary)."""
-    # Heights 10; threshold = 15. cy[0]=15, cy[1]=31 → distance=16 > 15.
+    # Height ten gives a fifteen-pixel threshold; centers at fifteen and thirty-one yield distance sixteen, just over the threshold.
     l1 = _line(0, 10, 100, 20, text="A")
     l2 = _line(0, 26, 100, 36, text="B")
     blocks = cluster_lines_into_blocks([l1, l2])
@@ -156,9 +156,9 @@ def test_all_zero_height_lines_do_not_collapse_to_zero_threshold() -> None:
     proximity threshold MUST be clamped to a non-zero floor — otherwise
     every line would split into its own block (pre-PR QA review #11 /
     edge case for malformed inputs)."""
-    # All lines have y0 == y1 → height = 0. median_height = 0.
-    # Without the clamp, proximity_threshold = 0 and a 1px cy gap would
-    # split. With clamp to max(1, ...), threshold = 1.5, so adjacent-cy
+    # All input lines have identical top and bottom, producing zero-height boxes and a zero median.
+    # Without the floor clamp the proximity threshold would collapse to zero and a one-pixel gap
+    # would force a split; the clamp lifts the threshold to one-and-a-half pixels so adjacent centers
     # lines still cluster.
     lines = [
         _line(0, 100, 50, 100, text="A"),   # cy = 100, height = 0

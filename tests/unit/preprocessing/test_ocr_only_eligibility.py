@@ -37,7 +37,7 @@ def test_empty_input_returns_insufficient() -> None:
 
 def test_token_count_below_trips_even_with_high_confidence() -> None:
     """token_count < threshold ⇒ INSUFFICIENT regardless of high confidence."""
-    # 1 line × 2 tokens = 2 tokens total, far below 8
+    # One line containing two tokens totals two tokens — well under the eight-token floor.
     line = _line("Acme Corp", conf=0.99)
     v = check_eligibility(
         [line], token_threshold=8, confidence_threshold=0.6
@@ -47,7 +47,7 @@ def test_token_count_below_trips_even_with_high_confidence() -> None:
 
 def test_low_confidence_trips_even_with_many_tokens() -> None:
     """mean_confidence < threshold ⇒ INSUFFICIENT regardless of high token count."""
-    # 5 lines × 2 tokens = 10 tokens, but mean confidence = 0.3 < 0.6
+    # Five two-token lines yield ten tokens (above the floor), but mean confidence of 0.3 is below the 0.6 floor.
     lines = [_line("Acme Corp", conf=0.3) for _ in range(5)]
     v = check_eligibility(
         lines, token_threshold=8, confidence_threshold=0.6
@@ -57,7 +57,7 @@ def test_low_confidence_trips_even_with_many_tokens() -> None:
 
 def test_both_above_thresholds_yields_sufficient() -> None:
     """Both arms above thresholds ⇒ SUFFICIENT."""
-    # 5 lines × 2 tokens = 10 ≥ 8; mean = 0.8 ≥ 0.6
+    # Five two-token lines yield ten tokens (over the eight floor) and mean confidence 0.8 clears the 0.6 floor.
     lines = [_line("Acme Corp", conf=0.8) for _ in range(5)]
     v = check_eligibility(
         lines, token_threshold=8, confidence_threshold=0.6
@@ -81,7 +81,7 @@ def test_both_below_thresholds_yields_insufficient() -> None:
 
 def test_exact_threshold_token_count_is_sufficient() -> None:
     """token_count == threshold (inclusive `>=`) ⇒ SUFFICIENT when confidence holds."""
-    # 4 lines × 2 tokens = 8 (exact threshold); mean = 0.9
+    # Four two-token lines hit the eight-token floor exactly; confidence 0.9 clears the 0.6 floor.
     lines = [_line("A B", conf=0.9) for _ in range(4)]
     v = check_eligibility(
         lines, token_threshold=8, confidence_threshold=0.6
@@ -91,7 +91,7 @@ def test_exact_threshold_token_count_is_sufficient() -> None:
 
 def test_exact_threshold_confidence_is_sufficient() -> None:
     """mean_confidence == threshold (inclusive `>=`) ⇒ SUFFICIENT when token count holds."""
-    # 8 lines × 1 token = 8; mean = 0.6 exactly
+    # Eight one-token lines hit the eight-token floor exactly; confidence sits at the 0.6 floor exactly.
     lines = [_line("A", conf=0.6) for _ in range(8)]
     v = check_eligibility(
         lines, token_threshold=8, confidence_threshold=0.6
@@ -101,7 +101,7 @@ def test_exact_threshold_confidence_is_sufficient() -> None:
 
 def test_just_below_token_count_is_insufficient() -> None:
     """token_count = threshold - 1 ⇒ INSUFFICIENT."""
-    # 7 lines × 1 token = 7 (1 below 8)
+    # Seven one-token lines total seven tokens — one below the floor.
     lines = [_line("A", conf=0.9) for _ in range(7)]
     v = check_eligibility(
         lines, token_threshold=8, confidence_threshold=0.6
@@ -116,9 +116,9 @@ def test_just_below_token_count_is_insufficient() -> None:
 
 def test_unicode_whitespace_splits_tokens() -> None:
     """Python's `str.split()` honors Unicode whitespace (NBSP, etc.) per R-019.9."""
-    # "foo bar" (NBSP) splits to 2 tokens
+    # The non-breaking-space character between "foo" and "bar" still splits into two tokens.
     lines = [_line("foo bar", conf=0.9) for _ in range(4)]
-    # 4 lines × 2 tokens = 8 → at threshold
+    # Four two-token lines hit the eight-token floor exactly.
     v = check_eligibility(
         lines, token_threshold=8, confidence_threshold=0.6
     )
@@ -127,7 +127,7 @@ def test_unicode_whitespace_splits_tokens() -> None:
 
 def test_whitespace_only_line_contributes_zero_tokens() -> None:
     """A line containing only whitespace contributes 0 tokens."""
-    # 8 lines × 0 tokens = 0 → INSUFFICIENT (token side)
+    # Eight whitespace-only lines produce zero tokens; the token side fails.
     lines = [_line("   \t  ", conf=0.9) for _ in range(8)]
     v = check_eligibility(
         lines, token_threshold=8, confidence_threshold=0.6

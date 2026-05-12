@@ -130,8 +130,8 @@ def _build_parser() -> argparse.ArgumentParser:
     # two closed-vocabulary preset axes for the ppstructurev3@gpu lane.
     # Mirrors the preprocess CLI's flags. Resolution happens at argv parse
     # time; UnknownPresetError fails fast with exit code 16 BEFORE any
-    # Paddle import. Also accepted via LEDGERLINC_MODULE_SET= /
-    # LEDGERLINC_DET_REC_VARIANT= env vars.
+    # Paddle import. Also accepted via the LEDGERLINC_MODULE_SET and
+    # LEDGERLINC_DET_REC_VARIANT environment variables.
     run.add_argument(
         "--module-set",
         type=str,

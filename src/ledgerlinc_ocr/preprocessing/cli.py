@@ -110,8 +110,9 @@ def _build_parser() -> argparse.ArgumentParser:
     # default to None — the CPU/legacy default kicks in. Resolution happens
     # at argv parse time; UnknownPresetError fails fast with exit code 16
     # BEFORE any Paddle import. Orthogonal to --preprocess-profile and
-    # --gpu-warmup. Also accepted via the LEDGERLINC_MODULE_SET= /
-    # LEDGERLINC_DET_REC_VARIANT= env vars (CLI flag wins when both set).
+    # --gpu-warmup. Also accepted via the LEDGERLINC_MODULE_SET and
+    # LEDGERLINC_DET_REC_VARIANT environment variables (CLI flag wins
+    # when both are set).
     p.add_argument(
         "--module-set",
         type=str,
@@ -767,7 +768,7 @@ def _emit_single_doc_run_summary(
         # fields wired. raster_profile_id from US1's CLI; region_strategy_id
         # from US2's CLI; region_strategy_fallback_count from the
         # orchestrator's per-doc fallback flag (R-018.8 / Q4 — single-doc
-        # CLI = 0 or 1).
+        # CLI takes the value zero or one).
         raster_profile_id=_raster_profile_id_018,
         region_strategy_id=_region_strategy_id_018,
         region_strategy_fallback_count=_region_strategy_fallback_count_018,

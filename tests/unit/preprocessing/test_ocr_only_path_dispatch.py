@@ -225,7 +225,7 @@ def test_orchestrator_dispatches_to_ocr_only_path_when_strategy_kind_is_ocr_only
         lines=fake_lines, page_number=1, page_width=612, page_height=792,
     )
     fake_get_engine, fake_run_ocr_only_page = _make_fake_engine_handles(fake_predict)
-    # Confidence-mean = 0.875 ≥ 0.60; token-count = 9 ≥ 8 ⇒ SUFFICIENT
+    # Mean confidence sits at 0.875 (above the 0.6 floor) and the nine-token count clears the eight-token floor — verdict SUFFICIENT.
 
     from ledgerlinc_ocr.preprocessing import pipeline as pipeline_mod
     with patch.object(ocr_only_mod, "_get_ocr_engine", fake_get_engine), \

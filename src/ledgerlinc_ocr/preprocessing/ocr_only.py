@@ -458,8 +458,9 @@ def cluster_lines_into_blocks(lines: Sequence[OcrOnlyLine]) -> list[OcrOnlyBlock
     ]
     # 2. Sort by cy (stable)
     centers.sort(key=lambda pair: pair[1])
-    # 3. Compute median line height (Python lower-median: index = len // 2 of
-    #    a sorted list; deterministic across platforms per I-019.8).
+    # 3. Compute median line height. We use Python's lower-median convention
+    #    (the element at floor-half of the sorted list) so the choice is
+    #    deterministic across platforms per I-019.8.
     heights = sorted(line.bbox[3] - line.bbox[1] for line in lines)
     median_height = heights[len(heights) // 2]
     # Clamp to 1 so a degenerate all-same-cy / all-zero-height input
