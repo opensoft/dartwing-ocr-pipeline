@@ -10,18 +10,18 @@ This feature adds one new CLI flag and one new env-var fallback, mirroring featu
 
 | Flag | Env-var fallback | Argument type | Default (no flag, no env var) |
 |---|---|---|---|
-| `--preprocess-strategy <id>` | `LEDGERLINC_PREPROCESS_STRATEGY` | `str` (one of the closed vocabulary) | Lane-dependent default (see §2) |
+| `--preprocess-strategy <id>` | `LEDGERLINC_PREPROCESS_STRATEGY` | `str` (one of the user-selectable values) | Lane-dependent default (see §2) |
 
 **Precedence** (R-019.1): CLI flag wins when both are set. Env-var literal value is passed verbatim — no `.strip()`, no case normalization. Empty-string env-value counts as unset (matches feature 016 / 017 / 018).
 
-**Help text placement**: appears in the `--help` output next to feature 018's `--raster-profile` / `--region-strategy` and feature 017's `--module-set` / `--det-rec-variant`. Help string: `"named preprocessing-strategy preset (closed vocabulary: ppstructurev3, ocr-only-v1, cpu-default, stub-default; default depends on profile)"`.
+**Help text placement**: appears in the `--help` output next to feature 018's `--raster-profile` / `--region-strategy` and feature 017's `--module-set` / `--det-rec-variant`. Help string names the two user-selectable values, `ppstructurev3` and `ocr-only-v1`, and separately notes that `cpu-default` / `stub-default` are internal identity values emitted on non-GPU profiles rather than accepted operator inputs.
 
 ## 2. Resolved default by lane
 
 | Active lane | `--preprocess-strategy` set? | Resolved `RunSummary.preprocess_strategy_id` |
 |---|---|---|
 | `ppstructurev3@gpu` | No (flag/env both unset) | `"ppstructurev3"` (LEGACY_PREPROCESS_STRATEGY per R-019.4) |
-| `ppstructurev3@gpu` | Yes, valid value | the CLI/env value verbatim |
+| `ppstructurev3@gpu` | Yes, valid value (`"ppstructurev3"` or `"ocr-only-v1"`) | the CLI/env value verbatim |
 | `ppstructurev3@gpu` | Yes, unknown value | (raises `UnknownPresetError` → exit 16; see §4) |
 | `ppstructurev3@cpu` | Any (set or unset) | `"cpu-default"` (CPU_DEFAULT_PREPROCESS_STRATEGY); warn-and-proceed if set (§3) |
 | Stub adapter | Any (set or unset) | `"stub-default"` (STUB_DEFAULT_PREPROCESS_STRATEGY); warn-and-proceed if set (§3) |
@@ -52,7 +52,7 @@ This feature introduces **no new exit code**. It reuses the existing taxonomy fr
 | 15 | `EXIT_WARMUP_FAILED` | feature 016 | unchanged |
 | **16** | `EXIT_UNKNOWN_PRESET` | feature 017 | **this feature: extended to fire on `--preprocess-strategy ocr-only-v99` (unknown value on the new axis)** |
 
-The `UnknownPresetError.preset_axis` literal is widened from 4 values (post-018) to 5 values by adding `"preprocess_strategy"` (R-019.12 / `data-model.md` §UnknownPresetError). No new exception class. No new exit code. The stderr message format is identical across all 5 axes: `error: unknown <preset_axis>: <preset_value!r> — valid values are: <comma-separated valid_values>`.
+The `UnknownPresetError.preset_axis` literal is widened from 4 values (post-018) to 5 values by adding `"preprocess_strategy"` (R-019.12 / `data-model.md` §UnknownPresetError). No new exception class. No new exit code. The stderr message format is identical across all 5 axes: `error: unknown <preset_axis>: <preset_value!r> — valid values are: <comma-separated valid_values>`. For the `preprocess_strategy` axis, that list is the two user-selectable values only: `ppstructurev3, ocr-only-v1`.
 
 ## 5. Behavior matrix
 
