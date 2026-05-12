@@ -46,6 +46,7 @@ I-019.2, I-019.3, I-019.6, I-019.8, I-019.9, I-019.10.
 from __future__ import annotations
 
 import enum
+import math
 import threading
 import warnings as _std_warnings
 from dataclasses import dataclass
@@ -173,10 +174,22 @@ def _get_ocr_engine(
                 _OCR_ENGINE_DEVICE = effective_device
                 _OCR_ENGINE_TEXT_DET_NAME = text_detection_model_name
                 _OCR_ENGINE_TEXT_REC_NAME = text_recognition_model_name
-        except Exception as exc:
-            # Mirror ocr.py's EngineInitError envelope so callers can
-            # route OCR-only construction failures the same way as
-            # PPStructureV3 construction failures.
+        except (
+            ImportError,
+            OSError,
+            ValueError,
+            TypeError,
+            RuntimeError,
+            AttributeError,
+            KeyError,
+        ) as exc:
+            # Narrow catch (Sonar S5754) — mirrors ocr.py's EngineInitError
+            # envelope but enumerates the realistic PaddleOCR construction
+            # failure modes: ImportError (paddleocr missing), OSError
+            # (weight download / disk), ValueError/TypeError (bad config or
+            # API drift), RuntimeError (Paddle env init incl. ROCm/CUDA),
+            # AttributeError (Paddle module shape changed), KeyError
+            # (missing config key).
             raise EngineInitError(
                 message=str(exc),
                 cause_class=type(exc).__name__,
@@ -321,7 +334,7 @@ def _coerce_confidence(score: Any) -> float:
         value = float(score)
     except (TypeError, ValueError):
         return 0.0
-    if value != value:  # NaN check via reflexivity
+    if math.isnan(value):
         return 0.0
     if value < 0.0:
         return 0.0
