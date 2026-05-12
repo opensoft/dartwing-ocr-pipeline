@@ -64,6 +64,8 @@ from ledgerlinc_ocr.preprocessing.errors import EngineInitError
 
 _OCR_ENGINE: Any = None
 _OCR_ENGINE_DEVICE: Optional[str] = None
+_OCR_ENGINE_TEXT_DET_NAME: Optional[str] = None
+_OCR_ENGINE_TEXT_REC_NAME: Optional[str] = None
 # Lock guarding the check-then-construct sequence in `_get_ocr_engine`
 # (pre-PR QA review finding — eliminates a race where two threads both
 # pass the `is not None` check and construct two engines).
@@ -83,13 +85,13 @@ def _seed_paddle_once() -> None:
         return
     try:
         import paddle  # type: ignore[import-not-found]
-
-        paddle.seed(0)
-    except Exception:
+    except ImportError:
         # Paddle import failure here is benign for determinism — the
         # engine construction below will surface a real EngineInitError
         # if it actually needs Paddle.
-        pass
+        return
+
+    paddle.seed(0)
     _PADDLE_SEEDED = True
 
 
@@ -117,6 +119,7 @@ def _get_ocr_engine(
     off so the predict call exercises only det+rec per FR-002.
     """
     global _OCR_ENGINE, _OCR_ENGINE_DEVICE
+    global _OCR_ENGINE_TEXT_DET_NAME, _OCR_ENGINE_TEXT_REC_NAME
     # Lock-protected check-then-construct (pre-PR QA review). Without the
     # lock, two threads could both pass the `is not None` check and both
     # call `PaddleOCR(...)`, leaking a second engine — violates I-019.2.
@@ -131,6 +134,17 @@ def _get_ocr_engine(
                     f"PaddleOCR engine already constructed for "
                     f"device={_OCR_ENGINE_DEVICE!r}; refusing to rebuild for "
                     f"device={device!r} (singleton-per-process)"
+                )
+            if (
+                text_detection_model_name != _OCR_ENGINE_TEXT_DET_NAME
+                or text_recognition_model_name != _OCR_ENGINE_TEXT_REC_NAME
+            ):
+                raise RuntimeError(
+                    "PaddleOCR engine already constructed with "
+                    f"text_detection_model_name={_OCR_ENGINE_TEXT_DET_NAME!r}, "
+                    f"text_recognition_model_name={_OCR_ENGINE_TEXT_REC_NAME!r}; "
+                    "refusing to rebuild with different det/rec variant "
+                    "(singleton-per-process)"
                 )
             return _OCR_ENGINE
         effective_device = device if device is not None else "cpu"
@@ -157,6 +171,8 @@ def _get_ocr_engine(
                     lang="en",
                 )
                 _OCR_ENGINE_DEVICE = effective_device
+                _OCR_ENGINE_TEXT_DET_NAME = text_detection_model_name
+                _OCR_ENGINE_TEXT_REC_NAME = text_recognition_model_name
         except Exception as exc:
             # Mirror ocr.py's EngineInitError envelope so callers can
             # route OCR-only construction failures the same way as
@@ -252,13 +268,25 @@ def run_ocr_only_page(
     for result in results or []:
         # `result` may be a dict-like or a custom Result object — try
         # attribute access first, fall back to mapping access.
-        rec_texts = _result_field(result, "rec_texts") or []
-        rec_scores = _result_field(result, "rec_scores") or []
-        rec_polys = (
-            _result_field(result, "rec_polys")
-            or _result_field(result, "dt_polys")
-            or []
-        )
+        rec_texts = _result_sequence_field(result, "rec_texts")
+        rec_scores = _result_sequence_field(result, "rec_scores")
+        rec_polys = _result_sequence_field(result, "rec_polys")
+        if rec_polys is None:
+            rec_polys = _result_sequence_field(result, "dt_polys")
+        if rec_texts is None:
+            rec_texts = []
+        if rec_scores is None:
+            rec_scores = []
+        if rec_polys is None:
+            rec_polys = []
+        if not (
+            len(rec_polys) == len(rec_texts) == len(rec_scores)
+        ):
+            raise ValueError(
+                "PaddleOCR predict result has mismatched sequence lengths: "
+                f"polys={len(rec_polys)}, texts={len(rec_texts)}, "
+                f"scores={len(rec_scores)}"
+            )
         for poly, text, score in zip(rec_polys, rec_texts, rec_scores):
             bbox = _polygon_to_bbox(poly, width=width, height=height)
             lines.append(
@@ -284,6 +312,15 @@ def _result_field(result: Any, name: str) -> Any:
     if isinstance(result, dict) and name in result:
         return result[name]
     return None
+
+
+def _result_sequence_field(result: Any, name: str) -> Sequence[Any] | None:
+    value = _result_field(result, name)
+    if value is None:
+        return None
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    return value
 
 
 def _polygon_to_bbox(

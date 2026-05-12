@@ -103,6 +103,7 @@ def _per_document_invocation(
     det_rec_variant_id: str | None = None,
     raster_profile_id: str | None = None,
     region_strategy_id: str | None = None,
+    preprocess_strategy_id: str | None = None,
 ) -> tuple[CLIInvocation | None, ExitCode | None, str]:
     """Build a CLIInvocation for one document folder.
 
@@ -164,6 +165,7 @@ def _per_document_invocation(
         det_rec_variant_id=det_rec_variant_id,
         raster_profile_id=raster_profile_id,
         region_strategy_id=region_strategy_id,
+        preprocess_strategy_id=preprocess_strategy_id,
     )
     return invocation, None, ""
 
@@ -262,6 +264,10 @@ def run_warm_corpus(
         resolve_region_strategy_value as _resolve_region_strategy_value_018,
         region_strategy_warn_message as _region_strategy_warn_018,
     )
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value_019,
+        preprocess_strategy_warn_message as _preprocess_strategy_warn_019,
+    )
     _raster_profile_raw_018 = _resolve_raster_profile_value_018(
         getattr(args, "raster_profile", None)
     )
@@ -278,8 +284,8 @@ def run_warm_corpus(
     # `getattr(args, "preprocess_strategy", None)` is always None. The
     # warn-and-proceed nulling on CPU/stub lands in T028 (US4) alongside
     # features 017/018's existing nulling.
-    _preprocess_strategy_raw_019: str | None = getattr(
-        args, "preprocess_strategy", None
+    _preprocess_strategy_raw_019 = _resolve_preprocess_strategy_value_019(
+        getattr(args, "preprocess_strategy", None)
     )
     _preprocess_strategy_threaded_019: str | None = _preprocess_strategy_raw_019
     _warm_pp_profile_017 = plan.profiles.get("preprocess")
@@ -309,6 +315,9 @@ def run_warm_corpus(
         if _region_strategy_raw_018 is not None:
             sys.stderr.write(_region_strategy_warn_018(_profile_for_warn_017) + "\n")
             _region_strategy_threaded_018 = None
+        if _preprocess_strategy_raw_019 is not None:
+            sys.stderr.write(_preprocess_strategy_warn_019(_profile_for_warn_017) + "\n")
+            _preprocess_strategy_threaded_019 = None
 
     # Resolve the threaded values to preset objects for the warm-init factory.
     _module_set_obj_017: object | None = None
@@ -330,6 +339,7 @@ def run_warm_corpus(
         plan,
         module_set=_module_set_obj_017,
         det_rec_variant=_det_rec_variant_obj_017,
+        preprocess_strategy_threaded=_preprocess_strategy_threaded_019,
     )
     # Feature 014 (Contracts §2 Pre-write GPU gate): warm-corpus GPU
     # preflight failures emit the FR-009 stderr form and exit with the
@@ -443,11 +453,25 @@ def run_warm_corpus(
         print(warn_and_proceed_message(_profile_name_for_warning), file=sys.stderr)
     if _is_gpu_warmup_active:
         try:
-            from ledgerlinc_ocr.preprocessing import (
-                ocr as _ocr_mod,
-                warmup as _warmup_mod,
+            from ledgerlinc_ocr.preprocessing import warmup as _warmup_mod
+            from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+                resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
             )
-            _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
+
+            _is_ocr_only_warmup = (
+                _preprocess_strategy_threaded_019 is not None
+                and _resolve_preprocess_strategy_019(
+                    _preprocess_strategy_threaded_019
+                ).kind == "ocr-only"
+            )
+            if _is_ocr_only_warmup:
+                from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
+
+                _warmup_mod.run_warmup(_ocr_only_mod.get_active_ocr_engine())
+            else:
+                from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+                _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
         except WarmupError as _warmup_exc:
             print(
                 f"error: warmup failed: {_warmup_exc.cause_class}: {_warmup_exc}",
@@ -483,6 +507,7 @@ def run_warm_corpus(
             det_rec_variant_id=_det_rec_threaded_017,
             raster_profile_id=_raster_profile_threaded_018,
             region_strategy_id=_region_strategy_threaded_018,
+            preprocess_strategy_id=_preprocess_strategy_threaded_019,
         )
         if invocation is None:
             failed += 1
@@ -998,6 +1023,7 @@ def _maybe_register_warm_preprocess(
     *,
     module_set: object | None = None,
     det_rec_variant: object | None = None,
+    preprocess_strategy_threaded: str | None = None,
 ) -> None:
     """Register a warm-instance factory for the live preprocessing profile.
 
@@ -1036,9 +1062,37 @@ def _maybe_register_warm_preprocess(
 
     profile_is_gpu = profile.lane == "gpu"
     device_str = "gpu:0" if profile_is_gpu else "cpu"
+    _is_ocr_only_strategy = False
+    if preprocess_strategy_threaded is not None:
+        from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+            resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
+        )
+        _is_ocr_only_strategy = (
+            _resolve_preprocess_strategy_019(preprocess_strategy_threaded).kind
+            == "ocr-only"
+        )
 
-    class _PPStructureV3WarmInstance:
+    class _WarmPreprocessInstance:
         def initialize(self) -> None:
+            if _is_ocr_only_strategy:
+                from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
+
+                _text_det_name: str | None = None
+                _text_rec_name: str | None = None
+                if det_rec_variant is not None:
+                    _text_det_name = getattr(
+                        det_rec_variant, "text_detection_model_name", None
+                    )
+                    _text_rec_name = getattr(
+                        det_rec_variant, "text_recognition_model_name", None
+                    )
+                _ocr_only_mod._get_ocr_engine(
+                    device=device_str,
+                    text_detection_model_name=_text_det_name,
+                    text_recognition_model_name=_text_rec_name,
+                )
+                return
+
             from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
 
             global _PREFLIGHT_READOUT
@@ -1068,7 +1122,7 @@ def _maybe_register_warm_preprocess(
         stage="preprocess",
         implementation="ppstructurev3",
         lane=profile.lane,
-        factory=_PPStructureV3WarmInstance,
+        factory=_WarmPreprocessInstance,
     )
 
 

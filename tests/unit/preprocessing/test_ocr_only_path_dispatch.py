@@ -40,9 +40,13 @@ def _reset_ocr_engine_state():
     (gap #4 / I-019.2 single-construction guarantee verification)."""
     ocr_only_mod._OCR_ENGINE = None
     ocr_only_mod._OCR_ENGINE_DEVICE = None
+    ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = None
+    ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = None
     yield
     ocr_only_mod._OCR_ENGINE = None
     ocr_only_mod._OCR_ENGINE_DEVICE = None
+    ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = None
+    ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = None
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +73,24 @@ def test_get_ocr_engine_rejects_device_change() -> None:
         ocr_only_mod._get_ocr_engine(device="gpu:0")
     assert "refusing to rebuild" in str(exc_info.value)
     assert "singleton-per-process" in str(exc_info.value)
+
+
+def test_get_ocr_engine_rejects_model_name_change_on_same_device() -> None:
+    """Once `_OCR_ENGINE` is constructed for a det/rec pair on one device,
+    a later call on that same device with a different model pair must raise
+    instead of silently reusing the wrong singleton."""
+    ocr_only_mod._OCR_ENGINE = object()
+    ocr_only_mod._OCR_ENGINE_DEVICE = "gpu:0"
+    ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = "PP-OCRv5_server_det"
+    ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = "en_PP-OCRv4_mobile_rec"
+    with pytest.raises(RuntimeError) as exc_info:
+        ocr_only_mod._get_ocr_engine(
+            device="gpu:0",
+            text_detection_model_name="PP-OCRv5_mobile_det",
+            text_recognition_model_name="en_PP-OCRv4_mobile_rec",
+        )
+    assert "refusing to rebuild" in str(exc_info.value)
+    assert "different det/rec variant" in str(exc_info.value)
 
 
 def test_get_ocr_engine_returns_existing_when_device_matches() -> None:
@@ -239,6 +261,10 @@ def test_orchestrator_ocr_only_output_validates_against_v1_2_0_schema(
         f"OCR-only preprocess_output.json failed v1.2.0 schema validation: "
         f"{outcome.violations!r}"
     )
+    artifact = json.loads(artifact_path.read_text())
+    assert artifact["tables"] == []
+    for block in artifact["pages"][0]["blocks"]:
+        assert block["block_type"] == "text"
 
 
 def test_orchestrator_fallback_path_fires_when_eligibility_insufficient(
@@ -280,11 +306,43 @@ def test_orchestrator_fallback_path_fires_when_eligibility_insufficient(
                 "width": pr.width,
                 "height": pr.height,
                 "rotation_detected": pr.rotation_detected,
-                "blocks": [],
-                "raw_ocr_lines": [],
+                    "blocks": [
+                        {
+                            "block_id": "p1_b1",
+                        "block_type": "title",
+                        "bbox": [10, 20, 120, 48],
+                        "text": "Fallback Vendor",
+                        "confidence": 0.91,
+                        "reading_order": 1,
+                    },
+                ],
+                    "raw_ocr_lines": [
+                        {
+                            "line_id": "p1_l1",
+                        "bbox": [10, 20, 120, 32],
+                        "text": "Fallback Vendor",
+                        "confidence": 0.91,
+                    },
+                ],
             },
-            lines=[],
-            blocks=[],
+            lines=[
+                {
+                    "line_id": "p1_l1",
+                    "bbox": [10, 20, 120, 32],
+                    "text": "Fallback Vendor",
+                    "confidence": 0.91,
+                },
+            ],
+            blocks=[
+                {
+                    "block_id": "p1_b1",
+                    "block_type": "title",
+                    "bbox": [10, 20, 120, 48],
+                    "text": "Fallback Vendor",
+                    "confidence": 0.91,
+                    "reading_order": 1,
+                },
+            ],
             tables=[],
             warnings=[],
             silent_empty=False,
@@ -293,7 +351,12 @@ def test_orchestrator_fallback_path_fires_when_eligibility_insufficient(
     with patch.object(ocr_only_mod, "_get_ocr_engine", fake_get_engine), \
          patch.object(ocr_only_mod, "run_ocr_only_page", fake_run_ocr_only_page), \
          patch.object(pipeline_mod, "_process_page", fake_process_page):
-        pipeline_mod.run(invocation)
+        artifact_path = pipeline_mod.run(invocation)
 
     # The fallback flag flipped True per I-019.4 (per-document granularity).
     assert invocation.ocr_only_fallback_fired is True
+    artifact = json.loads(artifact_path.read_text())
+    page = artifact["pages"][0]
+    assert page["blocks"][0]["text"] == "Fallback Vendor"
+    assert page["blocks"][0]["block_type"] == "title"
+    assert page["raw_ocr_lines"][0]["text"] == "Fallback Vendor"

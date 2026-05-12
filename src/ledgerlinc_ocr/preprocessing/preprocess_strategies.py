@@ -30,6 +30,7 @@ R-019.5, R-019.6; contracts/module-invariants.md I-019.1.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Literal, Mapping
 
 from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError
@@ -94,7 +95,7 @@ class PreprocessStrategy:
 # ``--preprocess-strategy`` / ``LEDGERLINC_PREPROCESS_STRATEGY`` /
 # ``run_summary.preprocess_strategy_id``. Adding a key is a feature-
 # level decision per FR-001, not a runtime configuration choice.
-PREPROCESS_STRATEGIES: Mapping[str, PreprocessStrategy] = {
+PREPROCESS_STRATEGIES: Mapping[str, PreprocessStrategy] = MappingProxyType({
     LEGACY_PREPROCESS_STRATEGY: PreprocessStrategy(
         name=LEGACY_PREPROCESS_STRATEGY,
         kind="ppstructurev3",
@@ -112,7 +113,12 @@ PREPROCESS_STRATEGIES: Mapping[str, PreprocessStrategy] = {
     STUB_DEFAULT_PREPROCESS_STRATEGY: PreprocessStrategy.identity(
         STUB_DEFAULT_PREPROCESS_STRATEGY,
     ),
-}
+})
+
+USER_SELECTABLE_PREPROCESS_STRATEGIES: tuple[str, ...] = (
+    LEGACY_PREPROCESS_STRATEGY,
+    OCR_ONLY_V1_PREPROCESS_STRATEGY,
+)
 
 
 def resolve_preprocess_strategy(name: str) -> PreprocessStrategy:
@@ -123,9 +129,7 @@ def resolve_preprocess_strategy(name: str) -> PreprocessStrategy:
     code 16 / I-019.1). The exception's ``valid_values`` is the tuple
     of registry keys in insertion order.
     """
-    try:
-        return PREPROCESS_STRATEGIES[name]
-    except KeyError:
+    if name not in PREPROCESS_STRATEGIES:
         valid = tuple(PREPROCESS_STRATEGIES.keys())
         raise UnknownPresetError(
             f"unknown preprocess_strategy: {name!r} — "
@@ -133,7 +137,26 @@ def resolve_preprocess_strategy(name: str) -> PreprocessStrategy:
             preset_axis="preprocess_strategy",
             preset_value=name,
             valid_values=valid,
-        )
+        ) from None
+    return PREPROCESS_STRATEGIES[name]
+
+
+def resolve_user_preprocess_strategy(name: str) -> PreprocessStrategy:
+    """Resolve a user-selectable preprocess strategy.
+
+    Internal identity sentinels (`cpu-default`, `stub-default`) are valid
+    registry members for run_summary/defaulting, but they are not accepted
+    on the user-facing CLI surface.
+    """
+    if name not in USER_SELECTABLE_PREPROCESS_STRATEGIES:
+        raise UnknownPresetError(
+            f"unknown preprocess_strategy: {name!r} — "
+            f"valid values are: {', '.join(USER_SELECTABLE_PREPROCESS_STRATEGIES)}",
+            preset_axis="preprocess_strategy",
+            preset_value=name,
+            valid_values=USER_SELECTABLE_PREPROCESS_STRATEGIES,
+        ) from None
+    return PREPROCESS_STRATEGIES[name]
 
 
 __all__ = (
@@ -142,5 +165,7 @@ __all__ = (
     "PreprocessStrategyKind",
     "PreprocessStrategy",
     "PREPROCESS_STRATEGIES",
+    "USER_SELECTABLE_PREPROCESS_STRATEGIES",
     "resolve_preprocess_strategy",
+    "resolve_user_preprocess_strategy",
 )

@@ -74,6 +74,10 @@ _STACK_PRESET_CHOICES = ("full-workstation", "cloud-workstation", "edge-fast")
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+        OCR_ONLY_MIN_CONFIDENCE_MEAN as _OCR_ONLY_MIN_CONFIDENCE_MEAN,
+        OCR_ONLY_MIN_TOKEN_COUNT as _OCR_ONLY_MIN_TOKEN_COUNT,
+    )
     parser = argparse.ArgumentParser(
         prog="ledgerlinc-pipeline",
         description="Stage 1 pipeline CLI (single-document or warm corpus)",
@@ -201,11 +205,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Select a named preprocessing-strategy preset for "
             "ppstructurev3@gpu. Valid values: ppstructurev3, "
-            "ocr-only-v1, cpu-default, stub-default. Defaults to "
+            "ocr-only-v1. Defaults to "
             "ppstructurev3 on GPU. The ocr-only-v1 strategy invokes "
             "PaddleOCR det+rec only (no layout / table / formula / "
             "seal modules); on the FR-005 combined two-threshold "
-            "trigger (token count < 8 OR mean confidence < 0.60) "
+            f"trigger (token count < {_OCR_ONLY_MIN_TOKEN_COUNT} OR "
+            f"mean confidence < {_OCR_ONLY_MIN_CONFIDENCE_MEAN:.2f}) "
             "falls back to ppstructurev3 on that document and "
             "increments ocr_only_fallback_count. Can also be set via "
             "LEDGERLINC_PREPROCESS_STRATEGY; the CLI flag wins."
@@ -490,6 +495,7 @@ def _is_legacy_cold_dispatch(args: argparse.Namespace, plan: ResolvedRunPlan) ->
             args.start_at,
             args.stop_after,
             args.on_failure,
+            args.preprocess_strategy,
             args.ollama_cpu_url,
             args.ollama_jetson_url,
         )
@@ -895,7 +901,7 @@ def main(argv: list[str] | None = None, *, runner: Runner | None = None) -> int:
         resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value,
     )
     from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
-        resolve_preprocess_strategy as _resolve_preprocess_strategy,
+        resolve_user_preprocess_strategy as _resolve_user_preprocess_strategy,
     )
     from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError as _UnknownPresetError
 
@@ -916,7 +922,7 @@ def main(argv: list[str] | None = None, *, runner: Runner | None = None) -> int:
         if _region_strategy_raw is not None:
             _resolve_region_strategy(_region_strategy_raw)
         if _preprocess_strategy_raw is not None:
-            _resolve_preprocess_strategy(_preprocess_strategy_raw)
+            _resolve_user_preprocess_strategy(_preprocess_strategy_raw)
     except _UnknownPresetError as exc:
         valid_str = ", ".join(exc.valid_values)
         sys.stderr.write(

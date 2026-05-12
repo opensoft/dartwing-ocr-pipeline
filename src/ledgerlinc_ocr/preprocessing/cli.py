@@ -360,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
         preprocess_strategy_warn_message as _preprocess_strategy_warn,
     )
     from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
-        resolve_preprocess_strategy as _resolve_preprocess_strategy,
+        resolve_user_preprocess_strategy as _resolve_user_preprocess_strategy,
     )
 
     _module_set_raw = _resolve_module_set_value(args.module_set)
@@ -380,7 +380,7 @@ def main(argv: list[str] | None = None) -> int:
         if _region_strategy_raw is not None:
             _resolve_region_strategy(_region_strategy_raw)
         if _preprocess_strategy_raw is not None:
-            _resolve_preprocess_strategy(_preprocess_strategy_raw)
+            _resolve_user_preprocess_strategy(_preprocess_strategy_raw)
     except _UnknownPresetError as exc:
         valid_str = ", ".join(exc.valid_values)
         print(

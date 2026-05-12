@@ -261,7 +261,7 @@ def test_unknown_preprocess_strategy_stderr_lists_valid_values(
     tmp_path: Path,
 ) -> None:
     """stderr line MUST contain `error: unknown preprocess_strategy:` and
-    the four valid values per contracts/cli-contract.md §4."""
+    the two user-selectable values per contracts/cli-contract.md §4."""
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
     (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
@@ -278,8 +278,10 @@ def test_unknown_preprocess_strategy_stderr_lists_valid_values(
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     assert "error: unknown preprocess_strategy:" in result.stderr
-    for v in ("ppstructurev3", "ocr-only-v1", "cpu-default", "stub-default"):
+    for v in ("ppstructurev3", "ocr-only-v1"):
         assert v in result.stderr
+    assert "cpu-default" not in result.stderr
+    assert "stub-default" not in result.stderr
 
 
 def test_unknown_preprocess_strategy_emits_no_run_summary(

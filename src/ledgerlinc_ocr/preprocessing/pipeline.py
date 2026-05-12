@@ -252,7 +252,7 @@ def run_warmup_if_active(
         # Construct (or reuse) the OCR-only singleton engine on the GPU
         # device. I-019.2 single-construction guarantee applies per-engine.
         _ocr_only_mod._get_ocr_engine(
-            device="gpu:0",
+            device=_resolve_lane_to_device(preprocess_lane),
             text_detection_model_name=_text_det_name,
             text_recognition_model_name=_text_rec_name,
         )
@@ -588,48 +588,27 @@ def _run_ocr_only_path(
     pages_with_output = 0
     silent_empty = False
 
-    is_header_first = (
-        region_strategy is not None
-        and getattr(region_strategy, "name", None) == "header-first-v1"
-    )
+    def _append_predict_page(
+        *,
+        pr: Any,
+        offset_px: tuple[int, int] = (0, 0),
+    ) -> None:
+        nonlocal pages_with_output, silent_empty
 
-    for pr in rasterize.rasterize_pdf(pdf_path, dpi=dpi):
-        if isinstance(pr, rasterize.PageRasterFailure):
-            pages.append(_build_failed_page_dict(pr))
-            warnings_out.append(
-                f"page {pr.page_number}: rasterization failed: {pr.error}"
-            )
-            continue
-        # R-019.11 / Q2: under header-first-v1, process page 1 only; pages
-        # 2..N appear as empty page records with valid geometry.
-        if is_header_first and pr.page_number != 1:
-            pages.append({
-                "page_number": pr.page_number,
-                "width": pr.width,
-                "height": pr.height,
-                "rotation_detected": pr.rotation_detected,
-                "blocks": [],
-                "raw_ocr_lines": [],
-            })
-            try:
-                pr.image.close()
-            except Exception:
-                pass
-            continue
-
-        predict = _run_ocr_only_page(engine, pr.image, page_number=pr.page_number)
+        try:
+            predict = _run_ocr_only_page(engine, pr.image, page_number=pr.page_number)
         # Build raw_ocr_lines schema-compatible dicts per
         # contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json
         # §$defs.ocr_line: required keys {line_id, bbox, text, confidence};
         # `additionalProperties: false` forbids any extra keys.
-        page_lines: list[dict[str, Any]] = []
-        for li, ocr_line in enumerate(predict.lines, start=1):
-            page_lines.append({
-                "line_id": line_id(pr.page_number, li),
-                "bbox": list(ocr_line.bbox),
-                "text": ocr_line.text,
-                "confidence": float(ocr_line.detector_confidence),
-            })
+            page_lines: list[dict[str, Any]] = []
+            for li, ocr_line in enumerate(predict.lines, start=1):
+                page_lines.append({
+                    "line_id": line_id(pr.page_number, li),
+                    "bbox": list(ocr_line.bbox),
+                    "text": ocr_line.text,
+                    "confidence": float(ocr_line.detector_confidence),
+                })
         # Cluster into blocks (R-019.8). Schema §$defs.block: required
         # keys {block_id, block_type, bbox, reading_order, text,
         # confidence}; `additionalProperties: false` forbids any extra
@@ -639,40 +618,161 @@ def _run_ocr_only_path(
         # cluster-local arithmetic mean of member-line detector
         # confidences — O(n) total over all lines on this page,
         # replacing the prior O(blocks × lines) bbox-containment lookup.
-        ocr_blocks = _cluster_lines_into_blocks(predict.lines)
-        page_blocks: list[dict[str, Any]] = []
-        for ob in ocr_blocks:
-            page_blocks.append({
-                "block_id": block_id(pr.page_number, ob.reading_order),
-                "block_type": "text",  # I-019.6: OCR-only always emits text
-                "bbox": list(ob.bbox),
-                "reading_order": ob.reading_order,
-                "text": ob.text,
-                "confidence": ob.mean_confidence,
+            ocr_blocks = _cluster_lines_into_blocks(predict.lines)
+            page_blocks: list[dict[str, Any]] = []
+            for ob in ocr_blocks:
+                page_blocks.append({
+                    "block_id": block_id(pr.page_number, ob.reading_order),
+                    "block_type": "text",  # I-019.6: OCR-only always emits text
+                    "bbox": list(ob.bbox),
+                    "reading_order": ob.reading_order,
+                    "text": ob.text,
+                    "confidence": ob.mean_confidence,
+                })
+
+            if offset_px != (0, 0):
+                _translate_record_bboxes(page_lines, offset_px)
+                _translate_record_bboxes(page_blocks, offset_px)
+
+            pages.append({
+                "page_number": pr.page_number,
+                "width": pr.width,
+                "height": pr.height,
+                "rotation_detected": pr.rotation_detected,
+                "blocks": page_blocks,
+                "raw_ocr_lines": page_lines,
             })
+            all_lines.extend(page_lines)
+            aggregated_ocr_lines.extend(predict.lines)
+            if page_lines or page_blocks:
+                pages_with_output += 1
+            else:
+                silent_empty = True
 
-        pages.append({
-            "page_number": pr.page_number,
-            "width": pr.width,
-            "height": pr.height,
-            "rotation_detected": pr.rotation_detected,
-            "blocks": page_blocks,
-            "raw_ocr_lines": page_lines,
-        })
-        all_lines.extend(page_lines)
-        aggregated_ocr_lines.extend(predict.lines)
-        if page_lines or page_blocks:
-            pages_with_output += 1
-        elif not is_header_first or pr.page_number == 1:
-            silent_empty = True
+            if invocation.write_page_images:
+                img_path = invocation.document_folder / f"page_{pr.page_number}.png"
+                pr.image.save(img_path)
+        except Exception as exc:
+            failure = rasterize.PageRasterFailure(
+                page_number=pr.page_number,
+                width=pr.width,
+                height=pr.height,
+                rotation_detected=pr.rotation_detected,
+                error=f"{type(exc).__name__}: {exc}",
+            )
+            pages.append(_build_failed_page_dict(failure))
+            warnings_out.append(
+                f"page {pr.page_number}: ocr-only failed: {failure.error}"
+            )
+        finally:
+            try:
+                pr.image.close()
+            except Exception:
+                pass
 
-        if invocation.write_page_images:
-            img_path = invocation.document_folder / f"page_{pr.page_number}.png"
-            pr.image.save(img_path)
+    is_header_first = (
+        region_strategy is not None
+        and getattr(region_strategy, "name", None) == "header-first-v1"
+    )
+
+    if is_header_first and region_strategy is not None:
+        doc = rasterize.open_pdf(pdf_path)
         try:
-            pr.image.close()
-        except Exception:
-            pass
+            page_count = len(doc)
+            per_page_geometry: list[tuple[int, int, int, int, bool]] = []
+            for i in range(page_count):
+                page = doc[i]
+                try:
+                    width_pt, height_pt = page.get_size()
+                    rotation = int(page.get_rotation() or 0)
+                    snapped_rotation, snapped_changed = rasterize.snap_rotation(rotation)
+                    full_width_px, full_height_px = _scaled_page_pixel_dims(
+                        float(width_pt),
+                        float(height_pt),
+                        dpi=dpi,
+                        snapped_rotation=snapped_rotation,
+                    )
+                    per_page_geometry.append((
+                        full_width_px,
+                        full_height_px,
+                        rotation,
+                        snapped_rotation,
+                        snapped_changed,
+                    ))
+                finally:
+                    page.close()
+            page_1_band = region_strategy.page_targeting(doc, 0)
+        finally:
+            doc.close()
+
+        if page_1_band is None:
+            return (
+                [],
+                [],
+                tables,
+                all_lines,
+                0,
+                False,
+                True,
+            )
+
+        (
+            full_width_px,
+            full_height_px,
+            rotation_original,
+            snapped_rotation,
+            snapped_changed,
+        ) = per_page_geometry[0]
+        try:
+            crop_image, offset_px = rasterize.rasterize_page_band(
+                pdf_path=pdf_path,
+                page_index=0,
+                band_bbox_pt=page_1_band,
+                dpi=dpi,
+            )
+        except Exception as exc:
+            failure = rasterize.PageRasterFailure(
+                page_number=1,
+                width=full_width_px,
+                height=full_height_px,
+                rotation_detected=snapped_rotation,
+                error=f"{type(exc).__name__}: {exc}",
+            )
+            pages.append(_build_failed_page_dict(failure))
+            warnings_out.append(
+                f"page 1: rasterization failed: {failure.error}"
+            )
+            _append_empty_page_records(pages, per_page_geometry, start_index=1)
+            return (
+                pages,
+                warnings_out,
+                tables,
+                all_lines,
+                pages_with_output,
+                silent_empty,
+                False,
+            )
+
+        page_1_raster = rasterize.PageRaster(
+            page_number=1,
+            width=full_width_px,
+            height=full_height_px,
+            rotation_detected=snapped_rotation,
+            rotation_original=rotation_original,
+            rotation_snapped=snapped_changed,
+            image=crop_image,
+        )
+        _append_predict_page(pr=page_1_raster, offset_px=offset_px)
+        _append_empty_page_records(pages, per_page_geometry, start_index=1)
+    else:
+        for pr in rasterize.rasterize_pdf(pdf_path, dpi=dpi):
+            if isinstance(pr, rasterize.PageRasterFailure):
+                pages.append(_build_failed_page_dict(pr))
+                warnings_out.append(
+                    f"page {pr.page_number}: rasterization failed: {pr.error}"
+                )
+                continue
+            _append_predict_page(pr=pr)
 
     # FR-005 / R-019.5 / R-019.6 / R-019.7 / I-019.3 eligibility check.
     verdict = _check_eligibility(
@@ -915,6 +1015,18 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # fresh Invocation per document so this is belt-and-braces, but the
     # invariant ("flag reflects THIS run only") is now guaranteed.
     invocation.region_strategy_fallback_fired = False
+    invocation.ocr_only_fallback_fired = False
+
+    _resolved_preprocess_strategy = None
+    _is_ocr_only = False
+    if invocation.preprocess_strategy_id is not None:
+        from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+            resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
+        )
+        _resolved_preprocess_strategy = _resolve_preprocess_strategy_019(
+            invocation.preprocess_strategy_id
+        )
+        _is_ocr_only = _resolved_preprocess_strategy.kind == "ocr-only"
 
     # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
     # gate BEFORE any artifact write or input parsing. ensure_gpu_ready
@@ -926,7 +1038,7 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # overrides (R-017.4 Appendix A). Lazy resolution from string ID →
     # preset object happens here so the CLI doesn't need to import the
     # presets module before fail-fast validation.
-    if invocation.preprocess_lane != "cpu":
+    if invocation.preprocess_lane != "cpu" and not _is_ocr_only:
         from ledgerlinc_ocr.preprocessing.preflight import (
             ensure_gpu_ready as _ensure_gpu_ready,
         )
@@ -1016,17 +1128,6 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # full-page / region-first dispatch (PPStructureV3). Identity-kind
     # presets (cpu-default / stub-default) are nulled at the CLI warn-and-
     # proceed boundary upstream and never reach this dispatcher.
-    _resolved_preprocess_strategy = None
-    _is_ocr_only = False
-    if invocation.preprocess_strategy_id is not None:
-        from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
-            resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
-        )
-        _resolved_preprocess_strategy = _resolve_preprocess_strategy_019(
-            invocation.preprocess_strategy_id
-        )
-        _is_ocr_only = _resolved_preprocess_strategy.kind == "ocr-only"
-
     with measure_phase(stage_timing, "rasterization"):
         # Feature 019 (T011 / T021 / T022 / R-019.10): OCR-only dispatch.
         # On `kind == "ocr-only"`, run the OCR-only-engine path; on the

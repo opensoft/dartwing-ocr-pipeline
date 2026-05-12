@@ -12,10 +12,12 @@ The baseline path: a `ppstructurev3@gpu` run with no `--preprocess-strategy` fla
 
 ```bash
 # Single-doc, GPU lane (workstation .venv-paddle-rocm)
+rm -rf /tmp/ocr019-path1
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path1
 .venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+  --document-folder=/tmp/ocr019-path1 \
   --preprocess-profile=ppstructurev3@gpu \
-  --source-file=tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-folder=tests/stage1_vendor_identity/inv_001_easy/
+  --source-file=source.pdf
 ```
 
 Expected `run_summary` line includes:
@@ -36,11 +38,13 @@ Verification: `preprocess_output.json` is byte-identical to a pre-019 run on the
 The new candidate path. The CLI flag `--preprocess-strategy=ocr-only-v1` selects the OCR-only preset.
 
 ```bash
+rm -rf /tmp/ocr019-path2
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path2
 .venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+  --document-folder=/tmp/ocr019-path2 \
   --preprocess-profile=ppstructurev3@gpu \
   --preprocess-strategy=ocr-only-v1 \
-  --source-file=tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-folder=tests/stage1_vendor_identity/inv_001_easy/
+  --source-file=source.pdf
 ```
 
 Expected `run_summary` line includes:
@@ -58,12 +62,14 @@ The `phase_timings.per_page_inference` value should be **measurably lower** than
 OCR-only composes orthogonally with `--region-strategy=header-first-v1`. The OCR-only pass rasterizes only the page-1 header band and runs det+rec on that crop.
 
 ```bash
+rm -rf /tmp/ocr019-path3
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path3
 .venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+  --document-folder=/tmp/ocr019-path3 \
   --preprocess-profile=ppstructurev3@gpu \
   --preprocess-strategy=ocr-only-v1 \
   --region-strategy=header-first-v1 \
-  --source-file=tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-folder=tests/stage1_vendor_identity/inv_001_easy/
+  --source-file=source.pdf
 ```
 
 Expected:
@@ -77,11 +83,13 @@ Expected:
 Setting `--preprocess-strategy` on a non-GPU profile triggers the FR-013 warn-and-proceed path. The flag is ignored; the run proceeds normally.
 
 ```bash
+rm -rf /tmp/ocr019-path4
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path4
 python -m ledgerlinc_ocr.preprocessing \
+  --document-folder=/tmp/ocr019-path4 \
   --preprocess-profile=ppstructurev3@cpu \
   --preprocess-strategy=ocr-only-v1 \
-  --source-file=tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-folder=tests/stage1_vendor_identity/inv_001_easy/
+  --source-file=source.pdf
 ```
 
 Expected:
@@ -89,7 +97,7 @@ Expected:
 - `preprocess_strategy_id == "cpu-default"` (the CPU lane's default; the flag is ignored).
 - `ocr_only_fallback_count == 0`.
 - Same exit status as a no-flag CPU run (FR-013 / SC-005).
-- `preprocess_output.json` is byte-identical to a no-flag CPU run (the CPU path doesn't exercise the preset axis).
+- `/tmp/ocr019-path4/preprocess_output.json` is byte-identical to a no-flag CPU run on the same scratch copy (the CPU path doesn't exercise the preset axis).
 
 The same applies to stub-adapter runs (`preprocess_strategy_id == "stub-default"`).
 
@@ -98,16 +106,18 @@ The same applies to stub-adapter runs (`preprocess_strategy_id == "stub-default"
 Setting `--preprocess-strategy` to an unknown value (typo or removed preset) fails fast with exit code 16.
 
 ```bash
+rm -rf /tmp/ocr019-path5
+cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path5
 .venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+  --document-folder=/tmp/ocr019-path5 \
   --preprocess-profile=ppstructurev3@gpu \
   --preprocess-strategy=ocr-only-v99 \
-  --source-file=tests/stage1_vendor_identity/inv_001_easy/source.pdf \
-  --output-folder=tests/stage1_vendor_identity/inv_001_easy/
+  --source-file=source.pdf
 echo "Exit code: $?"
 ```
 
 Expected:
-- stderr line: `error: unknown preprocess_strategy: 'ocr-only-v99' — valid values are: ppstructurev3, ocr-only-v1, cpu-default, stub-default`
+- stderr line: `error: unknown preprocess_strategy: 'ocr-only-v99' — valid values are: ppstructurev3, ocr-only-v1`
 - Exit code: 16 (R-019.12 / cli-contract.md §4).
 - No `run_summary` line emitted.
 - No `preprocess_output.json` written.
@@ -117,12 +127,15 @@ Expected:
 A fixture chosen to trip the FR-005 combined trigger (token count below threshold OR mean confidence below threshold) exercises the fallback path. Pick a fixture where the targeted region (header band on page 1, if `header-first-v1` is active; full page otherwise) genuinely has insufficient evidence.
 
 ```bash
+rm -rf /tmp/ocr019-path6
+cp -R tests/stage1_vendor_identity/inv_017_missing_name /tmp/ocr019-path6
 .venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+  --document-folder=/tmp/ocr019-path6 \
   --preprocess-profile=ppstructurev3@gpu \
   --preprocess-strategy=ocr-only-v1 \
-  --source-file=tests/stage1_vendor_identity/inv_017_thin/source.pdf \
-  --output-folder=tests/stage1_vendor_identity/inv_017_thin/
-# (Pick a fixture whose page-1 OCR-only output is genuinely sparse — see R-019.13 for the benchmark subset; pick from outside that subset for the fallback verification fixture so it doesn't bias the benchmark.)
+  --source-file=source.pdf
+# Substitute a different scratch-copied fixture if `/tmp/ocr019-path6`
+# does not actually trip the OCR-only fallback on your workstation.
 ```
 
 Expected:
@@ -159,7 +172,7 @@ Each deferred item is added to `tasks.md` as a tracked follow-up. The deferral M
 
 | Symptom | Probable cause | Resolution |
 |---|---|---|
-| `error: unknown preprocess_strategy: 'X'` on GPU lane | Typo or removed preset value | Use one of `ppstructurev3`, `ocr-only-v1`, `cpu-default`, `stub-default` |
+| `error: unknown preprocess_strategy: 'X'` on GPU lane | Typo or removed preset value | Use one of `ppstructurev3`, `ocr-only-v1` |
 | `--preprocess-strategy ignored:` warning on CPU lane | Flag set on a non-GPU profile (FR-013) | Expected behavior; the flag only takes effect on `ppstructurev3@gpu`. Drop the flag or switch to GPU lane. |
 | `ocr_only_fallback_count` is `documents_total` on the OCR-only candidate | Every document tripped the trigger | Likely thresholds too aggressive for this corpus. Inspect per-doc `phase_timings` and consider a different fixture or a future `ocr-only-v2` preset with tuned thresholds. |
 | GPU bind error on `--preprocess-strategy=ocr-only-v1` | PaddleOCR engine can't bind `gpu:0` | Same root cause as PPStructureV3 bind failures: ROCm `gfx1151` env vars (`HSA_*`, `SDMA_*`); see `docs/ollama-rocm-wsl-gfx1151-fix.md`. The OCR-only engine binds the same device the PPStructureV3 engine does. |

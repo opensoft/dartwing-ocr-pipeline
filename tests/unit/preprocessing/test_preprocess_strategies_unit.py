@@ -17,6 +17,7 @@ from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
     PREPROCESS_STRATEGIES,
     PreprocessStrategy,
     resolve_preprocess_strategy,
+    resolve_user_preprocess_strategy,
 )
 
 
@@ -108,6 +109,15 @@ def test_resolve_raises_on_empty_string() -> None:
     """Empty string is not a valid preset name."""
     with pytest.raises(UnknownPresetError):
         resolve_preprocess_strategy("")
+
+
+def test_resolve_user_strategy_rejects_identity_sentinels() -> None:
+    """`cpu-default` / `stub-default` remain valid registry members for
+    run_summary defaults, but they are not user-selectable CLI values."""
+    for name in ("cpu-default", "stub-default"):
+        with pytest.raises(UnknownPresetError) as exc_info:
+            resolve_user_preprocess_strategy(name)
+        assert exc_info.value.valid_values == ("ppstructurev3", "ocr-only-v1")
 
 
 # ---------------------------------------------------------------------------

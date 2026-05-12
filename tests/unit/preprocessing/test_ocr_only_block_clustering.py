@@ -153,17 +153,17 @@ def test_all_zero_height_lines_do_not_collapse_to_zero_threshold() -> None:
     every line would split into its own block (pre-PR QA review #11 /
     edge case for malformed inputs)."""
     # All lines have y0 == y1 → height = 0. median_height = 0.
-    # Without the clamp, proximity_threshold = 0 and every cy gap > 0
-    # would split. With clamp to max(1, ...), threshold = 1.5,
-    # adjacent-cy lines cluster.
+    # Without the clamp, proximity_threshold = 0 and a 1px cy gap would
+    # split. With clamp to max(1, ...), threshold = 1.5, so adjacent-cy
+    # lines still cluster.
     lines = [
         _line(0, 100, 50, 100, text="A"),   # cy = 100, height = 0
-        _line(60, 100, 100, 100, text="B"),  # cy = 100, height = 0
+        _line(60, 101, 100, 101, text="B"),  # cy = 101, height = 0
     ]
     blocks = cluster_lines_into_blocks(lines)
     assert len(blocks) == 1, (
         "all-zero-height input must not collapse the proximity threshold "
-        "to 0; clamp ensures lines at identical cy still cluster"
+        "to 0; clamp ensures lines with a 1px cy gap still cluster"
     )
 
 

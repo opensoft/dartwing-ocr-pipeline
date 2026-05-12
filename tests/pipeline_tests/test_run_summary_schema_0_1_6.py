@@ -203,28 +203,7 @@ def test_schema_version_unchanged_across_preprocess_strategy_selections() -> Non
         )
 
 
-# ---------------------------------------------------------------------------
-# T019 (US2): cross-configuration distinct values
-# ---------------------------------------------------------------------------
-
-
-def test_distinct_preprocess_strategy_values_produce_distinct_run_summaries() -> None:
-    """Two runs that differ only on the preprocess-strategy axis produce
-    different `preprocess_strategy_id` values per SC-004."""
-    s1 = _make_minimal_run_summary(preprocess_strategy_id="ppstructurev3")
-    s2 = _make_minimal_run_summary(preprocess_strategy_id="ocr-only-v1")
-    assert (
-        json.loads(s1.as_json_line())["preprocess_strategy_id"]
-        != json.loads(s2.as_json_line())["preprocess_strategy_id"]
-    )
-
-
-def test_identical_configurations_produce_identical_preprocess_strategy_id() -> None:
-    """Two runs with the same configuration produce identical
-    `preprocess_strategy_id` values per SC-004."""
-    s1 = _make_minimal_run_summary(preprocess_strategy_id="ocr-only-v1")
-    s2 = _make_minimal_run_summary(preprocess_strategy_id="ocr-only-v1")
-    assert (
-        json.loads(s1.as_json_line())["preprocess_strategy_id"]
-        == json.loads(s2.as_json_line())["preprocess_strategy_id"]
-    )
+# Cross-configuration producer-path coverage for SC-004 lives in
+# `tests/unit/preprocessing/test_preprocess_strategy_optin_unit.py` and
+# the CLI/corpus-run tests. This file stays focused on run_summary wire
+# shape and schema-version pinning.
