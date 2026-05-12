@@ -485,9 +485,13 @@ def _process_page(pr: Any, invocation: Invocation) -> _PageResult:
         pr.image.save(img_path)
 
     # FR-005a / R-011: release the page image before the next page rasterizes.
+    # Narrow exception scope: PIL's `Image.close()` raises only
+    # `AttributeError` (file pointer already None) or `OSError` on real
+    # filesystem failures. Bare `except Exception` would mask programmer
+    # errors. Pre-PR Sonar review (S5754 — broad-catch suppression).
     try:
         pr.image.close()
-    except Exception:
+    except (AttributeError, OSError):
         pass
 
     return _PageResult(
@@ -504,6 +508,79 @@ def _process_page(pr: Any, invocation: Invocation) -> _PageResult:
         tables=page_tables,
         warnings=run_warnings + defensive_warnings,
         silent_empty=silent_empty,
+    )
+
+
+def _run_full_page_path(
+    *,
+    pdf_path: Path,
+    dpi: int,
+    invocation: Invocation,
+) -> tuple[
+    list[dict[str, Any]],  # pages
+    list[str],             # warnings_out
+    list[dict[str, Any]],  # tables
+    list[dict[str, Any]],  # all_lines
+    int,                   # pages_with_output
+    bool,                  # silent_empty_page_detected
+]:
+    """Full-page rasterization + PPStructureV3 inference path.
+
+    Extracted (pre-PR Sonar review — duplication on new code) from the
+    three near-identical `for pr in rasterize_pdf(...) ... _process_page`
+    blocks that previously appeared in `_run_inner`'s OCR-only-fallback,
+    region-first-fallback, and no-flag branches. Returns the same
+    aggregate tuple shape as `_run_region_first_path` for symmetry.
+    """
+    pages: list[dict[str, Any]] = []
+    warnings_out: list[str] = []
+    tables: list[dict[str, Any]] = []
+    all_lines: list[dict[str, Any]] = []
+    pages_with_output = 0
+    silent_empty = False
+    for pr in rasterize.rasterize_pdf(pdf_path, dpi=dpi):
+        result = _process_page(pr, invocation)
+        pages.append(result.page_dict)
+        warnings_out.extend(result.warnings)
+        tables.extend(result.tables)
+        all_lines.extend(result.lines)
+        if result.lines or result.blocks:
+            pages_with_output += 1
+        if result.silent_empty:
+            silent_empty = True
+    return pages, warnings_out, tables, all_lines, pages_with_output, silent_empty
+
+
+def _extend_accumulators(
+    pages: list[dict[str, Any]],
+    warnings_out: list[str],
+    tables: list[dict[str, Any]],
+    all_lines: list[dict[str, Any]],
+    pages_with_output: int,
+    silent_empty_page_detected: bool,
+    *,
+    add_pages: list[dict[str, Any]],
+    add_warnings: list[str],
+    add_tables: list[dict[str, Any]],
+    add_lines: list[dict[str, Any]],
+    add_pages_with_output: int,
+    add_silent_empty: bool,
+) -> tuple[int, bool]:
+    """Extend the caller's accumulator lists in-place and return the new
+    (pages_with_output, silent_empty_page_detected) scalars.
+
+    Reduces caller-site duplication for the seven-statement pattern that
+    appeared three times in `_run_inner` (Sonar new-code duplication
+    finding). Lists mutate in place; scalars are returned because Python
+    ints / bools are immutable.
+    """
+    pages.extend(add_pages)
+    warnings_out.extend(add_warnings)
+    tables.extend(add_tables)
+    all_lines.extend(add_lines)
+    return (
+        pages_with_output + add_pages_with_output,
+        silent_empty_page_detected or add_silent_empty,
     )
 
 
@@ -675,9 +752,13 @@ def _run_ocr_only_path(
                 f"page {pr.page_number}: ocr-only failed: {failure.error}"
             )
         finally:
+            # Same narrow exception scope as `_process_page`'s
+            # close — PIL `Image.close()` realistic failures are
+            # `AttributeError` / `OSError` only (pre-PR Sonar review
+            # S5754).
             try:
                 pr.image.close()
-            except Exception:
+            except (AttributeError, OSError):
                 pass
 
     is_header_first = (
@@ -1185,43 +1266,65 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
                     )
                     if _trigger_fired:
                         invocation.region_strategy_fallback_fired = True
-                        for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
-                            result = _process_page(pr, invocation)
-                            pages.append(result.page_dict)
-                            warnings_out.extend(result.warnings)
-                            tables.extend(result.tables)
-                            all_lines.extend(result.lines)
-                            if result.lines or result.blocks:
-                                pages_with_output += 1
-                            if result.silent_empty:
-                                silent_empty_page_detected = True
+                        (
+                            _fp_pages, _fp_warnings, _fp_tables, _fp_lines,
+                            _fp_pages_with_output, _fp_silent_empty,
+                        ) = _run_full_page_path(
+                            pdf_path=pdf_path,
+                            dpi=_resolved_dpi,
+                            invocation=invocation,
+                        )
+                        pages_with_output, silent_empty_page_detected = _extend_accumulators(
+                            pages, warnings_out, tables, all_lines,
+                            pages_with_output, silent_empty_page_detected,
+                            add_pages=_fp_pages,
+                            add_warnings=_fp_warnings,
+                            add_tables=_fp_tables,
+                            add_lines=_fp_lines,
+                            add_pages_with_output=_fp_pages_with_output,
+                            add_silent_empty=_fp_silent_empty,
+                        )
                     else:
-                        pages.extend(_region_pages)
-                        warnings_out.extend(_region_warnings)
-                        tables.extend(_region_tables)
-                        all_lines.extend(_region_lines)
-                        pages_with_output += _region_pages_with_output
-                        if _region_silent_empty:
-                            silent_empty_page_detected = True
+                        pages_with_output, silent_empty_page_detected = _extend_accumulators(
+                            pages, warnings_out, tables, all_lines,
+                            pages_with_output, silent_empty_page_detected,
+                            add_pages=_region_pages,
+                            add_warnings=_region_warnings,
+                            add_tables=_region_tables,
+                            add_lines=_region_lines,
+                            add_pages_with_output=_region_pages_with_output,
+                            add_silent_empty=_region_silent_empty,
+                        )
                 else:
-                    for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
-                        result = _process_page(pr, invocation)
-                        pages.append(result.page_dict)
-                        warnings_out.extend(result.warnings)
-                        tables.extend(result.tables)
-                        all_lines.extend(result.lines)
-                        if result.lines or result.blocks:
-                            pages_with_output += 1
-                        if result.silent_empty:
-                            silent_empty_page_detected = True
+                    (
+                        _fp_pages, _fp_warnings, _fp_tables, _fp_lines,
+                        _fp_pages_with_output, _fp_silent_empty,
+                    ) = _run_full_page_path(
+                        pdf_path=pdf_path,
+                        dpi=_resolved_dpi,
+                        invocation=invocation,
+                    )
+                    pages_with_output, silent_empty_page_detected = _extend_accumulators(
+                        pages, warnings_out, tables, all_lines,
+                        pages_with_output, silent_empty_page_detected,
+                        add_pages=_fp_pages,
+                        add_warnings=_fp_warnings,
+                        add_tables=_fp_tables,
+                        add_lines=_fp_lines,
+                        add_pages_with_output=_fp_pages_with_output,
+                        add_silent_empty=_fp_silent_empty,
+                    )
             else:
-                pages.extend(_ocr_pages)
-                warnings_out.extend(_ocr_warnings)
-                tables.extend(_ocr_tables)
-                all_lines.extend(_ocr_lines)
-                pages_with_output += _ocr_pages_with_output
-                if _ocr_silent_empty:
-                    silent_empty_page_detected = True
+                pages_with_output, silent_empty_page_detected = _extend_accumulators(
+                    pages, warnings_out, tables, all_lines,
+                    pages_with_output, silent_empty_page_detected,
+                    add_pages=_ocr_pages,
+                    add_warnings=_ocr_warnings,
+                    add_tables=_ocr_tables,
+                    add_lines=_ocr_lines,
+                    add_pages_with_output=_ocr_pages_with_output,
+                    add_silent_empty=_ocr_silent_empty,
+                )
         elif _is_region_first and _resolved_region_strategy is not None:
             # Region-first path: page 1 only via rasterize_page_band; pages
             # 2..N as empty page records (R-018.6 / Clarifications Q2).
@@ -1247,37 +1350,59 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
                 # (region-first attempt + full-page) accumulates into
                 # the SAME phase_timings.rasterization key per R-018.10.
                 invocation.region_strategy_fallback_fired = True
-                for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
-                    result = _process_page(pr, invocation)
-                    pages.append(result.page_dict)
-                    warnings_out.extend(result.warnings)
-                    tables.extend(result.tables)
-                    all_lines.extend(result.lines)
-                    if result.lines or result.blocks:
-                        pages_with_output += 1
-                    if result.silent_empty:
-                        silent_empty_page_detected = True
+                (
+                    _fp_pages, _fp_warnings, _fp_tables, _fp_lines,
+                    _fp_pages_with_output, _fp_silent_empty,
+                ) = _run_full_page_path(
+                    pdf_path=pdf_path,
+                    dpi=_resolved_dpi,
+                    invocation=invocation,
+                )
+                pages_with_output, silent_empty_page_detected = _extend_accumulators(
+                    pages, warnings_out, tables, all_lines,
+                    pages_with_output, silent_empty_page_detected,
+                    add_pages=_fp_pages,
+                    add_warnings=_fp_warnings,
+                    add_tables=_fp_tables,
+                    add_lines=_fp_lines,
+                    add_pages_with_output=_fp_pages_with_output,
+                    add_silent_empty=_fp_silent_empty,
+                )
             else:
-                pages.extend(_region_pages)
-                warnings_out.extend(_region_warnings)
-                tables.extend(_region_tables)
-                all_lines.extend(_region_lines)
-                pages_with_output += _region_pages_with_output
-                if _region_silent_empty:
-                    silent_empty_page_detected = True
+                pages_with_output, silent_empty_page_detected = _extend_accumulators(
+                    pages, warnings_out, tables, all_lines,
+                    pages_with_output, silent_empty_page_detected,
+                    add_pages=_region_pages,
+                    add_warnings=_region_warnings,
+                    add_tables=_region_tables,
+                    add_lines=_region_lines,
+                    add_pages_with_output=_region_pages_with_output,
+                    add_silent_empty=_region_silent_empty,
+                )
         else:
-            # Full-page path (existing code) — unchanged for
-            # full-page / cpu-default / stub-default / no-flag runs.
-            for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
-                result = _process_page(pr, invocation)
-                pages.append(result.page_dict)
-                warnings_out.extend(result.warnings)
-                tables.extend(result.tables)
-                all_lines.extend(result.lines)
-                if result.lines or result.blocks:
-                    pages_with_output += 1
-                if result.silent_empty:
-                    silent_empty_page_detected = True
+            # Full-page path — unchanged for full-page / cpu-default /
+            # stub-default / no-flag runs. The rasterize loop body lives
+            # in `_run_full_page_path` (helper extracted to eliminate the
+            # triple-duplicate pattern flagged by Sonar new-code
+            # duplication on first PR review).
+            (
+                _fp_pages, _fp_warnings, _fp_tables, _fp_lines,
+                _fp_pages_with_output, _fp_silent_empty,
+            ) = _run_full_page_path(
+                pdf_path=pdf_path,
+                dpi=_resolved_dpi,
+                invocation=invocation,
+            )
+            pages_with_output, silent_empty_page_detected = _extend_accumulators(
+                pages, warnings_out, tables, all_lines,
+                pages_with_output, silent_empty_page_detected,
+                add_pages=_fp_pages,
+                add_warnings=_fp_warnings,
+                add_tables=_fp_tables,
+                add_lines=_fp_lines,
+                add_pages_with_output=_fp_pages_with_output,
+                add_silent_empty=_fp_silent_empty,
+            )
 
     quality = compute_quality(all_lines, max_skew_deg=max_skew)
     ingestion_sources = build_ingestion_sources(

@@ -407,8 +407,14 @@ def run_warm_corpus(
 
     # Feature 016 (T007 / R-016.10 / FR-001 / FR-007 / SC-011): the warm
     # corpus warmup hook fires AFTER `_warm_initialize_live_preprocess`
-    # succeeded (engine adopted via `ocr._adopt_engine`) and BEFORE the
-    # per-document loop opens any `measure_total`/`measure_phase` block.
+    # succeeded and BEFORE the per-document loop opens any
+    # `measure_total`/`measure_phase` block. Per Clarifications Q3 /
+    # R-019.16, `_warm_initialize_live_preprocess` adopts the PPStructureV3
+    # singleton via `ocr._adopt_engine` when
+    # `preprocess_strategy_id != "ocr-only-v1"` (i.e., the default
+    # PPStructureV3 path); on `--preprocess-strategy=ocr-only-v1` it
+    # constructs the OCR-only PaddleOCR singleton via
+    # `ocr_only._get_ocr_engine` and leaves PPStructureV3 unconstructed.
     # The activation surface mirrors the single-doc path: CLI flag
     # `--gpu-warmup` plus env var `LEDGERLINC_GPU_WARMUP=1` (CLI wins).
     # On non-GPU profiles we emit the FR-010 warn-and-proceed line and
@@ -1034,10 +1040,24 @@ def _maybe_register_warm_preprocess(
           real live adapter**, not a test-only stub-fallback wrapper.
           This is checked via ``stages.is_live_capable``.
 
-    The factory wraps ``preprocessing.ocr._get_engine`` so calling
-    ``initialize()`` constructs PPStructureV3 once. SC-009 is honored
-    because the upstream module's ``_ENGINE`` global is itself a
-    singleton; subsequent per-document calls reuse the warmed engine.
+    The factory's ``initialize()`` constructs ONE of two singleton engines
+    depending on ``preprocess_strategy_threaded`` (Feature 019 / Q3 /
+    R-019.16 / I-019.16):
+
+    - When ``preprocess_strategy_threaded == "ocr-only-v1"``, it
+      constructs the OCR-only PaddleOCR engine via
+      ``ocr_only._get_ocr_engine(device, text_detection_model_name=…,
+      text_recognition_model_name=…)``; PPStructureV3 stays unconstructed.
+      Subsequent fallback documents (per FR-005 trigger) build
+      PPStructureV3 on demand mid-run per R-019.10.
+    - Otherwise (including ``None`` / ``"ppstructurev3"`` / identity
+      defaults), it adopts PPStructureV3 via
+      ``ocr._adopt_engine(_get_engine(device, …))`` — the historical
+      feature 014–018 path; OCR-only's ``_OCR_ENGINE`` stays None.
+
+    Each engine satisfies single-construction-per-process independently
+    (feature 015 FR-001 + I-019.2). Subsequent per-document calls reuse
+    whichever singleton was warmed.
     """
     if "preprocess" not in plan.slice_.stages_in_slice:
         return

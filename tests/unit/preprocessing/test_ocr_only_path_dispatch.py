@@ -332,50 +332,36 @@ def test_orchestrator_fallback_path_fires_when_eligibility_insufficient(
     # Paddle.
     from ledgerlinc_ocr.preprocessing import pipeline as pipeline_mod
 
+    # Schema-shaped fallback page record. Built incrementally so the
+    # nesting stays auditable (pre-Copilot review nit on test_ocr_only_path_dispatch:341).
+    _fallback_block = {
+        "block_id": "p1_b1",
+        "block_type": "title",
+        "bbox": [10, 20, 120, 48],
+        "text": "Fallback Vendor",
+        "confidence": 0.91,
+        "reading_order": 1,
+    }
+    _fallback_line = {
+        "line_id": "p1_l1",
+        "bbox": [10, 20, 120, 32],
+        "text": "Fallback Vendor",
+        "confidence": 0.91,
+    }
+
     def fake_process_page(pr, inv):
+        page_dict = {
+            "page_number": pr.page_number,
+            "width": pr.width,
+            "height": pr.height,
+            "rotation_detected": pr.rotation_detected,
+            "blocks": [_fallback_block],
+            "raw_ocr_lines": [_fallback_line],
+        }
         return pipeline_mod._PageResult(
-            page_dict={
-                "page_number": pr.page_number,
-                "width": pr.width,
-                "height": pr.height,
-                "rotation_detected": pr.rotation_detected,
-                    "blocks": [
-                        {
-                            "block_id": "p1_b1",
-                        "block_type": "title",
-                        "bbox": [10, 20, 120, 48],
-                        "text": "Fallback Vendor",
-                        "confidence": 0.91,
-                        "reading_order": 1,
-                    },
-                ],
-                    "raw_ocr_lines": [
-                        {
-                            "line_id": "p1_l1",
-                        "bbox": [10, 20, 120, 32],
-                        "text": "Fallback Vendor",
-                        "confidence": 0.91,
-                    },
-                ],
-            },
-            lines=[
-                {
-                    "line_id": "p1_l1",
-                    "bbox": [10, 20, 120, 32],
-                    "text": "Fallback Vendor",
-                    "confidence": 0.91,
-                },
-            ],
-            blocks=[
-                {
-                    "block_id": "p1_b1",
-                    "block_type": "title",
-                    "bbox": [10, 20, 120, 48],
-                    "text": "Fallback Vendor",
-                    "confidence": 0.91,
-                    "reading_order": 1,
-                },
-            ],
+            page_dict=page_dict,
+            lines=[_fallback_line],
+            blocks=[_fallback_block],
             tables=[],
             warnings=[],
             silent_empty=False,
