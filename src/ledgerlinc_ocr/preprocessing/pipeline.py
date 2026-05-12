@@ -226,16 +226,16 @@ def run_warmup_if_active(
         from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
             resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
         )
-        try:
-            _is_ocr_only_strategy = (
-                _resolve_preprocess_strategy_019(preprocess_strategy_id).kind
-                == "ocr-only"
-            )
-        except Exception:
-            # Unknown strategy already failed fast at the CLI parse
-            # boundary (R-019.12 / exit 16); defensive fallback to
-            # PPStructureV3 warmup if somehow reached here.
-            _is_ocr_only_strategy = False
+        # No defensive try/except (pre-PR QA review): an unknown
+        # `preprocess_strategy_id` reaching this helper indicates an
+        # upstream CLI-parse-validation bug per R-019.12. Silently
+        # downgrading to PPStructureV3 warmup would mask the bug AND
+        # violate FR-007's fail-fast contract. `UnknownPresetError`
+        # propagates to the caller for surfacing with exit code 16.
+        _is_ocr_only_strategy = (
+            _resolve_preprocess_strategy_019(preprocess_strategy_id).kind
+            == "ocr-only"
+        )
 
     if _is_ocr_only_strategy:
         from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
@@ -548,6 +548,20 @@ def _run_ocr_only_path(
     )
     from ledgerlinc_ocr.preprocessing.identifiers import block_id, line_id
 
+    # Type-narrowing assertion (pre-PR QA review): the dispatcher in
+    # `_run_inner` already gates on `preprocess_strategy.kind == "ocr-only"`,
+    # but `token_threshold` / `confidence_threshold` / `confidence_aggregator`
+    # are `Optional` on PreprocessStrategy (None for ppstructurev3 /
+    # identity kinds). This assert documents the precondition AND prevents
+    # `None >= int` TypeError if a future caller bypasses the dispatcher.
+    assert preprocess_strategy.kind == "ocr-only", (
+        f"_run_ocr_only_path requires kind='ocr-only', got "
+        f"{preprocess_strategy.kind!r}"
+    )
+    assert preprocess_strategy.token_threshold is not None
+    assert preprocess_strategy.confidence_threshold is not None
+    assert preprocess_strategy.confidence_aggregator is not None
+
     device = _resolve_lane_to_device(invocation.preprocess_lane)
     # Resolve det/rec model names from feature 017's variant axis (FR-027).
     text_det_name: str | None = None
@@ -616,44 +630,25 @@ def _run_ocr_only_path(
                 "text": ocr_line.text,
                 "confidence": float(ocr_line.detector_confidence),
             })
-        # Cluster into blocks (R-019.8). Schema §$defs.block: required keys
-        # {block_id, block_type, bbox, reading_order, text, confidence};
-        # `additionalProperties: false` forbids any extra keys.
-        # Per I-019.6 every OCR-only block has block_type="text". Per-block
-        # `confidence` is the mean of cluster-member detector confidences
-        # (not page-mean — code-reviewer finding #7).
+        # Cluster into blocks (R-019.8). Schema §$defs.block: required
+        # keys {block_id, block_type, bbox, reading_order, text,
+        # confidence}; `additionalProperties: false` forbids any extra
+        # keys. Per I-019.6 every OCR-only block has block_type="text".
+        # `OcrOnlyBlock.mean_confidence` (computed inside
+        # `cluster_lines_into_blocks` per pre-PR QA fix) is the
+        # cluster-local arithmetic mean of member-line detector
+        # confidences — O(n) total over all lines on this page,
+        # replacing the prior O(blocks × lines) bbox-containment lookup.
         ocr_blocks = _cluster_lines_into_blocks(predict.lines)
-        # Build a quick index from line-bbox tuple → confidence so each
-        # block can compute its cluster-local mean cheaply.
-        _line_conf_by_bbox = {
-            tuple(li.bbox): li.detector_confidence for li in predict.lines
-        }
         page_blocks: list[dict[str, Any]] = []
         for ob in ocr_blocks:
-            # Cluster-local mean confidence: lines whose text appears in
-            # this block's `text` (joined by newline). Use bbox lookup
-            # for robustness across whitespace edits.
-            block_line_confs = [
-                conf
-                for bbox_t, conf in _line_conf_by_bbox.items()
-                if (
-                    bbox_t[0] >= ob.bbox[0]
-                    and bbox_t[1] >= ob.bbox[1]
-                    and bbox_t[2] <= ob.bbox[2]
-                    and bbox_t[3] <= ob.bbox[3]
-                )
-            ]
             page_blocks.append({
                 "block_id": block_id(pr.page_number, ob.reading_order),
                 "block_type": "text",  # I-019.6: OCR-only always emits text
                 "bbox": list(ob.bbox),
                 "reading_order": ob.reading_order,
                 "text": ob.text,
-                "confidence": (
-                    sum(block_line_confs) / len(block_line_confs)
-                    if block_line_confs
-                    else 0.0
-                ),
+                "confidence": ob.mean_confidence,
             })
 
         pages.append({

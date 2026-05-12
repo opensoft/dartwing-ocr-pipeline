@@ -116,3 +116,74 @@ def test_reading_order_is_sequential() -> None:
     ]
     blocks = cluster_lines_into_blocks(lines)
     assert [b.reading_order for b in blocks] == [1, 2, 3]
+
+
+# ---------------------------------------------------------------------------
+# Boundary cases added by pre-PR QA review (R-019.8 / I-019.8 edge coverage)
+# ---------------------------------------------------------------------------
+
+
+def test_cy_distance_exactly_equals_threshold_clusters_together() -> None:
+    """Inclusive `<=` comparison: cy distance == 1.5 * median_height MUST
+    cluster (the threshold edge is part of the same-block half-space)."""
+    # Two lines with height 10 → median_height = 10 → threshold = 15.
+    # cy[0] = 15, cy[1] = 30 → distance = 15 (exact threshold).
+    l1 = _line(0, 10, 100, 20, text="A")  # cy = 15
+    l2 = _line(0, 25, 100, 35, text="B")  # cy = 30; distance = 15
+    blocks = cluster_lines_into_blocks([l1, l2])
+    assert len(blocks) == 1, (
+        "cy distance == 1.5 * median_height should cluster (inclusive edge)"
+    )
+    assert blocks[0].text == "A\nB"
+
+
+def test_cy_distance_one_greater_than_threshold_splits() -> None:
+    """One unit past the inclusive threshold MUST split into two blocks
+    (the strict-less-or-equal boundary)."""
+    # Heights 10; threshold = 15. cy[0]=15, cy[1]=31 → distance=16 > 15.
+    l1 = _line(0, 10, 100, 20, text="A")
+    l2 = _line(0, 26, 100, 36, text="B")
+    blocks = cluster_lines_into_blocks([l1, l2])
+    assert len(blocks) == 2
+
+
+def test_all_zero_height_lines_do_not_collapse_to_zero_threshold() -> None:
+    """If every input line has zero height (degenerate OCR output), the
+    proximity threshold MUST be clamped to a non-zero floor — otherwise
+    every line would split into its own block (pre-PR QA review #11 /
+    edge case for malformed inputs)."""
+    # All lines have y0 == y1 → height = 0. median_height = 0.
+    # Without the clamp, proximity_threshold = 0 and every cy gap > 0
+    # would split. With clamp to max(1, ...), threshold = 1.5,
+    # adjacent-cy lines cluster.
+    lines = [
+        _line(0, 100, 50, 100, text="A"),   # cy = 100, height = 0
+        _line(60, 100, 100, 100, text="B"),  # cy = 100, height = 0
+    ]
+    blocks = cluster_lines_into_blocks(lines)
+    assert len(blocks) == 1, (
+        "all-zero-height input must not collapse the proximity threshold "
+        "to 0; clamp ensures lines at identical cy still cluster"
+    )
+
+
+def test_block_carries_cluster_local_mean_confidence() -> None:
+    """Per pre-PR QA review #7: `OcrOnlyBlock.mean_confidence` is the
+    arithmetic mean of the cluster's member-line detector_confidence
+    values (cluster-local, NOT page-mean)."""
+    # Two clusters; high-confidence in one, low-confidence in the other.
+    lines = [
+        _line(0, 10, 100, 20, text="A", conf=0.9),    # cluster 1
+        _line(0, 22, 100, 32, text="B", conf=0.95),   # cluster 1
+        _line(0, 200, 100, 210, text="C", conf=0.3),  # cluster 2
+        _line(0, 212, 100, 222, text="D", conf=0.35), # cluster 2
+    ]
+    blocks = cluster_lines_into_blocks(lines)
+    assert len(blocks) == 2
+    # Cluster 1 mean: (0.9 + 0.95) / 2 = 0.925
+    assert abs(blocks[0].mean_confidence - 0.925) < 1e-9
+    # Cluster 2 mean: (0.3 + 0.35) / 2 = 0.325
+    assert abs(blocks[1].mean_confidence - 0.325) < 1e-9
+    # The means MUST differ — proves it's cluster-local, not page-mean
+    # (page-mean would be (0.9+0.95+0.3+0.35)/4 = 0.625 for both blocks).
+    assert blocks[0].mean_confidence != blocks[1].mean_confidence

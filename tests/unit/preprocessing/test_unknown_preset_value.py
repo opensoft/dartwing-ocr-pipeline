@@ -32,13 +32,17 @@ import pytest
 def _invoke_cli(*flags: str) -> subprocess.CompletedProcess[str]:
     """Invoke the preprocessing CLI as a subprocess and return the
     completed process. We use a subprocess (not in-process main()) so
-    the exit code propagates through the standard sys.exit path."""
+    the exit code propagates through the standard sys.exit path.
+
+    A 30s timeout guards against runaway subprocesses freezing the suite
+    (pre-PR QA review #3 — subprocess tests must not block indefinitely)."""
     cmd = [sys.executable, "-m", "ledgerlinc_ocr.preprocessing"] + list(flags)
     return subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         check=False,
+        timeout=30,
     )
 
 
@@ -133,7 +137,7 @@ def test_unknown_raster_profile_via_env_var_exits_16(
         "--preprocess-profile",
         "ppstructurev3@cpu",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     assert result.returncode == 16
     assert "error: unknown raster_profile:" in result.stderr
 
@@ -222,7 +226,7 @@ def test_unknown_region_strategy_via_env_var_exits_16(
         "--preprocess-profile",
         "ppstructurev3@cpu",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     assert result.returncode == 16
     assert "error: unknown region_strategy:" in result.stderr
 
@@ -249,7 +253,7 @@ def test_unknown_preprocess_strategy_exits_16(tmp_path: Path) -> None:
         "--preprocess-strategy",
         "ocr-only-v99",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     assert result.returncode == 16
 
 
@@ -272,7 +276,7 @@ def test_unknown_preprocess_strategy_stderr_lists_valid_values(
         "--preprocess-strategy",
         "ocr-only-v99",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     assert "error: unknown preprocess_strategy:" in result.stderr
     for v in ("ppstructurev3", "ocr-only-v1", "cpu-default", "stub-default"):
         assert v in result.stderr
@@ -297,7 +301,7 @@ def test_unknown_preprocess_strategy_emits_no_run_summary(
         "--preprocess-strategy",
         "ocr-only-v99",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     assert '"kind": "run_summary"' not in result.stdout
     assert '"kind":"run_summary"' not in result.stdout
 
@@ -321,6 +325,6 @@ def test_unknown_preprocess_strategy_via_env_var_exits_16(
         "--preprocess-profile",
         "ppstructurev3@cpu",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     assert result.returncode == 16
     assert "error: unknown preprocess_strategy:" in result.stderr

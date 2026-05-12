@@ -46,6 +46,7 @@ I-019.2, I-019.3, I-019.6, I-019.8, I-019.9, I-019.10.
 from __future__ import annotations
 
 import enum
+import threading
 import warnings as _std_warnings
 from dataclasses import dataclass
 from typing import Any, Optional, Sequence
@@ -63,6 +64,33 @@ from ledgerlinc_ocr.preprocessing.errors import EngineInitError
 
 _OCR_ENGINE: Any = None
 _OCR_ENGINE_DEVICE: Optional[str] = None
+# Lock guarding the check-then-construct sequence in `_get_ocr_engine`
+# (pre-PR QA review finding — eliminates a race where two threads both
+# pass the `is not None` check and construct two engines).
+_OCR_ENGINE_LOCK: threading.Lock = threading.Lock()
+# Paddle global-seed guard (mirrors `ocr.py:_PADDLE_SEEDED` per FR-005 /
+# pre-PR QA review). Calling `paddle.seed(0)` exactly once per process
+# before first engine construction keeps the OCR-only path's
+# determinism story aligned with the PPStructureV3 path.
+_PADDLE_SEEDED: bool = False
+
+
+def _seed_paddle_once() -> None:
+    """FR-005: call `paddle.seed(0)` once before first OCR-only engine
+    construction. Mirrors `ocr.py:_seed_paddle_once`."""
+    global _PADDLE_SEEDED
+    if _PADDLE_SEEDED:
+        return
+    try:
+        import paddle  # type: ignore[import-not-found]
+
+        paddle.seed(0)
+    except Exception:
+        # Paddle import failure here is benign for determinism — the
+        # engine construction below will surface a real EngineInitError
+        # if it actually needs Paddle.
+        pass
+    _PADDLE_SEEDED = True
 
 
 def _get_ocr_engine(
@@ -89,49 +117,56 @@ def _get_ocr_engine(
     off so the predict call exercises only det+rec per FR-002.
     """
     global _OCR_ENGINE, _OCR_ENGINE_DEVICE
-    if _OCR_ENGINE is not None:
-        if (
-            device is not None
-            and _OCR_ENGINE_DEVICE is not None
-            and _OCR_ENGINE_DEVICE != device
-        ):
-            raise RuntimeError(
-                f"PaddleOCR engine already constructed for "
-                f"device={_OCR_ENGINE_DEVICE!r}; refusing to rebuild for "
-                f"device={device!r} (singleton-per-process)"
-            )
-        return _OCR_ENGINE
-    effective_device = device if device is not None else "cpu"
-    try:
-        # Lazy import — module-load remains CPU-safe (I-019.10).
-        from paddleocr import PaddleOCR  # type: ignore[import-not-found]
+    # Lock-protected check-then-construct (pre-PR QA review). Without the
+    # lock, two threads could both pass the `is not None` check and both
+    # call `PaddleOCR(...)`, leaking a second engine — violates I-019.2.
+    with _OCR_ENGINE_LOCK:
+        if _OCR_ENGINE is not None:
+            if (
+                device is not None
+                and _OCR_ENGINE_DEVICE is not None
+                and _OCR_ENGINE_DEVICE != device
+            ):
+                raise RuntimeError(
+                    f"PaddleOCR engine already constructed for "
+                    f"device={_OCR_ENGINE_DEVICE!r}; refusing to rebuild for "
+                    f"device={device!r} (singleton-per-process)"
+                )
+            return _OCR_ENGINE
+        effective_device = device if device is not None else "cpu"
+        # Paddle global-seed (FR-005) — mirrors ocr.py:_get_engine ordering.
+        _seed_paddle_once()
+        try:
+            # Lazy import — module-load remains CPU-safe (I-019.10).
+            from paddleocr import PaddleOCR  # type: ignore[import-not-found]
 
-        with _std_warnings.catch_warnings():
-            _std_warnings.simplefilter("ignore")
-            _OCR_ENGINE = PaddleOCR(
-                text_detection_model_name=text_detection_model_name,
-                text_recognition_model_name=text_recognition_model_name,
-                # FR-002: explicitly disable the orientation / unwarping
-                # / textline-orientation passes — det+rec only.
-                use_doc_orientation_classify=False,
-                use_doc_unwarping=False,
-                use_textline_orientation=False,
-                cpu_threads=1,
-                enable_mkldnn=False,
-                device=effective_device,
-                lang="en",
-            )
-            _OCR_ENGINE_DEVICE = effective_device
-    except Exception as exc:
-        # Mirror ocr.py's EngineInitError envelope so callers can route
-        # OCR-only construction failures the same way as PPStructureV3
-        # construction failures.
-        raise EngineInitError(
-            message=str(exc),
-            cause_class=type(exc).__name__,
-            cause_module=type(exc).__module__ or "",
-        ) from exc
-    return _OCR_ENGINE
+            with _std_warnings.catch_warnings():
+                _std_warnings.simplefilter("ignore")
+                _OCR_ENGINE = PaddleOCR(
+                    text_detection_model_name=text_detection_model_name,
+                    text_recognition_model_name=text_recognition_model_name,
+                    # FR-002: explicitly disable the orientation /
+                    # unwarping / textline-orientation passes — det+rec
+                    # only.
+                    use_doc_orientation_classify=False,
+                    use_doc_unwarping=False,
+                    use_textline_orientation=False,
+                    cpu_threads=1,
+                    enable_mkldnn=False,
+                    device=effective_device,
+                    lang="en",
+                )
+                _OCR_ENGINE_DEVICE = effective_device
+        except Exception as exc:
+            # Mirror ocr.py's EngineInitError envelope so callers can
+            # route OCR-only construction failures the same way as
+            # PPStructureV3 construction failures.
+            raise EngineInitError(
+                message=str(exc),
+                cause_class=type(exc).__name__,
+                cause_module=type(exc).__module__ or "",
+            ) from exc
+        return _OCR_ENGINE
 
 
 def get_active_ocr_engine() -> Any:
@@ -256,8 +291,18 @@ def _polygon_to_bbox(
 ) -> tuple[int, int, int, int]:
     """Convert an axis-aligned or quad polygon to ``[x0, y0, x1, y1]``
     integer pixel bbox, clamped to page geometry. Same rounding /
-    clamping convention as `ocr._bbox_from_coord` + `_clip_bbox`."""
-    arr = np.asarray(poly, dtype=float).reshape(-1, 2)
+    clamping convention as `ocr._bbox_from_coord` + `_clip_bbox`.
+
+    Raises ``ValueError`` on malformed input (odd-element flat array or
+    zero-length polygon) — pre-PR QA review #3.
+    """
+    flat = np.asarray(poly, dtype=float).ravel()
+    if flat.size == 0 or flat.size % 2 != 0:
+        raise ValueError(
+            f"polygon must have an even non-zero number of coordinates "
+            f"(got {flat.size})"
+        )
+    arr = flat.reshape(-1, 2)
     x0 = int(max(0, np.floor(arr[:, 0].min())))
     y0 = int(max(0, np.floor(arr[:, 1].min())))
     x1 = int(max(0, np.ceil(arr[:, 0].max())))
@@ -274,6 +319,14 @@ def _polygon_to_bbox(
 # ---------------------------------------------------------------------------
 
 
+# R-019.8 / I-019.8: proximity threshold ratio for Y-axis line clustering.
+# Two consecutive lines (sorted by vertical center) cluster into the same
+# block iff `cy[i] - cy[i-1] <= CLUSTER_PROXIMITY_RATIO * median_line_height`.
+# Named here so it appears as a tunable invariant rather than a magic
+# literal at the call site (pre-PR QA review finding).
+CLUSTER_PROXIMITY_RATIO: float = 1.5
+
+
 @dataclass(frozen=True)
 class OcrOnlyBlock:
     """An OCR-only-derived block. The orchestrator translates this into
@@ -281,11 +334,18 @@ class OcrOnlyBlock:
     ``preprocessing/pipeline.py`` block-building helpers); this dataclass
     is the intermediate representation that `cluster_lines_into_blocks`
     returns.
+
+    The ``mean_confidence`` field carries the cluster-local arithmetic
+    mean of member-line ``detector_confidence`` values. The orchestrator
+    uses this directly for each block's ``confidence`` so the per-block
+    accuracy is faithful to the cluster (NOT a page-mean) — pre-PR QA
+    review finding #7.
     """
 
     reading_order: int
     bbox: tuple[int, int, int, int]
     text: str
+    mean_confidence: float
     block_type: str = "text"  # I-019.6: OCR-only always emits "text"
 
 
@@ -322,7 +382,11 @@ def cluster_lines_into_blocks(lines: Sequence[OcrOnlyLine]) -> list[OcrOnlyBlock
     #    a sorted list; deterministic across platforms per I-019.8).
     heights = sorted(line.bbox[3] - line.bbox[1] for line in lines)
     median_height = heights[len(heights) // 2]
-    proximity_threshold = 1.5 * median_height
+    # Clamp to 1 so a degenerate all-same-cy / all-zero-height input
+    # doesn't collapse the proximity threshold to 0 (which would split
+    # every line into its own block). Defensive against malformed OCR
+    # output; well-formed PaddleOCR boxes always have height >= 1.
+    proximity_threshold = CLUSTER_PROXIMITY_RATIO * max(1, median_height)
     # 4. Greedy clustering
     clusters: list[list[OcrOnlyLine]] = []
     current: list[OcrOnlyLine] = [centers[0][0]]
@@ -335,7 +399,9 @@ def cluster_lines_into_blocks(lines: Sequence[OcrOnlyLine]) -> list[OcrOnlyBlock
             current = [line]
         last_cy = cy
     clusters.append(current)
-    # Build OcrOnlyBlock objects
+    # Build OcrOnlyBlock objects (cluster-local mean confidence — O(n)
+    # over all lines; replaces the O(n²) bbox-containment lookup the
+    # orchestrator previously did in pipeline.py per pre-PR QA review #7).
     return [
         _build_block(cluster, reading_order=i + 1)
         for i, cluster in enumerate(clusters)
@@ -347,17 +413,23 @@ def _build_block(cluster: Sequence[OcrOnlyLine], *, reading_order: int) -> OcrOn
 
     bbox = per-axis min/max envelope. text = lines joined with newline,
     in cluster order (cluster is already sorted by `cy` ascending by the
-    caller).
+    caller). mean_confidence = arithmetic mean of the cluster's member
+    detector_confidence values (cluster-local, not page-mean, per
+    pre-PR QA review #7).
     """
     x0 = min(line.bbox[0] for line in cluster)
     y0 = min(line.bbox[1] for line in cluster)
     x1 = max(line.bbox[2] for line in cluster)
     y1 = max(line.bbox[3] for line in cluster)
     text = "\n".join(line.text for line in cluster)
+    mean_confidence = (
+        sum(line.detector_confidence for line in cluster) / len(cluster)
+    )
     return OcrOnlyBlock(
         reading_order=reading_order,
         bbox=(x0, y0, x1, y1),
         text=text,
+        mean_confidence=mean_confidence,
         block_type="text",
     )
 

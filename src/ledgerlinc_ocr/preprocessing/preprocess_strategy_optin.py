@@ -86,13 +86,19 @@ def derive_run_summary_preprocess_strategy_id(
 
     - ``preprocess_lane`` is GPU and a value is threaded → return that value
     - ``preprocess_lane`` is GPU and no value threaded → return
-      ``"ppstructurev3"`` (the GPU-lane no-flag default per R-019.4)
-    - ``preprocess_lane`` is CPU/stub → return ``"cpu-default"`` regardless
+      ``LEGACY_PREPROCESS_STRATEGY`` (`"ppstructurev3"` per R-019.4)
+    - ``preprocess_lane`` is CPU/stub → return
+      ``CPU_DEFAULT_PREPROCESS_STRATEGY`` (`"cpu-default"`) regardless
       of threaded value (warn-and-proceed already nulled it)
 
-    Stub-adapter discrimination beyond cpu/gpu lane is the caller's
-    responsibility; pass ``"stub-default"`` at the stub run-summary build
-    site (see ``data-model.md`` §"Identifier-string constants").
+    Stub-adapter discrimination is handled by the caller, NOT this
+    function. This helper returns the CPU-default sentinel uniformly for
+    all non-GPU lanes; the call site in ``corpus_run.py`` (success path
+    and warm-init failure path) inspects ``plan.profiles["preprocess"]``
+    and overrides to ``STUB_DEFAULT_PREPROCESS_STRATEGY`` when the
+    resolved profile's ``kind`` is ``"stub"``. The
+    ``preprocessing/cli.py:_emit_single_doc_run_summary`` site does the
+    same. See ``data-model.md`` §"Identifier-string constants".
     """
     if not is_gpu_lane(preprocess_lane):
         return CPU_DEFAULT_PREPROCESS_STRATEGY

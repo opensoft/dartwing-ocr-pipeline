@@ -190,22 +190,32 @@ def _build_parser() -> argparse.ArgumentParser:
     # preprocess-strategy axis (which preprocessing pipeline to invoke).
     # Mirrors --raster-profile / --region-strategy. Same parse-order, same
     # UnknownPresetError → exit 16.
+    # Build the help text from named constants so the documented
+    # thresholds track the registry definitions automatically (pre-PR
+    # QA review: no hardcoded magic numbers in user-facing strings).
+    from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+        OCR_ONLY_MIN_CONFIDENCE_MEAN as _OCR_ONLY_MIN_CONFIDENCE_MEAN,
+        OCR_ONLY_MIN_TOKEN_COUNT as _OCR_ONLY_MIN_TOKEN_COUNT,
+    )
     p.add_argument(
         "--preprocess-strategy",
         type=str,
         default=None,
         help=(
             "Select a named preprocessing-strategy preset for the "
-            "ppstructurev3@gpu lane. Valid values: ppstructurev3, "
-            "ocr-only-v1, cpu-default, stub-default. Default on GPU: "
-            "ppstructurev3. The ocr-only-v1 strategy invokes PaddleOCR "
-            "text-detection + text-recognition only (no layout / table "
-            "/ formula / seal modules); on the FR-005 combined two-"
-            "threshold trigger (token count < 8 OR mean detector "
-            "confidence < 0.60), the strategy falls back to "
-            "ppstructurev3 on that document and increments "
-            "ocr_only_fallback_count on run_summary. Can also be set "
-            "via LEDGERLINC_PREPROCESS_STRATEGY; the CLI flag wins."
+            "ppstructurev3@gpu lane. User-selectable values: "
+            "ppstructurev3 (the default — layout-aware PPStructureV3) "
+            "and ocr-only-v1 (PaddleOCR text-detection + text-recognition "
+            "only — no layout / table / formula / seal modules). On the "
+            "FR-005 combined two-threshold trigger (token count < "
+            f"{_OCR_ONLY_MIN_TOKEN_COUNT} OR mean detector confidence "
+            f"< {_OCR_ONLY_MIN_CONFIDENCE_MEAN:.2f}), the ocr-only-v1 "
+            "strategy falls back to ppstructurev3 on that document and "
+            "increments ocr_only_fallback_count on run_summary. "
+            "(cpu-default and stub-default are internal identity values "
+            "emitted on non-GPU profiles — not user-selectable.) "
+            "Can also be set via LEDGERLINC_PREPROCESS_STRATEGY; the "
+            "CLI flag wins."
         ),
     )
     return p
