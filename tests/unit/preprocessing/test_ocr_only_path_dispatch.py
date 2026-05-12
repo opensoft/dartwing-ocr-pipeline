@@ -142,6 +142,25 @@ def _build_fake_engine(lines_per_page: list[list[OcrOnlyLine]]) -> Any:
     return object()
 
 
+def _make_fake_engine_handles(fake_predict: OcrOnlyPagePredict):
+    """Return (fake_get_engine, fake_run_ocr_only_page) bound to a single
+    pre-built `OcrOnlyPagePredict`. Centralizes the singleton-state
+    assignment so all three dispatch tests share one definition (Sonar
+    duplication-on-new-code reduction)."""
+    def fake_get_engine(device, *, text_detection_model_name=None,
+                       text_recognition_model_name=None):
+        ocr_only_mod._OCR_ENGINE = object()
+        ocr_only_mod._OCR_ENGINE_DEVICE = device
+        ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = text_detection_model_name
+        ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = text_recognition_model_name
+        return ocr_only_mod._OCR_ENGINE
+
+    def fake_run_ocr_only_page(engine, page_image, *, page_number):
+        return fake_predict
+
+    return fake_get_engine, fake_run_ocr_only_page
+
+
 def _make_invocation(tmp_path: Path) -> Any:
     """Construct a minimal `preprocessing.pipeline.Invocation` for a
     one-page synthetic fixture."""
@@ -205,21 +224,8 @@ def test_orchestrator_dispatches_to_ocr_only_path_when_strategy_kind_is_ocr_only
     fake_predict = OcrOnlyPagePredict(
         lines=fake_lines, page_number=1, page_width=612, page_height=792,
     )
-
-    def fake_get_engine(device, *, text_detection_model_name=None,
-                       text_recognition_model_name=None):
-        ocr_only_mod._OCR_ENGINE = object()
-        ocr_only_mod._OCR_ENGINE_DEVICE = device
-        # Mirror real `_get_ocr_engine` singleton-state assignment
-        # so subsequent same-process calls compare correctly
-        # (pre-PR QA review: mock must reset all 4 globals).
-        ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = text_detection_model_name
-        ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = text_recognition_model_name
-        return ocr_only_mod._OCR_ENGINE
-
-    def fake_run_ocr_only_page(engine, page_image, *, page_number):
-        # Confidence-mean = 0.875 ≥ 0.60; token-count = 9 ≥ 8 ⇒ SUFFICIENT
-        return fake_predict
+    fake_get_engine, fake_run_ocr_only_page = _make_fake_engine_handles(fake_predict)
+    # Confidence-mean = 0.875 ≥ 0.60; token-count = 9 ≥ 8 ⇒ SUFFICIENT
 
     from ledgerlinc_ocr.preprocessing import pipeline as pipeline_mod
     with patch.object(ocr_only_mod, "_get_ocr_engine", fake_get_engine), \
@@ -257,20 +263,7 @@ def test_orchestrator_ocr_only_output_validates_against_v1_2_0_schema(
     fake_predict = OcrOnlyPagePredict(
         lines=fake_lines, page_number=1, page_width=612, page_height=792,
     )
-
-    def fake_get_engine(device, *, text_detection_model_name=None,
-                       text_recognition_model_name=None):
-        ocr_only_mod._OCR_ENGINE = object()
-        ocr_only_mod._OCR_ENGINE_DEVICE = device
-        # Mirror real `_get_ocr_engine` singleton-state assignment
-        # so subsequent same-process calls compare correctly
-        # (pre-PR QA review: mock must reset all 4 globals).
-        ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = text_detection_model_name
-        ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = text_recognition_model_name
-        return ocr_only_mod._OCR_ENGINE
-
-    def fake_run_ocr_only_page(engine, page_image, *, page_number):
-        return fake_predict
+    fake_get_engine, fake_run_ocr_only_page = _make_fake_engine_handles(fake_predict)
 
     from ledgerlinc_ocr.preprocessing import pipeline as pipeline_mod
     with patch.object(ocr_only_mod, "_get_ocr_engine", fake_get_engine), \
@@ -312,20 +305,7 @@ def test_orchestrator_fallback_path_fires_when_eligibility_insufficient(
     fake_predict = OcrOnlyPagePredict(
         lines=fake_lines, page_number=1, page_width=612, page_height=792,
     )
-
-    def fake_get_engine(device, *, text_detection_model_name=None,
-                       text_recognition_model_name=None):
-        ocr_only_mod._OCR_ENGINE = object()
-        ocr_only_mod._OCR_ENGINE_DEVICE = device
-        # Mirror real `_get_ocr_engine` singleton-state assignment
-        # so subsequent same-process calls compare correctly
-        # (pre-PR QA review: mock must reset all 4 globals).
-        ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = text_detection_model_name
-        ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = text_recognition_model_name
-        return ocr_only_mod._OCR_ENGINE
-
-    def fake_run_ocr_only_page(engine, page_image, *, page_number):
-        return fake_predict
+    fake_get_engine, fake_run_ocr_only_page = _make_fake_engine_handles(fake_predict)
 
     # Stub `_process_page` (the PPStructureV3 fallback target) so it
     # returns a minimal valid page record without actually invoking

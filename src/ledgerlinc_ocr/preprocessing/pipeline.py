@@ -752,7 +752,11 @@ def _run_ocr_only_path(
             if invocation.write_page_images:
                 img_path = invocation.document_folder / f"page_{pr.page_number}.png"
                 pr.image.save(img_path)
-        except Exception as exc:
+        except (OSError, ValueError, RuntimeError) as exc:
+            # Narrow catch (Sonar S5754): pypdfium2.PdfiumError subclasses
+            # RuntimeError; PIL save raises OSError/ValueError; Paddle
+            # runtime failures surface as RuntimeError. Programmer errors
+            # (NameError, TypeError) propagate as bugs.
             failure = rasterize.PageRasterFailure(
                 page_number=pr.page_number,
                 width=pr.width,
@@ -834,7 +838,10 @@ def _run_ocr_only_path(
                 band_bbox_pt=page_1_band,
                 dpi=dpi,
             )
-        except Exception as exc:
+        except (OSError, ValueError, RuntimeError) as exc:
+            # Narrow catch (Sonar S5754): pypdfium2.PdfiumError subclasses
+            # RuntimeError; bad coords raise ValueError; filesystem failures
+            # raise OSError. Programmer bugs (TypeError, NameError) propagate.
             failure = rasterize.PageRasterFailure(
                 page_number=1,
                 width=full_width_px,
