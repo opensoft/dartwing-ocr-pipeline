@@ -21,7 +21,7 @@ CLI manages its own `measure_total`; the warm-corpus Runner does so via
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
@@ -511,6 +511,52 @@ def _process_page(pr: Any, invocation: Invocation) -> _PageResult:
     )
 
 
+@dataclass
+class _PageAcc:
+    """Mutable per-document page-accumulator used by `_run_inner` to
+    aggregate output from any preprocessing path (full-page, region-first,
+    or OCR-only) without repeating the same six-line extend pattern at
+    every dispatch branch.
+
+    Pre-PR Sonar review (PR #35, round 2): the prior helper-with-kwargs
+    pattern (`_extend_accumulators(add_pages=..., add_warnings=...)`)
+    repeated the same six keyword-argument names at five call sites and
+    landed at 7.1% duplication on new code (target ≤3%). Folding the
+    accumulators into a single dataclass with a `.merge_tuple()` method
+    drops the call-site cost to a single line.
+    """
+
+    pages: list[dict[str, Any]] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    tables: list[dict[str, Any]] = field(default_factory=list)
+    lines: list[dict[str, Any]] = field(default_factory=list)
+    pages_with_output: int = 0
+    silent_empty: bool = False
+
+    def merge_tuple(
+        self,
+        addition: tuple[
+            list[dict[str, Any]],  # pages
+            list[str],             # warnings
+            list[dict[str, Any]],  # tables
+            list[dict[str, Any]],  # lines
+            int,                   # pages_with_output
+            bool,                  # silent_empty
+        ],
+    ) -> None:
+        """Merge a 6-tuple from `_run_full_page_path` /
+        `_run_region_first_path` / `_run_ocr_only_path` (the canonical
+        return shape — region-first and OCR-only callers must drop the
+        trailing fallback-signal element before calling)."""
+        p, w, ta, li, pwo, se = addition
+        self.pages.extend(p)
+        self.warnings.extend(w)
+        self.tables.extend(ta)
+        self.lines.extend(li)
+        self.pages_with_output += pwo
+        self.silent_empty = self.silent_empty or se
+
+
 def _run_full_page_path(
     *,
     pdf_path: Path,
@@ -549,39 +595,6 @@ def _run_full_page_path(
         if result.silent_empty:
             silent_empty = True
     return pages, warnings_out, tables, all_lines, pages_with_output, silent_empty
-
-
-def _extend_accumulators(
-    pages: list[dict[str, Any]],
-    warnings_out: list[str],
-    tables: list[dict[str, Any]],
-    all_lines: list[dict[str, Any]],
-    pages_with_output: int,
-    silent_empty_page_detected: bool,
-    *,
-    add_pages: list[dict[str, Any]],
-    add_warnings: list[str],
-    add_tables: list[dict[str, Any]],
-    add_lines: list[dict[str, Any]],
-    add_pages_with_output: int,
-    add_silent_empty: bool,
-) -> tuple[int, bool]:
-    """Extend the caller's accumulator lists in-place and return the new
-    (pages_with_output, silent_empty_page_detected) scalars.
-
-    Reduces caller-site duplication for the seven-statement pattern that
-    appeared three times in `_run_inner` (Sonar new-code duplication
-    finding). Lists mutate in place; scalars are returned because Python
-    ints / bools are immutable.
-    """
-    pages.extend(add_pages)
-    warnings_out.extend(add_warnings)
-    tables.extend(add_tables)
-    all_lines.extend(add_lines)
-    return (
-        pages_with_output + add_pages_with_output,
-        silent_empty_page_detected or add_silent_empty,
-    )
 
 
 def _run_ocr_only_path(
@@ -1166,13 +1179,13 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
         lane_segment=invocation.preprocess_lane,
     )
 
-    pages: list[dict[str, Any]] = []
-    tables: list[dict[str, Any]] = []
-    warnings_out: list[str] = []
-    all_lines: list[dict[str, Any]] = []
+    # Single mutable accumulator for all preprocessing paths (full-page,
+    # region-first, OCR-only). See `_PageAcc.merge_tuple` for the
+    # 6-tuple contract; six-line extend pattern previously repeated at
+    # every dispatch branch is now a single `.merge_tuple(...)` call
+    # (pre-PR Sonar review round 2 — duplication on new code).
+    _acc = _PageAcc()
     max_skew = 0.0
-    pages_with_output = 0
-    silent_empty_page_detected = False
 
     # `measure_phase` records `phases_ns["rasterization"]` even when the
     # iterator raises before yielding (e.g., ZeroPagePdfError on the first
@@ -1219,6 +1232,31 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # full-page / region-first dispatch (PPStructureV3). Identity-kind
     # presets (cpu-default / stub-default) are nulled at the CLI warn-and-
     # proceed boundary upstream and never reach this dispatcher.
+    def _full_page_into_acc() -> None:
+        """Run full-page PPStructureV3 and merge into the accumulator
+        (single helper — replaces five inline duplicates)."""
+        _acc.merge_tuple(
+            _run_full_page_path(
+                pdf_path=pdf_path,
+                dpi=_resolved_dpi,
+                invocation=invocation,
+            )
+        )
+
+    def _region_first_into_acc() -> bool:
+        """Run region-first PPStructureV3, merge non-trigger output into
+        the accumulator, and return the trigger flag so callers can
+        elect to fall back to full-page."""
+        *_region_tuple, _trigger_fired = _run_region_first_path(
+            pdf_path=pdf_path,
+            region_strategy=_resolved_region_strategy,
+            dpi=_resolved_dpi,
+            invocation=invocation,
+        )
+        if not _trigger_fired:
+            _acc.merge_tuple(tuple(_region_tuple))  # type: ignore[arg-type]
+        return _trigger_fired
+
     with measure_phase(stage_timing, "rasterization"):
         # Feature 019 (T011 / T021 / T022 / R-019.10): OCR-only dispatch.
         # On `kind == "ocr-only"`, run the OCR-only-engine path; on the
@@ -1229,15 +1267,7 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
         # The fallback path runs with the SAME active region_strategy_id
         # per R-019.11 — orthogonality with feature 018's region axis.
         if _is_ocr_only and _resolved_preprocess_strategy is not None:
-            (
-                _ocr_pages,
-                _ocr_warnings,
-                _ocr_tables,
-                _ocr_lines,
-                _ocr_pages_with_output,
-                _ocr_silent_empty,
-                _eligibility_insufficient,
-            ) = _run_ocr_only_path(
+            *_ocr_tuple, _eligibility_insufficient = _run_ocr_only_path(
                 pdf_path=pdf_path,
                 preprocess_strategy=_resolved_preprocess_strategy,
                 region_strategy=_resolved_region_strategy,
@@ -1250,159 +1280,36 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
                 # region strategy on PPStructureV3.
                 invocation.ocr_only_fallback_fired = True
                 if _is_region_first and _resolved_region_strategy is not None:
-                    (
-                        _region_pages,
-                        _region_warnings,
-                        _region_tables,
-                        _region_lines,
-                        _region_pages_with_output,
-                        _region_silent_empty,
-                        _trigger_fired,
-                    ) = _run_region_first_path(
-                        pdf_path=pdf_path,
-                        region_strategy=_resolved_region_strategy,
-                        dpi=_resolved_dpi,
-                        invocation=invocation,
-                    )
-                    if _trigger_fired:
+                    if _region_first_into_acc():
                         invocation.region_strategy_fallback_fired = True
-                        (
-                            _fp_pages, _fp_warnings, _fp_tables, _fp_lines,
-                            _fp_pages_with_output, _fp_silent_empty,
-                        ) = _run_full_page_path(
-                            pdf_path=pdf_path,
-                            dpi=_resolved_dpi,
-                            invocation=invocation,
-                        )
-                        pages_with_output, silent_empty_page_detected = _extend_accumulators(
-                            pages, warnings_out, tables, all_lines,
-                            pages_with_output, silent_empty_page_detected,
-                            add_pages=_fp_pages,
-                            add_warnings=_fp_warnings,
-                            add_tables=_fp_tables,
-                            add_lines=_fp_lines,
-                            add_pages_with_output=_fp_pages_with_output,
-                            add_silent_empty=_fp_silent_empty,
-                        )
-                    else:
-                        pages_with_output, silent_empty_page_detected = _extend_accumulators(
-                            pages, warnings_out, tables, all_lines,
-                            pages_with_output, silent_empty_page_detected,
-                            add_pages=_region_pages,
-                            add_warnings=_region_warnings,
-                            add_tables=_region_tables,
-                            add_lines=_region_lines,
-                            add_pages_with_output=_region_pages_with_output,
-                            add_silent_empty=_region_silent_empty,
-                        )
+                        _full_page_into_acc()
                 else:
-                    (
-                        _fp_pages, _fp_warnings, _fp_tables, _fp_lines,
-                        _fp_pages_with_output, _fp_silent_empty,
-                    ) = _run_full_page_path(
-                        pdf_path=pdf_path,
-                        dpi=_resolved_dpi,
-                        invocation=invocation,
-                    )
-                    pages_with_output, silent_empty_page_detected = _extend_accumulators(
-                        pages, warnings_out, tables, all_lines,
-                        pages_with_output, silent_empty_page_detected,
-                        add_pages=_fp_pages,
-                        add_warnings=_fp_warnings,
-                        add_tables=_fp_tables,
-                        add_lines=_fp_lines,
-                        add_pages_with_output=_fp_pages_with_output,
-                        add_silent_empty=_fp_silent_empty,
-                    )
+                    _full_page_into_acc()
             else:
-                pages_with_output, silent_empty_page_detected = _extend_accumulators(
-                    pages, warnings_out, tables, all_lines,
-                    pages_with_output, silent_empty_page_detected,
-                    add_pages=_ocr_pages,
-                    add_warnings=_ocr_warnings,
-                    add_tables=_ocr_tables,
-                    add_lines=_ocr_lines,
-                    add_pages_with_output=_ocr_pages_with_output,
-                    add_silent_empty=_ocr_silent_empty,
-                )
+                _acc.merge_tuple(tuple(_ocr_tuple))  # type: ignore[arg-type]
         elif _is_region_first and _resolved_region_strategy is not None:
             # Region-first path: page 1 only via rasterize_page_band; pages
             # 2..N as empty page records (R-018.6 / Clarifications Q2).
-            (
-                _region_pages,
-                _region_warnings,
-                _region_tables,
-                _region_lines,
-                _region_pages_with_output,
-                _region_silent_empty,
-                _trigger_fired,
-            ) = _run_region_first_path(
-                pdf_path=pdf_path,
-                region_strategy=_resolved_region_strategy,
-                dpi=_resolved_dpi,
-                invocation=invocation,
-            )
-            if _trigger_fired:
-                # FR-007 / R-018.7 / Clarifications Q1: discard the
-                # partial region-first output entirely and re-run the
-                # document under the full-page strategy on the SAME
-                # engine instance. The combined wall-clock cost
-                # (region-first attempt + full-page) accumulates into
-                # the SAME phase_timings.rasterization key per R-018.10.
+            # On the FR-007 trigger, fall back to full-page on the SAME
+            # engine per R-018.7 / R-018.9 / R-018.10.
+            if _region_first_into_acc():
                 invocation.region_strategy_fallback_fired = True
-                (
-                    _fp_pages, _fp_warnings, _fp_tables, _fp_lines,
-                    _fp_pages_with_output, _fp_silent_empty,
-                ) = _run_full_page_path(
-                    pdf_path=pdf_path,
-                    dpi=_resolved_dpi,
-                    invocation=invocation,
-                )
-                pages_with_output, silent_empty_page_detected = _extend_accumulators(
-                    pages, warnings_out, tables, all_lines,
-                    pages_with_output, silent_empty_page_detected,
-                    add_pages=_fp_pages,
-                    add_warnings=_fp_warnings,
-                    add_tables=_fp_tables,
-                    add_lines=_fp_lines,
-                    add_pages_with_output=_fp_pages_with_output,
-                    add_silent_empty=_fp_silent_empty,
-                )
-            else:
-                pages_with_output, silent_empty_page_detected = _extend_accumulators(
-                    pages, warnings_out, tables, all_lines,
-                    pages_with_output, silent_empty_page_detected,
-                    add_pages=_region_pages,
-                    add_warnings=_region_warnings,
-                    add_tables=_region_tables,
-                    add_lines=_region_lines,
-                    add_pages_with_output=_region_pages_with_output,
-                    add_silent_empty=_region_silent_empty,
-                )
+                _full_page_into_acc()
         else:
             # Full-page path — unchanged for full-page / cpu-default /
-            # stub-default / no-flag runs. The rasterize loop body lives
-            # in `_run_full_page_path` (helper extracted to eliminate the
-            # triple-duplicate pattern flagged by Sonar new-code
-            # duplication on first PR review).
-            (
-                _fp_pages, _fp_warnings, _fp_tables, _fp_lines,
-                _fp_pages_with_output, _fp_silent_empty,
-            ) = _run_full_page_path(
-                pdf_path=pdf_path,
-                dpi=_resolved_dpi,
-                invocation=invocation,
-            )
-            pages_with_output, silent_empty_page_detected = _extend_accumulators(
-                pages, warnings_out, tables, all_lines,
-                pages_with_output, silent_empty_page_detected,
-                add_pages=_fp_pages,
-                add_warnings=_fp_warnings,
-                add_tables=_fp_tables,
-                add_lines=_fp_lines,
-                add_pages_with_output=_fp_pages_with_output,
-                add_silent_empty=_fp_silent_empty,
-            )
+            # stub-default / no-flag runs.
+            _full_page_into_acc()
+
+    # Hoist the accumulator fields back into the locals that subsequent
+    # code (compute_quality, build_ingestion_sources, artifact write)
+    # already references. Keeping the locals avoids a large blast radius
+    # at the cost of one 4-line unpack.
+    pages = _acc.pages
+    warnings_out = _acc.warnings
+    tables = _acc.tables
+    all_lines = _acc.lines
+    pages_with_output = _acc.pages_with_output
+    silent_empty_page_detected = _acc.silent_empty
 
     quality = compute_quality(all_lines, max_skew_deg=max_skew)
     ingestion_sources = build_ingestion_sources(
