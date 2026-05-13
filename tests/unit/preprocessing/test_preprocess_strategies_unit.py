@@ -49,12 +49,14 @@ def test_ppstructurev3_kind_is_ppstructurev3() -> None:
 
 def test_ocr_only_v1_kind_and_thresholds() -> None:
     """`ocr-only-v1` is the OCR-only kind with the R-019.5 / R-019.6
-    threshold defaults (8 tokens, 0.60 confidence-mean) and the R-019.6
-    arithmetic-mean aggregator."""
+    threshold defaults (eight tokens, 0.60 confidence-mean) and the
+    R-019.6 arithmetic-mean aggregator."""
     s = PREPROCESS_STRATEGIES["ocr-only-v1"]
     assert s.kind == "ocr-only"
     assert s.token_threshold == 8
     assert s.token_threshold == OCR_ONLY_MIN_TOKEN_COUNT
+    # Float-safe comparison (Sonar S1244): both sides are stored
+    # floats; pytest.approx tolerates the 0.60 binary-rep imprecision.
     assert s.confidence_threshold == pytest.approx(0.60)
     assert s.confidence_threshold == pytest.approx(OCR_ONLY_MIN_CONFIDENCE_MEAN)
     assert s.confidence_aggregator == "mean"
