@@ -6,6 +6,7 @@ All tests are CPU-safe — no Paddle import, no GPU dependency.
 
 from __future__ import annotations
 
+import math
 import sys
 
 import pytest
@@ -55,10 +56,14 @@ def test_ocr_only_v1_kind_and_thresholds() -> None:
     assert s.kind == "ocr-only"
     assert s.token_threshold == 8
     assert s.token_threshold == OCR_ONLY_MIN_TOKEN_COUNT
-    # Float-safe comparison (Sonar S1244): both sides are stored
-    # floats; pytest.approx tolerates the 0.60 binary-rep imprecision.
-    assert s.confidence_threshold == pytest.approx(0.60)
-    assert s.confidence_threshold == pytest.approx(OCR_ONLY_MIN_CONFIDENCE_MEAN)
+    # Float-safe comparison per Sonar S1244 — use math.isclose with both
+    # relative and absolute tolerances (the rule's documented compliant
+    # solution) instead of `==` on a binary-imprecise literal.
+    assert math.isclose(s.confidence_threshold, 0.60, rel_tol=1e-09, abs_tol=1e-09)
+    assert math.isclose(
+        s.confidence_threshold, OCR_ONLY_MIN_CONFIDENCE_MEAN,
+        rel_tol=1e-09, abs_tol=1e-09,
+    )
     assert s.confidence_aggregator == "mean"
 
 
