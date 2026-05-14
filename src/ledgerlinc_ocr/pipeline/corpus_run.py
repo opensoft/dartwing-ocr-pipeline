@@ -103,6 +103,7 @@ def _per_document_invocation(
     det_rec_variant_id: str | None = None,
     raster_profile_id: str | None = None,
     region_strategy_id: str | None = None,
+    preprocess_strategy_id: str | None = None,
 ) -> tuple[CLIInvocation | None, ExitCode | None, str]:
     """Build a CLIInvocation for one document folder.
 
@@ -164,6 +165,7 @@ def _per_document_invocation(
         det_rec_variant_id=det_rec_variant_id,
         raster_profile_id=raster_profile_id,
         region_strategy_id=region_strategy_id,
+        preprocess_strategy_id=preprocess_strategy_id,
     )
     return invocation, None, ""
 
@@ -183,7 +185,7 @@ def _document_id_for_failure(folder: Path) -> str:
     return derive_document_id(folder.name) or folder.name
 
 
-def run_warm_corpus(
+def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split pending
     *,
     args: argparse.Namespace,
     documents: tuple[DocumentEntry, ...],
@@ -262,6 +264,10 @@ def run_warm_corpus(
         resolve_region_strategy_value as _resolve_region_strategy_value_018,
         region_strategy_warn_message as _region_strategy_warn_018,
     )
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value_019,
+        preprocess_strategy_warn_message as _preprocess_strategy_warn_019,
+    )
     _raster_profile_raw_018 = _resolve_raster_profile_value_018(
         getattr(args, "raster_profile", None)
     )
@@ -272,6 +278,15 @@ def run_warm_corpus(
     _det_rec_threaded_017: str | None = _det_rec_raw_017
     _raster_profile_threaded_018: str | None = _raster_profile_raw_018
     _region_strategy_threaded_018: str | None = _region_strategy_raw_018
+    # Feature 019 (T006a / T009 / T010 / T028): preprocess-strategy axis
+    # raw CLI value + threading variable. The CLI flag `--preprocess-strategy`
+    # is registered in T009 (US1) and threaded through here; the
+    # warn-and-proceed nulling on CPU/stub mirrors features 017/018's
+    # existing nulling pattern.
+    _preprocess_strategy_raw_019 = _resolve_preprocess_strategy_value_019(
+        getattr(args, "preprocess_strategy", None)
+    )
+    _preprocess_strategy_threaded_019: str | None = _preprocess_strategy_raw_019
     _warm_pp_profile_017 = plan.profiles.get("preprocess")
     _warm_lane_017 = (
         "gpu0"
@@ -299,6 +314,9 @@ def run_warm_corpus(
         if _region_strategy_raw_018 is not None:
             sys.stderr.write(_region_strategy_warn_018(_profile_for_warn_017) + "\n")
             _region_strategy_threaded_018 = None
+        if _preprocess_strategy_raw_019 is not None:
+            sys.stderr.write(_preprocess_strategy_warn_019(_profile_for_warn_017) + "\n")
+            _preprocess_strategy_threaded_019 = None
 
     # Resolve the threaded values to preset objects for the warm-init factory.
     _module_set_obj_017: object | None = None
@@ -320,6 +338,7 @@ def run_warm_corpus(
         plan,
         module_set=_module_set_obj_017,
         det_rec_variant=_det_rec_variant_obj_017,
+        preprocess_strategy_threaded=_preprocess_strategy_threaded_019,
     )
     # Feature 014 (Contracts §2 Pre-write GPU gate): warm-corpus GPU
     # preflight failures emit the FR-009 stderr form and exit with the
@@ -329,19 +348,19 @@ def run_warm_corpus(
     # not break this module at import time (T035 / VT-003).
     try:
         from ledgerlinc_ocr.preprocessing.preflight import (
-            GpuPrerequisiteError as _GpuPrerequisiteError,
+            GpuPrerequisiteError as _gpu_prerequisite_error_type,
             exit_code_for_state as _exit_code_for_state,
         )
     except ImportError:
-        _GpuPrerequisiteError = None  # type: ignore[assignment]
+        _gpu_prerequisite_error_type = None  # type: ignore[assignment]
         _exit_code_for_state = None  # type: ignore[assignment]
 
     try:
         warm_init_failure = _warm_initialize_live_preprocess(registry, plan)
     except Exception as _exc:  # noqa: BLE001 - intentional: route GPU prereq failures
         if (
-            _GpuPrerequisiteError is not None
-            and isinstance(_exc, _GpuPrerequisiteError)
+            _gpu_prerequisite_error_type is not None
+            and isinstance(_exc, _gpu_prerequisite_error_type)
             and _exit_code_for_state is not None
         ):
             # FR-009 stderr format: name both selected profile and FR-001 state.
@@ -365,6 +384,7 @@ def run_warm_corpus(
                 gpu_prerequisite_failure=True,
                 module_set_threaded=_module_set_threaded_017,
                 det_rec_variant_threaded=_det_rec_threaded_017,
+                preprocess_strategy_threaded=_preprocess_strategy_threaded_019,
                 raster_profile_threaded=_raster_profile_threaded_018,
                 region_strategy_threaded=_region_strategy_threaded_018,
             )
@@ -381,12 +401,19 @@ def run_warm_corpus(
             det_rec_variant_threaded=_det_rec_threaded_017,
             raster_profile_threaded=_raster_profile_threaded_018,
             region_strategy_threaded=_region_strategy_threaded_018,
+            preprocess_strategy_threaded=_preprocess_strategy_threaded_019,
         )
 
     # Feature 016 (T007 / R-016.10 / FR-001 / FR-007 / SC-011): the warm
     # corpus warmup hook fires AFTER `_warm_initialize_live_preprocess`
-    # succeeded (engine adopted via `ocr._adopt_engine`) and BEFORE the
-    # per-document loop opens any `measure_total`/`measure_phase` block.
+    # succeeded and BEFORE the per-document loop opens any
+    # `measure_total`/`measure_phase` block. Per Clarifications Q3 /
+    # R-019.16, `_warm_initialize_live_preprocess` adopts the PPStructureV3
+    # singleton via `ocr._adopt_engine` when
+    # `preprocess_strategy_id != "ocr-only-v1"` (i.e., the default
+    # PPStructureV3 path); on `--preprocess-strategy=ocr-only-v1` it
+    # constructs the OCR-only PaddleOCR singleton via
+    # `ocr_only._get_ocr_engine` and leaves PPStructureV3 unconstructed.
     # The activation surface mirrors the single-doc path: CLI flag
     # `--gpu-warmup` plus env var `LEDGERLINC_GPU_WARMUP=1` (CLI wins).
     # On non-GPU profiles we emit the FR-010 warn-and-proceed line and
@@ -431,11 +458,25 @@ def run_warm_corpus(
         print(warn_and_proceed_message(_profile_name_for_warning), file=sys.stderr)
     if _is_gpu_warmup_active:
         try:
-            from ledgerlinc_ocr.preprocessing import (
-                ocr as _ocr_mod,
-                warmup as _warmup_mod,
+            from ledgerlinc_ocr.preprocessing import warmup as _warmup_mod
+            from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+                resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
             )
-            _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
+
+            _is_ocr_only_warmup = (
+                _preprocess_strategy_threaded_019 is not None
+                and _resolve_preprocess_strategy_019(
+                    _preprocess_strategy_threaded_019
+                ).kind == "ocr-only"
+            )
+            if _is_ocr_only_warmup:
+                from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
+
+                _warmup_mod.run_warmup(_ocr_only_mod.get_active_ocr_engine())
+            else:
+                from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+
+                _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
         except WarmupError as _warmup_exc:
             print(
                 f"error: warmup failed: {_warmup_exc.cause_class}: {_warmup_exc}",
@@ -452,6 +493,14 @@ def run_warm_corpus(
     succeeded = 0
     failed = 0
     _region_strategy_fallback_count_018 = 0
+    # Feature 019 (T006a / T022): per-doc OCR-only fallback accumulator.
+    # Incremented by 1 per document whose `--preprocess-strategy=ocr-only-v1`
+    # output fails the FR-005 combined two-threshold eligibility check and
+    # falls back to `ppstructurev3` on that document (I-019.4 per-document
+    # granularity). US3's wiring (T021) sets `Invocation.ocr_only_fallback_fired`;
+    # this loop aggregates the flag the same way feature 018 does for
+    # `region_strategy_fallback_fired`.
+    _ocr_only_fallback_count_019 = 0
 
     for entry in documents:
         folder_raw = entry.raw
@@ -463,6 +512,7 @@ def run_warm_corpus(
             det_rec_variant_id=_det_rec_threaded_017,
             raster_profile_id=_raster_profile_threaded_018,
             region_strategy_id=_region_strategy_threaded_018,
+            preprocess_strategy_id=_preprocess_strategy_threaded_019,
         )
         if invocation is None:
             failed += 1
@@ -503,6 +553,13 @@ def run_warm_corpus(
         result = runner.run_plan(per_doc_plan, folder=folder_resolved)
         if invocation.region_strategy_fallback_fired:
             _region_strategy_fallback_count_018 += 1
+        # Feature 019 (T006a / T022): aggregate per-doc OCR-only fallback
+        # flag. The live preprocessing adapter (T021) copies the per-document
+        # `preprocessing.pipeline.Invocation.ocr_only_fallback_fired` flag
+        # back onto this warm-corpus `CLIInvocation` exactly like feature
+        # 018 does for `region_strategy_fallback_fired`.
+        if getattr(invocation, "ocr_only_fallback_fired", False):
+            _ocr_only_fallback_count_019 += 1
         observed_exit_codes.append(result.exit_code)
         if result.exit_code == ExitCode.SUCCESS:
             succeeded += 1
@@ -743,10 +800,27 @@ def run_warm_corpus(
         threaded_region_strategy=_region_strategy_threaded_018,
         preprocess_lane=_resolved_preprocess_lane,
     )
+    # Feature 019 (T006a / T011 / R-019.1 / R-019.4): derive
+    # preprocess_strategy_id for the run_summary using the same threading
+    # logic as feature 017/018 axes. T011 (US1 wiring) plumbs the CLI/env
+    # value into `_preprocess_strategy_threaded_019` upstream; the warn-
+    # and-proceed CPU/stub nulling lands in T028 (US4). At Phase 2 there
+    # is no CLI flag yet, so `_preprocess_strategy_threaded_019` is None
+    # and the helper falls through to the GPU/CPU lane default
+    # (LEGACY_PREPROCESS_STRATEGY on GPU; CPU_DEFAULT_PREPROCESS_STRATEGY
+    # on CPU).
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        derive_run_summary_preprocess_strategy_id as _derive_preprocess_strategy_id_019,
+    )
+    _preprocess_strategy_id_019 = _derive_preprocess_strategy_id_019(
+        threaded_preprocess_strategy=_preprocess_strategy_threaded_019,
+        preprocess_lane=_resolved_preprocess_lane,
+    )
     if _pp_profile is not None and _pp_profile.kind == "stub":
         from ledgerlinc_ocr.preprocessing.identifiers import (
             STUB_DEFAULT_DET_REC_VARIANT,
             STUB_DEFAULT_MODULE_SET,
+            STUB_DEFAULT_PREPROCESS_STRATEGY,
             STUB_DEFAULT_RASTER_PROFILE,
             STUB_DEFAULT_REGION_STRATEGY,
         )
@@ -755,6 +829,9 @@ def run_warm_corpus(
         _det_rec_variant_id_017 = STUB_DEFAULT_DET_REC_VARIANT
         _raster_profile_id_018 = STUB_DEFAULT_RASTER_PROFILE
         _region_strategy_id_018 = STUB_DEFAULT_REGION_STRATEGY
+        # Feature 019 (T006a / US4): stub adapter uses stub-default
+        # discrimination for the preprocess-strategy axis as well.
+        _preprocess_strategy_id_019 = STUB_DEFAULT_PREPROCESS_STRATEGY
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -785,6 +862,12 @@ def run_warm_corpus(
         raster_profile_id=_raster_profile_id_018,
         region_strategy_id=_region_strategy_id_018,
         region_strategy_fallback_count=_region_strategy_fallback_count_018,
+        # Feature 019 (T006a / T011 / T022 / R-019.14): two additive
+        # top-level fields. preprocess_strategy_id derived via derive_*;
+        # ocr_only_fallback_count is the per-doc accumulator above
+        # (increments per fallen-back document per I-019.4).
+        preprocess_strategy_id=_preprocess_strategy_id_019,
+        ocr_only_fallback_count=_ocr_only_fallback_count_019,
     )
     emit_run_summary(summary)
 
@@ -803,6 +886,7 @@ def _emit_warm_init_failure_summary(
     det_rec_variant_threaded: str | None = None,
     raster_profile_threaded: str | None = None,
     region_strategy_threaded: str | None = None,
+    preprocess_strategy_threaded: str | None = None,
 ) -> int:
     """Emit the partial run_summary on warm-init failure.
 
@@ -864,10 +948,20 @@ def _emit_warm_init_failure_summary(
         threaded_region_strategy=region_strategy_threaded,
         preprocess_lane=_warm_lane,
     )
+    # Feature 019 (T006a / T011 / R-019.1 / R-019.4): preprocess-strategy
+    # axis on warm-init failure path mirrors the feature 017/018 axes above.
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        derive_run_summary_preprocess_strategy_id as _derive_preprocess_strategy_id_019,
+    )
+    _failure_preprocess_strategy_id = _derive_preprocess_strategy_id_019(
+        threaded_preprocess_strategy=preprocess_strategy_threaded,
+        preprocess_lane=_warm_lane,
+    )
     if _pp_profile is not None and _pp_profile.kind == "stub":
         from ledgerlinc_ocr.preprocessing.identifiers import (
             STUB_DEFAULT_DET_REC_VARIANT,
             STUB_DEFAULT_MODULE_SET,
+            STUB_DEFAULT_PREPROCESS_STRATEGY,
             STUB_DEFAULT_RASTER_PROFILE,
             STUB_DEFAULT_REGION_STRATEGY,
         )
@@ -876,6 +970,7 @@ def _emit_warm_init_failure_summary(
         _failure_det_rec_variant_id = STUB_DEFAULT_DET_REC_VARIANT
         _failure_raster_profile_id = STUB_DEFAULT_RASTER_PROFILE
         _failure_region_strategy_id = STUB_DEFAULT_REGION_STRATEGY
+        _failure_preprocess_strategy_id = STUB_DEFAULT_PREPROCESS_STRATEGY
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
@@ -898,6 +993,11 @@ def _emit_warm_init_failure_summary(
         raster_profile_id=_failure_raster_profile_id,
         region_strategy_id=_failure_region_strategy_id,
         region_strategy_fallback_count=0,
+        # Feature 019 (T006a / R-019.14): preprocess-strategy axis on
+        # warm-init failure path. The orchestrator never ran, so
+        # ocr_only_fallback_count is always 0.
+        preprocess_strategy_id=_failure_preprocess_strategy_id,
+        ocr_only_fallback_count=0,
         documents_total=len(documents),
         documents_succeeded=0,
         documents_failed=1,
@@ -928,6 +1028,7 @@ def _maybe_register_warm_preprocess(
     *,
     module_set: object | None = None,
     det_rec_variant: object | None = None,
+    preprocess_strategy_threaded: str | None = None,
 ) -> None:
     """Register a warm-instance factory for the live preprocessing profile.
 
@@ -938,10 +1039,24 @@ def _maybe_register_warm_preprocess(
           real live adapter**, not a test-only stub-fallback wrapper.
           This is checked via ``stages.is_live_capable``.
 
-    The factory wraps ``preprocessing.ocr._get_engine`` so calling
-    ``initialize()`` constructs PPStructureV3 once. SC-009 is honored
-    because the upstream module's ``_ENGINE`` global is itself a
-    singleton; subsequent per-document calls reuse the warmed engine.
+    The factory's ``initialize()`` constructs ONE of two singleton engines
+    depending on ``preprocess_strategy_threaded`` (Feature 019 / Q3 /
+    R-019.16 / I-019.16):
+
+    - When ``preprocess_strategy_threaded == "ocr-only-v1"``, it
+      constructs the OCR-only PaddleOCR engine via
+      ``ocr_only._get_ocr_engine(device, text_detection_model_name=…,
+      text_recognition_model_name=…)``; PPStructureV3 stays unconstructed.
+      Subsequent fallback documents (per FR-005 trigger) build
+      PPStructureV3 on demand mid-run per R-019.10.
+    - Otherwise (including ``None`` / ``"ppstructurev3"`` / identity
+      defaults), it adopts PPStructureV3 via
+      ``ocr._adopt_engine(_get_engine(device, …))`` — the historical
+      feature 014–018 path; OCR-only's ``_OCR_ENGINE`` stays None.
+
+    Each engine satisfies single-construction-per-process independently
+    (feature 015 FR-001 + I-019.2). Subsequent per-document calls reuse
+    whichever singleton was warmed.
     """
     if "preprocess" not in plan.slice_.stages_in_slice:
         return
@@ -966,9 +1081,39 @@ def _maybe_register_warm_preprocess(
 
     profile_is_gpu = profile.lane == "gpu"
     device_str = "gpu:0" if profile_is_gpu else "cpu"
+    _is_ocr_only_strategy = False
+    if preprocess_strategy_threaded is not None:
+        from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+            resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
+        )
+        _is_ocr_only_strategy = (
+            _resolve_preprocess_strategy_019(preprocess_strategy_threaded).kind
+            == "ocr-only"
+        )
 
-    class _PPStructureV3WarmInstance:
+    class _WarmPreprocessInstance:
         def initialize(self) -> None:
+            if _is_ocr_only_strategy:
+                from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
+
+                # Pre-PR QA review: `DetRecVariant` exposes
+                # `det_model_name` / `rec_model_name` (presets.py:352–353);
+                # the PaddleOCR-side kwarg names
+                # (`text_detection_model_name` / `text_recognition_model_name`)
+                # are NOT attributes on `DetRecVariant`. Using the actual
+                # attribute names so the variant selection is honored.
+                _text_det_name: str | None = None
+                _text_rec_name: str | None = None
+                if det_rec_variant is not None:
+                    _text_det_name = det_rec_variant.det_model_name
+                    _text_rec_name = det_rec_variant.rec_model_name
+                _ocr_only_mod._get_ocr_engine(
+                    device=device_str,
+                    text_detection_model_name=_text_det_name,
+                    text_recognition_model_name=_text_rec_name,
+                )
+                return
+
             from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
 
             global _PREFLIGHT_READOUT
@@ -998,7 +1143,7 @@ def _maybe_register_warm_preprocess(
         stage="preprocess",
         implementation="ppstructurev3",
         lane=profile.lane,
-        factory=_PPStructureV3WarmInstance,
+        factory=_WarmPreprocessInstance,
     )
 
 
@@ -1031,13 +1176,13 @@ def _warm_initialize_live_preprocess(
         # preflight.py is unavailable (T035 / VT-003 defensive scope).
         try:
             from ledgerlinc_ocr.preprocessing.preflight import (
-                GpuPrerequisiteError as _GpuPrerequisiteError,
+                GpuPrerequisiteError as _gpu_prerequisite_error_type,
             )
         except ImportError:
-            _GpuPrerequisiteError = None  # type: ignore[assignment]
+            _gpu_prerequisite_error_type = None  # type: ignore[assignment]
         if (
-            _GpuPrerequisiteError is not None
-            and isinstance(exc, _GpuPrerequisiteError)
+            _gpu_prerequisite_error_type is not None
+            and isinstance(exc, _gpu_prerequisite_error_type)
         ):
             raise
 

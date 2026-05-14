@@ -211,5 +211,62 @@ def test_cpu_run_summary_byte_identical_with_explicit_legacy_flags(
             f"{field} drift across no-flag vs. explicit-legacy CPU runs: "
             f"a={summary_a[field]!r}, b={summary_b[field]!r}"
         )
-    # Also assert the schema_version is unchanged
-    assert summary_a["schema_version"] == summary_b["schema_version"] == "0.1.5"
+    # Feature 019 (T004 / R-019.14): chain head is 0.1.6; both runs must
+    # carry the same schema_version (whichever the producer emits).
+    assert summary_a["schema_version"] == summary_b["schema_version"]
+
+
+# ---------------------------------------------------------------------------
+# Feature 019 / T029 / FR-013 / I-019.14: preprocess-strategy warn-and-proceed
+# on CPU profile
+# ---------------------------------------------------------------------------
+
+
+def test_cpu_with_preprocess_strategy_only_warns_once(
+    tmp_inv_folder: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`--preprocess-strategy=ocr-only-v1` on CPU → 1 stderr warn line;
+    CPU defaults on run_summary; same exit code as baseline (FR-013 /
+    I-019.14)."""
+    mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+        exit_code = cli_mod.main([
+            "--document-folder", str(tmp_inv_folder),
+            "--preprocess-profile", "ppstructurev3@cpu",
+            "--preprocess-strategy", "ocr-only-v1",
+        ])
+    assert exit_code == EXIT_OK
+    captured = capsys.readouterr()
+    assert "--preprocess-strategy ignored:" in captured.err
+    assert "--raster-profile ignored:" not in captured.err
+    assert "--region-strategy ignored:" not in captured.err
+    summary = _run_summary_from(captured.out)
+    assert summary["preprocess_strategy_id"] == "cpu-default"
+    assert summary["ocr_only_fallback_count"] == 0
+
+
+def test_cpu_with_all_three_axes_warns_three_times(
+    tmp_inv_folder: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """All three GPU-only flags set on CPU → 3 stderr warn lines (one
+    per ignored flag); same exit code as baseline; CPU defaults across
+    all three axes on run_summary."""
+    mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+        exit_code = cli_mod.main([
+            "--document-folder", str(tmp_inv_folder),
+            "--preprocess-profile", "ppstructurev3@cpu",
+            "--raster-profile", "reduced-v1",
+            "--region-strategy", "header-first-v1",
+            "--preprocess-strategy", "ocr-only-v1",
+        ])
+    assert exit_code == EXIT_OK
+    captured = capsys.readouterr()
+    assert "--raster-profile ignored:" in captured.err
+    assert "--region-strategy ignored:" in captured.err
+    assert "--preprocess-strategy ignored:" in captured.err
+    summary = _run_summary_from(captured.out)
+    assert summary["raster_profile_id"] == "cpu-default"
+    assert summary["region_strategy_id"] == "cpu-default"
+    assert summary["preprocess_strategy_id"] == "cpu-default"
+    assert summary["ocr_only_fallback_count"] == 0

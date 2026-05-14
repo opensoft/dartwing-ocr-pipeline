@@ -74,6 +74,10 @@ _STACK_PRESET_CHOICES = ("full-workstation", "cloud-workstation", "edge-fast")
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+        OCR_ONLY_MIN_CONFIDENCE_MEAN as _OCR_ONLY_MIN_CONFIDENCE_MEAN,
+        OCR_ONLY_MIN_TOKEN_COUNT as _OCR_ONLY_MIN_TOKEN_COUNT,
+    )
     parser = argparse.ArgumentParser(
         prog="ledgerlinc-pipeline",
         description="Stage 1 pipeline CLI (single-document or warm corpus)",
@@ -126,8 +130,8 @@ def _build_parser() -> argparse.ArgumentParser:
     # two closed-vocabulary preset axes for the ppstructurev3@gpu lane.
     # Mirrors the preprocess CLI's flags. Resolution happens at argv parse
     # time; UnknownPresetError fails fast with exit code 16 BEFORE any
-    # Paddle import. Also accepted via LEDGERLINC_MODULE_SET= /
-    # LEDGERLINC_DET_REC_VARIANT= env vars.
+    # Paddle import. Also accepted via the LEDGERLINC_MODULE_SET and
+    # LEDGERLINC_DET_REC_VARIANT environment variables.
     run.add_argument(
         "--module-set",
         type=str,
@@ -190,6 +194,26 @@ def _build_parser() -> argparse.ArgumentParser:
             "empty page records. On a no-evidence trigger the strategy "
             "falls back to full-page on that document. Can also be set "
             "via LEDGERLINC_REGION_STRATEGY; the CLI flag wins."
+        ),
+    )
+    # Feature 019 (T009 / R-019.1 / contracts/cli-contract.md §1):
+    # preprocess-strategy axis. Mirrors --raster-profile / --region-strategy.
+    run.add_argument(
+        "--preprocess-strategy",
+        type=str,
+        default=None,
+        help=(
+            "Select a named preprocessing-strategy preset for "
+            "ppstructurev3@gpu. Valid values: ppstructurev3, "
+            "ocr-only-v1. Defaults to "
+            "ppstructurev3 on GPU. The ocr-only-v1 strategy invokes "
+            "PaddleOCR det+rec only (no layout / table / formula / "
+            "seal modules); on the FR-005 combined two-threshold "
+            f"trigger (token count < {_OCR_ONLY_MIN_TOKEN_COUNT} OR "
+            f"mean confidence < {_OCR_ONLY_MIN_CONFIDENCE_MEAN:.2f}) "
+            "falls back to ppstructurev3 on that document and "
+            "increments ocr_only_fallback_count. Can also be set via "
+            "LEDGERLINC_PREPROCESS_STRATEGY; the CLI flag wins."
         ),
     )
     # Stack preset (FR-004A).
@@ -424,6 +448,11 @@ def _run_cold_warmup_if_active(invocation: CLIInvocation) -> int | None:
             warmup_optin=True,
             module_set_id=invocation.module_set_id,
             det_rec_variant_id=invocation.det_rec_variant_id,
+            # Feature 019 (T035 / R-019.16 / I-019.16): warmup binds the
+            # engine implied by the selected preprocess_strategy_id.
+            preprocess_strategy_id=getattr(
+                invocation, "preprocess_strategy_id", None
+            ),
         )
     except WarmupError as exc:
         sys.stderr.write(f"error: warmup failed: {exc.cause_class}: {exc}\n")
@@ -466,6 +495,7 @@ def _is_legacy_cold_dispatch(args: argparse.Namespace, plan: ResolvedRunPlan) ->
             args.start_at,
             args.stop_after,
             args.on_failure,
+            args.preprocess_strategy,
             args.ollama_cpu_url,
             args.ollama_jetson_url,
         )
@@ -637,11 +667,20 @@ def _run_cold(
         resolve_region_strategy_value as _resolve_region_strategy_value_018,
         region_strategy_warn_message as _region_strategy_warn_018,
     )
+    # Feature 019 (T009 / T028): preprocess-strategy axis cold-path
+    # warn-and-proceed mirrors features 017 / 018 axes above.
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value_019,
+        preprocess_strategy_warn_message as _preprocess_strategy_warn_019,
+    )
     _raster_profile_raw_018 = _resolve_raster_profile_value_018(
         getattr(args, "raster_profile", None)
     )
     _region_strategy_raw_018 = _resolve_region_strategy_value_018(
         getattr(args, "region_strategy", None)
+    )
+    _preprocess_strategy_raw_019 = _resolve_preprocess_strategy_value_019(
+        getattr(args, "preprocess_strategy", None)
     )
     if _raster_profile_raw_018 is not None and _preprocess_in_slice and not _preprocess_is_gpu:
         sys.stderr.write(
@@ -663,12 +702,23 @@ def _run_cold(
             + "\n"
         )
         _region_strategy_raw_018 = None
+    if _preprocess_strategy_raw_019 is not None and _preprocess_in_slice and not _preprocess_is_gpu:
+        sys.stderr.write(
+            _preprocess_strategy_warn_019(
+                _resolve_warning_profile_name(
+                    _preprocess_profile, args.preprocess_profile
+                )
+            )
+            + "\n"
+        )
+        _preprocess_strategy_raw_019 = None
     # Thread the post-warn-and-proceed values onto the cold-path
     # invocation so `_run_inner`'s ensure_gpu_ready call receives them.
     invocation.module_set_id = _module_set_raw_017
     invocation.det_rec_variant_id = _det_rec_raw_017
     invocation.raster_profile_id = _raster_profile_raw_018
     invocation.region_strategy_id = _region_strategy_raw_018
+    invocation.preprocess_strategy_id = _preprocess_strategy_raw_019
 
     # Hoisted warmup: must run BEFORE the runner's stage dispatch so
     # warmup duration is excluded from per-doc `phase_timings.total`.
@@ -845,12 +895,23 @@ def main(argv: list[str] | None = None, *, runner: Runner | None = None) -> int:
     from ledgerlinc_ocr.preprocessing.region_strategies import (
         resolve_region_strategy as _resolve_region_strategy,
     )
+    # Feature 019 (T009): preprocess-strategy parse-time validation
+    # mirrors features 017/018 axes above.
+    from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+        resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value,
+    )
+    from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+        resolve_user_preprocess_strategy as _resolve_user_preprocess_strategy,
+    )
     from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError as _UnknownPresetError
 
     _module_set_raw = _resolve_module_set_value(getattr(args, "module_set", None))
     _det_rec_raw = _resolve_det_rec_variant_value(getattr(args, "det_rec_variant", None))
     _raster_profile_raw = _resolve_raster_profile_value(getattr(args, "raster_profile", None))
     _region_strategy_raw = _resolve_region_strategy_value(getattr(args, "region_strategy", None))
+    _preprocess_strategy_raw = _resolve_preprocess_strategy_value(
+        getattr(args, "preprocess_strategy", None)
+    )
     try:
         if _module_set_raw is not None:
             _resolve_module_set(_module_set_raw)
@@ -860,6 +921,8 @@ def main(argv: list[str] | None = None, *, runner: Runner | None = None) -> int:
             _resolve_raster_profile(_raster_profile_raw)
         if _region_strategy_raw is not None:
             _resolve_region_strategy(_region_strategy_raw)
+        if _preprocess_strategy_raw is not None:
+            _resolve_user_preprocess_strategy(_preprocess_strategy_raw)
     except _UnknownPresetError as exc:
         valid_str = ", ".join(exc.valid_values)
         sys.stderr.write(

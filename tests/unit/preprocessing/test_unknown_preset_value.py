@@ -32,13 +32,17 @@ import pytest
 def _invoke_cli(*flags: str) -> subprocess.CompletedProcess[str]:
     """Invoke the preprocessing CLI as a subprocess and return the
     completed process. We use a subprocess (not in-process main()) so
-    the exit code propagates through the standard sys.exit path."""
+    the exit code propagates through the standard sys.exit path.
+
+    A 30s timeout guards against runaway subprocesses freezing the suite
+    (pre-PR QA review #3 — subprocess tests must not block indefinitely)."""
     cmd = [sys.executable, "-m", "ledgerlinc_ocr.preprocessing"] + list(flags)
     return subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         check=False,
+        timeout=30,
     )
 
 
@@ -133,7 +137,7 @@ def test_unknown_raster_profile_via_env_var_exits_16(
         "--preprocess-profile",
         "ppstructurev3@cpu",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     assert result.returncode == 16
     assert "error: unknown raster_profile:" in result.stderr
 
@@ -222,6 +226,110 @@ def test_unknown_region_strategy_via_env_var_exits_16(
         "--preprocess-profile",
         "ppstructurev3@cpu",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     assert result.returncode == 16
     assert "error: unknown region_strategy:" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# Feature 019 / T016 / R-019.12: preprocess_strategy axis fail-fast
+# ---------------------------------------------------------------------------
+
+
+def test_unknown_preprocess_strategy_exits_16(tmp_path: Path) -> None:
+    """`--preprocess-strategy=ocr-only-v99` exits with code 16
+    (R-019.12 / I-019.1). The stderr line content and the
+    no-run_summary invariant are exercised by sibling tests
+    `test_unknown_preprocess_strategy_stderr_lists_valid_values` and
+    `test_unknown_preprocess_strategy_emits_no_run_summary` below."""
+    folder = tmp_path / "inv_001_easy"
+    folder.mkdir()
+    (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
+    cmd = [
+        sys.executable,
+        "-m",
+        "ledgerlinc_ocr.preprocessing",
+        "--document-folder",
+        str(folder),
+        "--preprocess-profile",
+        "ppstructurev3@cpu",
+        "--preprocess-strategy",
+        "ocr-only-v99",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
+    assert result.returncode == 16
+
+
+def test_unknown_preprocess_strategy_stderr_lists_valid_values(
+    tmp_path: Path,
+) -> None:
+    """stderr line MUST contain `error: unknown preprocess_strategy:` and
+    the two user-selectable values per contracts/cli-contract.md §4."""
+    folder = tmp_path / "inv_001_easy"
+    folder.mkdir()
+    (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
+    cmd = [
+        sys.executable,
+        "-m",
+        "ledgerlinc_ocr.preprocessing",
+        "--document-folder",
+        str(folder),
+        "--preprocess-profile",
+        "ppstructurev3@cpu",
+        "--preprocess-strategy",
+        "ocr-only-v99",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
+    assert "error: unknown preprocess_strategy:" in result.stderr
+    for v in ("ppstructurev3", "ocr-only-v1"):
+        assert v in result.stderr
+    assert "cpu-default" not in result.stderr
+    assert "stub-default" not in result.stderr
+
+
+def test_unknown_preprocess_strategy_emits_no_run_summary(
+    tmp_path: Path,
+) -> None:
+    """On unknown preset value the CLI exits BEFORE any run_summary is
+    emitted (I-019.1)."""
+    folder = tmp_path / "inv_001_easy"
+    folder.mkdir()
+    (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
+    cmd = [
+        sys.executable,
+        "-m",
+        "ledgerlinc_ocr.preprocessing",
+        "--document-folder",
+        str(folder),
+        "--preprocess-profile",
+        "ppstructurev3@cpu",
+        "--preprocess-strategy",
+        "ocr-only-v99",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
+    assert '"kind": "run_summary"' not in result.stdout
+    assert '"kind":"run_summary"' not in result.stdout
+
+
+def test_unknown_preprocess_strategy_via_env_var_exits_16(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`LEDGERLINC_PREPROCESS_STRATEGY=ocr-only-v99` env var (no CLI
+    flag) exits with code 16 (R-019.1 / R-019.12)."""
+    folder = tmp_path / "inv_001_easy"
+    folder.mkdir()
+    (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
+    monkeypatch.setenv("LEDGERLINC_PREPROCESS_STRATEGY", "ocr-only-v99")
+    cmd = [
+        sys.executable,
+        "-m",
+        "ledgerlinc_ocr.preprocessing",
+        "--document-folder",
+        str(folder),
+        "--preprocess-profile",
+        "ppstructurev3@cpu",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
+    assert result.returncode == 16
+    assert "error: unknown preprocess_strategy:" in result.stderr

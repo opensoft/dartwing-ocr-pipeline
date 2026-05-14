@@ -143,6 +143,17 @@ class CLIInvocation:
     # Warm-corpus mode reads it to aggregate
     # `RunSummary.region_strategy_fallback_count`.
     region_strategy_fallback_fired: bool = False
+    # Feature 019 (T006a / T009 / T011 / T021 / T022): same shape and
+    # threading discipline as feature 017/018's identifier fields above.
+    # `None` means either the operator did not pass `--preprocess-strategy`
+    # or the warn-and-proceed branch nulled the value (non-GPU profile per
+    # FR-013). US1 (T009 / T011) writes the resolved `PreprocessStrategy.name`
+    # here on GPU runs; US3 (T021 / T022) flips `ocr_only_fallback_fired`
+    # to True per-document when the FR-005 combined two-threshold check
+    # triggers fallback to `ppstructurev3` on that document; warm-corpus
+    # mode aggregates the flag into `RunSummary.ocr_only_fallback_count`.
+    preprocess_strategy_id: str | None = None
+    ocr_only_fallback_fired: bool = False
 
 
 StageCallable = Callable[[CLIInvocation, dict[str, Any]], Any]

@@ -61,6 +61,13 @@ class ExitCode(IntEnum):
     # See `preprocessing/raster_profiles.py::resolve_raster_profile`
     # (US1) and `preprocessing/region_strategies.py::resolve_region_strategy`
     # (US2) — same fail-fast envelope as feature 017's two axes.
+    #
+    # Feature 019 (T003 / R-019.12 / contracts/cli-contract.md §4): REUSED
+    # for the new preset axis added by feature 019 — `preprocess_strategy`.
+    # No new exit code; `UnknownPresetError`'s `preset_axis: Literal[…]`
+    # widened additively from 4 to 5 values. See
+    # `preprocessing/preprocess_strategies.py::resolve_preprocess_strategy`
+    # — same fail-fast envelope as features 017/018's axes.
     UNKNOWN_PRESET = 16
     PROCESSING_FAILURE = 20
     SCHEMA_VALIDATION_FAILURE = 30

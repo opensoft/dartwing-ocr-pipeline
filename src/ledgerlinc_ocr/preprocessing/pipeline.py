@@ -21,7 +21,7 @@ CLI manages its own `measure_total`; the warm-corpus Runner does so via
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
@@ -104,6 +104,24 @@ class Invocation:
     # the per-run `RunSummary.region_strategy_fallback_count`
     # accumulator. Always-emit-with-default-False on every run kind.
     region_strategy_fallback_fired: bool = False
+    # Feature 019 (T006a / T009 / T011 / T021 / R-019.1 / R-019.10):
+    # resolved preprocess_strategy_id string from the CLI parse. Threaded
+    # into `_run_inner` so the orchestrator can dispatch on
+    # `PreprocessStrategy.kind` (ppstructurev3 / ocr-only / identity).
+    # Default `None` = use the active profile's identity-preset default
+    # (CPU/stub: identity; GPU no-flag: ppstructurev3). Same warn-and-
+    # proceed-nulls-the-value contract as features 017/018's preset axes.
+    preprocess_strategy_id: str | None = None
+    # Feature 019 (T021 / T022 / R-019.10 / I-019.4): mutable per-document
+    # OCR-only fallback flag. The US3 orchestrator sets this to `True` if
+    # the FR-005 combined two-threshold eligibility check trips for this
+    # document (and the document is reprocessed under the `ppstructurev3`
+    # strategy on the same engine). The CLI / corpus_run reads this AFTER
+    # `pipeline.run()` returns to increment the per-run
+    # `RunSummary.ocr_only_fallback_count` accumulator. Always-emit-with-
+    # default-False on every run kind. Per I-019.4, granularity is per-
+    # document — never per-page, never per threshold trip.
+    ocr_only_fallback_fired: bool = False
 
 
 def _derive_document_id(folder_name: str) -> str:
@@ -141,6 +159,7 @@ def run_warmup_if_active(
     warmup_optin: bool,
     module_set_id: str | None = None,
     det_rec_variant_id: str | None = None,
+    preprocess_strategy_id: str | None = None,
 ) -> None:
     """Hoisted GPU warmup helper. Callers MUST invoke this BEFORE wrapping
     ``pipeline.run`` in ``measure_total`` so warmup duration does not
@@ -192,11 +211,63 @@ def run_warmup_if_active(
             _module_set_obj = _resolve_module_set(module_set_id)
         if det_rec_variant_id is not None:
             _det_rec_variant_obj = _resolve_det_rec_variant(det_rec_variant_id)
-    _ensure_gpu_ready(
-        module_set=_module_set_obj,
-        det_rec_variant=_det_rec_variant_obj,
-    )
-    _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
+    # Feature 019 (T035 / R-019.16 / I-019.16 / Clarifications Q3): the
+    # warmup pass binds ONLY the engine implied by the selected
+    # `preprocess_strategy_id`. On `ocr-only-v1` we warm the OCR-only
+    # PaddleOCR engine (`_OCR_ENGINE`); PPStructureV3 (`_ENGINE`)
+    # remains unconstructed at warmup time (FR-022 explicit exception).
+    # On `ppstructurev3` (or no flag / identity) the existing behavior
+    # holds — PPStructureV3 is warmed. Warmup credit is not transferred
+    # across engines: a fallback document on an `ocr-only-v1` warmup
+    # run pays the PPStructureV3 cold-start cost on its own
+    # `phase_timings.per_page_inference` budget per R-019.15.
+    _is_ocr_only_strategy = False
+    if preprocess_strategy_id is not None:
+        from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+            resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
+        )
+        # No defensive try/except (pre-PR QA review): an unknown
+        # `preprocess_strategy_id` reaching this helper indicates an
+        # upstream CLI-parse-validation bug per R-019.12. Silently
+        # downgrading to PPStructureV3 warmup would mask the bug AND
+        # violate FR-007's fail-fast contract. `UnknownPresetError`
+        # propagates to the caller for surfacing with exit code 16.
+        _is_ocr_only_strategy = (
+            _resolve_preprocess_strategy_019(preprocess_strategy_id).kind
+            == "ocr-only"
+        )
+
+    if _is_ocr_only_strategy:
+        from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
+        # Resolve det/rec model names for the OCR-only engine construction.
+        _text_det_name: str | None = None
+        _text_rec_name: str | None = None
+        if det_rec_variant_id is not None:
+            from ledgerlinc_ocr.preprocessing.presets import (
+                resolve_det_rec_variant as _resolve_det_rec_variant_017,
+            )
+            _variant = _resolve_det_rec_variant_017(det_rec_variant_id)
+            # Pre-PR QA review: `DetRecVariant` exposes `det_model_name`
+            # / `rec_model_name` (see presets.py:352–353); using the
+            # PaddleOCR kwarg names directly via getattr silently
+            # returns None and breaks variant selection. Read the
+            # actual attributes.
+            _text_det_name = _variant.det_model_name
+            _text_rec_name = _variant.rec_model_name
+        # Construct (or reuse) the OCR-only singleton engine on the GPU
+        # device. I-019.2 single-construction guarantee applies per-engine.
+        _ocr_only_mod._get_ocr_engine(
+            device=_resolve_lane_to_device(preprocess_lane),
+            text_detection_model_name=_text_det_name,
+            text_recognition_model_name=_text_rec_name,
+        )
+        _warmup_mod.run_warmup(_ocr_only_mod.get_active_ocr_engine())
+    else:
+        _ensure_gpu_ready(
+            module_set=_module_set_obj,
+            det_rec_variant=_det_rec_variant_obj,
+        )
+        _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
 
 
 def run(invocation: Invocation, *, stage_timing: Optional[StageTiming] = None) -> Path:
@@ -414,9 +485,13 @@ def _process_page(pr: Any, invocation: Invocation) -> _PageResult:
         pr.image.save(img_path)
 
     # FR-005a / R-011: release the page image before the next page rasterizes.
+    # Narrow exception scope: PIL's `Image.close()` raises only
+    # `AttributeError` (file pointer already None) or `OSError` on real
+    # filesystem failures. Bare `except Exception` would mask programmer
+    # errors. Pre-PR Sonar review (S5754 — broad-catch suppression).
     try:
         pr.image.close()
-    except Exception:
+    except (AttributeError, OSError):
         pass
 
     return _PageResult(
@@ -433,6 +508,402 @@ def _process_page(pr: Any, invocation: Invocation) -> _PageResult:
         tables=page_tables,
         warnings=run_warnings + defensive_warnings,
         silent_empty=silent_empty,
+    )
+
+
+@dataclass
+class _PageAcc:
+    """Mutable per-document page-accumulator used by `_run_inner` to
+    aggregate output from any preprocessing path (full-page, region-first,
+    or OCR-only) without repeating the same six-line extend pattern at
+    every dispatch branch.
+
+    Pre-PR Sonar review (PR #35, round 2): the prior helper-with-kwargs
+    pattern (`_extend_accumulators(add_pages=..., add_warnings=...)`)
+    repeated the same six keyword-argument names at five call sites and
+    landed at 7.1% duplication on new code (target ≤3%). Folding the
+    accumulators into a single dataclass with a `.merge_tuple()` method
+    drops the call-site cost to a single line.
+    """
+
+    pages: list[dict[str, Any]] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    tables: list[dict[str, Any]] = field(default_factory=list)
+    lines: list[dict[str, Any]] = field(default_factory=list)
+    pages_with_output: int = 0
+    silent_empty: bool = False
+
+    def merge_tuple(
+        self,
+        addition: tuple[
+            list[dict[str, Any]],  # pages
+            list[str],             # warnings
+            list[dict[str, Any]],  # tables
+            list[dict[str, Any]],  # lines
+            int,                   # pages_with_output
+            bool,                  # silent_empty
+        ],
+    ) -> None:
+        """Merge a 6-tuple from `_run_full_page_path` /
+        `_run_region_first_path` / `_run_ocr_only_path` (the canonical
+        return shape — region-first and OCR-only callers must drop the
+        trailing fallback-signal element before calling)."""
+        p, w, ta, li, pwo, se = addition
+        self.pages.extend(p)
+        self.warnings.extend(w)
+        self.tables.extend(ta)
+        self.lines.extend(li)
+        self.pages_with_output += pwo
+        self.silent_empty = self.silent_empty or se
+
+
+def _run_full_page_path(
+    *,
+    pdf_path: Path,
+    dpi: int,
+    invocation: Invocation,
+) -> tuple[
+    list[dict[str, Any]],  # pages
+    list[str],             # warnings_out
+    list[dict[str, Any]],  # tables
+    list[dict[str, Any]],  # all_lines
+    int,                   # pages_with_output
+    bool,                  # silent_empty_page_detected
+]:
+    """Full-page rasterization + PPStructureV3 inference path.
+
+    Extracted (pre-PR Sonar review — duplication on new code) from the
+    three near-identical `for pr in rasterize_pdf(...) ... _process_page`
+    blocks that previously appeared in `_run_inner`'s OCR-only-fallback,
+    region-first-fallback, and no-flag branches. Returns the same
+    aggregate tuple shape as `_run_region_first_path` for symmetry.
+    """
+    pages: list[dict[str, Any]] = []
+    warnings_out: list[str] = []
+    tables: list[dict[str, Any]] = []
+    all_lines: list[dict[str, Any]] = []
+    pages_with_output = 0
+    silent_empty = False
+    for pr in rasterize.rasterize_pdf(pdf_path, dpi=dpi):
+        result = _process_page(pr, invocation)
+        pages.append(result.page_dict)
+        warnings_out.extend(result.warnings)
+        tables.extend(result.tables)
+        all_lines.extend(result.lines)
+        if result.lines or result.blocks:
+            pages_with_output += 1
+        if result.silent_empty:
+            silent_empty = True
+    return pages, warnings_out, tables, all_lines, pages_with_output, silent_empty
+
+
+def _run_ocr_only_path(
+    *,
+    pdf_path: Path,
+    preprocess_strategy: Any,
+    region_strategy: Any,
+    dpi: int,
+    invocation: Invocation,
+) -> tuple[
+    list[dict[str, Any]],  # pages
+    list[str],             # warnings_out
+    list[dict[str, Any]],  # tables (always empty on OCR-only — no table module)
+    list[dict[str, Any]],  # all_lines
+    int,                   # pages_with_output
+    bool,                  # silent_empty_page_detected
+    bool,                  # eligibility_insufficient (R-019.10 fallback signal)
+]:
+    """Feature 019 (T011 / T020 / T021 / R-019.10): OCR-only orchestrator.
+
+    Runs PaddleOCR det+rec only on each rasterized page (FR-002 — no
+    layout / table / formula / seal modules). Reassembles `blocks[]` via
+    deterministic Y-axis line clustering (R-019.8 / I-019.8). After all
+    pages are processed, runs the FR-005 combined two-threshold
+    eligibility check (R-019.5 / R-019.6 / R-019.7 / I-019.3) on the
+    aggregated detected lines. Returns `eligibility_insufficient=True`
+    when the OCR-only output is too thin for vendor identity; the caller
+    in `_run_inner` then discards the OCR-only output and falls back to
+    PPStructureV3 on the same document (R-019.10).
+
+    Composes with feature 018's region_strategy axis per R-019.11: when
+    `region_strategy.name == "header-first-v1"` the OCR-only pass uses
+    `rasterize_page_band` for page 1 and emits empty page records for
+    pages 2..N (Q2). On `full-page` (or any other identity strategy)
+    the standard `rasterize_pdf` loop runs unchanged.
+
+    The OCR-only PaddleOCR engine is constructed at most once per
+    process per I-019.2 (sibling-singleton pattern alongside `ocr.py`'s
+    PPStructureV3 singleton).
+    """
+    from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
+    from ledgerlinc_ocr.preprocessing.ocr_only import (
+        check_eligibility as _check_eligibility,
+        cluster_lines_into_blocks as _cluster_lines_into_blocks,
+        run_ocr_only_page as _run_ocr_only_page,
+    )
+    from ledgerlinc_ocr.preprocessing.identifiers import block_id, line_id
+
+    # Type-narrowing assertion (pre-PR QA review): the dispatcher in
+    # `_run_inner` already gates on `preprocess_strategy.kind == "ocr-only"`,
+    # but `token_threshold` / `confidence_threshold` / `confidence_aggregator`
+    # are `Optional` on PreprocessStrategy (None for ppstructurev3 /
+    # identity kinds). This assert documents the precondition AND prevents
+    # `None >= int` TypeError if a future caller bypasses the dispatcher.
+    assert preprocess_strategy.kind == "ocr-only", (
+        f"_run_ocr_only_path requires kind='ocr-only', got "
+        f"{preprocess_strategy.kind!r}"
+    )
+    assert preprocess_strategy.token_threshold is not None
+    assert preprocess_strategy.confidence_threshold is not None
+    assert preprocess_strategy.confidence_aggregator is not None
+
+    device = _resolve_lane_to_device(invocation.preprocess_lane)
+    # Resolve det/rec model names from feature 017's variant axis (FR-027).
+    text_det_name: str | None = None
+    text_rec_name: str | None = None
+    if invocation.det_rec_variant_id is not None:
+        from ledgerlinc_ocr.preprocessing.presets import (
+            resolve_det_rec_variant as _resolve_det_rec_variant_017,
+        )
+        variant = _resolve_det_rec_variant_017(invocation.det_rec_variant_id)
+        # Pre-PR QA review: `DetRecVariant` exposes `det_model_name` /
+        # `rec_model_name` (presets.py:352–353); the PaddleOCR kwarg
+        # names (`text_detection_model_name` / `text_recognition_model_name`)
+        # are NOT attributes on `DetRecVariant`. Reading the actual
+        # attribute names so the variant selection is honored.
+        text_det_name = variant.det_model_name
+        text_rec_name = variant.rec_model_name
+    # Construct (or reuse) the OCR-only singleton engine.
+    engine = _ocr_only_mod._get_ocr_engine(
+        device=device,
+        text_detection_model_name=text_det_name,
+        text_recognition_model_name=text_rec_name,
+    )
+
+    pages: list[dict[str, Any]] = []
+    warnings_out: list[str] = []
+    tables: list[dict[str, Any]] = []  # OCR-only never produces tables (FR-002).
+    all_lines: list[dict[str, Any]] = []
+    aggregated_ocr_lines: list[Any] = []
+    pages_with_output = 0
+    silent_empty = False
+
+    def _append_predict_page(
+        *,
+        pr: Any,
+        offset_px: tuple[int, int] = (0, 0),
+    ) -> None:
+        nonlocal pages_with_output, silent_empty
+
+        try:
+            predict = _run_ocr_only_page(engine, pr.image, page_number=pr.page_number)
+        # Build raw_ocr_lines schema-compatible dicts per
+        # contracts/stage1_vendor_identity/v1.2.0/preprocess_output.schema.json
+        # §$defs.ocr_line: required keys {line_id, bbox, text, confidence};
+        # `additionalProperties: false` forbids any extra keys.
+            page_lines: list[dict[str, Any]] = []
+            for li, ocr_line in enumerate(predict.lines, start=1):
+                page_lines.append({
+                    "line_id": line_id(pr.page_number, li),
+                    "bbox": list(ocr_line.bbox),
+                    "text": ocr_line.text,
+                    "confidence": float(ocr_line.detector_confidence),
+                })
+        # Cluster into blocks (R-019.8). Schema §$defs.block: required
+        # keys {block_id, block_type, bbox, reading_order, text,
+        # confidence}; `additionalProperties: false` forbids any extra
+        # keys. Per I-019.6 every OCR-only block has block_type="text".
+        # `OcrOnlyBlock.mean_confidence` (computed inside
+        # `cluster_lines_into_blocks` per pre-PR QA fix) is the
+        # cluster-local arithmetic mean of member-line detector
+        # confidences — O(n) total over all lines on this page,
+        # replacing the prior O(blocks × lines) bbox-containment lookup.
+            ocr_blocks = _cluster_lines_into_blocks(predict.lines)
+            page_blocks: list[dict[str, Any]] = []
+            for ob in ocr_blocks:
+                page_blocks.append({
+                    "block_id": block_id(pr.page_number, ob.reading_order),
+                    "block_type": "text",  # I-019.6: OCR-only always emits text
+                    "bbox": list(ob.bbox),
+                    "reading_order": ob.reading_order,
+                    "text": ob.text,
+                    "confidence": ob.mean_confidence,
+                })
+
+            if offset_px != (0, 0):
+                _translate_record_bboxes(page_lines, offset_px)
+                _translate_record_bboxes(page_blocks, offset_px)
+
+            pages.append({
+                "page_number": pr.page_number,
+                "width": pr.width,
+                "height": pr.height,
+                "rotation_detected": pr.rotation_detected,
+                "blocks": page_blocks,
+                "raw_ocr_lines": page_lines,
+            })
+            all_lines.extend(page_lines)
+            aggregated_ocr_lines.extend(predict.lines)
+            if page_lines or page_blocks:
+                pages_with_output += 1
+            else:
+                silent_empty = True
+
+            if invocation.write_page_images:
+                img_path = invocation.document_folder / f"page_{pr.page_number}.png"
+                pr.image.save(img_path)
+        except (OSError, ValueError, RuntimeError) as exc:
+            # Narrow catch (Sonar S5754): pypdfium2.PdfiumError subclasses
+            # RuntimeError; PIL save raises OSError/ValueError; Paddle
+            # runtime failures surface as RuntimeError. Programmer errors
+            # (NameError, TypeError) propagate as bugs.
+            failure = rasterize.PageRasterFailure(
+                page_number=pr.page_number,
+                width=pr.width,
+                height=pr.height,
+                rotation_detected=pr.rotation_detected,
+                error=f"{type(exc).__name__}: {exc}",
+            )
+            pages.append(_build_failed_page_dict(failure))
+            warnings_out.append(
+                f"page {pr.page_number}: ocr-only failed: {failure.error}"
+            )
+        finally:
+            # Same narrow exception scope as `_process_page`'s
+            # close — PIL `Image.close()` realistic failures are
+            # `AttributeError` / `OSError` only (pre-PR Sonar review
+            # S5754).
+            try:
+                pr.image.close()
+            except (AttributeError, OSError):
+                pass
+
+    is_header_first = (
+        region_strategy is not None
+        and getattr(region_strategy, "name", None) == "header-first-v1"
+    )
+
+    if is_header_first and region_strategy is not None:
+        doc = rasterize.open_pdf(pdf_path)
+        try:
+            page_count = len(doc)
+            per_page_geometry: list[tuple[int, int, int, int, bool]] = []
+            for i in range(page_count):
+                page = doc[i]
+                try:
+                    width_pt, height_pt = page.get_size()
+                    rotation = int(page.get_rotation() or 0)
+                    snapped_rotation, snapped_changed = rasterize.snap_rotation(rotation)
+                    full_width_px, full_height_px = _scaled_page_pixel_dims(
+                        float(width_pt),
+                        float(height_pt),
+                        dpi=dpi,
+                        snapped_rotation=snapped_rotation,
+                    )
+                    per_page_geometry.append((
+                        full_width_px,
+                        full_height_px,
+                        rotation,
+                        snapped_rotation,
+                        snapped_changed,
+                    ))
+                finally:
+                    page.close()
+            page_1_band = region_strategy.page_targeting(doc, 0)
+        finally:
+            doc.close()
+
+        if page_1_band is None:
+            return (
+                [],
+                [],
+                tables,
+                all_lines,
+                0,
+                False,
+                True,
+            )
+
+        (
+            full_width_px,
+            full_height_px,
+            rotation_original,
+            snapped_rotation,
+            snapped_changed,
+        ) = per_page_geometry[0]
+        try:
+            crop_image, offset_px = rasterize.rasterize_page_band(
+                pdf_path=pdf_path,
+                page_index=0,
+                band_bbox_pt=page_1_band,
+                dpi=dpi,
+            )
+        except (OSError, ValueError, RuntimeError) as exc:
+            # Narrow catch (Sonar S5754): pypdfium2.PdfiumError subclasses
+            # RuntimeError; bad coords raise ValueError; filesystem failures
+            # raise OSError. Programmer bugs (TypeError, NameError) propagate.
+            failure = rasterize.PageRasterFailure(
+                page_number=1,
+                width=full_width_px,
+                height=full_height_px,
+                rotation_detected=snapped_rotation,
+                error=f"{type(exc).__name__}: {exc}",
+            )
+            pages.append(_build_failed_page_dict(failure))
+            warnings_out.append(
+                f"page 1: rasterization failed: {failure.error}"
+            )
+            _append_empty_page_records(pages, per_page_geometry, start_index=1)
+            return (
+                pages,
+                warnings_out,
+                tables,
+                all_lines,
+                pages_with_output,
+                silent_empty,
+                False,
+            )
+
+        page_1_raster = rasterize.PageRaster(
+            page_number=1,
+            width=full_width_px,
+            height=full_height_px,
+            rotation_detected=snapped_rotation,
+            rotation_original=rotation_original,
+            rotation_snapped=snapped_changed,
+            image=crop_image,
+        )
+        _append_predict_page(pr=page_1_raster, offset_px=offset_px)
+        _append_empty_page_records(pages, per_page_geometry, start_index=1)
+    else:
+        for pr in rasterize.rasterize_pdf(pdf_path, dpi=dpi):
+            if isinstance(pr, rasterize.PageRasterFailure):
+                pages.append(_build_failed_page_dict(pr))
+                warnings_out.append(
+                    f"page {pr.page_number}: rasterization failed: {pr.error}"
+                )
+                continue
+            _append_predict_page(pr=pr)
+
+    # FR-005 / R-019.5 / R-019.6 / R-019.7 / I-019.3 eligibility check.
+    verdict = _check_eligibility(
+        aggregated_ocr_lines,
+        token_threshold=preprocess_strategy.token_threshold,
+        confidence_threshold=preprocess_strategy.confidence_threshold,
+        confidence_aggregator=preprocess_strategy.confidence_aggregator or "mean",
+    )
+    eligibility_insufficient = (
+        verdict == _ocr_only_mod.EligibilityVerdict.INSUFFICIENT
+    )
+
+    return (
+        pages,
+        warnings_out,
+        tables,
+        all_lines,
+        pages_with_output,
+        silent_empty,
+        eligibility_insufficient,
     )
 
 
@@ -655,6 +1126,18 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # fresh Invocation per document so this is belt-and-braces, but the
     # invariant ("flag reflects THIS run only") is now guaranteed.
     invocation.region_strategy_fallback_fired = False
+    invocation.ocr_only_fallback_fired = False
+
+    _resolved_preprocess_strategy = None
+    _is_ocr_only = False
+    if invocation.preprocess_strategy_id is not None:
+        from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+            resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
+        )
+        _resolved_preprocess_strategy = _resolve_preprocess_strategy_019(
+            invocation.preprocess_strategy_id
+        )
+        _is_ocr_only = _resolved_preprocess_strategy.kind == "ocr-only"
 
     # Feature 014 (T021 / FR-009): on GPU lane, run the inline preflight
     # gate BEFORE any artifact write or input parsing. ensure_gpu_ready
@@ -666,7 +1149,7 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # overrides (R-017.4 Appendix A). Lazy resolution from string ID →
     # preset object happens here so the CLI doesn't need to import the
     # presets module before fail-fast validation.
-    if invocation.preprocess_lane != "cpu":
+    if invocation.preprocess_lane != "cpu" and not _is_ocr_only:
         from ledgerlinc_ocr.preprocessing.preflight import (
             ensure_gpu_ready as _ensure_gpu_ready,
         )
@@ -703,13 +1186,13 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
         lane_segment=invocation.preprocess_lane,
     )
 
-    pages: list[dict[str, Any]] = []
-    tables: list[dict[str, Any]] = []
-    warnings_out: list[str] = []
-    all_lines: list[dict[str, Any]] = []
+    # Single mutable accumulator for all preprocessing paths (full-page,
+    # region-first, OCR-only). See `_PageAcc.merge_tuple` for the
+    # 6-tuple contract; six-line extend pattern previously repeated at
+    # every dispatch branch is now a single `.merge_tuple(...)` call
+    # (pre-PR Sonar review round 2 — duplication on new code).
+    _acc = _PageAcc()
     max_skew = 0.0
-    pages_with_output = 0
-    silent_empty_page_detected = False
 
     # `measure_phase` records `phases_ns["rasterization"]` even when the
     # iterator raises before yielding (e.g., ZeroPagePdfError on the first
@@ -749,63 +1232,91 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
         )
         _is_region_first = _resolved_region_strategy.name == "header-first-v1"
 
-    with measure_phase(stage_timing, "rasterization"):
-        if _is_region_first and _resolved_region_strategy is not None:
-            # Region-first path: page 1 only via rasterize_page_band; pages
-            # 2..N as empty page records (R-018.6 / Clarifications Q2).
-            (
-                _region_pages,
-                _region_warnings,
-                _region_tables,
-                _region_lines,
-                _region_pages_with_output,
-                _region_silent_empty,
-                _trigger_fired,
-            ) = _run_region_first_path(
+    # Feature 019 (T011 / R-019.10): resolve the threaded preprocess_strategy_id
+    # and detect the OCR-only kind. On `kind == "ocr-only"`, dispatch to the
+    # `_run_ocr_only_path` helper (PaddleOCR det+rec only — FR-002). On
+    # `kind == "ppstructurev3"` or no flag, fall through to the existing
+    # full-page / region-first dispatch (PPStructureV3). Identity-kind
+    # presets (cpu-default / stub-default) are nulled at the CLI warn-and-
+    # proceed boundary upstream and never reach this dispatcher.
+    def _full_page_into_acc() -> None:
+        """Run full-page PPStructureV3 and merge into the accumulator
+        (single helper — replaces five inline duplicates)."""
+        _acc.merge_tuple(
+            _run_full_page_path(
                 pdf_path=pdf_path,
+                dpi=_resolved_dpi,
+                invocation=invocation,
+            )
+        )
+
+    def _region_first_into_acc() -> bool:
+        """Run region-first PPStructureV3, merge non-trigger output into
+        the accumulator, and return the trigger flag so callers can
+        elect to fall back to full-page."""
+        *_region_tuple, _trigger_fired = _run_region_first_path(
+            pdf_path=pdf_path,
+            region_strategy=_resolved_region_strategy,
+            dpi=_resolved_dpi,
+            invocation=invocation,
+        )
+        if not _trigger_fired:
+            _acc.merge_tuple(tuple(_region_tuple))  # type: ignore[arg-type]
+        return _trigger_fired
+
+    with measure_phase(stage_timing, "rasterization"):
+        # Feature 019 (T011 / T021 / T022 / R-019.10): OCR-only dispatch.
+        # On `kind == "ocr-only"`, run the OCR-only-engine path; on the
+        # FR-005 combined two-threshold INSUFFICIENT verdict, fall back to
+        # the PPStructureV3 path on the SAME process (each engine
+        # constructed at most once per process *when invoked* per I-019.2)
+        # and increment `invocation.ocr_only_fallback_fired` per I-019.4.
+        # The fallback path runs with the SAME active region_strategy_id
+        # per R-019.11 — orthogonality with feature 018's region axis.
+        if _is_ocr_only and _resolved_preprocess_strategy is not None:
+            *_ocr_tuple, _eligibility_insufficient = _run_ocr_only_path(
+                pdf_path=pdf_path,
+                preprocess_strategy=_resolved_preprocess_strategy,
                 region_strategy=_resolved_region_strategy,
                 dpi=_resolved_dpi,
                 invocation=invocation,
             )
-            if _trigger_fired:
-                # FR-007 / R-018.7 / Clarifications Q1: discard the
-                # partial region-first output entirely and re-run the
-                # document under the full-page strategy on the SAME
-                # engine instance. The combined wall-clock cost
-                # (region-first attempt + full-page) accumulates into
-                # the SAME phase_timings.rasterization key per R-018.10.
-                invocation.region_strategy_fallback_fired = True
-                for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
-                    result = _process_page(pr, invocation)
-                    pages.append(result.page_dict)
-                    warnings_out.extend(result.warnings)
-                    tables.extend(result.tables)
-                    all_lines.extend(result.lines)
-                    if result.lines or result.blocks:
-                        pages_with_output += 1
-                    if result.silent_empty:
-                        silent_empty_page_detected = True
+            if _eligibility_insufficient:
+                # R-019.10 / I-019.4 fallback: discard OCR-only partial
+                # output and re-run the document under the active
+                # region strategy on PPStructureV3.
+                invocation.ocr_only_fallback_fired = True
+                if _is_region_first and _resolved_region_strategy is not None:
+                    if _region_first_into_acc():
+                        invocation.region_strategy_fallback_fired = True
+                        _full_page_into_acc()
+                else:
+                    _full_page_into_acc()
             else:
-                pages.extend(_region_pages)
-                warnings_out.extend(_region_warnings)
-                tables.extend(_region_tables)
-                all_lines.extend(_region_lines)
-                pages_with_output += _region_pages_with_output
-                if _region_silent_empty:
-                    silent_empty_page_detected = True
+                _acc.merge_tuple(tuple(_ocr_tuple))  # type: ignore[arg-type]
+        elif _is_region_first and _resolved_region_strategy is not None:
+            # Region-first path: page 1 only via rasterize_page_band; pages
+            # 2..N as empty page records (R-018.6 / Clarifications Q2).
+            # On the FR-007 trigger, fall back to full-page on the SAME
+            # engine per R-018.7 / R-018.9 / R-018.10.
+            if _region_first_into_acc():
+                invocation.region_strategy_fallback_fired = True
+                _full_page_into_acc()
         else:
-            # Full-page path (existing code) — unchanged for
-            # full-page / cpu-default / stub-default / no-flag runs.
-            for pr in rasterize.rasterize_pdf(pdf_path, dpi=_resolved_dpi):
-                result = _process_page(pr, invocation)
-                pages.append(result.page_dict)
-                warnings_out.extend(result.warnings)
-                tables.extend(result.tables)
-                all_lines.extend(result.lines)
-                if result.lines or result.blocks:
-                    pages_with_output += 1
-                if result.silent_empty:
-                    silent_empty_page_detected = True
+            # Full-page path — unchanged for full-page / cpu-default /
+            # stub-default / no-flag runs.
+            _full_page_into_acc()
+
+    # Hoist the accumulator fields back into the locals that subsequent
+    # code (compute_quality, build_ingestion_sources, artifact write)
+    # already references. Keeping the locals avoids a large blast radius
+    # at the cost of one 4-line unpack.
+    pages = _acc.pages
+    warnings_out = _acc.warnings
+    tables = _acc.tables
+    all_lines = _acc.lines
+    pages_with_output = _acc.pages_with_output
+    silent_empty_page_detected = _acc.silent_empty
 
     quality = compute_quality(all_lines, max_skew_deg=max_skew)
     ingestion_sources = build_ingestion_sources(
