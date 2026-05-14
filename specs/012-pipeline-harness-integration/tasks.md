@@ -11,7 +11,7 @@
 
 **Purpose**: Add the harness-side invocation seam without changing evaluator behavior yet.
 
-- [X] T001 Create the subprocess pipeline invocation module in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
+- [X] T001 Create the subprocess pipeline invocation module in `src/dartwing_ocr/evaluator/pipeline_invocation.py`
 - [X] T002 [P] Add focused unit tests for command construction and run-summary parsing in `tests/evaluator_tests/test_pipeline_invocation.py`
 
 ---
@@ -20,8 +20,8 @@
 
 **Purpose**: Wire shared CLI arguments and corpus subset support needed by all user stories.
 
-- [X] T003 Add shared evaluator CLI pipeline-preparation arguments in `src/ledgerlinc_ocr/evaluator/cli.py`
-- [X] T004 Extend `evaluate_corpus` with an internal optional document-folder subset in `src/ledgerlinc_ocr/evaluator/corpus.py`
+- [X] T003 Add shared evaluator CLI pipeline-preparation arguments in `src/dartwing_ocr/evaluator/cli.py`
+- [X] T004 Extend `evaluate_corpus` with an internal optional document-folder subset in `src/dartwing_ocr/evaluator/corpus.py`
 - [X] T005 [P] Preserve the evaluator import barrier coverage in `tests/evaluator_tests/test_import_barrier.py`
 
 **Checkpoint**: Foundation ready - user story implementation can begin.
@@ -41,8 +41,8 @@
 
 ### Implementation for User Story 1
 
-- [X] T008 [US1] Invoke the pipeline before document evaluation when `--run-pipeline` is set in `src/ledgerlinc_ocr/evaluator/cli.py`
-- [X] T009 [US1] Map pipeline preparation failures to evaluator hard-error code `3` with clear stderr messages in `src/ledgerlinc_ocr/evaluator/cli.py`
+- [X] T008 [US1] Invoke the pipeline before document evaluation when `--run-pipeline` is set in `src/dartwing_ocr/evaluator/cli.py`
+- [X] T009 [US1] Map pipeline preparation failures to evaluator hard-error code `3` with clear stderr messages in `src/dartwing_ocr/evaluator/cli.py`
 
 **Checkpoint**: User Story 1 is independently functional.
 
@@ -61,9 +61,9 @@
 
 ### Implementation for User Story 2
 
-- [X] T012 [US2] Discover corpus folders and invoke warm pipeline preparation through a temporary documents file in `src/ledgerlinc_ocr/evaluator/cli.py`
-- [X] T013 [US2] Evaluate only successfully prepared folders after continue-mode preparation in `src/ledgerlinc_ocr/evaluator/corpus.py`
-- [X] T014 [US2] Report preparation counts and failures to stderr without changing corpus Markdown stdout in `src/ledgerlinc_ocr/evaluator/cli.py`
+- [X] T012 [US2] Discover corpus folders and invoke warm pipeline preparation through a temporary documents file in `src/dartwing_ocr/evaluator/cli.py`
+- [X] T013 [US2] Evaluate only successfully prepared folders after continue-mode preparation in `src/dartwing_ocr/evaluator/corpus.py`
+- [X] T014 [US2] Report preparation counts and failures to stderr without changing corpus Markdown stdout in `src/dartwing_ocr/evaluator/cli.py`
 
 **Checkpoint**: User Stories 1 and 2 are independently functional.
 
@@ -82,8 +82,8 @@
 
 ### Implementation for User Story 3
 
-- [X] T017 [US3] Implement stub-safe default profile selection in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
-- [X] T018 [US3] Implement stack preset, per-stage profile, slice, endpoint, timeout, and overwrite passthrough in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
+- [X] T017 [US3] Implement stub-safe default profile selection in `src/dartwing_ocr/evaluator/pipeline_invocation.py`
+- [X] T018 [US3] Implement stack preset, per-stage profile, slice, endpoint, timeout, and overwrite passthrough in `src/dartwing_ocr/evaluator/pipeline_invocation.py`
 
 **Checkpoint**: User Stories 1, 2, and 3 are functional.
 
@@ -102,8 +102,8 @@
 
 ### Implementation for User Story 4
 
-- [X] T021 [US4] Parse warm run summary metadata in `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py`
-- [X] T022 [US4] Print preparation metadata to stderr from corpus CLI handling in `src/ledgerlinc_ocr/evaluator/cli.py`
+- [X] T021 [US4] Parse warm run summary metadata in `src/dartwing_ocr/evaluator/pipeline_invocation.py`
+- [X] T022 [US4] Print preparation metadata to stderr from corpus CLI handling in `src/dartwing_ocr/evaluator/cli.py`
 
 **Checkpoint**: All user stories are functional.
 

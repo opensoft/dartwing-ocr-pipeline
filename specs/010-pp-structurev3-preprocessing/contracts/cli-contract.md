@@ -1,4 +1,4 @@
-# CLI Contract Delta: `ledgerlinc-preprocess` (010-pp-structurev3-preprocessing)
+# CLI Contract Delta: `dartwing-preprocess` (010-pp-structurev3-preprocessing)
 
 This document captures **only what changes** in the CLI contract vs. the 003-era CLI defined in `specs/003-pdf-preprocessing/contracts/cli-contract.md`. Anything not mentioned here is unchanged.
 
@@ -7,14 +7,14 @@ The persisted artifact shape (`preprocess_output.json`) is defined by the active
 ## Invocation (unchanged)
 
 ```bash
-ledgerlinc-preprocess \
+dartwing-preprocess \
     --document-folder <PATH> \
     [--source-file <NAME>] \
     [--write-page-images] \
     [--pipeline-version <STRING>]
 
 # Also invocable as:
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder <PATH> \
     [--source-file <NAME>] \
     [--write-page-images] \

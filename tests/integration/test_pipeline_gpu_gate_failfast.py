@@ -5,7 +5,7 @@ Two independent sub-tests, NOT a parameterization cross-product
 
 (1) **Fail-state matrix**: parameterized across the five FR-001 fail
     states. For each, monkeypatch
-    `ledgerlinc_ocr.preprocessing.preflight.classify` to return that
+    `dartwing_ocr.preprocessing.preflight.classify` to return that
     state, invoke the single-doc CLI with
     `--preprocess-profile ppstructurev3@gpu`, and assert
     (a) no `preprocess_output.json` is written for any document;
@@ -37,12 +37,12 @@ from unittest.mock import patch
 import pytest
 
 # VT-003 / T035: skip if preflight is unavailable.
-preflight = pytest.importorskip("ledgerlinc_ocr.preprocessing.preflight")
+preflight = pytest.importorskip("dartwing_ocr.preprocessing.preflight")
 PreflightEvidence = preflight.PreflightEvidence
 PreflightReadout = preflight.PreflightReadout
 PreflightState = preflight.PreflightState
 
-from ledgerlinc_ocr.preprocessing import cli as preprocessing_cli
+from dartwing_ocr.preprocessing import cli as preprocessing_cli
 
 
 def _fake_readout(state: PreflightState) -> PreflightReadout:
@@ -106,7 +106,7 @@ def test_gpu_gate_failfast_per_fr001_state(
 
     fake = _fake_readout(state)
     # Reset cache and patch classify so ensure_gpu_ready raises GpuPrerequisiteError.
-    from ledgerlinc_ocr.preprocessing import preflight as preflight_mod
+    from dartwing_ocr.preprocessing import preflight as preflight_mod
 
     preflight_mod.reset_cache()
     monkeypatch.setattr(
@@ -143,7 +143,7 @@ def test_omitted_profile_does_not_invoke_gate(folder_with_pdf: Path, monkeypatch
     ppstructurev3@cpu and the GPU gate must NOT fire (FR-008 default).
     We verify by setting a sentinel on classify; if the gate is
     invoked, the sentinel raises."""
-    from ledgerlinc_ocr.preprocessing import preflight as preflight_mod
+    from dartwing_ocr.preprocessing import preflight as preflight_mod
 
     preflight_mod.reset_cache()
 
@@ -153,7 +153,7 @@ def test_omitted_profile_does_not_invoke_gate(folder_with_pdf: Path, monkeypatch
     monkeypatch.setattr(preflight_mod, "classify", _should_not_be_called)
     # Also bypass actual preprocessing (we don't want to parse the
     # placeholder PDF — just check that the gate doesn't fire).
-    from ledgerlinc_ocr.preprocessing import pipeline
+    from dartwing_ocr.preprocessing import pipeline
 
     def _fake_run(invocation, **kwargs):
         # Confirm the lane is cpu when no flag is passed.
@@ -207,13 +207,13 @@ def test_warm_corpus_gpu_lane_aborts_on_first_per_doc_failure(
     """Warm-corpus: GPU gate passes on the warm-init step, then per-doc
     GPU inference fails on document 2. Document 3 must not be attempted
     even though `--on-failure=continue` was requested."""
-    from ledgerlinc_ocr.pipeline import corpus_run as _corpus_run_mod
-    from ledgerlinc_ocr.pipeline import runner as _runner_mod
-    from ledgerlinc_ocr.pipeline.cli import main as pipeline_cli_main
-    from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
-    from ledgerlinc_ocr.pipeline.runner import RunResult
-    from ledgerlinc_ocr.pipeline.timing import DocumentTimings
-    from ledgerlinc_ocr.preprocessing import preflight as _preflight_mod
+    from dartwing_ocr.pipeline import corpus_run as _corpus_run_mod
+    from dartwing_ocr.pipeline import runner as _runner_mod
+    from dartwing_ocr.pipeline.cli import main as pipeline_cli_main
+    from dartwing_ocr.pipeline.exit_codes import ExitCode
+    from dartwing_ocr.pipeline.runner import RunResult
+    from dartwing_ocr.pipeline.timing import DocumentTimings
+    from dartwing_ocr.preprocessing import preflight as _preflight_mod
 
     # Reset preflight module-level cache so the gate runs fresh.
     _preflight_mod.reset_cache()
@@ -241,7 +241,7 @@ def test_warm_corpus_gpu_lane_aborts_on_first_per_doc_failure(
     # Stub the warm-instance factory's _get_engine call so it doesn't actually
     # reach into Paddle. We register a fake live capability for the GPU triple
     # and short-circuit the engine construction.
-    from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
+    from dartwing_ocr.preprocessing import ocr as _ocr_mod
     monkeypatch.setattr(_ocr_mod, "_get_engine", lambda *args, **kwargs: object())
 
     # Patch the binding inside corpus_run.py (where it's used), not in
@@ -345,9 +345,9 @@ def test_warm_corpus_gpu_preflight_failure_uses_fr009_path(
     and exits with the FR-001-state-mapped exit code (10–14), NOT the
     generic PROCESSING_FAILURE exit code that pre-feature warm-init
     failures use."""
-    from ledgerlinc_ocr.pipeline.cli import main as pipeline_cli_main
-    from ledgerlinc_ocr.preprocessing import preflight as _preflight_mod
-    from ledgerlinc_ocr.pipeline import corpus_run as _corpus_run_mod
+    from dartwing_ocr.pipeline.cli import main as pipeline_cli_main
+    from dartwing_ocr.preprocessing import preflight as _preflight_mod
+    from dartwing_ocr.pipeline import corpus_run as _corpus_run_mod
 
     _preflight_mod.reset_cache()
     _corpus_run_mod._PREFLIGHT_READOUT = None

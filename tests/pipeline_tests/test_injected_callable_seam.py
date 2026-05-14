@@ -12,9 +12,9 @@ from typing import Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
-from ledgerlinc_ocr.pipeline.runner import (
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.exit_codes import ExitCode
+from dartwing_ocr.pipeline.runner import (
     CLIInvocation,
     Runner,
     RunResult,
@@ -44,7 +44,7 @@ def _stage_folder(tmp_path: Path, name: str = "inv_001_easy") -> Path:
 
 def test_injected_preprocess_callable_overrides_profile_registry(tmp_path: Path):
     """An injected preprocess callable wins over the profile-registry lookup."""
-    from ledgerlinc_ocr.pipeline.stages import default_preprocess
+    from dartwing_ocr.pipeline.stages import default_preprocess
 
     folder = _stage_folder(tmp_path, "inv_001_easy")
     invocations: list[str] = []
@@ -76,7 +76,7 @@ def test_injected_preprocess_callable_overrides_profile_registry(tmp_path: Path)
 
 def test_injected_callable_seam_works_alongside_slice_control(tmp_path: Path):
     """Injected extract callable runs only when extract is in the slice."""
-    from ledgerlinc_ocr.pipeline.stages import default_extraction, default_preprocess
+    from dartwing_ocr.pipeline.stages import default_extraction, default_preprocess
 
     folder = _stage_folder(tmp_path, "inv_002_easy")
 
@@ -121,7 +121,7 @@ def test_injected_callable_seam_works_alongside_slice_control(tmp_path: Path):
 
 def test_stage_run_output_skips_runner_rewrite(tmp_path: Path):
     """Adapters that already wrote their artifact are not rewritten by Runner."""
-    from ledgerlinc_ocr.pipeline.stages import default_preprocess
+    from dartwing_ocr.pipeline.stages import default_preprocess
 
     folder = _stage_folder(tmp_path, "inv_009_easy")
     written = ""

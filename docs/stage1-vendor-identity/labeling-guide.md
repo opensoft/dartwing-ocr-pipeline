@@ -10,7 +10,7 @@ This guide is the authoritative reference for humans authoring or auditing label
 
 Audience: labelers and auditors. Not a model-development document — model developers should read `prd-model-pipeline.md` and `architecture.md` instead.
 
-Machine authorities are the JSON Schemas in `contracts/stage1_vendor_identity/v1.0.0/` and the validator in `src/ledgerlinc_ocr/validator/`. When this guide and a schema disagree, the schema wins; this guide is updated to match.
+Machine authorities are the JSON Schemas in `contracts/stage1_vendor_identity/v1.0.0/` and the validator in `src/dartwing_ocr/validator/`. When this guide and a schema disagree, the schema wins; this guide is updated to match.
 
 ---
 
@@ -226,8 +226,8 @@ For a new document:
 2. Place the PDF at `tests/stage1_vendor_identity/inv_NNN_<difficulty>/source.pdf` (next available `NNN`, correct difficulty suffix).
 3. Author `expected.json` using the rules in §5–§9.
 4. Author `notes.md` if `difficulty` is `hard` or `missing_name` (required); optional otherwise.
-5. Run `python -m ledgerlinc_ocr.validator validate folder tests/stage1_vendor_identity/inv_NNN_*` — fix any reported errors.
-6. Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` — confirm corpus-wide coverage still holds (§11).
+5. Run `python -m dartwing_ocr.validator validate folder tests/stage1_vendor_identity/inv_NNN_*` — fix any reported errors.
+6. Run `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` — confirm corpus-wide coverage still holds (§11).
 
 For a correction to an existing document: same loop, starting from step 3. If the correction changes the `difficulty` bucket, rename the folder (and update `document_id` in `expected.json` to match).
 

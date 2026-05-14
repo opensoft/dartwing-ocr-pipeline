@@ -10,8 +10,8 @@ fixture loading.
 """
 from __future__ import annotations
 
-from ledgerlinc_ocr.preprocessing.identifiers import AUDIT_SUB_MODULE_VOCABULARY
-from ledgerlinc_ocr.preprocessing.presets import (
+from dartwing_ocr.preprocessing.identifiers import AUDIT_SUB_MODULE_VOCABULARY
+from dartwing_ocr.preprocessing.presets import (
     _audit_identity_no_op,
     _inspect_predict_result,
 )

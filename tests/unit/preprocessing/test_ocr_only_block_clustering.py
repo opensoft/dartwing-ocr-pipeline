@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.ocr_only import (
+from dartwing_ocr.preprocessing.ocr_only import (
     OcrOnlyLine,
     cluster_lines_into_blocks,
 )

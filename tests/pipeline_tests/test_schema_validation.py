@@ -7,11 +7,11 @@ from typing import Any, Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES, Runner
-from ledgerlinc_ocr.pipeline.stages import default_preprocess
-from ledgerlinc_ocr.validator.artifact import validate_artifact
-from ledgerlinc_ocr.validator.report import ArtifactName
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES, Runner
+from dartwing_ocr.pipeline.stages import default_preprocess
+from dartwing_ocr.validator.artifact import validate_artifact
+from dartwing_ocr.validator.report import ArtifactName
 
 
 def _bad_preprocess(invocation: Any, produced: dict) -> dict:

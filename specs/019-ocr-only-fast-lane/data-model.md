@@ -10,7 +10,7 @@ This document defines the entities and value types introduced or extended by fea
 
 A named, closed-vocabulary preset that fixes which preprocessing pipeline the `ppstructurev3@gpu` profile runs.
 
-**Module**: `src/ledgerlinc_ocr/preprocessing/preprocess_strategies.py`
+**Module**: `src/dartwing_ocr/preprocessing/preprocess_strategies.py`
 
 **Fields** (all immutable per instance):
 
@@ -32,7 +32,7 @@ A named, closed-vocabulary preset that fixes which preprocessing pipeline the `p
 
 The FR-005 deterministic combined two-threshold eligibility / sufficiency check, applied per-document after OCR-only preprocessing completes.
 
-**Module**: `src/ledgerlinc_ocr/preprocessing/ocr_only.py`
+**Module**: `src/dartwing_ocr/preprocessing/ocr_only.py`
 
 **Inputs** (all derived from preprocessing-pass outputs alone — FR-006 / R-019.5..R-019.7):
 
@@ -68,7 +68,7 @@ return INSUFFICIENT
 
 A single detected and recognized text line from PaddleOCR's pure-OCR pass. Internal value type used by `OcrOnlyEligibilityRule` and the block-clustering step (R-019.8). Not persisted to disk — exists only in-memory during the per-document orchestration.
 
-**Module**: `src/ledgerlinc_ocr/preprocessing/ocr_only.py`
+**Module**: `src/dartwing_ocr/preprocessing/ocr_only.py`
 
 **Fields**:
 
@@ -141,7 +141,7 @@ def cluster_lines_into_blocks(lines: list[OcrOnlyLine]) -> list[Block]:
 
 Feature 019 adds two top-level fields to the existing `RunSummary` dataclass (R-019.14 SCHEMA_VERSION bump 0.1.5 → 0.1.6).
 
-**Module**: `src/ledgerlinc_ocr/pipeline/timing.py`
+**Module**: `src/dartwing_ocr/pipeline/timing.py`
 
 **New fields**:
 
@@ -156,7 +156,7 @@ Feature 019 adds two top-level fields to the existing `RunSummary` dataclass (R-
 
 ## Identifier-string constants
 
-**Module**: `src/ledgerlinc_ocr/preprocessing/identifiers.py`
+**Module**: `src/dartwing_ocr/preprocessing/identifiers.py`
 
 | Constant | Value | Used by |
 |---|---|---|
@@ -169,7 +169,7 @@ All four are top-level module constants, added additively. Existing feature 017 
 
 ## UnknownPresetError extension
 
-**Module**: `src/ledgerlinc_ocr/preprocessing/errors.py`
+**Module**: `src/dartwing_ocr/preprocessing/errors.py`
 
 **Change**: The existing `UnknownPresetError.preset_axis: Literal[…]` is widened additively (R-019.12):
 

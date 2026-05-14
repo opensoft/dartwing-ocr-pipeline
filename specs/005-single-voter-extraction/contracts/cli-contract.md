@@ -1,4 +1,4 @@
-# CLI Contract — `python -m ledgerlinc_ocr.extract`
+# CLI Contract — `python -m dartwing_ocr.extract`
 
 Invocation surface for the stage 1 single-voter edge extractor. Pinned by spec FR-025 and
 Clarifications Q4 (CLI signature) + Q3 (endpoint/voter-config split).
@@ -6,7 +6,7 @@ Clarifications Q4 (CLI signature) + Q3 (endpoint/voter-config split).
 ## Invocation
 
 ```text
-python -m ledgerlinc_ocr.extract --folder <path> --voter <name> [--voter-config <path>]
+python -m dartwing_ocr.extract --folder <path> --voter <name> [--voter-config <path>]
 ```
 
 ### Required flags
@@ -14,7 +14,7 @@ python -m ledgerlinc_ocr.extract --folder <path> --voter <name> [--voter-config 
 - `--folder <path>` — absolute or relative path to a per-document folder. The folder MUST contain
   a schema-valid `preprocess_output.json` with `contract_set_version == "1.0.0"`.
 - `--voter <name>` — short name selecting a shipped voter config
-  (`src/ledgerlinc_ocr/extract/voters/configs/<name>.yaml`). Default ships with `gemma-edge`. The
+  (`src/dartwing_ocr/extract/voters/configs/<name>.yaml`). Default ships with `gemma-edge`. The
   short name becomes part of `vote_metadata.voter_id` via the config file, NOT via the flag.
 
 ### Optional flags
@@ -29,7 +29,7 @@ python -m ledgerlinc_ocr.extract --folder <path> --voter <name> [--voter-config 
 - `OLLAMA_BASE_URL` — base URL for the host Ollama endpoint (e.g., `http://host.docker.internal:11434`
   inside the devcontainer, `http://localhost:11434` on the host). Required for all runs that use an
   Ollama-backed voter. Stub voters (tests) ignore this variable.
-- `LEDGERLINC_VOTER_CONFIG_DIR` (optional) — override directory for voter configs; `<name>.yaml` in
+- `DARTWING_VOTER_CONFIG_DIR` (optional) — override directory for voter configs; `<name>.yaml` in
   this directory takes precedence over the packaged default when `--voter <name>` is used.
 
 ## Behavior
@@ -94,17 +94,17 @@ Codes 2-7 mean "no artifact written". Code 0 means "artifact written", which may
 
 ```bash
 # Normal stage 1 run against a corpus document
-python -m ledgerlinc_ocr.extract \
+python -m dartwing_ocr.extract \
     --folder tests/stage1_vendor_identity/inv_003_easy \
     --voter gemma-edge
 
 # Smoke test with the stub voter (no Ollama required)
-python -m ledgerlinc_ocr.extract \
+python -m dartwing_ocr.extract \
     --folder tests/fixtures/extract/sample_folder \
     --voter stub
 
 # Operator override: alternate Gemma config
-LEDGERLINC_VOTER_CONFIG_DIR=/etc/ledgerlinc/voters python -m ledgerlinc_ocr.extract \
+DARTWING_VOTER_CONFIG_DIR=/etc/dartwing/voters python -m dartwing_ocr.extract \
     --folder tests/stage1_vendor_identity/inv_007_medium \
     --voter gemma-edge
 ```

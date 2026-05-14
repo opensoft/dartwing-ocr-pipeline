@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evidence_packet import (
+from dartwing_ocr.evidence_packet import (
     PreprocessInputInvalid,
     PreprocessInputMissing,
     assemble_from_folder,
@@ -17,7 +17,7 @@ from ledgerlinc_ocr.evidence_packet import (
 
 def _run_cli(folder: Path) -> tuple[int, dict]:
     result = subprocess.run(
-        [sys.executable, "-m", "ledgerlinc_ocr.evidence_packet", str(folder)],
+        [sys.executable, "-m", "dartwing_ocr.evidence_packet", str(folder)],
         capture_output=True,
         text=True,
     )

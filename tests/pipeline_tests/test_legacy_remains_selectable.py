@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.presets import (
+from dartwing_ocr.preprocessing.presets import (
     DET_REC_VARIANTS,
     MODULE_SET_PRESETS,
     DetRecVariant,
@@ -78,11 +78,11 @@ def test_legacy_remains_selectable_after_hypothetical_module_set_promotion(
     extended_registry = dict(MODULE_SET_PRESETS)
     extended_registry["reduced-v2"] = fake_extra_preset
     monkeypatch.setattr(
-        "ledgerlinc_ocr.preprocessing.presets.MODULE_SET_PRESETS",
+        "dartwing_ocr.preprocessing.presets.MODULE_SET_PRESETS",
         extended_registry,
     )
     # Re-import resolve_module_set against the patched registry
-    from ledgerlinc_ocr.preprocessing import presets as presets_mod
+    from dartwing_ocr.preprocessing import presets as presets_mod
 
     # legacy is still selectable
     assert "legacy" in presets_mod.MODULE_SET_PRESETS
@@ -104,10 +104,10 @@ def test_legacy_remains_selectable_after_hypothetical_det_rec_promotion(
     extended_registry = dict(DET_REC_VARIANTS)
     extended_registry["ppocrv6-mobile"] = fake_extra_variant
     monkeypatch.setattr(
-        "ledgerlinc_ocr.preprocessing.presets.DET_REC_VARIANTS",
+        "dartwing_ocr.preprocessing.presets.DET_REC_VARIANTS",
         extended_registry,
     )
-    from ledgerlinc_ocr.preprocessing import presets as presets_mod
+    from dartwing_ocr.preprocessing import presets as presets_mod
 
     assert "legacy" in presets_mod.DET_REC_VARIANTS
     legacy_variant = presets_mod.resolve_det_rec_variant("legacy")
@@ -151,14 +151,14 @@ def test_explicit_legacy_selection_emits_legacy_identifiers(
         rec_model_name="PP-OCRv6_mobile_rec",
     )
     monkeypatch.setattr(
-        "ledgerlinc_ocr.preprocessing.presets.MODULE_SET_PRESETS",
+        "dartwing_ocr.preprocessing.presets.MODULE_SET_PRESETS",
         extended_module,
     )
     monkeypatch.setattr(
-        "ledgerlinc_ocr.preprocessing.presets.DET_REC_VARIANTS",
+        "dartwing_ocr.preprocessing.presets.DET_REC_VARIANTS",
         extended_det_rec,
     )
-    from ledgerlinc_ocr.preprocessing import presets as presets_mod
+    from dartwing_ocr.preprocessing import presets as presets_mod
 
     ms_post = presets_mod.resolve_module_set("legacy")
     drv_post = presets_mod.resolve_det_rec_variant("legacy")

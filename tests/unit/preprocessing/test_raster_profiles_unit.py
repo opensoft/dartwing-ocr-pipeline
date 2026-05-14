@@ -11,13 +11,13 @@ import sys
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError
-from ledgerlinc_ocr.preprocessing.raster_profiles import (
+from dartwing_ocr.preprocessing.errors import UnknownPresetError
+from dartwing_ocr.preprocessing.raster_profiles import (
     RASTER_PROFILES,
     RasterProfile,
     resolve_raster_profile,
 )
-from ledgerlinc_ocr.preprocessing.version import DPI
+from dartwing_ocr.preprocessing.version import DPI
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +136,7 @@ def test_raster_profiles_module_imports_without_paddle(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A host without Paddle GPU MUST be able to
-    `import ledgerlinc_ocr.preprocessing.raster_profiles` cleanly
+    `import dartwing_ocr.preprocessing.raster_profiles` cleanly
     (FR-015 / I-018.2). Block `paddleocr` and `paddle` by setting their
     `sys.modules` entries to `None` — CPython's import machinery treats
     `None` as a sentinel and raises `ImportError` if the registry module
@@ -146,7 +146,7 @@ def test_raster_profiles_module_imports_without_paddle(
 
     # Drop any cached references first
     for mod_name in [
-        "ledgerlinc_ocr.preprocessing.raster_profiles",
+        "dartwing_ocr.preprocessing.raster_profiles",
         "paddleocr",
         "paddle",
     ]:
@@ -155,7 +155,7 @@ def test_raster_profiles_module_imports_without_paddle(
     monkeypatch.setitem(sys.modules, "paddle", None)
     # Re-import — should succeed without touching paddleocr / paddle
     mod = importlib.import_module(
-        "ledgerlinc_ocr.preprocessing.raster_profiles"
+        "dartwing_ocr.preprocessing.raster_profiles"
     )
     assert hasattr(mod, "RASTER_PROFILES")
     assert "legacy" in mod.RASTER_PROFILES

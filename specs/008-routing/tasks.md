@@ -15,7 +15,7 @@
 
 ## Path Conventions
 
-- New router package: `src/ledgerlinc_ocr/router/`
+- New router package: `src/dartwing_ocr/router/`
 - Unit tests: `tests/unit/router/`
 - Integration tests: `tests/integration/router/`
 - Fixtures: `tests/fixtures/router/`
@@ -27,11 +27,11 @@
 
 **Purpose**: Create the router package skeleton and test tree. No routing logic yet.
 
-- [X] T001 Create `src/ledgerlinc_ocr/router/` package with empty `__init__.py` and a module docstring identifying the package as the stage 1 deterministic router
+- [X] T001 Create `src/dartwing_ocr/router/` package with empty `__init__.py` and a module docstring identifying the package as the stage 1 deterministic router
 - [X] T002 [P] Create `tests/unit/router/__init__.py` and `tests/integration/router/__init__.py` so pytest discovers the new trees alongside `tests/contract_tests/`
 - [X] T003 [P] Create `tests/fixtures/router/` directory with a `README.md` explaining fixtures are hand-authored minimal `edge_extraction_output.json` samples (NOT model runs) and listing the fixture filenames expected by later tasks
-- [X] T004 Verify `pyproject.toml` requires no new third-party dependencies for the router (only the existing `jsonschema>=4.22,<5` and `pydantic>=2.7,<3` are used) per research.md Decision 1; add a docstring comment in `src/ledgerlinc_ocr/router/__init__.py` stating "no new third-party dependency" to lock the decision
-- [X] T005 [P] Update `CLAUDE.md` "Active Technologies" section to list `008-routing: reuses `ledgerlinc_ocr.validator` for dual-schema validation; no new deps` (one line, matching the 003 precedent)
+- [X] T004 Verify `pyproject.toml` requires no new third-party dependencies for the router (only the existing `jsonschema>=4.22,<5` and `pydantic>=2.7,<3` are used) per research.md Decision 1; add a docstring comment in `src/dartwing_ocr/router/__init__.py` stating "no new third-party dependency" to lock the decision
+- [X] T005 [P] Update `CLAUDE.md` "Active Technologies" section to list `008-routing: reuses `dartwing_ocr.validator` for dual-schema validation; no new deps` (one line, matching the 003 precedent)
 
 ---
 
@@ -41,12 +41,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [X] T006 [P] Create `src/ledgerlinc_ocr/router/errors.py` with typed exceptions `MissingInputError`, `UnreadableInputError`, `MalformedInputError`, `VersionDriftError`, `ContractAssertionError`, each carrying a `human_message` attribute (used by the CLI exit-code taxonomy in `contracts/cli-contract.md`)
-- [X] T007 [P] Create `src/ledgerlinc_ocr/router/version.py` exposing `POLICY_VERSION = "stage1-routing-policy-v1.0.0"` (per research.md Decision 3) and `build_pipeline_version() -> str` returning `"stage1-routing-v0.1.0"` (per research.md Decision 4); both are module-level constants, no I/O
-- [X] T008 [P] Create `src/ledgerlinc_ocr/router/reasons.py` with frozen canonical string constants: `REASON_COMPANY_NAME_INFERRED = "company_name_inferred"`, `REASON_SPAM_GATE = "post_extraction_spam_gate_failed"`, `REASON_SECONDARY_FLOOR = "secondary_identifiers_insufficient"`, `REASON_UPSTREAM_FAILURE = "upstream_extraction_failed"`, plus `AFFIRMATIVE_*` and `INFORMATIONAL_*` string constants per research.md Decisions 9 and 10 (e.g., `AFFIRMATIVE_NAME_EXPLICIT`, `INFORMATIONAL_UPSTREAM_PARTIAL`, `INFORMATIONAL_CONTRACT_VIOLATION_PRESENT_INFERRED_BOTH_TRUE`)
+- [X] T006 [P] Create `src/dartwing_ocr/router/errors.py` with typed exceptions `MissingInputError`, `UnreadableInputError`, `MalformedInputError`, `VersionDriftError`, `ContractAssertionError`, each carrying a `human_message` attribute (used by the CLI exit-code taxonomy in `contracts/cli-contract.md`)
+- [X] T007 [P] Create `src/dartwing_ocr/router/version.py` exposing `POLICY_VERSION = "stage1-routing-policy-v1.0.0"` (per research.md Decision 3) and `build_pipeline_version() -> str` returning `"stage1-routing-v0.1.0"` (per research.md Decision 4); both are module-level constants, no I/O
+- [X] T008 [P] Create `src/dartwing_ocr/router/reasons.py` with frozen canonical string constants: `REASON_COMPANY_NAME_INFERRED = "company_name_inferred"`, `REASON_SPAM_GATE = "post_extraction_spam_gate_failed"`, `REASON_SECONDARY_FLOOR = "secondary_identifiers_insufficient"`, `REASON_UPSTREAM_FAILURE = "upstream_extraction_failed"`, plus `AFFIRMATIVE_*` and `INFORMATIONAL_*` string constants per research.md Decisions 9 and 10 (e.g., `AFFIRMATIVE_NAME_EXPLICIT`, `INFORMATIONAL_UPSTREAM_PARTIAL`, `INFORMATIONAL_CONTRACT_VIOLATION_PRESENT_INFERRED_BOTH_TRUE`)
 - [X] T009 [P] [US1 bootstrap] Create the minimal green-path fixture `tests/fixtures/router/clean_explicit_name_full_identity.json` — schema-valid `edge_extraction_output.json` with `status="success"`, `contract_set_version="1.0.0"`, an explicit grounded `company_name`, a complete address (city/state/postal_code grounded), one grounded tax_id, and grounded website+email so every downstream rule can resolve against it
-- [X] T010 Create `src/ledgerlinc_ocr/router/input_loader.py` implementing `load_and_validate(path: Path) -> dict` that raises `MissingInputError` / `UnreadableInputError` / `MalformedInputError` / `VersionDriftError` with the precise semantics in FR-003 and `contracts/cli-contract.md`. MUST validate against `contracts/stage1_vendor_identity/v1.0.0/edge_extraction_output.schema.json` via `ledgerlinc_ocr.validator` (research.md Decision 1). No rule logic, no output.
-- [X] T011 Create `src/ledgerlinc_ocr/router/artifact.py` implementing `assemble_and_write(folder: Path, artifact: dict) -> Path` that (a) validates the dict against `routing_decision.schema.json` BEFORE any filesystem write, raising `ContractAssertionError` on failure; (b) writes atomically via temp-file + `os.replace`, dumping with `json.dumps(artifact, indent=2, sort_keys=False, ensure_ascii=False) + "\n"` (research.md Decision 7); (c) returns the final path. No rule logic.
+- [X] T010 Create `src/dartwing_ocr/router/input_loader.py` implementing `load_and_validate(path: Path) -> dict` that raises `MissingInputError` / `UnreadableInputError` / `MalformedInputError` / `VersionDriftError` with the precise semantics in FR-003 and `contracts/cli-contract.md`. MUST validate against `contracts/stage1_vendor_identity/v1.0.0/edge_extraction_output.schema.json` via `dartwing_ocr.validator` (research.md Decision 1). No rule logic, no output.
+- [X] T011 Create `src/dartwing_ocr/router/artifact.py` implementing `assemble_and_write(folder: Path, artifact: dict) -> Path` that (a) validates the dict against `routing_decision.schema.json` BEFORE any filesystem write, raising `ContractAssertionError` on failure; (b) writes atomically via temp-file + `os.replace`, dumping with `json.dumps(artifact, indent=2, sort_keys=False, ensure_ascii=False) + "\n"` (research.md Decision 7); (c) returns the final path. No rule logic.
 - [X] T012 [P] Create `tests/unit/router/test_version.py` verifying (a) `POLICY_VERSION` is a non-empty string, (b) `build_pipeline_version()` returns a non-empty string with the `stage1-routing-v` prefix, (c) both are stable (calling twice returns identical values)
 
 **Checkpoint**: Foundation ready. User story implementation can now begin.
@@ -57,7 +57,7 @@
 
 **Goal**: One-command routing of a per-document folder that produces a schema-valid `routing_decision.json` next to the input, byte-identical across reruns (except `processed_at`), with `consensus_summary` pinned to the stage 1 single-voter values and `reasons` fully populated even for `edge_accept`.
 
-**Independent Test**: Using the fixture from T009, run `python -m ledgerlinc_ocr.router route <folder>`. Verify the output passes `python -m ledgerlinc_ocr.validator validate artifact --schema routing_decision <folder>/routing_decision.json`, the `document_id` matches the input, `consensus_summary` is `{"mode":"single_voter_baseline","agreement_level":"not_applicable"}`, `decision == "edge_accept"`, `review_status == {"manual_review_required": false, "review_reason": null}`, and `reasons` contains at least one affirmative entry. Two consecutive runs diff only on `processed_at`.
+**Independent Test**: Using the fixture from T009, run `python -m dartwing_ocr.router route <folder>`. Verify the output passes `python -m dartwing_ocr.validator validate artifact --schema routing_decision <folder>/routing_decision.json`, the `document_id` matches the input, `consensus_summary` is `{"mode":"single_voter_baseline","agreement_level":"not_applicable"}`, `decision == "edge_accept"`, `review_status == {"manual_review_required": false, "review_reason": null}`, and `reasons` contains at least one affirmative entry. Two consecutive runs diff only on `processed_at`.
 
 ### Tests for User Story 1
 
@@ -74,9 +74,9 @@
 
 ### Implementation for User Story 1
 
-- [X] T023 [US1] Create `src/ledgerlinc_ocr/router/checks.py` with pure functions `compute_checks(input_dict: dict) -> dict` returning the six booleans per FR-009–FR-013 and the grounding helper `is_grounded(field: dict) -> bool` (non-null value AND non-empty evidence). No scoring, no rules.
-- [X] T024 [US1] Create `src/ledgerlinc_ocr/router/scores.py` with pure function `compute_scores(input_dict: dict) -> dict` implementing the five FR-017 formulas (clarification Q2 + research.md Decision 5 for `address_score` denominator). Confidence MUST NOT appear anywhere in this module (FR-018).
-- [X] T025 [US1] Create `src/ledgerlinc_ocr/router/pipeline.py` with `run(folder: Path, pipeline_version: str, policy_version: str) -> Path` orchestrating: load+validate input → compute checks → compute scores → assemble green-path artifact (decision=`edge_accept`, review_status cleared, `reasons` with affirmative entries per FR-016, `consensus_summary` pinned, `processed_at` = current UTC Z-second per Decision 8) → validate-and-write. Rule logic deferred to later phases via a placeholder `apply_rules(...)` that for this task always returns the green-path decision (no forcing rules yet). Also create `src/ledgerlinc_ocr/router/__main__.py` and `src/ledgerlinc_ocr/router/cli.py` with the `route` subcommand surface pinned by `contracts/cli-contract.md` and FR-025.
+- [X] T023 [US1] Create `src/dartwing_ocr/router/checks.py` with pure functions `compute_checks(input_dict: dict) -> dict` returning the six booleans per FR-009–FR-013 and the grounding helper `is_grounded(field: dict) -> bool` (non-null value AND non-empty evidence). No scoring, no rules.
+- [X] T024 [US1] Create `src/dartwing_ocr/router/scores.py` with pure function `compute_scores(input_dict: dict) -> dict` implementing the five FR-017 formulas (clarification Q2 + research.md Decision 5 for `address_score` denominator). Confidence MUST NOT appear anywhere in this module (FR-018).
+- [X] T025 [US1] Create `src/dartwing_ocr/router/pipeline.py` with `run(folder: Path, pipeline_version: str, policy_version: str) -> Path` orchestrating: load+validate input → compute checks → compute scores → assemble green-path artifact (decision=`edge_accept`, review_status cleared, `reasons` with affirmative entries per FR-016, `consensus_summary` pinned, `processed_at` = current UTC Z-second per Decision 8) → validate-and-write. Rule logic deferred to later phases via a placeholder `apply_rules(...)` that for this task always returns the green-path decision (no forcing rules yet). Also create `src/dartwing_ocr/router/__main__.py` and `src/dartwing_ocr/router/cli.py` with the `route` subcommand surface pinned by `contracts/cli-contract.md` and FR-025.
 
 **Checkpoint**: US1 MVP complete. The router processes the green-path fixture end-to-end and emits a schema-valid, deterministic artifact. Rule enforcement lands in US2–US5.
 
@@ -98,7 +98,7 @@
 
 ### Implementation for User Story 2
 
-- [X] T031 [US2] Create `src/ledgerlinc_ocr/router/rules.py` with `apply_rules(checks: dict, scores: dict, input_dict: dict) -> RuleResult` returning the fired rule IDs and their canonical reason strings. Implement ONLY the missing-name rule in this task: fires iff `company_name.inferred == true` OR `company_name.present == false`, emits `REASON_COMPANY_NAME_INFERRED`. Wire `pipeline.py` to use `apply_rules(...)` and map results through `reasons.py` into the artifact's `decision`, `review_status`, and priority-ordered `reasons` array per FR-015.
+- [X] T031 [US2] Create `src/dartwing_ocr/router/rules.py` with `apply_rules(checks: dict, scores: dict, input_dict: dict) -> RuleResult` returning the fired rule IDs and their canonical reason strings. Implement ONLY the missing-name rule in this task: fires iff `company_name.inferred == true` OR `company_name.present == false`, emits `REASON_COMPANY_NAME_INFERRED`. Wire `pipeline.py` to use `apply_rules(...)` and map results through `reasons.py` into the artifact's `decision`, `review_status`, and priority-ordered `reasons` array per FR-015.
 
 **Checkpoint**: US2 complete. Missing-name invariant holds. Spam-gate, secondary-floor, and upstream-failure rules still return no-fire.
 
@@ -122,7 +122,7 @@
 
 ### Implementation for User Story 3
 
-- [X] T039 [US3] Extend `src/ledgerlinc_ocr/router/rules.py` with the secondary-identifier floor rule: count grounded slots across `{checks.address_has_minimum_components, checks.at_least_one_tax_id_present, checks.website_or_email_present, phone-grounded-bool}` (phone-grounded computed inline from `vendor_candidate.phone` per research.md Decision 6). If count `< 2` AND no higher-priority rule fired, append `REASON_SECONDARY_FLOOR`. Ensure `reasons` ordering follows FR-015 priority even when multiple rules fire (extend the `reasons.py` ordering helper here if needed).
+- [X] T039 [US3] Extend `src/dartwing_ocr/router/rules.py` with the secondary-identifier floor rule: count grounded slots across `{checks.address_has_minimum_components, checks.at_least_one_tax_id_present, checks.website_or_email_present, phone-grounded-bool}` (phone-grounded computed inline from `vendor_candidate.phone` per research.md Decision 6). If count `< 2` AND no higher-priority rule fired, append `REASON_SECONDARY_FLOOR`. Ensure `reasons` ordering follows FR-015 priority even when multiple rules fire (extend the `reasons.py` ordering helper here if needed).
 
 **Checkpoint**: US3 complete. Secondary-identifier floor enforced with phone treated as an independent 4th slot. Priority order between missing-name and secondary-floor demonstrated.
 
@@ -143,7 +143,7 @@
 
 ### Implementation for User Story 4
 
-- [X] T044 [US4] Extend `src/ledgerlinc_ocr/router/checks.py` with the `post_extraction_spam_gate_passed` boolean per FR-013. Extend `src/ledgerlinc_ocr/router/rules.py` with the spam-gate rule: fires iff `post_extraction_spam_gate_passed == false`; emits `REASON_SPAM_GATE` at priority 2. Confirm `reasons.py` ordering helper handles the 2-rule case (missing-name + spam-gate) in FR-015 order.
+- [X] T044 [US4] Extend `src/dartwing_ocr/router/checks.py` with the `post_extraction_spam_gate_passed` boolean per FR-013. Extend `src/dartwing_ocr/router/rules.py` with the spam-gate rule: fires iff `post_extraction_spam_gate_passed == false`; emits `REASON_SPAM_GATE` at priority 2. Confirm `reasons.py` ordering helper handles the 2-rule case (missing-name + spam-gate) in FR-015 order.
 
 **Checkpoint**: US4 complete. Spam-gate is the only stage 1 spam defense (assumption from spec + checklist `routing-policy.md` CHK031). Priority between missing-name and spam-gate demonstrated.
 
@@ -171,7 +171,7 @@
 
 ### Implementation for User Story 5
 
-- [X] T056 [US5] Extend `src/ledgerlinc_ocr/router/rules.py` with the upstream-failure rule (fires iff input `status == "failure"`; emits `REASON_UPSTREAM_FAILURE` at priority 4) and the contract-violation path (FR-024; fires iff forbidden combos observed in `vendor_candidate.company_name`; emits the `INFORMATIONAL_CONTRACT_VIOLATION_*` informational entry and forces `status = "partial"` + `decision = "edge_review_required"`). Extend `pipeline.py` to map input `status` to output `status` per FR-020 and to append `INFORMATIONAL_UPSTREAM_PARTIAL` when input is `"partial"`. Confirm `reasons.py` ordering helper emits the full FR-015 sequence (priority rules 1–4, then affirmatives, then informational entries) deterministically.
+- [X] T056 [US5] Extend `src/dartwing_ocr/router/rules.py` with the upstream-failure rule (fires iff input `status == "failure"`; emits `REASON_UPSTREAM_FAILURE` at priority 4) and the contract-violation path (FR-024; fires iff forbidden combos observed in `vendor_candidate.company_name`; emits the `INFORMATIONAL_CONTRACT_VIOLATION_*` informational entry and forces `status = "partial"` + `decision = "edge_review_required"`). Extend `pipeline.py` to map input `status` to output `status` per FR-020 and to append `INFORMATIONAL_UPSTREAM_PARTIAL` when input is `"partial"`. Confirm `reasons.py` ordering helper emits the full FR-015 sequence (priority rules 1–4, then affirmatives, then informational entries) deterministically.
 
 **Checkpoint**: All five user stories complete. The router handles green path, missing-name, secondary-floor, spam-gate, partial/failure inputs, and contract violations, all deterministically and all byte-identical across reruns (except `processed_at`).
 
@@ -188,7 +188,7 @@
 - [X] T061 Create a corpus-determinism sweep test `tests/integration/router/test_corpus_determinism_sweep.py` that (if `tests/stage1_vendor_identity/inv_*/edge_extraction_output.json` fixtures exist) runs the router twice over each, diffs the artifacts, and asserts byte-identity except for `processed_at`. If the corpus is not yet populated, the test skips with a message pointing at 005 and 006
 - [X] T062 Walk `specs/008-routing/quickstart.md` end-to-end in a clean devcontainer; fix any drift between the written doc and the delivered CLI (e.g., argument names, output field ordering, exit-code messages)
 - [X] T063 [P] Update `CLAUDE.md` "Key References" section to add a block for `specs/008-routing/` listing `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/cli-contract.md`, `quickstart.md`, and the four checklists (parallel to the 003 block)
-- [X] T064 [P] Update `docs/stage1-vendor-identity/architecture.md` (if needed) so the routing step references the delivered CLI (`python -m ledgerlinc_ocr.router route`) and the canonical reason-string vocabulary — do NOT restate content; cross-link to the spec
+- [X] T064 [P] Update `docs/stage1-vendor-identity/architecture.md` (if needed) so the routing step references the delivered CLI (`python -m dartwing_ocr.router route`) and the canonical reason-string vocabulary — do NOT restate content; cross-link to the spec
 - [X] T065 Run the full test suite (`pytest tests/unit/router tests/integration/router tests/contract_tests`) and confirm zero failures and that coverage includes every acceptance scenario from US1–US5. Skips are permitted only when documented with a rationale (e.g., the corpus-determinism sweep T061 skips until 005 and 006 populate the corpus fixtures); each skip message MUST name the blocker feature slice so a future run can re-enable the test without archaeology.
 
 ---
@@ -251,8 +251,8 @@ Task: "Create tests/integration/router/test_us1_determinism.py"
 Task: "Create tests/integration/router/test_us1_no_side_effects.py"
 
 # Launch the two pure modules in parallel before orchestration:
-Task: "Create src/ledgerlinc_ocr/router/checks.py"
-Task: "Create src/ledgerlinc_ocr/router/scores.py"
+Task: "Create src/dartwing_ocr/router/checks.py"
+Task: "Create src/dartwing_ocr/router/scores.py"
 ```
 
 ---
@@ -297,7 +297,7 @@ With multiple developers after US1 ships:
 
 - [X] T066 [P] Finding C1 (SC-001 timing budget): Add a timing assertion in `tests/integration/router/test_us1_schema_valid.py` (or a new `tests/integration/router/test_sc001_timing_budget.py` if isolation is cleaner) that stages the T009 fixture, runs the CLI via `subprocess`, measures wall-clock from `subprocess.run` entry to exit, and asserts the single-document route completes within a 1500 ms CI-tolerant budget (spec SC-001 pins 200 ms on a developer workstation; CI machines are noisier, so the runtime bound is widened but the intent is preserved). Add an inline comment referencing SC-001 and noting the CI-tolerance rationale so a future tightening is straightforward.
 - [X] T067 [P] Finding C2 (FR-002 key-order): Extend `tests/integration/router/test_us1_schema_valid.py` with a new test `test_checks_and_scores_key_order_matches_schema` that reads the raw bytes of the written `routing_decision.json`, loads it via `json.loads(..., object_pairs_hook=list)` or `json.JSONDecoder().raw_decode` to preserve insertion order, and asserts the `checks` and `scores` blocks emit their keys in exactly the order declared by the `required` arrays in `contracts/stage1_vendor_identity/v1.0.0/routing_decision.schema.json`. This enforces the FR-002 clause "implementation-dependent key ordering is forbidden".
-- [X] T068 [P] Finding C3 (SC-010 PR-review gate): Add a new section `## POLICY_VERSION Bump Gate (PR-review, not runtime)` to `specs/008-routing/checklists/routing-policy.md` with bullets naming (a) the rule-layer modules that trigger a required bump — `src/ledgerlinc_ocr/router/rules.py`, `checks.py`, `reasons.py`, `version.py`, and the canonical reason-string constants; (b) the reviewer's responsibility to reject any such PR missing a `POLICY_VERSION` edit; (c) a pointer to FR-005 and SC-010 as the authoritative language. The checklist is the process home for a non-runtime gate; do NOT add CI automation in this task (that would require a separate spec/amendment).
+- [X] T068 [P] Finding C3 (SC-010 PR-review gate): Add a new section `## POLICY_VERSION Bump Gate (PR-review, not runtime)` to `specs/008-routing/checklists/routing-policy.md` with bullets naming (a) the rule-layer modules that trigger a required bump — `src/dartwing_ocr/router/rules.py`, `checks.py`, `reasons.py`, `version.py`, and the canonical reason-string constants; (b) the reviewer's responsibility to reject any such PR missing a `POLICY_VERSION` edit; (c) a pointer to FR-005 and SC-010 as the authoritative language. The checklist is the process home for a non-runtime gate; do NOT add CI automation in this task (that would require a separate spec/amendment).
 - [X] T069 [P] Finding C5 (symmetric FR-024 case): Create `tests/fixtures/router/forbidden_present_false_inferred_false.json` — schema-valid `edge_extraction_output.json` identical to `forbidden_present_true_inferred_true.json` except `vendor_candidate.company_name.present == false` AND `.inferred == false`. Parametrize `tests/integration/router/test_extractor_invariant_violation.py` to exercise both forbidden combinations; assert each produces `status == "partial"`, `decision == "edge_review_required"`, and a contract-violation reason entry.
 
 **Checkpoint**: All four findings closed. Re-run `pytest tests/unit/router tests/integration/router tests/contract_tests` and confirm zero failures. Re-run `/speckit.analyze` to confirm C1/C2/C3/C5 no longer appear (or have moved to "Resolved").
@@ -310,8 +310,8 @@ With multiple developers after US1 ships:
 
 **Dependencies**: Phases 1–9 complete. All tasks touch disjoint files and landed in the recorded commits.
 
-- [X] T070 [P] Round 1 HIGH (logic reviewer): Enforce research Decision 11 short-circuit in `src/ledgerlinc_ocr/router/rules.py` — on input `status == "failure"`, return an early `RuleResult(decision="edge_review_required", status="partial", review_reason=REASON_UPSTREAM_FAILURE, reasons=[REASON_UPSTREAM_FAILURE])` before any other rule evaluates. Previously the upstream-failure rule lived at priority 4, which meant a failed-input fixture that also tripped a lower-priority forcing rule (e.g., spam-gate from all-null booleans) could emit the wrong `review_reason`. Tightens test in `tests/integration/router/test_us5_failure_input.py` to assert `reasons == ["upstream_extraction_failed"]` exactly. Commit: `a37423f`.
-- [X] T071 [P] Round 1 HIGH (architecture reviewer): Add a containing-directory `fsync` in `src/ledgerlinc_ocr/router/artifact.py` after `os.replace` so the FR-002 "no partial or dangling routing_decision.json" guarantee holds across host crashes, not only across clean shutdowns. On POSIX, `os.replace` only updates the directory entry; without a dir `fsync`, the rename can be lost or the file can surface with zero bytes on a kernel-level crash between the rename and the next directory flush. Commit: `a37423f`.
+- [X] T070 [P] Round 1 HIGH (logic reviewer): Enforce research Decision 11 short-circuit in `src/dartwing_ocr/router/rules.py` — on input `status == "failure"`, return an early `RuleResult(decision="edge_review_required", status="partial", review_reason=REASON_UPSTREAM_FAILURE, reasons=[REASON_UPSTREAM_FAILURE])` before any other rule evaluates. Previously the upstream-failure rule lived at priority 4, which meant a failed-input fixture that also tripped a lower-priority forcing rule (e.g., spam-gate from all-null booleans) could emit the wrong `review_reason`. Tightens test in `tests/integration/router/test_us5_failure_input.py` to assert `reasons == ["upstream_extraction_failed"]` exactly. Commit: `a37423f`.
+- [X] T071 [P] Round 1 HIGH (architecture reviewer): Add a containing-directory `fsync` in `src/dartwing_ocr/router/artifact.py` after `os.replace` so the FR-002 "no partial or dangling routing_decision.json" guarantee holds across host crashes, not only across clean shutdowns. On POSIX, `os.replace` only updates the directory entry; without a dir `fsync`, the rename can be lost or the file can surface with zero bytes on a kernel-level crash between the rename and the next directory flush. Commit: `a37423f`.
 - [X] T072 [P] Round 2 HIGH (test-quality reviewer): Replace the tautological fs-write assertion in `tests/unit/router/test_artifact.py::test_ghost_folder_raises_before_any_filesystem_write`. The prior assertion (`tmp_path.iterdir() == []` after a raise) passed for the wrong reason: `tmp_path` was the PARENT of the target, and `tempfile.mkstemp(dir=<missing>)` would have failed on the missing dir regardless of whether the FR-022 pre-write gate was doing any work. Replaced with a `tempfile.mkstemp` spy that records every call, then asserts `mkstemp_calls == []` after the `MissingInputError` raise — proves the gate fires *before* any filesystem write attempt. Commit: `510011e`.
 - [X] T073 [P] Round 2 HIGH (test-quality reviewer): Move the CLI exit-3 test from patching the private `pipeline._build_artifact` helper to patching the public `artifact.validate_artifact` boundary in `tests/integration/router/test_cli_exit_internal_error.py`. The private-helper patch would have silently passed on any safe refactor that moved artifact assembly around, even if the exit-3 contract broke. The public-boundary patch pins the exit-3 contract to the exact call site any future refactor must route through. Adds an explicit leftover check for `.routing_decision.*.json.tmp` patterns to prove the atomic-write cleanup path fires on validator failure. Commit: `510011e`.
 - [X] T074 [P] Round 2 MEDIUM (contract-fidelity reviewer): Close the exit-1 coverage gap by creating `tests/integration/router/test_cli_exit_unexpected.py` that patches `cli.run` to raise a bare `RuntimeError` and asserts the CLI returns exit `1` with the exception class, exception message, and a `Traceback` marker all present on stderr. Previously no test existed for the "unexpected exception → exit 1 + traceback" path, so a future refactor that narrowed the final `except` or let an exception escape the entry point would silently break the operational contract that exit 1 is accompanied by enough stderr context to file a bug report. Commit: `510011e`.

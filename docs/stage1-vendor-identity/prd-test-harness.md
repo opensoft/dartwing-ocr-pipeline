@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This PRD defines the product requirements for the stage 1 LedgerLinc OCR test harness.
+This PRD defines the product requirements for the stage 1 Dartwing OCR test harness.
 
 This document is specifically about the harness that drives the pipeline, stores labeled invoice cases, evaluates outputs, and reports quality. It is not the PRD for the model pipeline itself.
 
@@ -31,7 +31,7 @@ Those belong to `prd-model-pipeline.md`.
 
 ## Problem Statement
 
-LedgerLinc needs a repeatable way to evaluate whether the stage 1 OCR/model pipeline actually works on real-world invoices.
+Dartwing needs a repeatable way to evaluate whether the stage 1 OCR/model pipeline actually works on real-world invoices.
 
 Without a structured harness and labeled truth set, the team cannot distinguish plausible output from correct output, cannot measure regressions, and cannot compare prompt or pipeline changes with confidence.
 
@@ -55,7 +55,7 @@ Primary users:
 
 Stakeholders:
 
-- LedgerLinc engineering
+- Dartwing engineering
 - operations stakeholders who need confidence before adoption
 - future QA or evaluation owners
 
@@ -233,16 +233,16 @@ The helper is intentionally folder-oriented, not PDF-path-oriented:
 Lane mapping on this workstation:
 
 - `gpu` means host Ollama on `http://host.docker.internal:11434`
-- `cpu` means the optional `ledgerlinc-ollama` container on `http://host.docker.internal:11435`
+- `cpu` means the optional `dartwing-ollama` container on `http://host.docker.internal:11435`
 - `cloud-workstation` means local workstation GPU model endpoints selected by
   the runtime-profile runner, not a remote cloud provider
 
 The helper runs the real stage CLIs in sequence against a temporary copy of the document folder:
 
-1. `python -m ledgerlinc_ocr.preprocessing --document-folder <temp-folder>`
-2. `python -m ledgerlinc_ocr.extract --folder <temp-folder> --voter gemma-edge`
+1. `python -m dartwing_ocr.preprocessing --document-folder <temp-folder>`
+2. `python -m dartwing_ocr.extract --folder <temp-folder> --voter gemma-edge`
 
-It does **not** call `python -m ledgerlinc_ocr.pipeline` for stage 1 benchmarking, because the top-level pipeline CLI is still the frozen contract/stub runner rather than the fully wired vertical slice.
+It does **not** call `python -m dartwing_ocr.pipeline` for stage 1 benchmarking, because the top-level pipeline CLI is still the frozen contract/stub runner rather than the fully wired vertical slice.
 
 That two-command helper represents the current full-workstation path. Once the
 runtime-profile runner owns stack selection, edge-fast runs should use

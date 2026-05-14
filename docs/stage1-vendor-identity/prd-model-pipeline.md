@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This PRD defines the product requirements for the stage 1 LedgerLinc OCR model pipeline.
+This PRD defines the product requirements for the stage 1 Dartwing OCR model pipeline.
 
 This document is specifically about the pipeline that ingests PDF invoices, performs preprocessing and extraction, and emits structured vendor identity results. It is not the PRD for the evaluation harness around that pipeline.
 
@@ -30,7 +30,7 @@ Those are covered in `prd-test-harness.md`.
 
 ## Problem Statement
 
-LedgerLinc needs a reliable first-stage edge pipeline that can process real-world invoice PDFs and produce a structured vendor identity payload suitable for downstream accounting, CRM verification, and later investigator workflows.
+Dartwing needs a reliable first-stage edge pipeline that can process real-world invoice PDFs and produce a structured vendor identity payload suitable for downstream accounting, CRM verification, and later investigator workflows.
 
 The current repository only contains a prototype script. It does not yet support the required PDF-first, schema-driven, review-aware stage 1 workflow.
 
@@ -56,7 +56,7 @@ Primary users:
 
 Stakeholders:
 
-- LedgerLinc OCR/model pipeline engineering
+- Dartwing OCR/model pipeline engineering
 - accounting and CRM workflow owners
 - future investigator-agent workflow owners
 

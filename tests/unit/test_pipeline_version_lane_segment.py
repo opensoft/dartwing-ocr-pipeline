@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.version import (
+from dartwing_ocr.preprocessing.version import (
     build_pipeline_version,
     parse_lane_segment,
 )
@@ -61,7 +61,7 @@ def test_malformed_strings_raise_value_error() -> None:
 def test_post_feature_outputs_match_normative_regex() -> None:
     """Per Research R-014.2: every post-feature output of build_pipeline_version
     must match the documented regex."""
-    from ledgerlinc_ocr.preprocessing.version import _PIPELINE_VERSION_RE
+    from dartwing_ocr.preprocessing.version import _PIPELINE_VERSION_RE
 
     cpu = build_pipeline_version()
     assert _PIPELINE_VERSION_RE.match(cpu) is not None

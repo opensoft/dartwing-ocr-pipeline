@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.validator.loader import ContractSet, load_contract_set
+from dartwing_ocr.validator.loader import ContractSet, load_contract_set
 
 _FEATURE_TESTS_ROOT = Path(__file__).resolve().parent
 _FIXTURES_ROOT = _FEATURE_TESTS_ROOT / "fixtures"

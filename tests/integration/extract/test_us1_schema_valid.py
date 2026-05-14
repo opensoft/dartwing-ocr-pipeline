@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ledgerlinc_ocr.validator import ArtifactName, validate_artifact
+from dartwing_ocr.validator import ArtifactName, validate_artifact
 
 
 def test_ac1_artifact_written_and_validates(us1_happy_folder: Path, run_extractor, load_output) -> None:

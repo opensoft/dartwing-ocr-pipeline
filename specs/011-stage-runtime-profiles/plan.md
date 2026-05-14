@@ -5,7 +5,7 @@
 
 ## Summary
 
-Stand up the stage 1 root/master controller as a thin orchestration layer over the existing per-stage modules (`preprocessing/`, `extract/`, `router/`, `assembler/`). The controller adds five capabilities to the existing `python -m ledgerlinc_ocr.pipeline run` entrypoint without changing any of the four canonical artifact contracts:
+Stand up the stage 1 root/master controller as a thin orchestration layer over the existing per-stage modules (`preprocessing/`, `extract/`, `router/`, `assembler/`). The controller adds five capabilities to the existing `python -m dartwing_ocr.pipeline run` entrypoint without changing any of the four canonical artifact contracts:
 
 1. **Per-stage profile flags** (`--preprocess-profile`, `--extract-profile`, `--routing-profile`, `--final-payload-profile`) plus a `--stack-preset` convenience expansion (`full-workstation`, `cloud-workstation`, `edge-fast`).
 2. **Execution slicing** (`--start-at` / `--stop-after`) with prerequisite-artifact validation against the installed contract set and overwrite scoping limited to the selected slice.
@@ -17,10 +17,10 @@ Implementation is sequenced per FR-034: thin foundation first; warm `ppstructure
 
 ## Technical Context
 
-**Language/Version**: Python 3.12 (matches `.devcontainer/Dockerfile` base image and existing `ledgerlinc-ocr` package pinned in `pyproject.toml`).
+**Language/Version**: Python 3.12 (matches `.devcontainer/Dockerfile` base image and existing `dartwing-ocr` package pinned in `pyproject.toml`).
 
 **Primary Dependencies**: No new third-party dependencies. Reuses already-declared packages:
-- `jsonschema>=4.22,<5` (prerequisite-artifact validation via the existing `ledgerlinc_ocr.validator` module).
+- `jsonschema>=4.22,<5` (prerequisite-artifact validation via the existing `dartwing_ocr.validator` module).
 - `pydantic>=2.7,<3` (typed in-process result objects for run summary, per-document records, profile resolution).
 - `httpx>=0.27,<1` (existing Ollama HTTP client; CPU/Jetson lanes reuse it).
 - `PyYAML>=6.0,<7` (already pulled in for voter configs; not added here, but available if a future ensemble-config file needs it).
@@ -43,7 +43,7 @@ No database. No new persisted on-disk artifact. No remote cloud calls.
 
 **Target Platform**: Linux (devcontainer + native Linux ROCm host for `ollama@gpu`); WSL2 dev path. `cloud-workstation` runs on the same workstation host with multiple local model endpoints. `edge-fast` targets Jetson Nano Super class hardware (implementation deferred to FR-034 step 4).
 
-**Project Type**: Python CLI/library - single project, extending the existing `src/ledgerlinc_ocr/pipeline/` package.
+**Project Type**: Python CLI/library - single project, extending the existing `src/dartwing_ocr/pipeline/` package.
 
 **Performance Goals**:
 - SC-009: warm corpus run over N documents with `ppstructurev3@cpu` initializes the PPStructureV3 preprocessing profile **exactly once per process**, not N times. The current cold-per-document path is the baseline this slice must beat without changing artifact filenames or schemas.
@@ -105,7 +105,7 @@ specs/011-stage-runtime-profiles/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/pipeline/
+src/dartwing_ocr/pipeline/
 +-- __init__.py                     # existing
 +-- __main__.py                     # existing - preserved
 +-- cli.py                          # AMEND: add --*-profile, --stack-preset,
@@ -134,12 +134,12 @@ src/ledgerlinc_ocr/pipeline/
                                     #        through-failures, fail-fast opt-in
 
 # Reused without modification (profile->adapter targets):
-src/ledgerlinc_ocr/preprocessing/   # ppstructurev3@cpu adapter target
-src/ledgerlinc_ocr/extract/         # ollama@gpu (existing); ollama@cpu / @jetson
+src/dartwing_ocr/preprocessing/   # ppstructurev3@cpu adapter target
+src/dartwing_ocr/extract/         # ollama@gpu (existing); ollama@cpu / @jetson
                                     # routed via the same module with different URLs
-src/ledgerlinc_ocr/router/          # rules@cpu adapter target
-src/ledgerlinc_ocr/assembler/       # assembler@cpu adapter target
-src/ledgerlinc_ocr/validator/       # prerequisite-artifact validation reuse
+src/dartwing_ocr/router/          # rules@cpu adapter target
+src/dartwing_ocr/assembler/       # assembler@cpu adapter target
+src/dartwing_ocr/validator/       # prerequisite-artifact validation reuse
 
 tests/
 +-- contract_tests/
@@ -157,7 +157,7 @@ tests/
 +-- unit/                                           # extend existing modules' unit tests
 ```
 
-**Structure Decision**: Single-project Python package layout, extending the existing `src/ledgerlinc_ocr/pipeline/` orchestration package. New code is split into small focused modules (`profiles.py`, `slice_control.py`, `corpus.py`, `timing.py`, `ollama_lanes.py`, `failure_policy.py`) so each FR cluster maps cleanly to one module and one test file. The existing per-stage packages (`preprocessing`, `extract`, `router`, `assembler`) are **reused unchanged** as profile adapter targets - feature 011 is an orchestration layer, not a re-implementation of any stage.
+**Structure Decision**: Single-project Python package layout, extending the existing `src/dartwing_ocr/pipeline/` orchestration package. New code is split into small focused modules (`profiles.py`, `slice_control.py`, `corpus.py`, `timing.py`, `ollama_lanes.py`, `failure_policy.py`) so each FR cluster maps cleanly to one module and one test file. The existing per-stage packages (`preprocessing`, `extract`, `router`, `assembler`) are **reused unchanged** as profile adapter targets - feature 011 is an orchestration layer, not a re-implementation of any stage.
 
 ## Complexity Tracking
 

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.region_strategies import translate_bbox
+from dartwing_ocr.preprocessing.region_strategies import translate_bbox
 
 
 def test_translate_bbox_with_zero_offset_is_identity() -> None:

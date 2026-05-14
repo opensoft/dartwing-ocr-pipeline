@@ -17,16 +17,16 @@ schema-enum order), and populates a relative-path `trace` block. Six cross-input
 mismatch, routing `decision` vs. `review_status` contradiction) are hard failures — exit
 non-zero, no output written. A seventh invariant validates the assembled output against the
 frozen v1.0.0 schema before writing; see `data-model.md` §Cross-input invariant table. No model calls, no network, no mutation of inputs. CLI is `python -m
-ledgerlinc_ocr.assembler`, paralleling the existing `validator` and `preprocessing` slices.
+dartwing_ocr.assembler`, paralleling the existing `validator` and `preprocessing` slices.
 
 ## Technical Context
 
-**Language/Version**: Python 3.12 (matches devcontainer base image and existing `ledgerlinc-ocr` package)
-**Primary Dependencies**: `jsonschema >= 4.22` (already installed; used for schema validation via the existing `ledgerlinc_ocr.validator.artifact` loader), `pydantic >= 2.7` (already installed; used for typed internal result objects), Python stdlib (`argparse`, `json`, `pathlib`, `datetime`, `dataclasses`). No new runtime dependencies.
+**Language/Version**: Python 3.12 (matches devcontainer base image and existing `dartwing-ocr` package)
+**Primary Dependencies**: `jsonschema >= 4.22` (already installed; used for schema validation via the existing `dartwing_ocr.validator.artifact` loader), `pydantic >= 2.7` (already installed; used for typed internal result objects), Python stdlib (`argparse`, `json`, `pathlib`, `datetime`, `dataclasses`). No new runtime dependencies.
 **Storage**: Filesystem only. Reads `<per-doc-folder>/edge_extraction_output.json` and `<per-doc-folder>/routing_decision.json`. Writes `<per-doc-folder>/final_structured_payload.json`. Trace block references `source.pdf` and `preprocess_output.json` by relative path but does not read them.
 **Testing**: `pytest >= 8.2` (existing). Contract tests under `tests/contract_tests/`, feature-level pipeline tests under `tests/pipeline_tests/`, fixtures under `tests/fixtures/assembler/`. Test-time network isolation already enforced by `pytest-socket` per the existing preprocessing convention.
 **Target Platform**: Linux (devcontainer) and native Linux. No OS-specific code.
-**Project Type**: CLI library — new submodule `src/ledgerlinc_ocr/assembler/` alongside the existing `preprocessing/`, `pipeline/`, and `validator/` packages.
+**Project Type**: CLI library — new submodule `src/dartwing_ocr/assembler/` alongside the existing `preprocessing/`, `pipeline/`, and `validator/` packages.
 **Performance Goals**: ≤ 200 ms wall-clock per document on a developer workstation (SC-001). Two JSON reads + one JSON write + deterministic Python arithmetic; not a CPU-bound path.
 **Constraints**: Byte-identical output across runs (except `processed_at`) per FR-022 and SC-004. Zero `evidence` keys in output per FR-014 and SC-003. No network, no model calls, no mutation of inputs (FR-023, FR-024). All four trace paths are relative (FR-021). Hard-fail on contract drift, `document_id` mismatch, routing contradiction, missing inputs, and schema-invalid inputs (FR-003–FR-005, FR-016).
 **Scale/Scope**: One invocation per document; 20 corpus documents total in stage 1. Corpus-level orchestration lives outside this feature (in the harness per 006/007).
@@ -43,10 +43,10 @@ ledgerlinc_ocr.assembler`, paralleling the existing `validator` and `preprocessi
 | **IV. Provenance and Review Safety** | ✅ `company_name.present` and `company_name.inferred` are propagated verbatim from the extractor (FR-009). `review_status.review_reason` (including the canonical string `"company_name_inferred"`) is propagated verbatim from routing (FR-015). The assembler never recomputes provenance. |
 | **V. Benchmarkable and Reproducible Delivery** | ✅ Byte-identical output except `processed_at` (SC-004). Policy changes (formula/ordering) are visible via the `<semver>` segment of `pipeline_version` (FR-007, SC-008). The assembler is runnable per-document and, in aggregation with 003/005/008, closes the one-document end-to-end path (SC-010). |
 | **Stage 1 Scope Constraints** | ✅ Invoice-only (`document_type == "invoice"` hard-coded per FR-008); no line items (FR-013 excludes `invoice_header_fields`); no cloud path (FR-023); no latency gate (SC-001 is an internal target, not a release gate); `consensus_level == "single_voter_baseline"` hard-coded (FR-017). |
-| **Quality Gate 1** (pipeline/harness boundary) | ✅ Code lives under `src/ledgerlinc_ocr/assembler/`; tests live under `tests/pipeline_tests/`, `tests/contract_tests/`, and `tests/fixtures/assembler/`. No harness files touched. |
+| **Quality Gate 1** (pipeline/harness boundary) | ✅ Code lives under `src/dartwing_ocr/assembler/`; tests live under `tests/pipeline_tests/`, `tests/contract_tests/`, and `tests/fixtures/assembler/`. No harness files touched. |
 | **Quality Gate 2** (output-contract changes update `schemas.md`) | ✅ No schema changes. The frozen v1.0.0 `final_structured_payload.schema.json` is sufficient for this feature. `docs/stage1-vendor-identity/schemas.md` is unchanged. |
 | **Quality Gate 3** (runtime behavior changes) | N/A — no runtime/container changes. |
-| **Quality Gate 4** (verifiable via at least one local execution path) | ✅ CLI `python -m ledgerlinc_ocr.assembler --document-folder <path>`; quickstart documents the run. |
+| **Quality Gate 4** (verifiable via at least one local execution path) | ✅ CLI `python -m dartwing_ocr.assembler --document-folder <path>`; quickstart documents the run. |
 | **Quality Gate 5** (runtime/container changes) | N/A. |
 | **Quality Gate 6** (evaluation changes) | N/A — this feature produces the input the evaluator consumes, but does not change how the evaluator compares to `expected.json`. |
 
@@ -64,7 +64,7 @@ specs/009-final-payload/
 ├── data-model.md        # Phase 1 output — entities, flattening rules, derivation formulas
 ├── contracts/
 │   ├── module-api.md    # Importable Python API stability contract
-│   └── cli-contract.md  # `python -m ledgerlinc_ocr.assembler` flags and exit codes
+│   └── cli-contract.md  # `python -m dartwing_ocr.assembler` flags and exit codes
 ├── quickstart.md        # End-to-end walkthrough (stage fixtures → run → validate)
 └── tasks.md             # Phase 2 output (/speckit.tasks — NOT created by /speckit.plan)
 ```
@@ -72,10 +72,10 @@ specs/009-final-payload/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── assembler/                      # NEW — this feature
 │   ├── __init__.py                 # Public surface: Invocation, run, build_pipeline_version
-│   ├── __main__.py                 # `python -m ledgerlinc_ocr.assembler` entry
+│   ├── __main__.py                 # `python -m dartwing_ocr.assembler` entry
 │   ├── cli.py                      # argparse entry (mirrors preprocessing/cli.py)
 │   ├── pipeline.py                 # Invocation dataclass + run() orchestrator
 │   ├── errors.py                   # EXIT_* constants + exception classes (mirror preprocessing/errors.py)
@@ -116,7 +116,7 @@ tests/
     └── test_assembler_quality_formula.py       # NEW — unit-level formula tests
 ```
 
-**Structure Decision**: Single-project layout matching the existing `ledgerlinc_ocr` package conventions (`preprocessing/`, `pipeline/`, `validator/` all follow the same module shape). New submodule `src/ledgerlinc_ocr/assembler/` mirrors the `preprocessing/` layout (cli.py + pipeline.py + errors.py + version.py + narrow helper modules). Tests live in the existing `tests/pipeline_tests/` and `tests/contract_tests/` directories; fixtures in `tests/fixtures/assembler/`.
+**Structure Decision**: Single-project layout matching the existing `dartwing_ocr` package conventions (`preprocessing/`, `pipeline/`, `validator/` all follow the same module shape). New submodule `src/dartwing_ocr/assembler/` mirrors the `preprocessing/` layout (cli.py + pipeline.py + errors.py + version.py + narrow helper modules). Tests live in the existing `tests/pipeline_tests/` and `tests/contract_tests/` directories; fixtures in `tests/fixtures/assembler/`.
 
 ## Phase 0: Research (Decisions)
 
@@ -125,7 +125,7 @@ See [`research.md`](./research.md). Eleven decisions resolved:
 1. **JSON write determinism** — fixed indent, sorted top-level keys per a pinned key-order table (schema order), trailing newline, UTF-8.
 2. **`processed_at` format** — `datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`.
 3. **`pipeline_version` format** — `"009-final-payload@0.1.0"` (spec clarification).
-4. **Schema validation reuse** — import `ledgerlinc_ocr.validator.artifact.load_and_validate` for per-input validation; do not reinvent.
+4. **Schema validation reuse** — import `dartwing_ocr.validator.artifact.load_and_validate` for per-input validation; do not reinvent.
 5. **Exit codes** — follow the existing preprocessing convention (`0` ok, `1` unexpected, `2` input rejected, `3` internal). Contradiction/drift/mismatch all map to `2`.
 6. **Rounding of `overall_vendor_confidence`** — compute in Python floats, then round to 4 decimal places via `round(value, 4)` before writing, to eliminate platform-level float drift in byte-identical comparison.
 7. **Evidence stripping shape** — a single declarative `FIELDS_TO_FLATTEN` table drives per-field copy; no ad-hoc per-field code.
@@ -139,8 +139,8 @@ See [`research.md`](./research.md). Eleven decisions resolved:
 Outputs:
 
 - [`data-model.md`](./data-model.md) — entities: `Invocation`, `AssemblerInputs`, `FlattenedVendorCandidate`, `QualitySummary`, `TraceBlock`, `FinalPayload`. Includes the `FIELDS_TO_FLATTEN` table, the `quality_summary` derivation pseudocode, and the cross-input invariant table.
-- [`contracts/module-api.md`](./contracts/module-api.md) — stability contract for the importable Python API (`from ledgerlinc_ocr.assembler import Invocation, run, build_pipeline_version`). Specifies allowed signature changes under semver.
-- [`contracts/cli-contract.md`](./contracts/cli-contract.md) — stability contract for `python -m ledgerlinc_ocr.assembler`: flags, exit codes, stderr format. Mirrors the preprocessing CLI contract.
+- [`contracts/module-api.md`](./contracts/module-api.md) — stability contract for the importable Python API (`from dartwing_ocr.assembler import Invocation, run, build_pipeline_version`). Specifies allowed signature changes under semver.
+- [`contracts/cli-contract.md`](./contracts/cli-contract.md) — stability contract for `python -m dartwing_ocr.assembler`: flags, exit codes, stderr format. Mirrors the preprocessing CLI contract.
 - [`quickstart.md`](./quickstart.md) — end-to-end walkthrough: install, stage a fixture, run, validate output.
 
 Agent context update: run `.specify/scripts/bash/update-agent-context.sh claude` after the artifacts are written.

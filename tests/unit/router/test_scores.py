@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.router.scores import compute_scores
+from dartwing_ocr.router.scores import compute_scores
 
 
 def _grounded(value="x", evidence_ids=("p0_b1",)):

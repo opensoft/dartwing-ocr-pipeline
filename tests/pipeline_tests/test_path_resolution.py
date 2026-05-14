@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.path_resolution import (
+from dartwing_ocr.pipeline.path_resolution import (
     PathResolutionError,
     derive_document_id,
     resolve_destination,

@@ -7,7 +7,7 @@ import shutil
 
 
 def test_ac2_blank_page_no_warning(tmp_path, us3_fixtures):
-    from ledgerlinc_ocr.preprocessing import pipeline
+    from dartwing_ocr.preprocessing import pipeline
 
     folder = tmp_path / "inv_031"
     folder.mkdir()

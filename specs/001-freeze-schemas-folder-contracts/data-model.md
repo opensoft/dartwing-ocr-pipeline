@@ -101,7 +101,7 @@ Enforced by Tier 2 rule (FR-035, SC-004).
 
 ## Model B — Validator internal entities (what the validator manipulates)
 
-These are the data structures inside `src/ledgerlinc_ocr/validator/`. They are also documented (as a contract) in `specs/001-freeze-schemas-folder-contracts/contracts/report.schema.json` and `module-api.md`.
+These are the data structures inside `src/dartwing_ocr/validator/`. They are also documented (as a contract) in `specs/001-freeze-schemas-folder-contracts/contracts/report.schema.json` and `module-api.md`.
 
 ### `ContractSet`
 

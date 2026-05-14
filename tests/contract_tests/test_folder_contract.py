@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.validator import validate_folder
-from ledgerlinc_ocr.validator.report import Severity, ViolationCode
+from dartwing_ocr.validator import validate_folder
+from dartwing_ocr.validator.report import Severity, ViolationCode
 
 
 @pytest.fixture(autouse=True)
 def _pdf_readability_is_not_under_test(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "ledgerlinc_ocr.validator.folder._check_source_pdf_readable",
+        "dartwing_ocr.validator.folder._check_source_pdf_readable",
         lambda _path, *, target: [],
     )
 

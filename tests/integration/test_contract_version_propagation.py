@@ -8,14 +8,14 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.assembler.pipeline import Invocation as AssemblerInvocation
-from ledgerlinc_ocr.assembler.pipeline import run as assembler_run
-from ledgerlinc_ocr.extract.config import load_voter_config
-from ledgerlinc_ocr.extract.errors import InputContractDrift
-from ledgerlinc_ocr.extract.pipeline import run as extract_run
-from ledgerlinc_ocr.extract.voters.stub import StubVoter
-from ledgerlinc_ocr.router.pipeline import run as router_run
-from ledgerlinc_ocr.validator import ArtifactName, validate_artifact
+from dartwing_ocr.assembler.pipeline import Invocation as AssemblerInvocation
+from dartwing_ocr.assembler.pipeline import run as assembler_run
+from dartwing_ocr.extract.config import load_voter_config
+from dartwing_ocr.extract.errors import InputContractDrift
+from dartwing_ocr.extract.pipeline import run as extract_run
+from dartwing_ocr.extract.voters.stub import StubVoter
+from dartwing_ocr.router.pipeline import run as router_run
+from dartwing_ocr.validator import ArtifactName, validate_artifact
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _US1 = _REPO_ROOT / "tests" / "fixtures" / "extract" / "us1_happy"

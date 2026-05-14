@@ -2,7 +2,7 @@
 
 **Feature**: `011-stage-runtime-profiles`
 **Date**: 2026-05-04
-**Inputs**: spec.md (with /speckit.clarify Session 2026-05-04), `.specify/memory/constitution.md` v1.3.0, existing source tree under `src/ledgerlinc_ocr/`, prior frozen contract `specs/002-cli-contract/contracts/cli-contract.md`.
+**Inputs**: spec.md (with /speckit.clarify Session 2026-05-04), `.specify/memory/constitution.md` v1.3.0, existing source tree under `src/dartwing_ocr/`, prior frozen contract `specs/002-cli-contract/contracts/cli-contract.md`.
 
 The Technical Context in `plan.md` carried zero open clarification placeholders - the five interactive clarifications already pinned the warm-corpus invocation surface, default failure policy, run summary delivery channel, stack-preset expansions, and the `ensemble@workstation` deferral. This document records the smaller research decisions that the plan still needed to commit to before contract drafting (Phase 1).
 
@@ -63,7 +63,7 @@ Resolution order: start from the preset's table; for each stage where the caller
 
 ---
 
-## R-005: Prerequisite-artifact validation reuses `ledgerlinc_ocr.validator.artifact.validate_artifact`
+## R-005: Prerequisite-artifact validation reuses `dartwing_ocr.validator.artifact.validate_artifact`
 
 **Decision**: When `--start-at` is later than `preprocess`, the runner computes the set of upstream artifact filenames required by the start stage (preprocess -> none; extract -> `preprocess_output.json`; routing -> `+ edge_extraction_output.json`; final_payload -> `+ routing_decision.json`) and validates each one against the installed contract set via the existing `validate_artifact(...)` function. A missing file or a schema-invalid file fails before any downstream write, with `stage="prerequisite_validation"` and a message naming the unmet prerequisite (FR-010).
 
@@ -249,10 +249,10 @@ Resolution: flag > env var > documented default. The selected URL is recorded in
 
 **Decision**: The pipeline package exposes a profile->adapter registry that maps `(stage, impl, lane)` tuples to small adapter callables. Each adapter wraps an existing module's entry point:
 
-- `("preprocess", "ppstructurev3", "cpu")` -> wraps `ledgerlinc_ocr.preprocessing.pipeline.run_preprocessing(folder, ...)` (existing).
-- `("extract", "ollama", "gpu")` / `("extract", "ollama", "cpu")` / `("extract", "ollama", "jetson")` -> wraps `ledgerlinc_ocr.extract.pipeline.run_extraction(folder, ollama_url, ...)` with the resolved lane URL.
-- `("routing", "rules", "cpu")` -> wraps `ledgerlinc_ocr.router.pipeline.route(folder, ...)` (existing).
-- `("final_payload", "assembler", "cpu")` -> wraps `ledgerlinc_ocr.assembler.pipeline.assemble(folder, ...)` (existing).
+- `("preprocess", "ppstructurev3", "cpu")` -> wraps `dartwing_ocr.preprocessing.pipeline.run_preprocessing(folder, ...)` (existing).
+- `("extract", "ollama", "gpu")` / `("extract", "ollama", "cpu")` / `("extract", "ollama", "jetson")` -> wraps `dartwing_ocr.extract.pipeline.run_extraction(folder, ollama_url, ...)` with the resolved lane URL.
+- `("routing", "rules", "cpu")` -> wraps `dartwing_ocr.router.pipeline.route(folder, ...)` (existing).
+- `("final_payload", "assembler", "cpu")` -> wraps `dartwing_ocr.assembler.pipeline.assemble(folder, ...)` (existing).
 - `("preprocess", "edge-ocr", "jetson")` / `("extract", "ensemble", "workstation")` -> adapter raises `DeferredImplementationError` with FR-034 step 4 reference. Validation passes; execution fails fast with a named profile.
 
 Stub callables remain in `pipeline/stages.py` and are returned for any `stub` profile selection.

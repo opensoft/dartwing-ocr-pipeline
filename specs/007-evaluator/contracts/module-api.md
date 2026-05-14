@@ -1,10 +1,10 @@
-# Python Module API: `ledgerlinc_ocr.evaluator`
+# Python Module API: `dartwing_ocr.evaluator`
 
 **Feature**: 007-evaluator
 **Contract-set version this API consumes**: `1.1.0` (older MINORs within the same major are accepted per FR-013 MINOR-forward compatibility)
 **Stability**: public — names below are part of the stage 1 harness surface. Changes require an entry in `contracts/stage1_vendor_identity/AMENDMENTS.md` or a superseding feature.
 
-This file is the authoritative list of the evaluator's public Python API. The module layout is internal and may change without notice, but every name in this document MUST remain importable from `ledgerlinc_ocr.evaluator` with the signature and return shape shown.
+This file is the authoritative list of the evaluator's public Python API. The module layout is internal and may change without notice, but every name in this document MUST remain importable from `dartwing_ocr.evaluator` with the signature and return shape shown.
 
 ---
 
@@ -71,7 +71,7 @@ def evaluate_corpus(
 
 ## Public dataclasses and enums
 
-Re-exported from `ledgerlinc_ocr.evaluator`:
+Re-exported from `dartwing_ocr.evaluator`:
 
 - `ResultLabel` (enum: `match`, `partial_match`, `mismatch`, `missing_prediction`, `unexpected_prediction`, `not_applicable`)
 - `FieldResult`
@@ -108,12 +108,12 @@ class EmptyCorpusError(EvaluatorError): ...
 
 ## CLI contract
 
-Entry point: `python -m ledgerlinc_ocr.evaluator` (per clarification Q5).
+Entry point: `python -m dartwing_ocr.evaluator` (per clarification Q5).
 
 ### `evaluate document`
 
 ```
-python -m ledgerlinc_ocr.evaluator evaluate document <folder> \
+python -m dartwing_ocr.evaluator evaluate document <folder> \
     [--contract-set-version 1.1.0] \
     [--json | --text]
 ```
@@ -128,7 +128,7 @@ python -m ledgerlinc_ocr.evaluator evaluate document <folder> \
 ### `evaluate corpus`
 
 ```
-python -m ledgerlinc_ocr.evaluator evaluate corpus <root> \
+python -m dartwing_ocr.evaluator evaluate corpus <root> \
     [--contract-set-version 1.1.0] \
     [--no-lazy] \
     [--refresh]
@@ -146,16 +146,16 @@ python -m ledgerlinc_ocr.evaluator evaluate corpus <root> \
 
 ```bash
 # One document, default output:
-$ python -m ledgerlinc_ocr.evaluator evaluate document tests/stage1_vendor_identity/inv_001_easy
+$ python -m dartwing_ocr.evaluator evaluate document tests/stage1_vendor_identity/inv_001_easy
 
 # One document, machine-readable outcome:
-$ python -m ledgerlinc_ocr.evaluator evaluate document inv_001_easy --json
+$ python -m dartwing_ocr.evaluator evaluate document inv_001_easy --json
 
 # Full corpus, lazy evaluation of any missing per-document results:
-$ python -m ledgerlinc_ocr.evaluator evaluate corpus tests/stage1_vendor_identity
+$ python -m dartwing_ocr.evaluator evaluate corpus tests/stage1_vendor_identity
 
 # Full corpus, strict (every folder must already have evaluation_document.json):
-$ python -m ledgerlinc_ocr.evaluator evaluate corpus tests/stage1_vendor_identity --no-lazy
+$ python -m dartwing_ocr.evaluator evaluate corpus tests/stage1_vendor_identity --no-lazy
 ```
 
 ---
@@ -163,9 +163,9 @@ $ python -m ledgerlinc_ocr.evaluator evaluate corpus tests/stage1_vendor_identit
 ## Stability guarantees
 
 The following MUST hold across any change within the 007-evaluator feature:
-- The names in "Public functions" and "Public dataclasses and enums" remain importable from `ledgerlinc_ocr.evaluator`.
+- The names in "Public functions" and "Public dataclasses and enums" remain importable from `dartwing_ocr.evaluator`.
 - The CLI subcommands, positional arguments, and exit codes remain as specified.
-- The module never imports from `ledgerlinc_ocr.pipeline` or `ledgerlinc_ocr.preprocessing` (harness/pipeline separation; constitution §I).
-- The module MAY import from `ledgerlinc_ocr.validator` (read-only: schema loading + artifact validation).
+- The module never imports from `dartwing_ocr.pipeline` or `dartwing_ocr.preprocessing` (harness/pipeline separation; constitution §I).
+- The module MAY import from `dartwing_ocr.validator` (read-only: schema loading + artifact validation).
 
 Any change that would break the above is a breaking API change and MUST be accompanied by an amendment entry.

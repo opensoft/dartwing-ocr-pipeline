@@ -8,9 +8,9 @@ from typing import Any, Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import Runner
-from ledgerlinc_ocr.pipeline.stages import default_preprocess
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import Runner
+from dartwing_ocr.pipeline.stages import default_preprocess
 
 _STAGE_VOCAB = {
     "arguments",

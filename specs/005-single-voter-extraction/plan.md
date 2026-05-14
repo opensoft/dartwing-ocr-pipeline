@@ -37,7 +37,7 @@ behavior stays fixed.
 
 **Target Platform**: Linux (devcontainer, native WSL Ubuntu 24.04). The extractor runs CPU-only inside the pipeline container; the Ollama endpoint runs on the host (ROCm GPU) and is reached over HTTP. The native Linux ROCm compose file is the production lane; the optional WSL CPU-only Ollama container is a benchmark lane only (constitution §V).
 
-**Project Type**: Single Python package. This slice adds `src/ledgerlinc_ocr/extract/` alongside the existing `preprocessing/`, `pipeline/`, and `validator/` packages, and exposes a CLI via `python -m ledgerlinc_ocr.extract` (per spec Clarifications, Q4).
+**Project Type**: Single Python package. This slice adds `src/dartwing_ocr/extract/` alongside the existing `preprocessing/`, `pipeline/`, and `validator/` packages, and exposes a CLI via `python -m dartwing_ocr.extract` (per spec Clarifications, Q4).
 
 **Performance Goals**: None as a release gate (constitution: no latency gate in stage 1). SC-007 pins a soft target of <2 s wall-clock for the extractor's non-model work (packet read, reconciliation, artifact write) on the `pipeline-dev` devcontainer (CPU-only, Python 3.12 — the constitutionally-pinned execution surface for pipeline code). The model call itself is outside the extractor's control and is explicitly not gated.
 
@@ -60,7 +60,7 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 
 | Principle | Gate | Status |
 |-----------|------|--------|
-| I. One Repo, Clear Runtime Boundaries | Extraction belongs to the pipeline layer. Must not embed model runtime; must not collapse harness concerns (evaluation, scoring) into this slice. | **PASS** — `src/ledgerlinc_ocr/extract/` is pipeline code only. Model inference lives in host Ollama, reached over HTTP (spec Assumptions, FR-017). No PyTorch, no embedded weights. Routing, consensus, final-payload assembly, and evaluation are all explicitly out of scope (FR-020, FR-021). |
+| I. One Repo, Clear Runtime Boundaries | Extraction belongs to the pipeline layer. Must not embed model runtime; must not collapse harness concerns (evaluation, scoring) into this slice. | **PASS** — `src/dartwing_ocr/extract/` is pipeline code only. Model inference lives in host Ollama, reached over HTTP (spec Assumptions, FR-017). No PyTorch, no embedded weights. Routing, consensus, final-payload assembly, and evaluation are all explicitly out of scope (FR-020, FR-021). |
 | II. Evidence-First, Schema-First Design | Artifact MUST validate against the frozen `edge_extraction_output` contract; every field MUST carry `{value, confidence, evidence}` per schema; prompts and code adapt to the contract, not the reverse. | **PASS** — FR-002 mandates schema validation before persist. Every `evidence` array is filtered against the preprocessing packet's real `block_id` / `line_id` values (FR-010). No schema amendment; `contract_set_version = "1.0.0"` is consumed as-is. |
 | III. Deterministic Control Over Model Output | Evidence reconciliation, null-on-missing defaults, `present`/`inferred` override, `status` derivation, and hard-failure semantics are code, not model judgment. | **PASS** — FR-010, FR-011, FR-012, FR-013, FR-014, FR-015 are all explicitly deterministic post-model passes. The model proposes; code disposes. Confidence is a signal; the ungrounded hard cap (FR-011) is a code-level ceiling, not a model-reported number. |
 | IV. Provenance and Review Safety | For `company_name`: if no grounded evidence supports an explicit name, `present = false` AND `inferred = true`, regardless of model claim. Stage 1 pre-answer for routing (006). | **PASS** — FR-012 and FR-013 enforce this at the extractor layer (not downstream). SC-002 is a 100% pass gate on the 5 missing-name corpus documents. |
@@ -78,7 +78,7 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 1. Pipeline vs. harness boundary preserved — this slice is pipeline-only; it does not compare against `expected.json` or write any harness artifact.
 2. Output contracts unchanged — this slice consumes the frozen `edge_extraction_output` schema; no schema edits required. `docs/stage1-vendor-identity/schemas.md` already matches.
 3. Runtime behavior — this slice depends on host Ollama over HTTP; `ollama-runtime.md` already documents the host vs. container story. One small addition in research.md pins the timeout + no-retry rule for the extractor; the runtime doc is updated in tasks if we want a cross-link, but no substantive runtime change.
-4. Verifiable through concrete local execution — CLI `python -m ledgerlinc_ocr.extract --folder <path> --voter <name>` against a fixture folder with `preprocess_output.json` + a running host Ollama.
+4. Verifiable through concrete local execution — CLI `python -m dartwing_ocr.extract --folder <path> --voter <name>` against a fixture folder with `preprocess_output.json` + a running host Ollama.
 5. Runtime/container changes — none. Reuses the existing `pipeline-dev` devcontainer and the existing host Ollama path.
 6. Evaluation comparison preserved — the extractor does not touch evaluation. The downstream evaluator (008) still compares `final_structured_payload.json` (not `edge_extraction_output.json`) to `expected.json`; this slice is neutral with respect to scoring.
 
@@ -105,14 +105,14 @@ specs/005-single-voter-extraction/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── __init__.py                         # existing
 ├── preprocessing/                      # existing (003 slice)
 ├── pipeline/                           # existing
 ├── validator/                          # existing — contract validator
 └── extract/                            # NEW — this slice
     ├── __init__.py
-    ├── __main__.py                     # `python -m ledgerlinc_ocr.extract`
+    ├── __main__.py                     # `python -m dartwing_ocr.extract`
     ├── cli.py                          # argparse entry point: --folder, --voter
     ├── pipeline.py                     # orchestrates load → voter call → reconcile → write
     ├── config.py                       # pydantic VoterConfig + YAML loader
@@ -176,10 +176,10 @@ tests/
         └── preprocess_output.json      # schema-valid packet with falcon_perception.status == "failure"
 ```
 
-**Structure Decision**: Single-project Python package. `src/ledgerlinc_ocr/extract/` sits alongside
+**Structure Decision**: Single-project Python package. `src/dartwing_ocr/extract/` sits alongside
 the existing `preprocessing/`, `pipeline/`, and `validator/` packages. The CLI is exposed as a module
-(`python -m ledgerlinc_ocr.extract`, matching spec Clarifications Q4) and will also be registered
-as a console script (`ledgerlinc-extract`) in `pyproject.toml` in Phase 2 tasks. The voter seam is a
+(`python -m dartwing_ocr.extract`, matching spec Clarifications Q4) and will also be registered
+as a console script (`dartwing-extract`) in `pyproject.toml` in Phase 2 tasks. The voter seam is a
 single `VoterAdapter` Protocol under `voters/base.py`; the stage 1 Gemma implementation and a
 fixture-driven `StubVoter` both implement it, proving the pluggable shape required by US4/SC-004.
 Reconciliation (`reconcile.py`) is a pure function over `(preprocess_packet, model_response, config)`

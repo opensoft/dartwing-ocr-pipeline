@@ -7,25 +7,25 @@
 
 ## R-001: CLI Entry Point Name and Invocation Form
 
-**Decision**: `python -m ledgerlinc_ocr.pipeline` is the contract-stable invocation. A `console_scripts` entry `ledgerlinc-pipeline` is added as a convenience alias.
+**Decision**: `python -m dartwing_ocr.pipeline` is the contract-stable invocation. A `console_scripts` entry `dartwing-pipeline` is added as a convenience alias.
 
-**Rationale**: The existing validator uses `python -m ledgerlinc_ocr.validator` and has no `console_scripts` entry. Adding a `console_scripts` entry for the pipeline CLI improves developer ergonomics (`ledgerlinc-pipeline run ...` vs. `python -m ledgerlinc_ocr.pipeline run ...`), but the `python -m` form is the one the harness targets because it works without installation into PATH and matches the validator precedent. The contract documents both; the harness examples use the `python -m` form.
+**Rationale**: The existing validator uses `python -m dartwing_ocr.validator` and has no `console_scripts` entry. Adding a `console_scripts` entry for the pipeline CLI improves developer ergonomics (`dartwing-pipeline run ...` vs. `python -m dartwing_ocr.pipeline run ...`), but the `python -m` form is the one the harness targets because it works without installation into PATH and matches the validator precedent. The contract documents both; the harness examples use the `python -m` form.
 
 **Alternatives considered**:
-- `python -m ledgerlinc_ocr run` (top-level `__main__.py`): Rejected — collapses pipeline and validator into one dispatch layer; the spec says these are separate concerns.
-- `ledgerlinc-ocr pipeline run`: Rejected — overloads the package name as a multi-command CLI; premature for stage 1.
+- `python -m dartwing_ocr run` (top-level `__main__.py`): Rejected — collapses pipeline and validator into one dispatch layer; the spec says these are separate concerns.
+- `dartwing-ocr pipeline run`: Rejected — overloads the package name as a multi-command CLI; premature for stage 1.
 
 ---
 
 ## R-002: Module Layout Within the Package
 
-**Decision**: `src/ledgerlinc_ocr/pipeline/` as a sibling package to `validator/`.
+**Decision**: `src/dartwing_ocr/pipeline/` as a sibling package to `validator/`.
 
-**Rationale**: The validator is at `src/ledgerlinc_ocr/validator/` with its own `__main__.py` and `cli.py`. The pipeline follows the same pattern. Both are under the `ledgerlinc_ocr` namespace but are independently invocable. The pipeline can import from the validator (e.g., `loader.load_contract_set`, `artifact.validate_artifact`) for post-hoc schema validation without circular dependencies.
+**Rationale**: The validator is at `src/dartwing_ocr/validator/` with its own `__main__.py` and `cli.py`. The pipeline follows the same pattern. Both are under the `dartwing_ocr` namespace but are independently invocable. The pipeline can import from the validator (e.g., `loader.load_contract_set`, `artifact.validate_artifact`) for post-hoc schema validation without circular dependencies.
 
 **Alternatives considered**:
-- `src/ledgerlinc_ocr/cli.py` (flat file): Rejected — too many responsibilities for one file (argument parsing, path resolution, exit codes, orchestration, PDF check).
-- `src/ledgerlinc_pipeline/` (separate top-level package): Rejected — adds a second package to `pyproject.toml` and breaks the single-namespace convention.
+- `src/dartwing_ocr/cli.py` (flat file): Rejected — too many responsibilities for one file (argument parsing, path resolution, exit codes, orchestration, PDF check).
+- `src/dartwing_pipeline/` (separate top-level package): Rejected — adds a second package to `pyproject.toml` and breaks the single-namespace convention.
 
 ---
 
@@ -115,12 +115,12 @@
 
 ## R-009: Subcommand vs. Bare Command
 
-**Decision**: Use a subcommand: `python -m ledgerlinc_ocr.pipeline run [ARGS]`. The `run` subcommand processes one document. The top-level command without a subcommand prints help.
+**Decision**: Use a subcommand: `python -m dartwing_ocr.pipeline run [ARGS]`. The `run` subcommand processes one document. The top-level command without a subcommand prints help.
 
-**Rationale**: The validator already uses subcommands (`validate artifact`, `validate folder`, `show contract-set`). Using `run` as a subcommand keeps the CLI extensible (e.g., future `python -m ledgerlinc_ocr.pipeline info` to dump installed contract versions) without changing the primary invocation. The spec's forward-compatibility requirement (FR-035) is served by having `run` own the argument surface so new subcommands don't collide.
+**Rationale**: The validator already uses subcommands (`validate artifact`, `validate folder`, `show contract-set`). Using `run` as a subcommand keeps the CLI extensible (e.g., future `python -m dartwing_ocr.pipeline info` to dump installed contract versions) without changing the primary invocation. The spec's forward-compatibility requirement (FR-035) is served by having `run` own the argument surface so new subcommands don't collide.
 
 **Alternatives considered**:
-- No subcommand (bare `python -m ledgerlinc_ocr.pipeline --input ...`): Viable but closes the extensibility path. Adding a second mode later would require a breaking change or ambiguous argument parsing.
+- No subcommand (bare `python -m dartwing_ocr.pipeline --input ...`): Viable but closes the extensibility path. Adding a second mode later would require a breaking change or ambiguous argument parsing.
 
 ---
 
@@ -138,7 +138,7 @@
 
 ## R-011: `pyproject.toml` Test Configuration
 
-**Decision**: Add `tests/pipeline_tests` to `testpaths` alongside the existing `tests/contract_tests`. Add a `console_scripts` entry `ledgerlinc-pipeline = "ledgerlinc_ocr.pipeline.cli:main"`.
+**Decision**: Add `tests/pipeline_tests` to `testpaths` alongside the existing `tests/contract_tests`. Add a `console_scripts` entry `dartwing-pipeline = "dartwing_ocr.pipeline.cli:main"`.
 
 **Rationale**: `pytest` is already configured with `testpaths = ["tests/contract_tests"]`. Adding the new directory lets `pytest` discover both test suites. The console script provides the convenience alias without changing the `python -m` contract.
 
@@ -149,7 +149,7 @@
 
 ## R-012: Default Values for `pipeline_version` and `policy_version`
 
-**Decision**: `pipeline_version` defaults to `ledgerlinc_ocr.__version__` (the package version from `pyproject.toml`). `policy_version` defaults to the string `"stage1-baseline-v0"` during stage 1; it becomes a meaningful semver when real routing policy lands.
+**Decision**: `pipeline_version` defaults to `dartwing_ocr.__version__` (the package version from `pyproject.toml`). `policy_version` defaults to the string `"stage1-baseline-v0"` during stage 1; it becomes a meaningful semver when real routing policy lands.
 
 **Rationale**: Package version is the natural source for pipeline identity — it already tracks build-level changes and is the value a harness operator can correlate with a git SHA. A policy version only makes sense once there is a routing policy to version; using a stable placeholder string preserves the artifact schema slot without overpromising semantics the pipeline does not yet encode.
 

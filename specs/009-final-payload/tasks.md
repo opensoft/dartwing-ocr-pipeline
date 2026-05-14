@@ -15,7 +15,7 @@ description: "Task list for 009-final-payload implementation"
 
 - **[P]**: Can run in parallel (different files, no dependencies on incomplete tasks)
 - **[Story]**: Maps task to a user story (US1–US6); omitted for Setup/Foundational/Polish
-- Paths are repo-relative; all work lives under `src/ledgerlinc_ocr/assembler/` and `tests/` per `plan.md` §Project Structure
+- Paths are repo-relative; all work lives under `src/dartwing_ocr/assembler/` and `tests/` per `plan.md` §Project Structure
 
 ---
 
@@ -23,10 +23,10 @@ description: "Task list for 009-final-payload implementation"
 
 **Purpose**: Scaffold the new submodule and wire it into the existing package.
 
-- [X] T001 Create empty submodule skeleton at `src/ledgerlinc_ocr/assembler/__init__.py` and `src/ledgerlinc_ocr/assembler/__main__.py` (module-loadable, no real logic yet)
+- [X] T001 Create empty submodule skeleton at `src/dartwing_ocr/assembler/__init__.py` and `src/dartwing_ocr/assembler/__main__.py` (module-loadable, no real logic yet)
 - [X] T002 [P] Create fixture folder skeleton `tests/fixtures/assembler/` with a `README.md` describing the seven fixture pairs from `research.md` §Decision 10
 - [X] T003 [P] Create `tests/pipeline_tests/__init__.py` marker if absent; confirm `tests/contract_tests/__init__.py` and `tests/unit/__init__.py` already exist (no rewrite)
-- [X] T004 Register `ledgerlinc-assemble` console script in `pyproject.toml` under `[project.scripts]` pointing at `ledgerlinc_ocr.assembler.cli:main`
+- [X] T004 Register `dartwing-assemble` console script in `pyproject.toml` under `[project.scripts]` pointing at `dartwing_ocr.assembler.cli:main`
 
 **Checkpoint**: Module is importable; console script is declared; fixture folder exists.
 
@@ -38,10 +38,10 @@ description: "Task list for 009-final-payload implementation"
 
 **⚠️ CRITICAL**: No user story phase may begin until all Phase 2 tasks complete.
 
-- [X] T005 Implement exit codes and exception hierarchy in `src/ledgerlinc_ocr/assembler/errors.py` per `contracts/module-api.md` §Exception hierarchy (`EXIT_OK=0`, `EXIT_UNEXPECTED=1`, `EXIT_INPUT_REJECTED=2`, `EXIT_INTERNAL_ERROR=3`; `AssemblerError` base; `InputRejectedError` and seven concrete subclasses; `OutputSchemaInvalidError`; every subclass carries `exit_code` and `kind` class attributes)
-- [X] T006 [P] Implement `SLICE_PREFIX = "009-final-payload"`, `SEMVER = "0.1.0"`, and `build_pipeline_version(semver: str = SEMVER) -> str` returning `"009-final-payload@<semver>"` in `src/ledgerlinc_ocr/assembler/version.py` per `research.md` Decision 3
-- [X] T007 [P] Implement deterministic JSON writer `write_final_payload(path: Path, payload: dict) -> None` in `src/ledgerlinc_ocr/assembler/write.py` per `research.md` Decision 1 (schema-order key insertion via `FINAL_KEY_ORDER` constant, `indent=2`, `ensure_ascii=False`, trailing newline, UTF-8)
-- [X] T008 Define `@dataclass(frozen=True) class Invocation` with fields `document_folder: Path`, `pipeline_version: str | None = None`, `now_utc: Callable[[], datetime] | None = None` in `src/ledgerlinc_ocr/assembler/pipeline.py` per `contracts/module-api.md` §Invocation (run() function body is a TODO stub at this point)
+- [X] T005 Implement exit codes and exception hierarchy in `src/dartwing_ocr/assembler/errors.py` per `contracts/module-api.md` §Exception hierarchy (`EXIT_OK=0`, `EXIT_UNEXPECTED=1`, `EXIT_INPUT_REJECTED=2`, `EXIT_INTERNAL_ERROR=3`; `AssemblerError` base; `InputRejectedError` and seven concrete subclasses; `OutputSchemaInvalidError`; every subclass carries `exit_code` and `kind` class attributes)
+- [X] T006 [P] Implement `SLICE_PREFIX = "009-final-payload"`, `SEMVER = "0.1.0"`, and `build_pipeline_version(semver: str = SEMVER) -> str` returning `"009-final-payload@<semver>"` in `src/dartwing_ocr/assembler/version.py` per `research.md` Decision 3
+- [X] T007 [P] Implement deterministic JSON writer `write_final_payload(path: Path, payload: dict) -> None` in `src/dartwing_ocr/assembler/write.py` per `research.md` Decision 1 (schema-order key insertion via `FINAL_KEY_ORDER` constant, `indent=2`, `ensure_ascii=False`, trailing newline, UTF-8)
+- [X] T008 Define `@dataclass(frozen=True) class Invocation` with fields `document_folder: Path`, `pipeline_version: str | None = None`, `now_utc: Callable[[], datetime] | None = None` in `src/dartwing_ocr/assembler/pipeline.py` per `contracts/module-api.md` §Invocation (run() function body is a TODO stub at this point)
 - [X] T009 [P] Create golden fixture pair `tests/fixtures/assembler/happy_grounded/edge_extraction_output.json` and `routing_decision.json` per `research.md` §Decision 10 table row 1 (grounded company name with present=true/inferred=false, full address, one EIN, email; routing decision=edge_accept, manual_review_required=false, review_reason=null; both contract_set_version=1.0.0; document_id="inv_happy_grounded_001")
 - [X] T010 [P] Add unit test `tests/unit/test_assembler_version.py` asserting `build_pipeline_version()` returns `"009-final-payload@0.1.0"` and a custom semver override returns `"009-final-payload@0.2.0"`
 - [X] T011 [P] Add unit test `tests/unit/test_assembler_write.py` asserting `write_final_payload` produces byte-identical output for the same dict across two calls (including key order) and writes a trailing newline
@@ -58,13 +58,13 @@ description: "Task list for 009-final-payload implementation"
 
 ### Tests for User Story 1
 
-- [X] T012 [P] [US1] Add `tests/contract_tests/test_final_payload_assembler_tie_in.py` — given the assembler's output on the `happy_grounded` fixture, validate it against `final_structured_payload.schema.json` via the existing `ledgerlinc_ocr.validator.artifact` loader; assert exit 0 / schema-valid
+- [X] T012 [P] [US1] Add `tests/contract_tests/test_final_payload_assembler_tie_in.py` — given the assembler's output on the `happy_grounded` fixture, validate it against `final_structured_payload.schema.json` via the existing `dartwing_ocr.validator.artifact` loader; assert exit 0 / schema-valid
 - [X] T013 [US1] Add `tests/pipeline_tests/test_assembler_us1_happy_path.py` covering acceptance scenarios US1 AS-1..AS-6: all required top-level keys present, `contract_set_version == "1.0.0"`, `processed_at` ISO-8601 UTC, `pipeline_version == "009-final-payload@0.1.0"` (not copied from inputs), `document_type == "invoice"`, `document_id` equals both inputs, and two runs differ only by `processed_at`
 
 ### Implementation for User Story 1
 
-- [X] T014 [US1] Implement `src/ledgerlinc_ocr/assembler/trace.py` producing the fixed `{source_file, preprocess_output_file, edge_extraction_output_file, routing_decision_file}` dict per `data-model.md` §TraceBlock (placeholder: real US5 tests tighten this)
-- [X] T015 [US1] Flesh out `run(invocation: Invocation) -> Path` in `src/ledgerlinc_ocr/assembler/pipeline.py` with the full assembly sequence: load inputs via `ledgerlinc_ocr.validator.artifact.load_and_validate` (Decision 4), build the payload dict in `FINAL_KEY_ORDER`, call `write_final_payload`, return the absolute path. Minimal body: uses placeholder flatten/quality/review helpers that pass-through or return schema-satisfying defaults so the happy path validates. Subsequent stories tighten each slot.
+- [X] T014 [US1] Implement `src/dartwing_ocr/assembler/trace.py` producing the fixed `{source_file, preprocess_output_file, edge_extraction_output_file, routing_decision_file}` dict per `data-model.md` §TraceBlock (placeholder: real US5 tests tighten this)
+- [X] T015 [US1] Flesh out `run(invocation: Invocation) -> Path` in `src/dartwing_ocr/assembler/pipeline.py` with the full assembly sequence: load inputs via `dartwing_ocr.validator.artifact.load_and_validate` (Decision 4), build the payload dict in `FINAL_KEY_ORDER`, call `write_final_payload`, return the absolute path. Minimal body: uses placeholder flatten/quality/review helpers that pass-through or return schema-satisfying defaults so the happy path validates. Subsequent stories tighten each slot.
 - [X] T016 [US1] Ensure `contract_set_version = "1.0.0"` and `document_type = "invoice"` are emitted as literal constants, and `processed_at` uses the injected clock per `research.md` Decision 2
 
 **Checkpoint**: US1 is green against `happy_grounded`. The rest of the stories tighten the per-slot behaviors; US1's schema-validity guarantee holds throughout.
@@ -84,7 +84,7 @@ description: "Task list for 009-final-payload implementation"
 
 ### Implementation for User Story 2
 
-- [X] T019 [US2] Implement `FIELDS_TO_FLATTEN` table and `flatten_vendor_candidate(extractor: dict) -> dict` in `src/ledgerlinc_ocr/assembler/flatten.py` per `data-model.md` §`FIELDS_TO_FLATTEN` Table and `research.md` Decision 7 (kind `value_confidence` → `{value, confidence}`; kind `company_name` → `{value, present, inferred, confidence}`; never emit `evidence`)
+- [X] T019 [US2] Implement `FIELDS_TO_FLATTEN` table and `flatten_vendor_candidate(extractor: dict) -> dict` in `src/dartwing_ocr/assembler/flatten.py` per `data-model.md` §`FIELDS_TO_FLATTEN` Table and `research.md` Decision 7 (kind `value_confidence` → `{value, confidence}`; kind `company_name` → `{value, present, inferred, confidence}`; never emit `evidence`)
 - [X] T020 [US2] Wire `flatten_vendor_candidate` into `pipeline.run()` replacing the US1 placeholder; confirm `invoice_header_fields`, `model_runtime`, `vote_metadata`, `extraction_notes`, `warnings`, `status` from the extractor are NOT propagated
 
 **Checkpoint**: US2 is green. Output is flattened correctly; US1 still passes.
@@ -105,7 +105,7 @@ description: "Task list for 009-final-payload implementation"
 
 ### Implementation for User Story 3
 
-- [X] T024 [US3] Implement `copy_review_status_verbatim(routing: dict) -> dict` in `src/ledgerlinc_ocr/assembler/pipeline.py` (or a small helper inline) — a pure dict copy with no normalization, aliasing, or default substitution
+- [X] T024 [US3] Implement `copy_review_status_verbatim(routing: dict) -> dict` in `src/dartwing_ocr/assembler/pipeline.py` (or a small helper inline) — a pure dict copy with no normalization, aliasing, or default substitution
 - [X] T025 [US3] Wire `copy_review_status_verbatim` into `pipeline.run()` replacing the US1 placeholder `review_status` slot
 
 **Checkpoint**: US3 is green across all three fixtures. US1 and US2 still pass.
@@ -126,9 +126,9 @@ description: "Task list for 009-final-payload implementation"
 
 ### Implementation for User Story 4
 
-- [X] T029 [US4] Implement `SECONDARY_ENUM_ORDER` and `derive_secondary_identifiers(extractor: dict) -> list[str]` in `src/ledgerlinc_ocr/assembler/quality.py` per `data-model.md` §Secondary identifiers derivation
-- [X] T030 [US4] Implement `compute_overall_vendor_confidence(extractor: dict, secondary_ids: list[str]) -> float` in `src/ledgerlinc_ocr/assembler/quality.py` per `data-model.md` §`overall_vendor_confidence` derivation including `round(_, 4)` (research Decision 6)
-- [X] T031 [US4] Implement `build_quality_summary(extractor: dict) -> dict` composing the four fields (`overall_vendor_confidence`, `explicit_name_found = company_name.present and not company_name.inferred`, `consensus_level = "single_voter_baseline"`, `secondary_identifiers_found`) in `src/ledgerlinc_ocr/assembler/quality.py`
+- [X] T029 [US4] Implement `SECONDARY_ENUM_ORDER` and `derive_secondary_identifiers(extractor: dict) -> list[str]` in `src/dartwing_ocr/assembler/quality.py` per `data-model.md` §Secondary identifiers derivation
+- [X] T030 [US4] Implement `compute_overall_vendor_confidence(extractor: dict, secondary_ids: list[str]) -> float` in `src/dartwing_ocr/assembler/quality.py` per `data-model.md` §`overall_vendor_confidence` derivation including `round(_, 4)` (research Decision 6)
+- [X] T031 [US4] Implement `build_quality_summary(extractor: dict) -> dict` composing the four fields (`overall_vendor_confidence`, `explicit_name_found = company_name.present and not company_name.inferred`, `consensus_level = "single_voter_baseline"`, `secondary_identifiers_found`) in `src/dartwing_ocr/assembler/quality.py`
 - [X] T032 [US4] Wire `build_quality_summary` into `pipeline.run()` replacing the US1 placeholder `quality_summary` slot
 
 **Checkpoint**: US4 is green including the all-null spam-gate case. US1–US3 still pass.
@@ -147,7 +147,7 @@ description: "Task list for 009-final-payload implementation"
 
 ### Implementation for User Story 5
 
-- [X] T034 [US5] Tighten `src/ledgerlinc_ocr/assembler/trace.py` to produce exactly `{"source_file": "source.pdf", "preprocess_output_file": "preprocess_output.json", "edge_extraction_output_file": "edge_extraction_output.json", "routing_decision_file": "routing_decision.json"}` per `data-model.md` §TraceBlock; remove any US1 placeholder logic
+- [X] T034 [US5] Tighten `src/dartwing_ocr/assembler/trace.py` to produce exactly `{"source_file": "source.pdf", "preprocess_output_file": "preprocess_output.json", "edge_extraction_output_file": "edge_extraction_output.json", "routing_decision_file": "routing_decision.json"}` per `data-model.md` §TraceBlock; remove any US1 placeholder logic
 
 **Checkpoint**: US5 is green. US1–US4 still pass.
 
@@ -170,7 +170,7 @@ description: "Task list for 009-final-payload implementation"
 
 ### Implementation for User Story 6
 
-- [X] T041 [US6] Implement `check_inputs_exist(folder: Path) -> None`, `check_inputs_readable(folder: Path) -> tuple[dict, dict]`, `check_contract_versions(extractor, routing)`, `check_document_ids_match(extractor, routing)`, and `check_routing_internal_consistency(routing)` in `src/ledgerlinc_ocr/assembler/validation.py` per `data-model.md` §Cross-input invariant table and `research.md` Decision 9
+- [X] T041 [US6] Implement `check_inputs_exist(folder: Path) -> None`, `check_inputs_readable(folder: Path) -> tuple[dict, dict]`, `check_contract_versions(extractor, routing)`, `check_document_ids_match(extractor, routing)`, and `check_routing_internal_consistency(routing)` in `src/dartwing_ocr/assembler/validation.py` per `data-model.md` §Cross-input invariant table and `research.md` Decision 9
 - [X] T042 [US6] Wire the six invariant checks into `pipeline.run()` in the order documented in `data-model.md` §Cross-input invariant table (file existence → JSON parseable → schema-valid → contract version → document_id → routing consistency); raise the corresponding `AssemblerError` subclass on first failure
 - [X] T043 [US6] Ensure `pipeline.run()` validates the ASSEMBLED output via `load_and_validate` before writing the file (invariant #7 → `OutputSchemaInvalidError` → exit 3); if validation fails, write nothing
 
@@ -180,14 +180,14 @@ description: "Task list for 009-final-payload implementation"
 
 ## Phase 9: CLI Integration
 
-**Purpose**: Expose the assembler via `python -m ledgerlinc_ocr.assembler` and the `ledgerlinc-assemble` console script per `contracts/cli-contract.md`.
+**Purpose**: Expose the assembler via `python -m dartwing_ocr.assembler` and the `dartwing-assemble` console script per `contracts/cli-contract.md`.
 
-- [X] T044 Implement `main(argv: list[str] | None = None) -> int` in `src/ledgerlinc_ocr/assembler/cli.py` (argparse with `--document-folder` required and `--pipeline-version` optional; catch each `AssemblerError` subclass and emit the stderr JSON `{"status":"error","kind":"<kind>","message":"<msg>"}`; return the subclass's `exit_code`; catch `Exception` → `EXIT_UNEXPECTED`; mirrors `src/ledgerlinc_ocr/preprocessing/cli.py`)
-- [X] T045 Wire `__main__.py` to `cli.main()` so `python -m ledgerlinc_ocr.assembler` works
+- [X] T044 Implement `main(argv: list[str] | None = None) -> int` in `src/dartwing_ocr/assembler/cli.py` (argparse with `--document-folder` required and `--pipeline-version` optional; catch each `AssemblerError` subclass and emit the stderr JSON `{"status":"error","kind":"<kind>","message":"<msg>"}`; return the subclass's `exit_code`; catch `Exception` → `EXIT_UNEXPECTED`; mirrors `src/dartwing_ocr/preprocessing/cli.py`)
+- [X] T045 Wire `__main__.py` to `cli.main()` so `python -m dartwing_ocr.assembler` works
 - [X] T046 [P] Add `tests/pipeline_tests/test_assembler_cli.py` covering: `--help` exits 0; missing `--document-folder` exits 2 with argparse error; successful run on `happy_grounded` exits 0 with no stdout; each failure fixture produces the documented exit code and stderr JSON `kind`
-- [X] T047 [P] Export the public surface in `src/ledgerlinc_ocr/assembler/__init__.py`: `from .pipeline import Invocation, run`, `from .version import build_pipeline_version` per `contracts/module-api.md` §Public surface
+- [X] T047 [P] Export the public surface in `src/dartwing_ocr/assembler/__init__.py`: `from .pipeline import Invocation, run`, `from .version import build_pipeline_version` per `contracts/module-api.md` §Public surface
 
-**Checkpoint**: CLI works end-to-end. `python -m ledgerlinc_ocr.assembler --document-folder tests/fixtures/assembler/happy_grounded/` produces a schema-valid output.
+**Checkpoint**: CLI works end-to-end. `python -m dartwing_ocr.assembler --document-folder tests/fixtures/assembler/happy_grounded/` produces a schema-valid output.
 
 ---
 
@@ -198,7 +198,7 @@ description: "Task list for 009-final-payload implementation"
 - [X] T050 [P] Walk the four release-gate checklists (`specs/009-final-payload/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `scope.md`) and tick items (`- [x]`) as the corresponding spec sections are verified; resolve any `[Gap]`-marked items by editing `spec.md` or documenting the resolution in `research.md`
 - [X] T051 [P] Update the `Key References` section of `CLAUDE.md` to include the new spec paths (`specs/009-final-payload/spec.md`, `plan.md`, `research.md`) so future agent invocations see the authoritative documents
 - [X] T052 [P] Add cross-cutting test `tests/pipeline_tests/test_assembler_inputs_read_only.py` covering FR-024: on both the happy path and every US6 failure path, assert that `edge_extraction_output.json`, `routing_decision.json`, `preprocess_output.json`, `expected.json`, `notes.md`, and `source.pdf` (when present) are byte-identical (SHA-256) before and after the run. Confirms inputs are never mutated regardless of success/failure branch.
-- [X] T053 [P] Add import-audit test `tests/unit/test_assembler_import_boundary.py` covering FR-023 and FR-025: statically inspect every module under `src/ledgerlinc_ocr/assembler/` and assert zero imports from `ledgerlinc_ocr.preprocessing`, `ledgerlinc_ocr.pipeline` (except shared error helpers if any), any model client library, `requests`, `httpx`, `urllib`, or `socket`. Confirms the assembler is pure, artifact-to-artifact, and cannot call a model or the network.
+- [X] T053 [P] Add import-audit test `tests/unit/test_assembler_import_boundary.py` covering FR-023 and FR-025: statically inspect every module under `src/dartwing_ocr/assembler/` and assert zero imports from `dartwing_ocr.preprocessing`, `dartwing_ocr.pipeline` (except shared error helpers if any), any model client library, `requests`, `httpx`, `urllib`, or `socket`. Confirms the assembler is pure, artifact-to-artifact, and cannot call a model or the network.
 - [X] T054 Run the full test suite `.venv/bin/pytest tests/contract_tests/ tests/pipeline_tests/ tests/unit/` and confirm all new and existing tests pass (no regressions against 001/002/003)
 
 ---
@@ -276,7 +276,7 @@ Task: "Add tests/unit/test_assembler_routing_consistency.py"             # T040
 1. Complete Phase 1 (Setup) + Phase 2 (Foundational).
 2. Complete Phase 3 (US1) — schema-valid emission lands.
 3. Complete Phase 4 (US2) — flattening is correct.
-4. **STOP and VALIDATE**: Run `python -m ledgerlinc_ocr.assembler --document-folder tests/fixtures/assembler/happy_grounded/` (once Phase 9 minimal CLI is in place — or invoke `pipeline.run(Invocation(...))` directly). Confirm schema-valid output with zero evidence keys.
+4. **STOP and VALIDATE**: Run `python -m dartwing_ocr.assembler --document-folder tests/fixtures/assembler/happy_grounded/` (once Phase 9 minimal CLI is in place — or invoke `pipeline.run(Invocation(...))` directly). Confirm schema-valid output with zero evidence keys.
 5. The MVP delivers the "clean downstream handoff" contract guaranteed by the spec's P1 stories.
 
 ### Incremental Delivery
@@ -287,7 +287,7 @@ Task: "Add tests/unit/test_assembler_routing_consistency.py"             # T040
 4. US4 → `quality_summary` formula + ordering pinned.
 5. US5 → trace block hardened.
 6. US6 → hard-fail invariant layer.
-7. CLI integration + polish → `ledgerlinc-assemble` usable end-to-end, all four checklists walked, quickstart validated.
+7. CLI integration + polish → `dartwing-assemble` usable end-to-end, all four checklists walked, quickstart validated.
 
 ### Parallel Team Strategy
 

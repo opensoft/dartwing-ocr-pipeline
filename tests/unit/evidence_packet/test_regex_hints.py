@@ -1,7 +1,7 @@
 """Unit tests for the four compiled regex patterns in ``regex_hints``."""
 from __future__ import annotations
 
-from ledgerlinc_ocr.evidence_packet.regex_hints import (
+from dartwing_ocr.evidence_packet.regex_hints import (
     EIN_RE,
     EMAIL_RE,
     URL_RE,

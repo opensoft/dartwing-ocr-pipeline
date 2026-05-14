@@ -1,4 +1,4 @@
-# CLI Contract: `ledgerlinc-evidence-packet`
+# CLI Contract: `dartwing-evidence-packet`
 
 **Feature**: 004-evidence-packet-assembly
 **Artifact shape**: see `contracts/stage1_vendor_identity/v1.1.0/evidence_packet.schema.json` (delivered in Phase 2; governs both in-memory and on-disk packet).
@@ -12,15 +12,15 @@ with the `evidence_packet` artifact schema.
 ## Invocation
 
 ```bash
-ledgerlinc-evidence-packet <folder> [-v | --verbose]
-python -m ledgerlinc_ocr.evidence_packet <folder> [-v | --verbose]
+dartwing-evidence-packet <folder> [-v | --verbose]
+python -m dartwing_ocr.evidence_packet <folder> [-v | --verbose]
 ```
 
 Both forms are equivalent. The console script is wired via
 `[project.scripts]` in `pyproject.toml`:
 
 ```toml
-ledgerlinc-evidence-packet = "ledgerlinc_ocr.evidence_packet.cli:main"
+dartwing-evidence-packet = "dartwing_ocr.evidence_packet.cli:main"
 ```
 
 ### Positional arguments
@@ -33,7 +33,7 @@ ledgerlinc-evidence-packet = "ledgerlinc_ocr.evidence_packet.cli:main"
 ### Optional arguments
 
 - `-v`, `--verbose` — may be repeated (`-vv`, `-vvv`). The first `-v`
-  sets the `ledgerlinc_ocr` Python logger to `DEBUG`, which triggers
+  sets the `dartwing_ocr` Python logger to `DEBUG`, which triggers
   persistence of `evidence_packet.json` into `<folder>` (FR-015b). Further
   `-v` stacks do not change persistence behavior; they may increase log
   verbosity but are out of scope for this contract.
@@ -67,7 +67,7 @@ ledgerlinc-evidence-packet = "ledgerlinc_ocr.evidence_packet.cli:main"
 ## Library API (co-published with the CLI)
 
 ```python
-from ledgerlinc_ocr.evidence_packet import (
+from dartwing_ocr.evidence_packet import (
     assemble_from_folder,
     assemble_from_preprocess,
     PacketAssemblyError,
@@ -78,7 +78,7 @@ from ledgerlinc_ocr.evidence_packet import (
 
 def assemble_from_folder(folder: Path) -> dict: ...
     # Reads <folder>/preprocess_output.json, validates, assembles, validates
-    # output, and — iff the ledgerlinc_ocr logger is at DEBUG — writes
+    # output, and — iff the dartwing_ocr logger is at DEBUG — writes
     # <folder>/evidence_packet.json. Returns the assembled dict either way.
     # Raises PreprocessInputMissing, PreprocessInputInvalid, PacketInvalid,
     # or OSError on persistence failure.
@@ -115,7 +115,7 @@ Both entry points are stable and semver-governed by the contract set.
 ## Logging
 
 - Library default: no log handlers installed. Library callers configure logging themselves.
-- CLI default: a `StreamHandler` to stderr at `WARNING` level, formatter `%(levelname)s %(name)s: %(message)s`. `-v` raises the `ledgerlinc_ocr` logger to `DEBUG`; root logger is untouched so other libraries' output is unaffected.
+- CLI default: a `StreamHandler` to stderr at `WARNING` level, formatter `%(levelname)s %(name)s: %(message)s`. `-v` raises the `dartwing_ocr` logger to `DEBUG`; root logger is untouched so other libraries' output is unaffected.
 - At `DEBUG` level, the assembler logs: folder being processed; input schema validation result; number of regex hits per field; output schema validation result; persistence path (if any); elapsed wall time (for diagnostics only — this number is NOT written into the packet payload).
 
 ---
@@ -126,6 +126,6 @@ Both entry points are stable and semver-governed by the contract set.
   `--out` redirection would require amending this contract. None of those
   are in scope for 004.
 - Future slices that introduce additional CLI verbs (e.g.
-  `ledgerlinc-evidence-packet --validate <file>` to re-validate an
+  `dartwing-evidence-packet --validate <file>` to re-validate an
   existing packet on disk) would be additive and fall under a PATCH or
   MINOR bump of the contract set, per `AMENDMENTS.md`.

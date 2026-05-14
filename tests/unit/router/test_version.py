@@ -1,7 +1,7 @@
 """T012: Unit tests for router version constants."""
 from __future__ import annotations
 
-from ledgerlinc_ocr.router.version import POLICY_VERSION, build_pipeline_version
+from dartwing_ocr.router.version import POLICY_VERSION, build_pipeline_version
 
 
 def test_policy_version_is_nonempty_string():
@@ -30,6 +30,6 @@ def test_pipeline_version_is_stable():
 
 
 def test_policy_version_is_stable():
-    from ledgerlinc_ocr.router import version as version_mod
+    from dartwing_ocr.router import version as version_mod
 
     assert version_mod.POLICY_VERSION == POLICY_VERSION

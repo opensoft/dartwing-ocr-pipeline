@@ -10,7 +10,7 @@ This file resolves the design questions surfaced by the plan's Technical Context
 
 ## 1. Validator-level PDF structural-integrity check (from Clarification Q4)
 
-**Decision**: Extend `src/ledgerlinc_ocr/validator/folder.py` so that the existing `source.pdf` presence check is augmented by (a) a non-empty file-size assertion, and (b) a structural parse using `pypdf.PdfReader(path, strict=False)` wrapped in a try/except. Any `pypdf`-raised exception on construction or on `len(reader.pages)` (which forces the xref scan) emits a new `ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE` at `Severity.ERROR`. No page-rendering is attempted.
+**Decision**: Extend `src/dartwing_ocr/validator/folder.py` so that the existing `source.pdf` presence check is augmented by (a) a non-empty file-size assertion, and (b) a structural parse using `pypdf.PdfReader(path, strict=False)` wrapped in a try/except. Any `pypdf`-raised exception on construction or on `len(reader.pages)` (which forces the xref scan) emits a new `ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE` at `Severity.ERROR`. No page-rendering is attempted.
 
 **Rationale**:
 - `pypdf` is already a project dependency (`pyproject.toml` pins `pypdf >= 5.0, < 7`), used by the preprocessing slice. No new dep.
@@ -25,7 +25,7 @@ This file resolves the design questions surfaced by the plan's Technical Context
 - **Passive — leave it at `is_file()`**: rejected — conflicts with FR-003 clarification and with the stated intent of "readable `source.pdf`" across US1 Scenario 3 and SC-003.
 
 **Implementation notes**:
-- New violation code: `ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE`, added to `src/ledgerlinc_ocr/validator/report.py`. Documented in `contracts/validator-delta.md`.
+- New violation code: `ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE`, added to `src/dartwing_ocr/validator/report.py`. Documented in `contracts/validator-delta.md`.
 - `Violation.expected` field set to `"FR-003 readable source.pdf"` for consistency with existing folder-level messages.
 - `Violation.field_path = "/source.pdf"`.
 - The check runs only when the file exists and is not a directory; an already-missing file raises the existing `FOLDER_MISSING_REQUIRED_FILE` and this check is skipped to avoid duplicate findings.
@@ -117,7 +117,7 @@ The labeling guide's PII/license checklist is the gate; it supersedes this list.
 7. **Remit-to vs vendor selection** — always label the billing entity (vendor). `challenge_tags` gets `multi_entity_page` if two entities are visible and `remit_to_differs_from_vendor` if the remit-to address differs from the vendor address.
 8. **DBA vs legal name selection** — write the string as it appears on the document. Normalization for scoring is evaluator-side.
 9. **Null handling** — `null`, never `""`. Applies to all optional scalars. Examples.
-10. **Labeling workflow** — step-by-step for adding a new document or correcting an existing one: (a) run the screening checklist; (b) place the PDF; (c) author `expected.json`; (d) author `notes.md` if required; (e) run `python -m ledgerlinc_ocr.validator validate folder <folder>`; (f) run `validate corpus` for global coverage checks.
+10. **Labeling workflow** — step-by-step for adding a new document or correcting an existing one: (a) run the screening checklist; (b) place the PDF; (c) author `expected.json`; (d) author `notes.md` if required; (e) run `python -m dartwing_ocr.validator validate folder <folder>`; (f) run `validate corpus` for global coverage checks.
 11. **Dispute resolution** — cite-the-rule pattern. If two labelers disagree, they re-read the guide section; if the guide is silent, the disagreement is escalated into a guide amendment.
 12. **Amendment process** — changes to this guide that affect semantics require the same amendment path as the contracts (`contracts/stage1_vendor_identity/AMENDMENTS.md`).
 
@@ -160,6 +160,6 @@ The labeling guide's PII/license checklist is the gate; it supersedes this list.
 
 ## 6. Best practices referenced
 
-- **Folder contract consumer patterns**: the existing validator implementation in `src/ledgerlinc_ocr/validator/folder.py` is the reference for how to add the new `source.pdf` readability check — mimic the existing `Violation` emission for `FOLDER_MISSING_REQUIRED_FILE` so the new code reuses the `Violation` schema, the `target`/`field_path` conventions, and the `expected` short-citation style.
+- **Folder contract consumer patterns**: the existing validator implementation in `src/dartwing_ocr/validator/folder.py` is the reference for how to add the new `source.pdf` readability check — mimic the existing `Violation` emission for `FOLDER_MISSING_REQUIRED_FILE` so the new code reuses the `Violation` schema, the `target`/`field_path` conventions, and the `expected` short-citation style.
 - **Contract amendments**: per `contracts/stage1_vendor_identity/AMENDMENTS.md`, this feature does NOT touch the frozen schemas — the new `ViolationCode` is a module-API addition, not a contract change, and does not require a contract-set version bump.
 - **Existing 003 preprocessing slice's corpus expectations**: `specs/003-pdf-preprocessing/quickstart.md` expects `tests/stage1_vendor_identity/inv_XXX_*/source.pdf` to exist. This feature is exactly what fills that assumption.

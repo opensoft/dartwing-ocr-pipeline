@@ -31,8 +31,8 @@ pytest.importorskip("PIL")
 pytest.importorskip("numpy")
 pytest.importorskip("pypdfium2")
 
-from ledgerlinc_ocr.preprocessing import warmup as warmup_mod
-from ledgerlinc_ocr.preprocessing.errors import WarmupError
+from dartwing_ocr.preprocessing import warmup as warmup_mod
+from dartwing_ocr.preprocessing.errors import WarmupError
 
 
 @pytest.fixture(autouse=True)

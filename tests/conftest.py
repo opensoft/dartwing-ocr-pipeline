@@ -6,7 +6,7 @@ once per session via a session-scoped fixture, and skip-gates any
 the FR-001 state (FR-019).
 
 Defensive import safety (analyze finding RR6 / RR15 / NEW.14): the
-`from ledgerlinc_ocr.preprocessing.preflight import …` statement and
+`from dartwing_ocr.preprocessing.preflight import …` statement and
 the `classify(...)` call are both wrapped in `try/except Exception`
 (broader than `ImportError` alone — defensive belt-and-suspenders
 against transitive enum/typing failures or partial-import breakage
@@ -60,7 +60,7 @@ def _load_preflight_readout() -> object:
     fallback if `preflight.py` is missing or broken at import time.
     """
     try:
-        from ledgerlinc_ocr.preprocessing.preflight import classify  # type: ignore[import-not-found]
+        from dartwing_ocr.preprocessing.preflight import classify  # type: ignore[import-not-found]
         return classify(attempt_ppstructurev3_init=True)
     except Exception as exc:  # noqa: BLE001 - intentional defensive scope; see RR15.
         return _SentinelReadout(

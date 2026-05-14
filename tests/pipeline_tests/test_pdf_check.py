@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.pdf_check import is_pdf
+from dartwing_ocr.pipeline.pdf_check import is_pdf
 
 
 def test_valid_pdf_prefix(tmp_path: Path, tmp_pdf_bytes: bytes):

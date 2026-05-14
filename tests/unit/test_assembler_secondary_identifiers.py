@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.assembler.quality import (
+from dartwing_ocr.assembler.quality import (
     SECONDARY_ENUM_ORDER,
     derive_secondary_identifiers,
 )

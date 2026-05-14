@@ -17,7 +17,7 @@ import pytest
 
 
 def test_ac1_one_unreadable_page(tmp_path, us3_fixtures, monkeypatch):
-    from ledgerlinc_ocr.preprocessing import pipeline, rasterize
+    from dartwing_ocr.preprocessing import pipeline, rasterize
 
     folder = tmp_path / "inv_030"
     folder.mkdir()

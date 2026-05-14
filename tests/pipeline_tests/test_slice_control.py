@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.profiles import STAGES
-from ledgerlinc_ocr.pipeline.slice_control import (
+from dartwing_ocr.pipeline.profiles import STAGES
+from dartwing_ocr.pipeline.slice_control import (
     ARTIFACT_FILENAME_BY_STAGE,
     ExecutionSlice,
     SliceError,

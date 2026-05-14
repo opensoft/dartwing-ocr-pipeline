@@ -9,10 +9,10 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 
-from ledgerlinc_ocr.evaluator import evaluate_corpus, evaluate_document
-from ledgerlinc_ocr.evaluator.exceptions import EmptyCorpusError, SchemaValidationError
-from ledgerlinc_ocr.evaluator.scoring import SCORED_FIELDS
-from ledgerlinc_ocr.evaluator.schema import load_evaluation_run_summary_schema
+from dartwing_ocr.evaluator import evaluate_corpus, evaluate_document
+from dartwing_ocr.evaluator.exceptions import EmptyCorpusError, SchemaValidationError
+from dartwing_ocr.evaluator.scoring import SCORED_FIELDS
+from dartwing_ocr.evaluator.schema import load_evaluation_run_summary_schema
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

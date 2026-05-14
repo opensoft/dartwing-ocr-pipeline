@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.assembler.flatten import FIELDS_TO_FLATTEN, flatten_vendor_candidate
+from dartwing_ocr.assembler.flatten import FIELDS_TO_FLATTEN, flatten_vendor_candidate
 
 
 def _make_extractor() -> dict:

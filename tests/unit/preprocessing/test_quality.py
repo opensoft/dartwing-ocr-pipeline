@@ -1,4 +1,4 @@
-from ledgerlinc_ocr.preprocessing.quality import compute_quality
+from dartwing_ocr.preprocessing.quality import compute_quality
 
 
 def test_compute_quality_ignores_missing_confidence_values():

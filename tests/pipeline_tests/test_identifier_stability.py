@@ -22,7 +22,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import cli as cli_mod
+from dartwing_ocr.preprocessing import cli as cli_mod
 
 
 @pytest.fixture
@@ -73,7 +73,7 @@ def test_two_consecutive_cpu_runs_produce_identical_identifiers(
     values for all three new top-level fields (SC-004 within-
     configuration stability)."""
     mock_run_a = _mock_pipeline_run(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run_a):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run_a):
         cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -82,7 +82,7 @@ def test_two_consecutive_cpu_runs_produce_identical_identifiers(
     summary_a = _run_summary_from(captured_a.out)
 
     mock_run_b = _mock_pipeline_run(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run_b):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run_b):
         cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -111,7 +111,7 @@ def test_cpu_run_with_warn_and_proceed_flags_emits_cpu_defaults(
     run_summary identifier values MUST stay at CPU defaults regardless
     of flag values (I-018.2)."""
     mock_run_baseline = _mock_pipeline_run(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run_baseline):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run_baseline):
         cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -120,7 +120,7 @@ def test_cpu_run_with_warn_and_proceed_flags_emits_cpu_defaults(
     baseline_summary = _run_summary_from(captured_baseline.out)
 
     mock_run_flagged = _mock_pipeline_run(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run_flagged):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run_flagged):
         cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",

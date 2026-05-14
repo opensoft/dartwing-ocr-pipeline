@@ -1,4 +1,4 @@
-# CLI Contract: `ledgerlinc_ocr.router`
+# CLI Contract: `dartwing_ocr.router`
 
 This file documents the external interface this slice exposes. The **artifact
 shape** (`routing_decision.json`) is not redefined here — it is the frozen
@@ -10,7 +10,7 @@ I/O behavior.
 ## Invocation
 
 ```bash
-python -m ledgerlinc_ocr.router route <PATH> \
+python -m dartwing_ocr.router route <PATH> \
     [--input-file <NAME>] \
     [--pipeline-version <STRING>] \
     [--policy-version <STRING>]
@@ -33,7 +33,7 @@ No `--output-file` flag: the output is always written to
 The module exposes a single subcommand: `route`. Additional subcommands
 (e.g., `route-corpus`) are deferred to the harness (research Decision 12).
 The subcommand-style invocation parallels
-`python -m ledgerlinc_ocr.validator validate …` and leaves room for future
+`python -m dartwing_ocr.validator validate …` and leaves room for future
 subcommands without renaming the module.
 
 ### Stdout / Stderr
@@ -100,7 +100,7 @@ Two layers of validation:
 1. **Input validation** — before any rule fires, `<PATH>/<input-file>` is
    validated against
    `contracts/stage1_vendor_identity/v1.0.0/edge_extraction_output.schema.json`
-   using the in-repo validator (`ledgerlinc_ocr.validator`). Failure → exit
+   using the in-repo validator (`dartwing_ocr.validator`). Failure → exit
    code `2`, no artifact. Input's `contract_set_version` MUST equal `"1.0.0"`
    exactly; drift → exit code `2`, no artifact.
 

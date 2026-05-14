@@ -6,8 +6,8 @@ import textwrap
 
 import pytest
 
-from ledgerlinc_ocr.extract.config import load_voter_config
-from ledgerlinc_ocr.extract.errors import VoterConfigInvalid
+from dartwing_ocr.extract.config import load_voter_config
+from dartwing_ocr.extract.errors import VoterConfigInvalid
 
 
 def test_packaged_stub_loads_cleanly() -> None:

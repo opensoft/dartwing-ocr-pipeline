@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Callable
 
-from ledgerlinc_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.cli import main
 
 
 def test_review_status_matches_byte_for_byte(

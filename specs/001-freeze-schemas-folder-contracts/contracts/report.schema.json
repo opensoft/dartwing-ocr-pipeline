@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ledgerlinc.local/specs/001-freeze-schemas-folder-contracts/report.schema.json",
   "title": "Validator Structured Report",
-  "description": "Canonical machine-readable output of `python -m ledgerlinc_ocr.validator ... --json`. Consumed by the harness, CI, and regression gates. Frozen at contract-set 1.0.0.",
+  "description": "Canonical machine-readable output of `python -m dartwing_ocr.validator ... --json`. Consumed by the harness, CI, and regression gates. Frozen at contract-set 1.0.0.",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -13,17 +13,17 @@ Clarifications already pinned in `spec.md` (not re-litigated here):
   overall (Q2 → FR-017).
 - **`reasons` array ordering** follows the FR-015 priority order, then
   affirmatives, then informational notes (Q3 → FR-015 extended).
-- **CLI entry point** is `python -m ledgerlinc_ocr.router route <folder>` (Q4 →
+- **CLI entry point** is `python -m dartwing_ocr.router route <folder>` (Q4 →
   FR-025 pinned).
 
 ---
 
-## Decision 1 — Input validation path: reuse `ledgerlinc_ocr.validator`
+## Decision 1 — Input validation path: reuse `dartwing_ocr.validator`
 
 **Decision**: The router loads `edge_extraction_output.json` and validates it
 against `contracts/stage1_vendor_identity/v1.0.0/edge_extraction_output.schema.json`
 by delegating to the existing in-repo validator module
-(`ledgerlinc_ocr.validator`). A validation failure is converted to a
+(`dartwing_ocr.validator`). A validation failure is converted to a
 `MalformedInputError`, which the CLI maps to exit code `2` with no
 `routing_decision.json` written (FR-003, SC-006).
 
@@ -43,7 +43,7 @@ by delegating to the existing in-repo validator module
   downstream slices would). The constitution's Schema-First principle requires
   treating the frozen contract as the boundary.
 - **A thin new validation helper inside the router**: rejected as a duplicate of
-  `ledgerlinc_ocr.validator`. No router-specific validation need justifies its
+  `dartwing_ocr.validator`. No router-specific validation need justifies its
   existence.
 - **`pydantic` models for the input**: rejected — pydantic's coercion is too
   permissive for a schema-first design (e.g., it would silently accept
@@ -109,7 +109,7 @@ per semver; an incompatible rule redesign bumps the major (`v2.0.0`).
   SC-004 requires to be deterministic.
 - **Single opaque identifier** (e.g., `routing-policy-A`): rejected — opaque
   identifiers give a reviewer no hint about relative age or compatibility.
-- **Package version of `ledgerlinc_ocr`**: conflates policy with code. A
+- **Package version of `dartwing_ocr`**: conflates policy with code. A
   no-op refactor of the router module would bump policy version for no
   semantic reason.
 
@@ -124,7 +124,7 @@ no model / DPI / weights to encode — the build identifier is intentionally
 simple because the router has no inference-time dependencies.
 
 **Rationale**:
-- Mirrors a precedent already shipped (`src/ledgerlinc_ocr/preprocessing/version.py`),
+- Mirrors a precedent already shipped (`src/dartwing_ocr/preprocessing/version.py`),
   so a reviewer reading two stage 1 artifacts from different slices sees a
   consistent identifier shape.
 - Keeps `pipeline_version` orthogonal to `policy_version`. A refactor of the
@@ -389,7 +389,7 @@ Both strings are part of `policy_version`.
 
 **Decision**: The `route` subcommand only accepts a single per-document folder.
 Corpus-wide orchestration (iterating `inv_001_easy`, `inv_002_easy`, …) is the
-harness's concern and is deferred. `python -m ledgerlinc_ocr.router route
+harness's concern and is deferred. `python -m dartwing_ocr.router route
 <folder>` is the complete public surface for this feature.
 
 **Rationale**:
@@ -426,4 +426,4 @@ Every `NEEDS CLARIFICATION` item surfaced during plan drafting is now resolved:
 | Informational reason strings | Decision 10 — pinned closed vocabulary. |
 | Upstream failure handling | Decision 11 — defensive review-required; output status reflects router run, not input. |
 | Corpus mode scope | Decision 12 — deferred to harness. |
-| Input validation approach | Decision 1 — reuse `ledgerlinc_ocr.validator`. |
+| Input validation approach | Decision 1 — reuse `dartwing_ocr.validator`. |

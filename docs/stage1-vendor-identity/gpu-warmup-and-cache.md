@@ -8,11 +8,11 @@
 
 ## TL;DR
 
-When you set `--gpu-warmup` (or `LEDGERLINC_GPU_WARMUP=1`) on a `ppstructurev3@gpu` run, the pipeline runs one PPStructureV3 inference against `tests/stage1_vendor_identity/inv_001_easy/source.pdf` BEFORE the first timed document, populating MIOpen's kernel-selection database (`~/.cache/miopen`) and COMGR's HIP shader cache (`~/.cache/comgr`). The duration is reported as `phase_timings.warmup = {seconds: <float>}` on the first successful per-document `run_summary` entry — separate from `phase_timings.total` so per-document numbers reflect steady-state OCR cost.
+When you set `--gpu-warmup` (or `DARTWING_GPU_WARMUP=1`) on a `ppstructurev3@gpu` run, the pipeline runs one PPStructureV3 inference against `tests/stage1_vendor_identity/inv_001_easy/source.pdf` BEFORE the first timed document, populating MIOpen's kernel-selection database (`~/.cache/miopen`) and COMGR's HIP shader cache (`~/.cache/comgr`). The duration is reported as `phase_timings.warmup = {seconds: <float>}` on the first successful per-document `run_summary` entry — separate from `phase_timings.total` so per-document numbers reflect steady-state OCR cost.
 
 If you re-run on the same workstation without clearing the caches, `phase_timings.warmup.seconds` should be **at least 2× smaller** (per SC-003) — that's the cold-vs-warm signal.
 
-**Installed-distribution note**: the warmup fixture default resolves relative to the repo's `tests/` tree, which is not shipped as package data. If you run an installed distribution (the `tests/` tree is not on disk), set `LEDGERLINC_WARMUP_FIXTURE_PATH=/absolute/path/to/source.pdf` to point at any local PDF (any single-page invoice will do — the fixture is used purely to drive PPStructureV3's kernel-selection path; it is not part of the per-document OCR output). Without this override, `--gpu-warmup` will fail-fast with `WarmupError(cause_class="FixtureLoadError")` and exit 15.
+**Installed-distribution note**: the warmup fixture default resolves relative to the repo's `tests/` tree, which is not shipped as package data. If you run an installed distribution (the `tests/` tree is not on disk), set `DARTWING_WARMUP_FIXTURE_PATH=/absolute/path/to/source.pdf` to point at any local PDF (any single-page invoice will do — the fixture is used purely to drive PPStructureV3's kernel-selection path; it is not part of the per-document OCR output). Without this override, `--gpu-warmup` will fail-fast with `WarmupError(cause_class="FixtureLoadError")` and exit 15.
 
 ---
 
@@ -148,12 +148,12 @@ If a warmup-enabled run exits with `15` and stderr `error: warmup failed: <cause
 | `FixtureLoadError` | Couldn't load `tests/stage1_vendor_identity/inv_001_easy/source.pdf` | Verify the fixture exists at the expected path; re-clone the corpus if missing |
 | `ClockAnomaly` | `time.perf_counter()` returned a non-positive elapsed value | Almost never seen in practice; check clock skew / virtualization timing |
 | `MIOpenError` | The underlying exception's module starts with `MIOpen` or `comgr` | Likely a kernel-DB corruption or cache-write failure. Try: `rm -rf ~/.cache/miopen ~/.cache/comgr` and retry once |
-| `PaddleError` | The underlying exception's module starts with `paddle*` (paddleocr / paddlex / paddlepaddle) | Likely a model-weight issue or paddle-internal failure. Re-check that `paddlepaddle-dcu` is installed (`pip show paddlepaddle-dcu`) and run the preflight (`python -m ledgerlinc_ocr.preprocessing.preflight`) |
+| `PaddleError` | The underlying exception's module starts with `paddle*` (paddleocr / paddlex / paddlepaddle) | Likely a model-weight issue or paddle-internal failure. Re-check that `paddlepaddle-dcu` is installed (`pip show paddlepaddle-dcu`) and run the preflight (`python -m dartwing_ocr.preprocessing.preflight`) |
 | `UnknownError` | Anything else (catch-all per data-model.md §WarmupError) | Capture stderr + the `cause_module` field; if reproducible, file an issue with the underlying exception class |
 
 **Cache state after `WarmupError`**: the on-disk caches at `~/.cache/miopen` and `~/.cache/comgr` may be **partially populated** by MIOpen/COMGR before the underlying exception was raised. The pipeline does NOT attempt to clean up or roll back. If the failure looks cache-related (e.g., `MIOpenError` referencing a kernel-DB read), clearing both caches and retrying once is a reasonable first step. If the failure persists, do NOT keep retrying with cleared caches — investigate the cause class first.
 
-**Do not silent-fall-back**: the pipeline never silently downgrades a failed warmup-enabled run to a no-warmup run (FR-007 / SC-011). If you want to proceed without warmup after a failure, re-invoke the pipeline without `--gpu-warmup` (and without `LEDGERLINC_GPU_WARMUP=1`).
+**Do not silent-fall-back**: the pipeline never silently downgrades a failed warmup-enabled run to a no-warmup run (FR-007 / SC-011). If you want to proceed without warmup after a failure, re-invoke the pipeline without `--gpu-warmup` (and without `DARTWING_GPU_WARMUP=1`).
 
 ## 7. Activation surface (CLI flag + env var)
 
@@ -162,7 +162,7 @@ Per `contracts/cli-contract.md` §1, the warmup opt-in has two equivalent activa
 | Surface | Form | Default | Wins when both set |
 |---|---|---|---|
 | CLI flag | `--gpu-warmup` (boolean; no `=value`) | absent (off) | yes |
-| Env var | `LEDGERLINC_GPU_WARMUP` | unset (off) | no |
+| Env var | `DARTWING_GPU_WARMUP` | unset (off) | no |
 
 **Truthy env values** (after `.strip().lower()`): `{"1", "true", "yes"}` only. Anything else (including `2`, `on`, `enabled`, `off`, empty) is silently treated as off — NOT an error. This whitelist is intentional: it keeps shared CI env vars from accidentally activating warmup on unrelated stages.
 

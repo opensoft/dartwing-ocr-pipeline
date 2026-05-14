@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import cli, ocr
-from ledgerlinc_ocr.preprocessing.errors import (
+from dartwing_ocr.preprocessing import cli, ocr
+from dartwing_ocr.preprocessing.errors import (
     EXIT_INTERNAL_ERROR,
     EngineInitError,
 )
@@ -100,7 +100,7 @@ def test_generic_init_failure_hard_fails_without_weight_fields(
 
 def test_engine_init_error_propagates_from_pipeline(monkeypatch, staged_folder: Path):
     """Unit-level check: pipeline.run lets EngineInitError propagate instead of catching."""
-    from ledgerlinc_ocr.preprocessing import pipeline
+    from dartwing_ocr.preprocessing import pipeline
 
     monkeypatch.setattr(ocr, "_get_engine", _raise_generic_init_failure)
     with pytest.raises(EngineInitError):

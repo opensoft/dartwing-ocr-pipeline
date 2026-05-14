@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.exit_codes import ExitCode, StructuredFailureRecord
+from dartwing_ocr.pipeline.exit_codes import ExitCode, StructuredFailureRecord
 
 
 EXPECTED = {

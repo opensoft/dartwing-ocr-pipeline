@@ -34,7 +34,7 @@ document with host Ollama.
 ## Run against one corpus document
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.extract \
+.venv/bin/python -m dartwing_ocr.extract \
     --folder tests/stage1_vendor_identity/inv_003_easy \
     --voter gemma-edge
 ```
@@ -50,7 +50,7 @@ Expected outcome on a valid packet + reachable Ollama:
 ## Verify the artifact with the contract validator
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.validator validate artifact \
+.venv/bin/python -m dartwing_ocr.validator validate artifact \
     --path tests/stage1_vendor_identity/inv_003_easy/edge_extraction_output.json \
     --kind edge_extraction_output
 ```
@@ -61,7 +61,7 @@ Expected: `OK` with `contract_set_version == "1.0.0"` reported back.
 
 ```bash
 for folder in tests/stage1_vendor_identity/inv_*_missing_name; do
-    .venv/bin/python -m ledgerlinc_ocr.extract --folder "$folder" --voter gemma-edge
+    .venv/bin/python -m dartwing_ocr.extract --folder "$folder" --voter gemma-edge
 done
 ```
 
@@ -77,7 +77,7 @@ SC-002 is this, at 100%.
 Useful for CI, for exercising the pluggable-voter seam, and for US4 / SC-004 verification.
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.extract \
+.venv/bin/python -m dartwing_ocr.extract \
     --folder tests/fixtures/extract/sample_folder \
     --voter stub
 ```
@@ -94,7 +94,7 @@ Expected:
 
 ```bash
 OLLAMA_BASE_URL=http://127.0.0.1:1 \
-    .venv/bin/python -m ledgerlinc_ocr.extract \
+    .venv/bin/python -m dartwing_ocr.extract \
     --folder tests/stage1_vendor_identity/inv_003_easy \
     --voter gemma-edge
 echo "exit=$?"
@@ -107,7 +107,7 @@ Expected: `exit=3`, no `edge_extraction_output.json` written.
 Point at a folder whose `preprocess_output.json` has a non-`1.0.0` version:
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.extract \
+.venv/bin/python -m dartwing_ocr.extract \
     --folder tests/fixtures/extract/drift_folder \
     --voter stub
 echo "exit=$?"
@@ -120,7 +120,7 @@ Expected: `exit=2`, stderr names the contract drift.
 Pass a broken YAML path:
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.extract \
+.venv/bin/python -m dartwing_ocr.extract \
     --folder tests/stage1_vendor_identity/inv_003_easy \
     --voter-config /tmp/nonexistent.yaml
 echo "exit=$?"
@@ -139,9 +139,9 @@ unreachable, so the suite passes in CI environments without Ollama.
 
 ## Typical iteration workflow
 
-1. Edit `src/ledgerlinc_ocr/extract/voters/configs/gemma-edge.yaml` to try a different
+1. Edit `src/dartwing_ocr/extract/voters/configs/gemma-edge.yaml` to try a different
    `ollama.model_tag` or `sampling.*`. No code changes needed.
-2. Edit `src/ledgerlinc_ocr/extract/voters/configs/prompts/gemma_edge_extractor.md` to iterate on
+2. Edit `src/dartwing_ocr/extract/voters/configs/prompts/gemma_edge_extractor.md` to iterate on
    the prompt. No code changes needed.
 3. Re-run the one-document invocation above.
 4. Run `pytest tests/unit/extract` to verify reconciliation still matches the truth tables.

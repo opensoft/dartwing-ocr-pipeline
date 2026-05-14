@@ -534,7 +534,7 @@ required, committed benchmark artifact has been introduced.
 
 - The preflight command lives in-tree (under the existing pipeline or
   preprocessing package, e.g. exposed through `python -m
-  ledgerlinc_ocr.<...>` or an existing CLI entrypoint), rather than as a
+  dartwing_ocr.<...>` or an existing CLI entrypoint), rather than as a
   loose `scripts/` shell script. The exact location is a plan-level
   decision, but it MUST be discoverable from a single documented
   invocation per FR-006.

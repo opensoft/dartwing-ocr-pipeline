@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ledgerlinc_ocr.preprocessing import ocr, pipeline
+from dartwing_ocr.preprocessing import ocr, pipeline
 
 
 def _fake_lines_no_blocks(image, page_number, width, height):

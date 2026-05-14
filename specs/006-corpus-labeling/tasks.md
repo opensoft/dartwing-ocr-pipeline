@@ -19,7 +19,7 @@ description: "Task list for 006-corpus-labeling"
 
 ## Path Conventions
 
-This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, tests in `tests/`, corpus content in `tests/stage1_vendor_identity/`, docs in `docs/stage1-vendor-identity/`.
+This is a single-project Python package. Code lives in `src/dartwing_ocr/`, tests in `tests/`, corpus content in `tests/stage1_vendor_identity/`, docs in `docs/stage1-vendor-identity/`.
 
 ---
 
@@ -29,7 +29,7 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 - [X] T001 Verify editable dev install works: `python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"` in repo root; confirm `pypdf` and `jsonschema` resolve.
 - [X] T002 Run the existing validator contract tests to establish a green baseline: `.venv/bin/pytest tests/contract_tests/ -q` — must pass before the Phase 2 code change.
-- [X] T003 Verify the validator CLI loads and shows the frozen contract set: `python -m ledgerlinc_ocr.validator show contract-set` — must print `contract_set_version = "1.0.0"` with all 7 artifact schemas plus the folder contract.
+- [X] T003 Verify the validator CLI loads and shows the frozen contract set: `python -m dartwing_ocr.validator show contract-set` — must print `contract_set_version = "1.0.0"` with all 7 artifact schemas plus the folder contract.
 
 ---
 
@@ -39,8 +39,8 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 **⚠️ CRITICAL**: US1 folder-scaffolding acceptance cannot be validated until Phase 2 is complete.
 
-- [X] T004 Add `FOLDER_SOURCE_PDF_UNREADABLE = "FOLDER_SOURCE_PDF_UNREADABLE"` to the `ViolationCode` class in `src/ledgerlinc_ocr/validator/report.py`, placed alongside the existing folder codes. Do not reorder or rename any other constants.
-- [X] T005 Extend `validate_folder()` in `src/ledgerlinc_ocr/validator/folder.py` to, for each existing `source.pdf`, (a) assert non-zero file size and (b) attempt `pypdf.PdfReader(path, strict=False)` plus `len(reader.pages)` inside a try/except; on any failure emit one `Violation` with `severity=Severity.ERROR`, `violation_code="FOLDER_SOURCE_PDF_UNREADABLE"`, `field_path="/source.pdf"`, `expected="FR-003 readable source.pdf"`, and `source_file=str(path)`. Skip the check when `source.pdf` is absent (avoid duplicate findings with `FOLDER_MISSING_REQUIRED_FILE`). Depends on T004.
+- [X] T004 Add `FOLDER_SOURCE_PDF_UNREADABLE = "FOLDER_SOURCE_PDF_UNREADABLE"` to the `ViolationCode` class in `src/dartwing_ocr/validator/report.py`, placed alongside the existing folder codes. Do not reorder or rename any other constants.
+- [X] T005 Extend `validate_folder()` in `src/dartwing_ocr/validator/folder.py` to, for each existing `source.pdf`, (a) assert non-zero file size and (b) attempt `pypdf.PdfReader(path, strict=False)` plus `len(reader.pages)` inside a try/except; on any failure emit one `Violation` with `severity=Severity.ERROR`, `violation_code="FOLDER_SOURCE_PDF_UNREADABLE"`, `field_path="/source.pdf"`, `expected="FR-003 readable source.pdf"`, and `source_file=str(path)`. Skip the check when `source.pdf` is absent (avoid duplicate findings with `FOLDER_MISSING_REQUIRED_FILE`). Depends on T004.
 - [X] T006 [P] Author contract test `tests/contract_tests/test_folder_source_pdf_readability.py` with 5 cases per `contracts/validator-delta.md`: (1) valid minimal PDF passes, (2) missing file emits `FOLDER_MISSING_REQUIRED_FILE` only, (3) zero-byte `source.pdf` emits `FOLDER_SOURCE_PDF_UNREADABLE`, (4) text-file renamed `.pdf` emits `FOLDER_SOURCE_PDF_UNREADABLE`, (5) truncated valid PDF emits `FOLDER_SOURCE_PDF_UNREADABLE`. Each test asserts `violation_code`, `severity`, and `field_path`. Depends on T004.
 - [X] T007 Run `.venv/bin/pytest tests/contract_tests/ -q` — all new cases and all existing tests must pass. Depends on T005, T006.
 
@@ -52,7 +52,7 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 **Goal**: 20 per-document folders on disk with real, readable `source.pdf` files, correctly named and distributed 5/5/5/5, passing the folder validator even before any `expected.json` is labeled.
 
-**Independent Test**: `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` reports 20 documents discovered, 5/5/5/5 distribution, contiguous `inv_001..inv_020`, every folder name matches the pattern, and no `FOLDER_SOURCE_PDF_UNREADABLE` or `FOLDER_RESERVED_FILENAME_COLLISION` errors. (Expected errors at this phase: `FOLDER_MISSING_REQUIRED_FILE` for the still-unwritten `expected.json` files — those resolve in Phase 4.)
+**Independent Test**: `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` reports 20 documents discovered, 5/5/5/5 distribution, contiguous `inv_001..inv_020`, every folder name matches the pattern, and no `FOLDER_SOURCE_PDF_UNREADABLE` or `FOLDER_RESERVED_FILENAME_COLLISION` errors. (Expected errors at this phase: `FOLDER_MISSING_REQUIRED_FILE` for the still-unwritten `expected.json` files — those resolve in Phase 4.)
 
 ### US1 planning
 
@@ -84,7 +84,7 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 ### US1 structural validation
 
-- [X] T030 [US1] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm: 20 folders discovered, 5/5/5/5 distribution, contiguous `inv_001..inv_020`, zero `FOLDER_NAME_INVALID`, zero `FOLDER_SOURCE_PDF_UNREADABLE`, zero `FOLDER_RESERVED_FILENAME_COLLISION`. (Expected failures: `FOLDER_MISSING_REQUIRED_FILE` for absent `expected.json` — deferred to US2.) Depends on T010–T029.
+- [X] T030 [US1] Run `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm: 20 folders discovered, 5/5/5/5 distribution, contiguous `inv_001..inv_020`, zero `FOLDER_NAME_INVALID`, zero `FOLDER_SOURCE_PDF_UNREADABLE`, zero `FOLDER_RESERVED_FILENAME_COLLISION`. (Expected failures: `FOLDER_MISSING_REQUIRED_FILE` for absent `expected.json` — deferred to US2.) Depends on T010–T029.
 
 **Checkpoint**: US1 is complete — the corpus exists structurally. US2 labeling can now begin.
 
@@ -94,7 +94,7 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 **Goal**: 20 hand-authored `expected.json` files, one per folder, each conforming to `contracts/stage1_vendor_identity/v1.0.0/expected.schema.json`, with `document_id` and `difficulty` matching the folder name, missing-name invariants satisfied on the 5 missing-name docs, and challenge-tag coverage meeting FR-015/FR-016.
 
-**Independent Test**: `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` reports zero errors; every `expected.json` validates against the schema; all 5 missing-name docs satisfy the triad (`company_name.present=false`, `company_name.inferred=true`, `manual_review_required=true`, `review_reason="company_name_inferred"`); no document has predicted values / confidence / evaluator verdicts (enforced by `additionalProperties: false`).
+**Independent Test**: `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` reports zero errors; every `expected.json` validates against the schema; all 5 missing-name docs satisfy the triad (`company_name.present=false`, `company_name.inferred=true`, `manual_review_required=true`, `review_reason="company_name_inferred"`); no document has predicted values / confidence / evaluator verdicts (enforced by `additionalProperties: false`).
 
 ### US2 labeling (20 parallel files — different paths)
 
@@ -121,8 +121,8 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 ### US2 validation
 
-- [X] T051 [US2] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm zero errors across schema, folder, and cross-artifact checks. Specifically confirm: every `expected.json` validates, every `document_id` matches its full folder name, every `difficulty` matches the folder-name suffix, no `MISSING_NAME_TRIAD_VIOLATION`, no `EXPECTED_HAS_PREDICTIONS`, no `CHALLENGE_TAG_UNKNOWN`. Depends on T031–T050.
-- [X] T052 [US2] Manually audit `challenge_tags` coverage across the 20 labels against FR-015 AND FR-016. The validator already enforces the missing-name company_name triad (`MISSING_NAME_TRIAD_VIOLATION` in `src/ledgerlinc_ocr/validator/artifact.py`) and the closed-vocabulary check (`CHALLENGE_TAG_UNKNOWN`), but it does NOT enforce FR-016's tag pairing or FR-015's aggregate coverage; both are audit-only in this feature. Confirm: (FR-016) `explicit_company_name` appears on every non-missing doc and on no missing-name doc; `missing_company_name` appears on every missing-name doc and on no non-missing doc; (FR-015) at least one document each for `logo_only`, `remit_to_differs_from_vendor`, `low_quality_scan`, `ein_present`, and one of `{vat_id_present, state_tax_id_present, other_tax_id_present}`. If any tag pairing or critical tag is missing, return to the relevant T031–T050 task and re-label. Depends on T051.
+- [X] T051 [US2] Run `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` and confirm zero errors across schema, folder, and cross-artifact checks. Specifically confirm: every `expected.json` validates, every `document_id` matches its full folder name, every `difficulty` matches the folder-name suffix, no `MISSING_NAME_TRIAD_VIOLATION`, no `EXPECTED_HAS_PREDICTIONS`, no `CHALLENGE_TAG_UNKNOWN`. Depends on T031–T050.
+- [X] T052 [US2] Manually audit `challenge_tags` coverage across the 20 labels against FR-015 AND FR-016. The validator already enforces the missing-name company_name triad (`MISSING_NAME_TRIAD_VIOLATION` in `src/dartwing_ocr/validator/artifact.py`) and the closed-vocabulary check (`CHALLENGE_TAG_UNKNOWN`), but it does NOT enforce FR-016's tag pairing or FR-015's aggregate coverage; both are audit-only in this feature. Confirm: (FR-016) `explicit_company_name` appears on every non-missing doc and on no missing-name doc; `missing_company_name` appears on every missing-name doc and on no non-missing doc; (FR-015) at least one document each for `logo_only`, `remit_to_differs_from_vendor`, `low_quality_scan`, `ein_present`, and one of `{vat_id_present, state_tax_id_present, other_tax_id_present}`. If any tag pairing or critical tag is missing, return to the relevant T031–T050 task and re-label. Depends on T051.
 
 **Checkpoint**: US2 is complete — the minimum shippable corpus (US1 + US2) now exists. The evaluator has real labeled truth.
 
@@ -132,7 +132,7 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 **Goal**: Every `hard` and every `missing_name` document has a non-empty `notes.md` that explains the difficulty choice and at least one concrete trap aligned with that document's `challenge_tags`. `easy` and `medium` documents may (optionally) have `notes.md`.
 
-**Independent Test**: `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` reports zero hard errors; no `FOLDER_MISSING_REQUIRED_FILE` is emitted for any `hard`/`missing_name` document's `notes.md`. Soft warnings (`FOLDER_NOTES_MISSING_SOFT`) for `easy`/`medium` documents are acceptable.
+**Independent Test**: `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` reports zero hard errors; no `FOLDER_MISSING_REQUIRED_FILE` is emitted for any `hard`/`missing_name` document's `notes.md`. Soft warnings (`FOLDER_NOTES_MISSING_SOFT`) for `easy`/`medium` documents are acceptable.
 
 ### US3 hard-required notes (5 hard docs)
 
@@ -152,7 +152,7 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 ### US3 validation
 
-- [X] T063 [US3] Run `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` — confirm zero `FOLDER_MISSING_REQUIRED_FILE` for `notes.md` on any `hard` or `missing_name` folder. Soft `FOLDER_NOTES_MISSING_SOFT` warnings on `easy`/`medium` folders are acceptable. Depends on T053–T062.
+- [X] T063 [US3] Run `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` — confirm zero `FOLDER_MISSING_REQUIRED_FILE` for `notes.md` on any `hard` or `missing_name` folder. Soft `FOLDER_NOTES_MISSING_SOFT` warnings on `easy`/`medium` folders are acceptable. Depends on T053–T062.
 
 **Checkpoint**: US3 is complete — the corpus is now a curated diagnostic instrument, not just a pile of PDFs.
 
@@ -183,7 +183,7 @@ This is a single-project Python package. Code lives in `src/ledgerlinc_ocr/`, te
 
 **Purpose**: Final corpus-wide validation, success-criteria audit, and documentation closure.
 
-- [X] T069 Run the full validator: `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` — exit code MUST be 0, zero hard errors (SC-001). Soft `FOLDER_NOTES_MISSING_SOFT` warnings on `easy`/`medium` folders are acceptable.
+- [X] T069 Run the full validator: `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` — exit code MUST be 0, zero hard errors (SC-001). Soft `FOLDER_NOTES_MISSING_SOFT` warnings on `easy`/`medium` folders are acceptable.
 - [X] T070 Run the full test suite: `.venv/bin/pytest tests/ -q` — all tests green, including the 5 new cases in `tests/contract_tests/test_folder_source_pdf_readability.py`.
 - [X] T071 Audit Success Criteria SC-001 through SC-009 against the shipped corpus; for each SC, record PASS with the command/evidence in a new file `specs/006-corpus-labeling/acceptance-evidence.md` (one section per SC). This keeps plan.md as a planning artifact rather than a running log.
 - [X] T072 Sweep the corpus for any reserved generated filename (`preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, `final_structured_payload.json`, `evaluation_document.json`) or `votes/` subdirectory or `consensus_output.json` file; fail-closed (FR-013, FR-020). Confirm zero hits.

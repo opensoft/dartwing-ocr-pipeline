@@ -2,7 +2,7 @@
 
 This document records how the repo supports Ollama during stage 1 and what has been verified on the current workstation.
 
-> **See also**: [`paddle-gpu-preflight.md`](./paddle-gpu-preflight.md) — operator-facing diagnostic for the workstation Paddle GPU preprocessing lane (`ppstructurev3@gpu`). Ollama GPU success and Paddle GPU readiness are independent (per spec FR-005); the preflight tool is the documented way to determine whether Paddle can drive the GPU on this host. Run `python -m ledgerlinc_ocr.preprocessing.preflight` to classify the environment into one of six FR-001 states.
+> **See also**: [`paddle-gpu-preflight.md`](./paddle-gpu-preflight.md) — operator-facing diagnostic for the workstation Paddle GPU preprocessing lane (`ppstructurev3@gpu`). Ollama GPU success and Paddle GPU readiness are independent (per spec FR-005); the preflight tool is the documented way to determine whether Paddle can drive the GPU on this host. Run `python -m dartwing_ocr.preprocessing.preflight` to classify the environment into one of six FR-001 states.
 
 ## Supported Runtime Paths
 
@@ -228,8 +228,8 @@ The stage 1 extractor calls host Ollama via a single `httpx` request per
 invocation and never retries. Retries are considered an orchestrator concern
 and live outside this pipeline.
 
-- **Transport**: `httpx` only. `requests` is forbidden under `src/ledgerlinc_ocr/extract/` (enforced structurally — see `tests/unit/extract/test_no_downstream_imports.py`).
-- **Timeout**: pinned per voter config (`ollama.timeout_seconds`, `ollama.connect_timeout_seconds`). Default profile for `gemma-edge.yaml` lives in `src/ledgerlinc_ocr/extract/voters/configs/gemma-edge.yaml`.
+- **Transport**: `httpx` only. `requests` is forbidden under `src/dartwing_ocr/extract/` (enforced structurally — see `tests/unit/extract/test_no_downstream_imports.py`).
+- **Timeout**: pinned per voter config (`ollama.timeout_seconds`, `ollama.connect_timeout_seconds`). Default profile for `gemma-edge.yaml` lives in `src/dartwing_ocr/extract/voters/configs/gemma-edge.yaml`.
 - **No retries**: any `ConnectError`, `ConnectTimeout`, `ReadTimeout`, or other `TransportError` surfaces as `OllamaUnreachable` → exit code 3. `model not found` payloads surface as `OllamaModelUnavailable` → exit code 4. See `specs/005-single-voter-extraction/research.md §R-001` (httpx, no retries) and `§R-002` (timeout).
 
 Rationale: deterministic failure shape is more valuable than opportunistic retry masking. Downstream orchestration (or a human operator) is free to rerun the extractor; the pipeline itself never papers over transport instability.

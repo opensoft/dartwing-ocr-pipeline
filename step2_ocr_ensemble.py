@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LedgerLinc Step 2: OCR + Field Extraction + Structuring Pipeline
+Dartwing Step 2: OCR + Field Extraction + Structuring Pipeline
 Supports single PDF, single image, or folder of images.
 """
 
@@ -73,7 +73,7 @@ def create_structured_output(paddle_results, doc_id: str, client_id: str = "test
     return structured
 
 def main():
-    parser = argparse.ArgumentParser(description="LedgerLinc Step 2 OCR Pipeline")
+    parser = argparse.ArgumentParser(description="Dartwing Step 2 OCR Pipeline")
     parser.add_argument("--input", required=True, help="Path to image, PDF, or folder of images")
     parser.add_argument("--client_id", default="test", help="Client ID")
     args = parser.parse_args()

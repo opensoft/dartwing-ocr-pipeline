@@ -17,8 +17,8 @@ from dataclasses import dataclass
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError
-from ledgerlinc_ocr.preprocessing.region_strategies import (
+from dartwing_ocr.preprocessing.errors import UnknownPresetError
+from dartwing_ocr.preprocessing.region_strategies import (
     BBox,
     REGION_STRATEGIES,
     RegionStrategy,
@@ -225,12 +225,12 @@ def test_region_strategies_module_imports_without_paddle(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A host without Paddle GPU MUST be able to
-    `import ledgerlinc_ocr.preprocessing.region_strategies` cleanly
+    `import dartwing_ocr.preprocessing.region_strategies` cleanly
     (FR-015 / I-018.2)."""
     import importlib
 
     for mod_name in [
-        "ledgerlinc_ocr.preprocessing.region_strategies",
+        "dartwing_ocr.preprocessing.region_strategies",
         "paddleocr",
         "paddle",
     ]:
@@ -238,7 +238,7 @@ def test_region_strategies_module_imports_without_paddle(
     monkeypatch.setitem(sys.modules, "paddleocr", None)
     monkeypatch.setitem(sys.modules, "paddle", None)
     mod = importlib.import_module(
-        "ledgerlinc_ocr.preprocessing.region_strategies"
+        "dartwing_ocr.preprocessing.region_strategies"
     )
     assert hasattr(mod, "REGION_STRATEGIES")
     assert "header-first-v1" in mod.REGION_STRATEGIES

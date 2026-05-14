@@ -10,13 +10,13 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.router.errors import (
+from dartwing_ocr.router.errors import (
     MalformedInputError,
     MissingInputError,
     UnreadableInputError,
     VersionDriftError,
 )
-from ledgerlinc_ocr.router.input_loader import load_and_validate
+from dartwing_ocr.router.input_loader import load_and_validate
 
 FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "router"
 GREEN_PATH = FIXTURE_DIR / "clean_explicit_name_full_identity.json"

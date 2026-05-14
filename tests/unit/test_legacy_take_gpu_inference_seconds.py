@@ -19,7 +19,7 @@ from __future__ import annotations
 import pytest
 
 
-ocr = pytest.importorskip("ledgerlinc_ocr.preprocessing.ocr")
+ocr = pytest.importorskip("dartwing_ocr.preprocessing.ocr")
 
 
 @pytest.fixture(autouse=True)

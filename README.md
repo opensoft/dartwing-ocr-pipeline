@@ -1,6 +1,6 @@
-# ledgerlinc-model-ocr-pipeline
+# dartwing-ocr-pipeline
 
-Step 2 of the LedgerLinc AP Clerk Agent: OCR + Field Extraction + Structuring.
+Step 2 of the Dartwing AP Clerk Agent: OCR + Field Extraction + Structuring.
 
 ## Stage 1 — Contracts & Validator
 
@@ -10,10 +10,10 @@ Quick commands from a fresh checkout:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m ledgerlinc_ocr.validator show contract-set
-.venv/bin/python -m ledgerlinc_ocr.validator validate artifact <path> --contract <name>
-.venv/bin/python -m ledgerlinc_ocr.validator validate folder <folder>
-.venv/bin/python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity
+.venv/bin/python -m dartwing_ocr.validator show contract-set
+.venv/bin/python -m dartwing_ocr.validator validate artifact <path> --contract <name>
+.venv/bin/python -m dartwing_ocr.validator validate folder <folder>
+.venv/bin/python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity
 .venv/bin/pytest tests/contract_tests/
 ```
 

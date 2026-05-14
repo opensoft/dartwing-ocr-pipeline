@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.cli import main
 
 
 MINIMAL_PDF_BYTES = (
@@ -50,7 +50,7 @@ def test_warm_corpus_missing_source_pdf_reports_failure(
         "--routing-profile", "stub",
         "--final-payload-profile", "stub",
     ])
-    assert code == int(__import__("ledgerlinc_ocr.pipeline.exit_codes", fromlist=["ExitCode"]).ExitCode.INPUT_NOT_FOUND)
+    assert code == int(__import__("dartwing_ocr.pipeline.exit_codes", fromlist=["ExitCode"]).ExitCode.INPUT_NOT_FOUND)
     out = capsys.readouterr().out.strip().splitlines()
     summary = json.loads(out[-1])
     assert summary["documents_failed"] == 1
@@ -78,7 +78,7 @@ def test_warm_corpus_non_pdf_source_reports_invalid_pdf(
         "--routing-profile", "stub",
         "--final-payload-profile", "stub",
     ])
-    from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
+    from dartwing_ocr.pipeline.exit_codes import ExitCode
     assert code == int(ExitCode.INVALID_PDF)
     out = capsys.readouterr().out.strip().splitlines()
     summary = json.loads(out[-1])
@@ -108,7 +108,7 @@ def test_warm_corpus_document_path_file_reports_output_path_not_usable(
         "--final-payload-profile", "stub",
     ])
 
-    from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
+    from dartwing_ocr.pipeline.exit_codes import ExitCode
     assert code == int(ExitCode.OUTPUT_PATH_NOT_USABLE)
     summary = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     record = summary["per_document"][0]
@@ -123,8 +123,8 @@ def test_warm_corpus_unwritable_folder_reports_output_path_not_usable(
     monkeypatch: pytest.MonkeyPatch,
 ):
     """Warm-corpus validates destination writability before stage execution."""
-    from ledgerlinc_ocr.pipeline import corpus_run as corpus_run_mod
-    from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
+    from dartwing_ocr.pipeline import corpus_run as corpus_run_mod
+    from dartwing_ocr.pipeline.exit_codes import ExitCode
 
     docs_file, _folder = _build_corpus(tmp_path, with_pdf=True)
     monkeypatch.setattr(corpus_run_mod.os, "access", lambda _p, _mode: False)

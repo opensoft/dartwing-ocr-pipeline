@@ -40,7 +40,7 @@ class WarmupResult:
 
 ## Entity: WarmupError
 
-New exception class in `src/ledgerlinc_ocr/preprocessing/errors.py`. Mirrors the `EngineInitError` shape used by feature 010/014.
+New exception class in `src/dartwing_ocr/preprocessing/errors.py`. Mirrors the `EngineInitError` shape used by feature 010/014.
 
 ```python
 class WarmupError(RuntimeError):
@@ -86,7 +86,7 @@ The single observable surface added to the existing `kind: "run_summary"` stdout
 
 ## Entity: `RunSummary.SCHEMA_VERSION` (codebase-level bump)
 
-Codebase-level transition driven by this feature: `"0.1.2"` → `"0.1.3"`. Set in `src/ledgerlinc_ocr/pipeline/timing.py` (the single source of truth). Every run of the new binary emits `schema_version: "0.1.3"` regardless of whether warmup ran (R-016.9 / FR-008 / /speckit.clarify Q2). The 0.1.3 schema is a strict superset of 0.1.2: it adds the optional `warmup` key under `phase_timings`. Existing 0.1.2 keys (`paddle_import`, `gpu_bind_probe`, `engine_init`, `rasterization`, `per_page_inference`, `artifact_write`, `total`) MUST NOT be renamed, removed, or have their type changed (FR-008).
+Codebase-level transition driven by this feature: `"0.1.2"` → `"0.1.3"`. Set in `src/dartwing_ocr/pipeline/timing.py` (the single source of truth). Every run of the new binary emits `schema_version: "0.1.3"` regardless of whether warmup ran (R-016.9 / FR-008 / /speckit.clarify Q2). The 0.1.3 schema is a strict superset of 0.1.2: it adds the optional `warmup` key under `phase_timings`. Existing 0.1.2 keys (`paddle_import`, `gpu_bind_probe`, `engine_init`, `rasterization`, `per_page_inference`, `artifact_write`, `total`) MUST NOT be renamed, removed, or have their type changed (FR-008).
 
 ## Entity: MIOpen / COMGR cache state (on-disk side effect)
 
@@ -114,9 +114,9 @@ The full "addressed by default config" + "residual / known diagnostic" split (pe
 
 ## Entity: Activation-surface state machine
 
-The opt-in surface decision made in R-016.1, expressed as a two-input → three-state truth table that the CLI parser implements. Inputs are `--gpu-warmup` (CLI flag) and `LEDGERLINC_GPU_WARMUP` (env var). CLI wins over env per R-016.1.
+The opt-in surface decision made in R-016.1, expressed as a two-input → three-state truth table that the CLI parser implements. Inputs are `--gpu-warmup` (CLI flag) and `DARTWING_GPU_WARMUP` (env var). CLI wins over env per R-016.1.
 
-| `--gpu-warmup` flag | `LEDGERLINC_GPU_WARMUP` env | Active profile | Behavior |
+| `--gpu-warmup` flag | `DARTWING_GPU_WARMUP` env | Active profile | Behavior |
 |---|---|---|---|
 | absent | unset / empty / `0` / `false` / `no` | any | warmup opt-in OFF |
 | absent | `1` / `true` / `yes` (case-insensitive) | `ppstructurev3@gpu` | warmup opt-in ON; warmup runs |
@@ -124,7 +124,7 @@ The opt-in surface decision made in R-016.1, expressed as a two-input → three-
 | present | (ignored — CLI wins) | `ppstructurev3@gpu` | warmup opt-in ON; warmup runs |
 | present | (ignored) | `ppstructurev3@cpu` or stub | warmup opt-in ON, no-op'd; stderr warn-and-proceed line emitted (FR-010) |
 
-The env-var truthiness parser is case-insensitive and rejects ambiguous values (e.g., `LEDGERLINC_GPU_WARMUP=2` is treated as unset, not as "very on"). Strict whitelist: `{"1", "true", "yes"}` after `.strip().lower()`.
+The env-var truthiness parser is case-insensitive and rejects ambiguous values (e.g., `DARTWING_GPU_WARMUP=2` is treated as unset, not as "very on"). Strict whitelist: `{"1", "true", "yes"}` after `.strip().lower()`.
 
 ## Out-of-scope entities (intentionally not modeled)
 

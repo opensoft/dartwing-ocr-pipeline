@@ -26,7 +26,7 @@ forthcoming evaluator (007).
 **Language/Version**: Python 3.12 (matches devcontainer; matches 001/002/003 slices)
 **Primary Dependencies**:
 - Existing: `jsonschema>=4.22,<5`, `pydantic>=2.7,<3` (already in `pyproject.toml`)
-- **Reused in-repo**: `ledgerlinc_ocr.validator` — to validate both the input
+- **Reused in-repo**: `dartwing_ocr.validator` — to validate both the input
   `edge_extraction_output.json` and the assembled `routing_decision.json`
   against the frozen `v1.0.0` schemas. No new third-party dependency is
   introduced by this slice.
@@ -41,8 +41,8 @@ fixtures are hand-authored JSON files (not model runs) so the router can be
 tested independently of the extractor's runtime status.
 **Target Platform**: Linux (devcontainer, native WSL Ubuntu 24.04). CPU only.
 No GPU, no cloud, no host Ollama involvement.
-**Project Type**: Single Python package — extends `src/ledgerlinc_ocr/` with a
-new `router/` module, invokable as `python -m ledgerlinc_ocr.router route
+**Project Type**: Single Python package — extends `src/dartwing_ocr/` with a
+new `router/` module, invokable as `python -m dartwing_ocr.router route
 <folder>` (pinned by spec FR-025, clarification Q4).
 **Performance Goals**: ≤ 200 ms wall-clock per document on a developer
 workstation (SC-001). Trivially satisfied by pure rule-based code over one
@@ -69,7 +69,7 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 
 | Principle | Gate | Status |
 |-----------|------|--------|
-| I. One Repo, Clear Runtime Boundaries | Routing belongs to the pipeline layer; must not bundle harness, extraction, or final-payload concerns; must not embed model runtime. | **PASS** — `src/ledgerlinc_ocr/router/` is pipeline code only. Reads one JSON, writes one JSON (FR-001, FR-022). No model runtime, no Ollama calls (FR-019). Harness / evaluator remain separate. |
+| I. One Repo, Clear Runtime Boundaries | Routing belongs to the pipeline layer; must not bundle harness, extraction, or final-payload concerns; must not embed model runtime. | **PASS** — `src/dartwing_ocr/router/` is pipeline code only. Reads one JSON, writes one JSON (FR-001, FR-022). No model runtime, no Ollama calls (FR-019). Harness / evaluator remain separate. |
 | II. Evidence-First, Schema-First Design | Artifact MUST validate against the frozen `routing_decision` contract; prompts/code adapt to the schema, not the reverse. | **PASS** — FR-002 mandates schema validation before persist. No schema amendment needed; `contract_set_version = "1.0.0"` is consumed as-is. Input is also validated against `edge_extraction_output.schema.json` before any rule fires (FR-003). |
 | III. Deterministic Control Over Model Output | Spam gate, review-required decisions, routing policy must be deterministic code — confidence is a signal, not a substitute for provenance. | **PASS** — Every rule is pure code (FR-013, FR-014, FR-008, FR-015). Confidence is explicitly excluded from all gates and all scores (FR-017, FR-018, clarification Q1). The router never calls a model (FR-019). |
 | IV. Provenance and Review Safety | Inferred company names MUST force `manual_review_required = true`. Non-negotiable. | **PASS** — FR-008 wires the constitutional invariant directly: `company_name.inferred == true` OR `company_name.present == false` forces `decision = "edge_review_required"` AND `review_reason = "company_name_inferred"` exactly. SC-002 + SC-008 make this a release gate. |
@@ -86,7 +86,7 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 1. Pipeline vs. harness boundary preserved — this slice is pipeline-only; the evaluator (007) and final-payload (future) are separate slices and their work does not land here.
 2. Output contracts unchanged — this slice consumes the frozen `routing_decision` schema; no schema edits required. `docs/stage1-vendor-identity/schemas.md` already matches.
 3. Runtime behavior — this slice does not change the Ollama runtime story; `ollama-runtime.md` requires no update.
-4. Verifiable through concrete local execution — CLI `python -m ledgerlinc_ocr.router route <folder>` against a fixture.
+4. Verifiable through concrete local execution — CLI `python -m dartwing_ocr.router route <folder>` against a fixture.
 5. Runtime/container changes — none (existing `pipeline-dev` devcontainer is sufficient).
 6. Evaluation comparison preserved — this slice does not modify evaluation; the harness still compares `final_structured_payload.json` to `expected.json`. The evaluator (007) will consume this router's output.
 
@@ -96,7 +96,7 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 
 Re-evaluated after drafting `research.md`, `data-model.md`, `contracts/cli-contract.md`, and `quickstart.md`:
 
-- Phase 0/1 introduced zero new third-party dependencies — stdlib + existing `ledgerlinc_ocr.validator` only (research Decision 1). Principle I boundary preserved.
+- Phase 0/1 introduced zero new third-party dependencies — stdlib + existing `dartwing_ocr.validator` only (research Decision 1). Principle I boundary preserved.
 - All derived entities in `data-model.md` are pure functions of the input dict; no state, no model calls. Principle III preserved.
 - `policy_version` semver scheme (Decision 3) and pinned canonical/affirmative/informational reason strings (Decisions 9–10) make Principle II's schema-first + policy-bump-on-change rules mechanical.
 - Principle IV (company-name provenance) is wired directly into the rule table (`missing_name`, priority 1) with canonical string `"company_name_inferred"` pinned as part of `policy_version`.
@@ -124,13 +124,13 @@ specs/008-routing/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── __init__.py                          # existing
 ├── validator/                           # existing — contract validator (reused for input + output validation)
 ├── preprocessing/                       # existing — 003 slice
 └── router/                              # NEW — this slice
     ├── __init__.py
-    ├── __main__.py                      # `python -m ledgerlinc_ocr.router`
+    ├── __main__.py                      # `python -m dartwing_ocr.router`
     ├── cli.py                           # argparse entry point; `route` subcommand
     ├── pipeline.py                      # orchestrates load → validate input → compute checks → compute scores → apply rules → assemble → validate output → write
     ├── input_loader.py                  # read + schema-validate edge_extraction_output.json; raises typed errors on missing / malformed / version-drift
@@ -191,10 +191,10 @@ tests/
 ```
 
 **Structure Decision**: Single-project Python package. The new slice lives under
-`src/ledgerlinc_ocr/router/` to sit alongside the existing `validator/` and
+`src/dartwing_ocr/router/` to sit alongside the existing `validator/` and
 `preprocessing/` packages, preserving the "pipeline code owns routing" boundary
 from the constitution. The CLI is exposed both as a module (`python -m
-ledgerlinc_ocr.router route <folder>`, pinned by clarification Q4) and via a
+dartwing_ocr.router route <folder>`, pinned by clarification Q4) and via a
 `route` subcommand to leave room for future subcommands (e.g., corpus mode)
 without renaming. Tests split into `unit/` (pure functions over dict inputs —
 no filesystem beyond the validator) and `integration/` (fixture JSON →

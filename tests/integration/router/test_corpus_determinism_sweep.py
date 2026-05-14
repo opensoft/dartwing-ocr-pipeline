@@ -66,7 +66,7 @@ def test_corpus_determinism(tmp_path: Path, corpus_folder: Path):
         if rd.exists():
             rd.unlink()
         result = subprocess.run(
-            [sys.executable, "-m", "ledgerlinc_ocr.router", "route",
+            [sys.executable, "-m", "dartwing_ocr.router", "route",
              str(staged)],
             capture_output=True,
             text=True,

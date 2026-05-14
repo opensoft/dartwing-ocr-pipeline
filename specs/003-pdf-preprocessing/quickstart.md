@@ -29,7 +29,7 @@ python3 -m venv .venv
 ## Run preprocessing on one document
 
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy
 ```
 
@@ -45,7 +45,7 @@ Expected result:
 Run the existing contract validator:
 
 ```bash
-python -m ledgerlinc_ocr.validator validate artifact preprocess_output \
+python -m dartwing_ocr.validator validate artifact preprocess_output \
     tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json
 ```
 
@@ -54,9 +54,9 @@ Expected: `OK` (or the validator's success equivalent), zero errors.
 ## Check determinism
 
 ```bash
-python -m ledgerlinc_ocr.preprocessing --document-folder tests/stage1_vendor_identity/inv_001_easy
+python -m dartwing_ocr.preprocessing --document-folder tests/stage1_vendor_identity/inv_001_easy
 cp tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json /tmp/run1.json
-python -m ledgerlinc_ocr.preprocessing --document-folder tests/stage1_vendor_identity/inv_001_easy
+python -m dartwing_ocr.preprocessing --document-folder tests/stage1_vendor_identity/inv_001_easy
 diff /tmp/run1.json tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json
 ```
 
@@ -65,7 +65,7 @@ Expected: empty diff (SC-002).
 ## Inspecting a debug run
 
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --write-page-images
 ls tests/stage1_vendor_identity/inv_001_easy/page_*.png

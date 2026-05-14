@@ -14,7 +14,7 @@ Optimize the proven `ppstructurev3@gpu` preprocessing path by collapsing the dup
 **Storage**: filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`; writes `preprocess_output.json` into the same folder unchanged in shape (FR-010). Phase timings live exclusively in the `kind: "run_summary"` stdout line (FR-014 / Clarification Q1) — no new persisted artifact (FR-014 / SC-002), no preprocess_output.json schema change.
 **Testing**: pytest. Existing markers `gpu` (skipped without GPU) and `live` carry over. Tests under `tests/preprocessing/`, `tests/pipeline/`, plus the existing `tests/contract_tests/` for run_summary schema_version regressions. Stub adapter test suite must continue to pass on a host without GPU (FR-018, SC-008).
 **Target Platform**: Linux (devcontainer + workstation WSL with native ROCm gfx1151 via host Ollama / `.venv-paddle-rocm`). CPU fallback works on any Linux host. Production CI exercises CPU + stub only.
-**Project Type**: single Python package (`ledgerlinc-ocr`) with pluggable preprocess profiles.
+**Project Type**: single Python package (`dartwing-ocr`) with pluggable preprocess profiles.
 **Performance Goals**: no numeric latency target (Constitution: "no latency target as a release gate"; spec Assumption 1). Outcomes are observability + de-duplication of init only — measurable as `phase_timings.engine_init.seconds + phase_timings.paddle_import.seconds + phase_timings.gpu_bind_probe.seconds` appearing once per process (SC-001, SC-002).
 **Constraints**:
 - FR-007 / SC-007: GPU-prereq failure must report ≤ 10 s wall-clock from process start (Clarification Q4).
@@ -61,7 +61,7 @@ specs/015-gpu-engine-reuse-timing/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── preprocessing/
 │   ├── preflight.py          # CHANGED: classify() persists constructed engine instead of `del`; new helpers expose paddle-import + bind-probe phase timings
 │   ├── ocr.py                # CHANGED: _get_engine() consults preflight-persisted singleton on first call; per-page inference now records (page_number, ns) tuples instead of summing into a counter

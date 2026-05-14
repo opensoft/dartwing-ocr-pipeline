@@ -24,7 +24,7 @@
 - [x] CHK007 - Is the JSON payload's null-vs-absent semantics specified (e.g., is a field always present in JSON with `null` when unobserved, or sometimes omitted)? [PASS, Contracts §1.Stdout shape] — "Lines whose underlying field is `None` are omitted from the text section but always appear in the JSON object as `null`."
 - [x] CHK008 - Is the human-readable text section's exact line ordering specified (alphabetical? evidence order? grouping by category)? [PASS, Contracts §1.Stdout shape] — Contracts gives the exact ordered template: state header → evidence fields in the documented order → blank line → recommendation.
 - [x] CHK009 - Is the boundary between "I observed this" (evidence) and "I recommend that" (recommendation) explicit in requirement language? [PASS, Spec §FR-002 / §FR-003 + Data-model §PreflightReadout] — `evidence` field captures observations; `recommendation` field captures advice; the dataclass enforces the separation.
-- [x] CHK010 - Is "single documented command" (FR-006) constrained to one specific invocation surface (e.g., `python -m …`) or open to alternatives? [PASS, Research R-014.1 + Contracts §1.Invocation] — Research R-014.1 picks `python -m ledgerlinc_ocr.preprocessing.preflight` and rejects alternatives; contracts fixes the form.
+- [x] CHK010 - Is "single documented command" (FR-006) constrained to one specific invocation surface (e.g., `python -m …`) or open to alternatives? [PASS, Research R-014.1 + Contracts §1.Invocation] — Research R-014.1 picks `python -m dartwing_ocr.preprocessing.preflight` and rejects alternatives; contracts fixes the form.
 
 ## Requirement Consistency
 

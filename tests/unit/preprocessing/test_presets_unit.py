@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError
-from ledgerlinc_ocr.preprocessing.presets import (
+from dartwing_ocr.preprocessing.errors import UnknownPresetError
+from dartwing_ocr.preprocessing.presets import (
     DET_REC_VARIANTS,
     MODULE_SET_PRESETS,
     DetRecVariant,
@@ -189,7 +189,7 @@ def test_presets_module_top_level_imports_dont_load_paddle() -> None:
     import ast
     from pathlib import Path
 
-    from ledgerlinc_ocr.preprocessing import presets as presets_mod
+    from dartwing_ocr.preprocessing import presets as presets_mod
 
     src = Path(presets_mod.__file__).read_text()
     tree = ast.parse(src)
@@ -214,7 +214,7 @@ def test_resolve_module_set_does_not_invoke_audit_callable(monkeypatch: pytest.M
     runs only at the audit call site (`run_module_audit`), not during
     registry lookup. Verified by replacing one preset with a spy and
     asserting the spy is not called by `resolve_module_set`."""
-    import ledgerlinc_ocr.preprocessing.presets as presets_mod
+    import dartwing_ocr.preprocessing.presets as presets_mod
 
     spy_calls: list[object] = []
 

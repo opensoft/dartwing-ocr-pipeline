@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evaluator import (
+from dartwing_ocr.evaluator import (
     ContractSetVersionMismatchError,
     DocumentIdMismatchError,
     ResultLabel,
@@ -60,7 +60,7 @@ def test_challenge_tags_propagate_verbatim(tmp_path: Path) -> None:
 
 
 def test_field_results_ordered_by_scored_fields(tmp_path: Path) -> None:
-    from ledgerlinc_ocr.evaluator.scoring import SCORED_FIELDS
+    from dartwing_ocr.evaluator.scoring import SCORED_FIELDS
 
     folder = _copy_fixture(FIXTURES / "all_match", tmp_path)
     outcome = evaluate_document(folder)
