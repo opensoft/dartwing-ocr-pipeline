@@ -22,7 +22,6 @@ import pytest
 
 from ledgerlinc_ocr.preprocessing import ocr_only as ocr_only_mod
 from ledgerlinc_ocr.preprocessing.ocr_only import (
-    EligibilityVerdict,
     OcrOnlyLine,
     OcrOnlyPagePredict,
 )
@@ -130,16 +129,33 @@ def test_get_ocr_engine_device_none_returns_existing() -> None:
     assert result is sentinel
 
 
+def test_get_ocr_engine_none_det_rec_treated_as_unspecified() -> None:
+    """When the singleton is constructed with non-None det/rec names, a
+    follow-up call that omits the names (passes `None`) MUST treat it as
+    'unspecified — reuse the existing singleton' rather than tripping
+    the mismatch guard. This covers the warmup-rebind path that does not
+    re-thread variant presets through the singleton."""
+    sentinel = object()
+    ocr_only_mod._OCR_ENGINE = sentinel
+    ocr_only_mod._OCR_ENGINE_DEVICE = "gpu:0"
+    ocr_only_mod._OCR_ENGINE_TEXT_DET_NAME = "PP-OCRv5_server_det"
+    ocr_only_mod._OCR_ENGINE_TEXT_REC_NAME = "en_PP-OCRv4_mobile_rec"
+    # Both det/rec name kwargs default to None — must return existing.
+    result = ocr_only_mod._get_ocr_engine(device="gpu:0")
+    assert result is sentinel
+    # Explicit None for one half (rec) + non-None matching for the other
+    # (det) — still must return existing.
+    result = ocr_only_mod._get_ocr_engine(
+        device="gpu:0",
+        text_detection_model_name="PP-OCRv5_server_det",
+        text_recognition_model_name=None,
+    )
+    assert result is sentinel
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator dispatch — gaps #1, #2 (SUFFICIENT path) and #6 (schema)
 # ---------------------------------------------------------------------------
-
-
-def _build_fake_engine(lines_per_page: list[list[OcrOnlyLine]]) -> Any:
-    """Build a stub engine whose `predict()` is never directly called —
-    we monkeypatch `run_ocr_only_page` instead. This object just needs
-    to be a non-None marker that `_get_ocr_engine` can return."""
-    return object()
 
 
 def _make_fake_engine_handles(fake_predict: OcrOnlyPagePredict):
@@ -168,10 +184,11 @@ def _make_invocation(tmp_path: Path) -> Any:
 
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
-    # Generate a real one-page PDF via pypdfium2 so `rasterize.rasterize_pdf`
-    # works on the CPU lane.
+    # Generate a real one-page PDF via Pillow so `rasterize.rasterize_pdf`
+    # works on the CPU lane. Pillow computes xref offsets correctly,
+    # avoiding pypdfium2's "repair" path on hand-built xref tables.
     pdf_path = folder / "source.pdf"
-    pdf_path.write_bytes(_minimal_pdf_bytes())
+    _write_blank_pdf(pdf_path)
     return Invocation(
         document_folder=folder,
         source_file="source.pdf",
@@ -183,25 +200,15 @@ def _make_invocation(tmp_path: Path) -> Any:
     )
 
 
-def _minimal_pdf_bytes() -> bytes:
-    """A single-page PDF with a tiny mediabox — enough to rasterize cleanly."""
-    # Smallest valid PDF for a single 612x792 page. Built by hand.
-    return (
-        b"%PDF-1.4\n"
-        b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
-        b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
-        b"3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
-        b"/Contents 4 0 R /Resources << >> >> endobj\n"
-        b"4 0 obj << /Length 0 >> stream\n\nendstream endobj\n"
-        b"xref\n0 5\n"
-        b"0000000000 65535 f \n"
-        b"0000000009 00000 n \n"
-        b"0000000056 00000 n \n"
-        b"0000000111 00000 n \n"
-        b"0000000204 00000 n \n"
-        b"trailer << /Size 5 /Root 1 0 R >>\n"
-        b"startxref\n252\n%%EOF\n"
-    )
+def _write_blank_pdf(path: Path) -> None:
+    """Write a one-page blank PDF (8.5×11 in @ 72 DPI ≈ 612×792 pt) via
+    Pillow's PDF encoder, which computes xref offsets correctly. Used by
+    the CPU-safe dispatch tests so pypdfium2's parser doesn't fall back
+    to its repair path on a hand-built xref table (Copilot review nit)."""
+    from PIL import Image
+
+    img = Image.new("RGB", (612, 792), "white")
+    img.save(path, "PDF", resolution=72.0)
 
 
 def test_orchestrator_dispatches_to_ocr_only_path_when_strategy_kind_is_ocr_only(

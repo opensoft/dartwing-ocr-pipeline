@@ -304,8 +304,10 @@ def test_cpu_warmup_optin_run_summary_has_no_warmup_key(
     assert summary.get("kind") == "run_summary"
     # Feature 018 (T004 / R-018.14): bumped 0.1.4 → 0.1.5 (additive top-level fields).
     # Feature 019 (T004 / R-019.14): bumped 0.1.5 → 0.1.6 (current chain head).
-    # This test enforces "no backslide below 0.1.6" — strict-pin
-    # `== 0.1.6` lives in `test_run_summary_schema_0_1_6.py` (T015).
+    # This test is a floor check ("no backslide below 0.1.6"); a future
+    # bump to 0.1.7+ should still pass here. The strict-pin `== 0.1.6`
+    # assertion lives in `test_run_summary_schema_0_1_6.py` (T015) and
+    # is the gate that needs updating on every minor bump.
     _version_tuple = tuple(
         int(p) for p in summary.get("schema_version", "0.0.0").split(".")
     )

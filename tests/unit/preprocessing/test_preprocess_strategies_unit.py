@@ -6,6 +6,7 @@ All tests are CPU-safe — no Paddle import, no GPU dependency.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 import sys
 
@@ -162,5 +163,5 @@ def test_preprocess_strategy_is_frozen() -> None:
     """PreprocessStrategy is a frozen dataclass — attempting to mutate
     raises FrozenInstanceError."""
     s = PREPROCESS_STRATEGIES["ppstructurev3"]
-    with pytest.raises(Exception):  # dataclasses.FrozenInstanceError
+    with pytest.raises(dataclasses.FrozenInstanceError):
         s.name = "other"  # type: ignore[misc]

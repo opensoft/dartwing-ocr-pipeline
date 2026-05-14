@@ -106,7 +106,11 @@ def cluster_lines_into_blocks(lines: list[OcrOnlyLine]) -> list[Block]:
     # Compute median line height
     heights = sorted(line.bbox.ymax - line.bbox.ymin for line in lines)
     H = heights[len(heights) // 2]
-    proximity_threshold = 1.5 * H
+    # Floor-clamp to MIN_LINE_HEIGHT_PX=1 so a degenerate all-zero-height
+    # input cannot collapse the threshold to 0 and force every line into
+    # its own block. Well-formed boxes always have H >= 1, so the clamp
+    # is a no-op on healthy input.
+    proximity_threshold = 1.5 * max(MIN_LINE_HEIGHT_PX, H)
     # Greedy clustering
     blocks: list[list[OcrOnlyLine]] = []
     current: list[OcrOnlyLine] = [centers[0][0]]

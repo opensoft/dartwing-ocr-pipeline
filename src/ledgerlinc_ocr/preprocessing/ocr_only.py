@@ -136,10 +136,20 @@ def _get_ocr_engine(
                     f"device={_OCR_ENGINE_DEVICE!r}; refusing to rebuild for "
                     f"device={device!r} (singleton-per-process)"
                 )
-            if (
-                text_detection_model_name != _OCR_ENGINE_TEXT_DET_NAME
-                or text_recognition_model_name != _OCR_ENGINE_TEXT_REC_NAME
-            ):
+            # Treat `None` det/rec names as "unspecified — reuse the
+            # existing singleton". Only enforce equality when the caller
+            # passes a non-None value; otherwise a follow-up call that
+            # omits the names (e.g. warmup binding without a variant
+            # preset) would incorrectly trip the guard.
+            det_mismatch = (
+                text_detection_model_name is not None
+                and text_detection_model_name != _OCR_ENGINE_TEXT_DET_NAME
+            )
+            rec_mismatch = (
+                text_recognition_model_name is not None
+                and text_recognition_model_name != _OCR_ENGINE_TEXT_REC_NAME
+            )
+            if det_mismatch or rec_mismatch:
                 raise RuntimeError(
                     "PaddleOCR engine already constructed with "
                     f"text_detection_model_name={_OCR_ENGINE_TEXT_DET_NAME!r}, "
@@ -274,11 +284,18 @@ def run_ocr_only_page(
         _std_warnings.simplefilter("ignore")
         results = engine.predict(image_array)
 
-    # PaddleOCR.predict() returns a list of result dicts (one per input
-    # image). Each result carries `rec_texts`, `rec_scores`, and
-    # `rec_polys` (or `dt_polys`) keys. The exact shape varies slightly
-    # across paddleocr 3.5.x patches; we read defensively.
-    for result in results or []:
+    # PaddleOCR.predict() typically returns a list of result dicts (one
+    # per input image). Some paddleocr 3.5.x patches return a single
+    # result dict / object instead. Normalize to a list before iterating
+    # so a singleton return isn't iterated as dict-keys / object-fields
+    # (mirrors `ocr.py::run_page`'s list/tuple-or-singleton wrap).
+    if results is None:
+        iterable: list[Any] = []
+    elif isinstance(results, (list, tuple)):
+        iterable = list(results)
+    else:
+        iterable = [results]
+    for result in iterable:
         # `result` may be a dict-like or a custom Result object — try
         # attribute access first, fall back to mapping access.
         rec_texts = _result_sequence_field(result, "rec_texts")
@@ -437,7 +454,11 @@ def cluster_lines_into_blocks(lines: Sequence[OcrOnlyLine]) -> list[OcrOnlyBlock
     1. Compute each line's vertical center ``cy = (y_min + y_max) / 2``.
     2. Sort lines by ``cy`` ascending (stable sort).
     3. Compute median line height ``H`` over the input set; the
-       proximity threshold is ``1.5 * H`` (no rounding, no clamping).
+       proximity threshold is ``1.5 * max(MIN_LINE_HEIGHT_PX, H)`` where
+       ``MIN_LINE_HEIGHT_PX = 1``. The floor clamp keeps a degenerate
+       all-zero-height input from collapsing the threshold to zero and
+       splitting every line into its own block; on well-formed boxes
+       (``H >= 1``) the clamp is a no-op.
     4. Greedy clustering: a line joins the current cluster iff its
        ``cy`` is within ``proximity_threshold`` of the previous line's
        ``cy`` (``<=``, inclusive). Otherwise start a new cluster.

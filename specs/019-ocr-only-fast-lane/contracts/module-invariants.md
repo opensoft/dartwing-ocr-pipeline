@@ -78,7 +78,7 @@ The Y-axis line-clustering rule in `cluster_lines_into_blocks` MUST be determini
 
 1. Lines are sorted by vertical center `cy = (bbox.ymin + bbox.ymax) / 2` ascending. Tie-breaking: stable sort (Python's default).
 2. The median line height `H` is computed from the sorted-heights list using integer index `len // 2` (Python's "lower median" — deterministic across platforms).
-3. The proximity threshold is `1.5 * H` exactly (no rounding, no clamping).
+3. The proximity threshold is `1.5 * max(MIN_LINE_HEIGHT_PX, H)`, where `MIN_LINE_HEIGHT_PX = 1`. The floor clamp keeps a degenerate all-zero-height input (every bbox has `ymin == ymax`) from collapsing the threshold to zero and splitting every line into its own block. Well-formed PaddleOCR boxes always have `H >= 1`, so the clamp is a no-op on healthy input.
 4. Greedy clustering: a line joins the current cluster iff its `cy` is within `proximity_threshold` of the previous line's `cy`; otherwise a new cluster starts.
 
 Within each cluster the lines are joined with `"\n"` to form the block's `text`. The block's `bbox` is the per-axis min/max envelope. Reading order within a page is determined by cluster order (top-to-bottom).

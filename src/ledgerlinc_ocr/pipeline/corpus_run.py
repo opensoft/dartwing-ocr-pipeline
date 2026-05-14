@@ -280,10 +280,9 @@ def run_warm_corpus(
     _region_strategy_threaded_018: str | None = _region_strategy_raw_018
     # Feature 019 (T006a / T009 / T010 / T028): preprocess-strategy axis
     # raw CLI value + threading variable. The CLI flag `--preprocess-strategy`
-    # is registered in T009 (US1); at Phase 2 there is no CLI flag yet so
-    # `getattr(args, "preprocess_strategy", None)` is always None. The
-    # warn-and-proceed nulling on CPU/stub lands in T028 (US4) alongside
-    # features 017/018's existing nulling.
+    # is registered in T009 (US1) and threaded through here; the
+    # warn-and-proceed nulling on CPU/stub mirrors features 017/018's
+    # existing nulling pattern.
     _preprocess_strategy_raw_019 = _resolve_preprocess_strategy_value_019(
         getattr(args, "preprocess_strategy", None)
     )
