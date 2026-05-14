@@ -120,17 +120,19 @@ class WarmupError(PreprocessingError):
 class UnknownPresetError(ValueError):
     """Feature 017 fail-fast: an unknown preset value was selected.
 
-    Raised by `preprocessing/presets.py::resolve_module_set` and
-    `resolve_det_rec_variant` (feature 017), by
-    `preprocessing/raster_profiles.py::resolve_raster_profile` and
-    `preprocessing/region_strategies.py::resolve_region_strategy`
-    (feature 018), and by
-    `preprocessing/preprocess_strategies.py::resolve_preprocess_strategy`
-    (feature 019), when the operator passes a value not in the
-    corresponding closed registry (e.g., a typo like
+    Raised by the closed-registry resolvers when the operator passes a
+    value not present in the registry:
+
+    - `preprocessing/presets.py::resolve_module_set` (feature 017)
+    - `preprocessing/presets.py::resolve_det_rec_variant` (feature 017)
+    - `preprocessing/raster_profiles.py::resolve_raster_profile` (feature 018)
+    - `preprocessing/region_strategies.py::resolve_region_strategy` (feature 018)
+    - `preprocessing/preprocess_strategies.py::resolve_preprocess_strategy` (feature 019)
+
+    Typical triggers are CLI typos like
     `--module-set=reduced-v99`, `--det-rec-variant=ppocrv9_imaginary`,
     `--raster-profile=reduced-v99`, `--region-strategy=header-first-v99`,
-    or `--preprocess-strategy=ocr-only-v99`). Caught at the CLI parse
+    or `--preprocess-strategy=ocr-only-v99`. Caught at the CLI parse
     boundary BEFORE any Paddle import (the lightweight ``preflight``
     module is imported earlier — it is CPU-safe and does not pull in
     Paddle until ``classify()`` actually runs); surfaced as

@@ -237,8 +237,11 @@ def test_unknown_region_strategy_via_env_var_exits_16(
 
 
 def test_unknown_preprocess_strategy_exits_16(tmp_path: Path) -> None:
-    """`--preprocess-strategy=ocr-only-v99` exits with code 16 + stderr
-    line + no run_summary emitted (R-019.12 / I-019.1)."""
+    """`--preprocess-strategy=ocr-only-v99` exits with code 16
+    (R-019.12 / I-019.1). The stderr line content and the
+    no-run_summary invariant are exercised by sibling tests
+    `test_unknown_preprocess_strategy_stderr_lists_valid_values` and
+    `test_unknown_preprocess_strategy_emits_no_run_summary` below."""
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
     (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
