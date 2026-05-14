@@ -114,7 +114,7 @@ def test_output_path_not_usable_shape(
     dest.mkdir()
     mode = dest.stat().st_mode
     try:
-        os.chmod(dest, 0o555)
+        os.chmod(dest, 0o555)  # NOSONAR S2612 — intentional: simulate non-writable directory to verify the StructuredFailureRecord path.
         code = main(
             [
                 "run",

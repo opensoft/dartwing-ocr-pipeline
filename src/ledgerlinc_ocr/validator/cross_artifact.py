@@ -120,7 +120,9 @@ def _extract_triad_facts(
     present: bool | None = None
     inferred: bool | None = None
     mrr: bool | None = None
-    reason: Any = _UNSET
+    reason: Any
+    # Both branches below assign `reason`, so no initial value is needed
+    # (Sonar S1854 flagged the prior `reason = _UNSET` initial as dead).
 
     if name is ArtifactName.EXPECTED:
         evc = doc.get("expected_vendor_candidate") or {}

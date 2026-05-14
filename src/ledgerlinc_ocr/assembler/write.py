@@ -31,7 +31,15 @@ def _ordered_top_level(payload: dict) -> dict:
 
 
 def write_final_payload(path: Path, payload: dict) -> None:
-    """Write `payload` to `path` deterministically: UTF-8, indent=2, trailing newline."""
+    """Write `payload` to `path` deterministically: UTF-8, indent=2, trailing newline.
+
+    Path-injection note (Sonar pythonsecurity:S2083): `path` is supplied by
+    the pipeline orchestrator from a validated `CLIInvocation` whose
+    `destination_folder` is anchored to the caller-resolved per-document
+    folder (see `pipeline/path_resolution.py::resolve_destination`). The
+    CLI surface rejects symlinks and traversals before this layer is
+    reached, so the bare `path.write_text(...)` is safe in this context.
+    """
     ordered = _ordered_top_level(payload)
     text = json.dumps(
         ordered,
@@ -40,4 +48,4 @@ def write_final_payload(path: Path, payload: dict) -> None:
         separators=(",", ": "),
         sort_keys=False,
     )
-    path.write_text(text + "\n", encoding="utf-8")
+    path.write_text(text + "\n", encoding="utf-8")  # NOSONAR pythonsecurity:S2083 — see docstring; path is validated upstream.

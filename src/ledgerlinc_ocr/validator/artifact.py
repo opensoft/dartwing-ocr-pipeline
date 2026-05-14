@@ -117,7 +117,7 @@ def _missing_name_triad_violation(
     vc = data.get("vendor_candidate") or {}
     cn = vc.get("company_name") or {}
     rs = data.get("review_status") or {}
-    if not cn.get("present") is False:
+    if cn.get("present") is not False:
         return None
     inferred_ok = cn.get("inferred") is True
     review_ok = rs.get("manual_review_required") is True
@@ -336,9 +336,9 @@ def validate_artifact(
 ) -> ValidationOutcome:
     """Validate a single JSON artifact at `path` against its named contract."""
     artifact = _resolve_artifact(contract)
-    if contract_set is None:
-        contract_set = load_contract_set(version)
-    elif version is not None and contract_set.version != version:
+    # Load (or reload) the contract set when either no set was passed in or
+    # the supplied set disagrees with an explicit `version` argument.
+    if contract_set is None or (version is not None and contract_set.version != version):
         contract_set = load_contract_set(version)
     path = Path(path)
     data = _load_artifact_file(path)

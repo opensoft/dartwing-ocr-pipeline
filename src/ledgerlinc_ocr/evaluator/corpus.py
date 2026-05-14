@@ -297,9 +297,9 @@ def build_by_field(
     evaluations: tuple[DocumentEvaluation, ...],
 ) -> dict[str, float]:
     """Corpus-wide unweighted accuracy per dotted SCORED_FIELDS key (research §12)."""
-    per_field_applicable: dict[str, int] = {k: 0 for k in SCORED_FIELDS}
-    per_field_match: dict[str, int] = {k: 0 for k in SCORED_FIELDS}
-    per_field_partial: dict[str, int] = {k: 0 for k in SCORED_FIELDS}
+    per_field_applicable: dict[str, int] = dict.fromkeys(SCORED_FIELDS, 0)
+    per_field_match: dict[str, int] = dict.fromkeys(SCORED_FIELDS, 0)
+    per_field_partial: dict[str, int] = dict.fromkeys(SCORED_FIELDS, 0)
     for ev in evaluations:
         for fr in ev.field_results:
             if fr.result is ResultLabel.NOT_APPLICABLE:

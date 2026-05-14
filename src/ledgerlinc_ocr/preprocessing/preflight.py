@@ -356,18 +356,18 @@ def classify(
     paddle_version = _paddle_distribution_version()
     paddleocr_version = _package_version("paddleocr")
 
-    base_evidence = dict(
-        interpreter_path=interpreter_path,
-        interpreter_version=interpreter_version,
-        venv_path=venv_path,
-        paddle_version=paddle_version,
-        paddleocr_version=paddleocr_version,
-        paddle_compiled_with_cuda=None,
-        paddle_compiled_with_rocm=None,
-        visible_device_count=None,
-        selected_device=None,
-        runtime_device_exposure=runtime_device_exposure,
-    )
+    base_evidence = {
+        "interpreter_path": interpreter_path,
+        "interpreter_version": interpreter_version,
+        "venv_path": venv_path,
+        "paddle_version": paddle_version,
+        "paddleocr_version": paddleocr_version,
+        "paddle_compiled_with_cuda": None,
+        "paddle_compiled_with_rocm": None,
+        "visible_device_count": None,
+        "selected_device": None,
+        "runtime_device_exposure": runtime_device_exposure,
+    }
 
     # Step 1+2: install + import paddle
     if paddle_version is None or paddleocr_version is None:

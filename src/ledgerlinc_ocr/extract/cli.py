@@ -99,7 +99,7 @@ def main(argv: list[str] | None = None) -> int:
             template_path=template_path,
         )
     except ExtractionError as exc:
-        _LOG.error("%s", exc.message)
+        _LOG.exception("%s", exc.message)
         return for_error(exc)
     except Exception as exc:  # pragma: no cover — safety net for unexpected failures
         _LOG.exception("unexpected extractor failure: %s", exc)

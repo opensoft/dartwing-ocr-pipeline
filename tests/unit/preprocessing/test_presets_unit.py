@@ -198,9 +198,8 @@ def test_presets_module_top_level_imports_dont_load_paddle() -> None:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 top_level_imports.add(alias.name)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                top_level_imports.add(node.module)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            top_level_imports.add(node.module)
     forbidden = {"paddle", "paddleocr", "paddlex", "PIL", "pypdfium2"}
     leaked = forbidden & top_level_imports
     assert not leaked, (
