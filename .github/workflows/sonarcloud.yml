@@ -1,0 +1,33 @@
+name: SonarCloud Code Analysis
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch: {}
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+    # The GitHub-App-driven analysis on this repo has gone silent;
+    # this workflow is the failsafe path that pushes the scan to
+    # SonarCloud directly via the scanner action. The project config
+    # (key / organization / sources / tests / coverage paths) lives in
+    # `sonar-project.properties` at the repo root.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # SonarCloud requires the full git history so it can identify
+          # changed lines vs. the PR base. A shallow clone causes the
+          # "new code" period to be misattributed.
+          fetch-depth: 0
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
