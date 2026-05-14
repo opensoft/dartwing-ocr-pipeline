@@ -20,6 +20,8 @@ lazily inside `classify()`), so a non-paddle environment can still
 without crashing — that is the contract the conftest's defensive
 import path (T009 / RR15) relies on.
 
+_GPU_DEVICE = "gpu:0"
+
 When run as `python -m ledgerlinc_ocr.preprocessing.preflight`, the
 `__main__` block at the bottom dispatches to `preflight_cli.main`
 (T015).
@@ -250,7 +252,7 @@ def _recommendation_for(state: PreflightState, evidence: PreflightEvidence) -> s
     (c) one-line plain language."""
     doc_ref = "docs/stage1-vendor-identity/paddle-gpu-preflight.md"
     if state == PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED:
-        device = evidence.selected_device or "gpu:0"
+        device = evidence.selected_device or _GPU_DEVICE
         if evidence.ppstructurev3_init_skipped_reason is not None:
             return (
                 f"Earlier preflight steps passed on {device}; PPStructureV3 init "
@@ -315,7 +317,7 @@ def classify(
     ----------
     attempt_ppstructurev3_init:
         When True (default), step 6 attempts to construct
-        `PPStructureV3(device="gpu:0", ...)`. When False (set by the
+        `PPStructureV3(device=_GPU_DEVICE, ...)`. When False (set by the
         `--no-init` CLI flag for network-restricted shells), step 6
         is skipped — but steps 1–5 still execute and may briefly
         touch the network during `import paddle` weight verification.
@@ -424,14 +426,14 @@ def classify(
     # run_summary can report `phase_timings.gpu_bind_probe.seconds`.
     gpu_bind_probe_start_ns = time.monotonic_ns()
     try:
-        paddle.device.set_device("gpu:0")
+        paddle.device.set_device(_GPU_DEVICE)
         _probe = paddle.to_tensor([0])  # noqa: F841 - probe only
         del _probe
         gpu_bind_probe_seconds = round(
             (time.monotonic_ns() - gpu_bind_probe_start_ns) / 1e9, 6
         )
         base_evidence.update(
-            selected_device="gpu:0",
+            selected_device=_GPU_DEVICE,
             gpu_bind_probe_seconds=gpu_bind_probe_seconds,
         )
     except Exception as exc:  # noqa: BLE001
@@ -504,12 +506,12 @@ def classify(
             **_det_rec_kwargs,
             cpu_threads=1,
             enable_mkldnn=False,
-            device="gpu:0",
+            device=_GPU_DEVICE,
             lang="en",
         )
         from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
 
-        _ocr_mod._adopt_engine(engine, "gpu:0")
+        _ocr_mod._adopt_engine(engine, _GPU_DEVICE)
         elapsed = round((time.monotonic_ns() - start_ns) / 1e9, 6)
         evidence = PreflightEvidence(
             **{**base_evidence, "ppstructurev3_init_seconds": elapsed}

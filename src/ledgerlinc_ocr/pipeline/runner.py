@@ -49,11 +49,18 @@ from ledgerlinc_ocr.validator.artifact import validate_artifact
 from ledgerlinc_ocr.validator.loader import load_contract_set
 from ledgerlinc_ocr.validator.report import ArtifactName
 
+# Canonical artifact filenames (Sonar S1192 — each previously appeared
+# 5-6 times across this module; centralized so a rename is one-line).
+PREPROCESS_OUTPUT_FILENAME = "preprocess_output.json"
+EDGE_EXTRACTION_OUTPUT_FILENAME = "edge_extraction_output.json"
+ROUTING_DECISION_FILENAME = "routing_decision.json"
+FINAL_STRUCTURED_PAYLOAD_FILENAME = "final_structured_payload.json"
+
 RESERVED_ARTIFACT_NAMES: tuple[str, ...] = (
-    "preprocess_output.json",
-    "edge_extraction_output.json",
-    "routing_decision.json",
-    "final_structured_payload.json",
+    PREPROCESS_OUTPUT_FILENAME,
+    EDGE_EXTRACTION_OUTPUT_FILENAME,
+    ROUTING_DECISION_FILENAME,
+    FINAL_STRUCTURED_PAYLOAD_FILENAME,
 )
 
 OFF_LIMITS_NAMES: tuple[str, ...] = (
@@ -63,10 +70,10 @@ OFF_LIMITS_NAMES: tuple[str, ...] = (
 )
 
 _FILENAME_TO_ARTIFACT: dict[str, ArtifactName] = {
-    "preprocess_output.json": ArtifactName.PREPROCESS_OUTPUT,
-    "edge_extraction_output.json": ArtifactName.EDGE_EXTRACTION_OUTPUT,
-    "routing_decision.json": ArtifactName.ROUTING_DECISION,
-    "final_structured_payload.json": ArtifactName.FINAL_STRUCTURED_PAYLOAD,
+    PREPROCESS_OUTPUT_FILENAME: ArtifactName.PREPROCESS_OUTPUT,
+    EDGE_EXTRACTION_OUTPUT_FILENAME: ArtifactName.EDGE_EXTRACTION_OUTPUT,
+    ROUTING_DECISION_FILENAME: ArtifactName.ROUTING_DECISION,
+    FINAL_STRUCTURED_PAYLOAD_FILENAME: ArtifactName.FINAL_STRUCTURED_PAYLOAD,
 }
 
 _STAGE_TO_FILENAME: dict[Stage, str] = dict(ARTIFACT_FILENAME_BY_STAGE)
@@ -251,10 +258,10 @@ class StageRunOutput:
 
 
 _STAGE_SEQUENCE: tuple[tuple[str, str], ...] = (
-    ("preprocess_output.json", "preprocess"),
-    ("edge_extraction_output.json", "extraction"),
-    ("routing_decision.json", "routing"),
-    ("final_structured_payload.json", "final_payload"),
+    (PREPROCESS_OUTPUT_FILENAME, "preprocess"),
+    (EDGE_EXTRACTION_OUTPUT_FILENAME, "extraction"),
+    (ROUTING_DECISION_FILENAME, "routing"),
+    (FINAL_STRUCTURED_PAYLOAD_FILENAME, "final_payload"),
 )
 
 # Per-stage compute-phase key vocabulary (R-009 / FR-027). The runner
@@ -371,16 +378,16 @@ class Runner:
             default_routing,
         )
         self._injected: dict[str, StageCallable | None] = {
-            "preprocess_output.json": preprocess,
-            "edge_extraction_output.json": extraction,
-            "routing_decision.json": routing,
-            "final_structured_payload.json": final_payload,
+            PREPROCESS_OUTPUT_FILENAME: preprocess,
+            EDGE_EXTRACTION_OUTPUT_FILENAME: extraction,
+            ROUTING_DECISION_FILENAME: routing,
+            FINAL_STRUCTURED_PAYLOAD_FILENAME: final_payload,
         }
         self._defaults: dict[str, StageCallable] = {
-            "preprocess_output.json": default_preprocess,
-            "edge_extraction_output.json": default_extraction,
-            "routing_decision.json": default_routing,
-            "final_structured_payload.json": default_final_payload,
+            PREPROCESS_OUTPUT_FILENAME: default_preprocess,
+            EDGE_EXTRACTION_OUTPUT_FILENAME: default_extraction,
+            ROUTING_DECISION_FILENAME: default_routing,
+            FINAL_STRUCTURED_PAYLOAD_FILENAME: default_final_payload,
         }
 
     def run(self, invocation: CLIInvocation) -> RunResult:
@@ -620,7 +627,7 @@ class Runner:
     def _load_routing_payload(
         *, folder: Path, plan: ResolvedRunPlan, produced: dict[str, Any]
     ) -> dict[str, Any] | None:
-        routing_filename = "routing_decision.json"
+        routing_filename = ROUTING_DECISION_FILENAME
         if routing_filename in produced:
             return produced[routing_filename]
 

@@ -26,6 +26,9 @@ from ledgerlinc_ocr.evaluator.scoring import (
     compute_document_score,
 )
 
+_EVAL_DOC_FILENAME = "evaluation_document.json"
+_EVAL_RUN_SUMMARY_FILENAME = "evaluation_run_summary.json"
+
 
 @dataclass(frozen=True, slots=True)
 class DifficultyStats:
@@ -215,7 +218,7 @@ def _ensure_document_evaluation(
     and the document is always re-evaluated from scratch. This bypasses the
     lazy-mode cache and forces regeneration regardless of whether the
     on-disk artifact is schema-valid."""
-    eval_path = folder / "evaluation_document.json"
+    eval_path = folder / _EVAL_DOC_FILENAME
     if refresh:
         outcome = evaluate_document(folder, contract_set_version=contract_set_version)
         assert outcome.evaluation is not None
@@ -227,7 +230,7 @@ def _ensure_document_evaluation(
                 instance,
                 load_evaluation_document_schema(contract_set_version),
                 source=eval_path,
-                artifact_label="evaluation_document.json",
+                artifact_label=_EVAL_DOC_FILENAME,
             )
         except Exception:
             if not lazy:
@@ -422,7 +425,7 @@ def evaluate_corpus(
             DocumentEvaluationOutcome(
                 ok=True,
                 evaluation=ev,
-                output_path=folder / "evaluation_document.json",
+                output_path=folder / _EVAL_DOC_FILENAME,
             )
         )
 
@@ -451,11 +454,11 @@ def evaluate_corpus(
     validate_against_schema(
         persistable,
         load_evaluation_run_summary_schema(pinned),
-        source=root / "evaluation_run_summary.json",
-        artifact_label="evaluation_run_summary.json",
+        source=root / _EVAL_RUN_SUMMARY_FILENAME,
+        artifact_label=_EVAL_RUN_SUMMARY_FILENAME,
     )
 
-    json_path = root / "evaluation_run_summary.json"
+    json_path = root / _EVAL_RUN_SUMMARY_FILENAME
     write_json(json_path, persistable)
 
     from ledgerlinc_ocr.evaluator.report import render_run_summary

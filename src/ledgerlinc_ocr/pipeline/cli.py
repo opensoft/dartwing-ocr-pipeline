@@ -842,7 +842,7 @@ def main(argv: list[str] | None = None, *, runner: Runner | None = None) -> int:
     parser = _build_parser()
     try:
         args = parser.parse_args(argv)
-    except SystemExit as exc:
+    except SystemExit as exc:  # NOSONAR S5754 — intentional: convert argparse's SystemExit into an integer return so library callers (tests, tools) don't see an exception. --help raises SystemExit(0); parse errors raise SystemExit(1+) and are mapped to USAGE_ERROR below.
         if exc.code == 0:
             return 0
         _emit_failure(

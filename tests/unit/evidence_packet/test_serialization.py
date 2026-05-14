@@ -28,7 +28,8 @@ def test_indent_and_insertion_order_preserved(tmp_path):
     write_packet_atomic(packet, out)
     text = out.read_text(encoding="utf-8")
 
-    assert "\n  " in text  # indent=2
+    # A two-space indent token confirms json.dump was called with indent=2.
+    assert "\n  " in text
     assert text.index("z_first") < text.index("a_second")
     nested = text[text.index("nested") :]
     assert nested.index("second") < nested.index("first")

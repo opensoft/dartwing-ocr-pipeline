@@ -129,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     try:
         args = parser.parse_args(argv)
-    except SystemExit as exc:
+    except SystemExit as exc:  # NOSONAR S5754 — intentional: argparse exits via SystemExit on --help / parse errors; convert to an integer return so library callers don't see an exception.
         return int(exc.code) if isinstance(exc.code, int) else 2
 
     json_output: bool = bool(getattr(args, "json_output", False))

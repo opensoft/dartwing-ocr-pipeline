@@ -40,6 +40,8 @@ from ledgerlinc_ocr.evaluator.scoring import (
     is_compatible_version,
 )
 
+_EVAL_DOC_FILENAME = "evaluation_document.json"
+
 Difficulty = Literal["easy", "medium", "hard", "missing_name"]
 
 
@@ -211,11 +213,11 @@ def evaluate_document(
     validate_against_schema(
         persistable,
         load_evaluation_document_schema(pinned_version),
-        source=folder / "evaluation_document.json",
-        artifact_label="evaluation_document.json",
+        source=folder / _EVAL_DOC_FILENAME,
+        artifact_label=_EVAL_DOC_FILENAME,
     )
 
-    output_path = folder / "evaluation_document.json"
+    output_path = folder / _EVAL_DOC_FILENAME
     write_json(output_path, persistable)
 
     return DocumentEvaluationOutcome(

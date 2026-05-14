@@ -31,13 +31,17 @@ from ledgerlinc_ocr.validator.report import (
     ViolationCode,
 )
 
+_EXPECTED_FILENAME = "expected.json"
+_SOURCE_PDF_FIELD_PATH = "/source.pdf"
+_FR_003_EXPECTED = "FR-003 readable source.pdf"
+
 _ARTIFACT_FILENAMES: dict[str, ArtifactName] = {
     "preprocess_output.json": ArtifactName.PREPROCESS_OUTPUT,
     "edge_extraction_output.json": ArtifactName.EDGE_EXTRACTION_OUTPUT,
     "routing_decision.json": ArtifactName.ROUTING_DECISION,
     "final_structured_payload.json": ArtifactName.FINAL_STRUCTURED_PAYLOAD,
     "evaluation_document.json": ArtifactName.EVALUATION_DOCUMENT,
-    "expected.json": ArtifactName.EXPECTED,
+    _EXPECTED_FILENAME: ArtifactName.EXPECTED,
     "evidence_packet.json": ArtifactName.EVIDENCE_PACKET,
 }
 
@@ -100,10 +104,10 @@ def _check_source_pdf_readable(path: Path, *, target: str) -> list[Violation]:
             Violation(
                 severity=Severity.ERROR,
                 target=target,
-                field_path="/source.pdf",
+                field_path=_SOURCE_PDF_FIELD_PATH,
                 violation_code=ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE,
                 reason=f"source.pdf could not be stat'd: {exc}",
-                expected="FR-003 readable source.pdf",
+                expected=_FR_003_EXPECTED,
                 source_file=str(path),
             )
         ]
@@ -112,10 +116,10 @@ def _check_source_pdf_readable(path: Path, *, target: str) -> list[Violation]:
             Violation(
                 severity=Severity.ERROR,
                 target=target,
-                field_path="/source.pdf",
+                field_path=_SOURCE_PDF_FIELD_PATH,
                 violation_code=ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE,
                 reason="source.pdf is empty (0 bytes).",
-                expected="FR-003 readable source.pdf",
+                expected=_FR_003_EXPECTED,
                 source_file=str(path),
             )
         ]
@@ -130,10 +134,10 @@ def _check_source_pdf_readable(path: Path, *, target: str) -> list[Violation]:
             Violation(
                 severity=Severity.ERROR,
                 target=target,
-                field_path="/source.pdf",
+                field_path=_SOURCE_PDF_FIELD_PATH,
                 violation_code=ViolationCode.FOLDER_SOURCE_PDF_UNREADABLE,
                 reason=f"source.pdf failed structural parse: {summary}.",
-                expected="FR-003 readable source.pdf",
+                expected=_FR_003_EXPECTED,
                 source_file=str(path),
             )
         ]
@@ -218,7 +222,7 @@ def validate_folder(
         findings.extend(_check_source_pdf_readable(source_pdf, target=target))
 
     # Expected.json governs difficulty for conditional rules
-    expected_doc = _load_expected(folder / "expected.json")
+    expected_doc = _load_expected(folder / _EXPECTED_FILENAME)
     difficulty = None
     if expected_doc is not None and isinstance(expected_doc, dict):
         d = expected_doc.get("difficulty")
@@ -241,7 +245,7 @@ def validate_folder(
                         f"does not match folder name {folder.name!r}."
                     ),
                     expected="stage 1 document_id equals the full folder name",
-                    source_file=str(folder / "expected.json"),
+                    source_file=str(folder / _EXPECTED_FILENAME),
                 )
             )
     # Fall back on folder-name suffix if expected.json is missing or bad

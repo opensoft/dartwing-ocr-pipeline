@@ -41,7 +41,7 @@ def test_all_match_writes_schema_valid_output(tmp_path: Path) -> None:
     assert ev.document_pass_fail.vendor_identity_passed is True
     assert ev.document_pass_fail.review_routing_passed is True
     assert ev.document_pass_fail.overall_passed is True
-    assert ev.comparison_summary.field_accuracy == 1.0
+    assert ev.comparison_summary.field_accuracy == pytest.approx(1.0)
 
 
 def test_challenge_tags_propagate_verbatim(tmp_path: Path) -> None:

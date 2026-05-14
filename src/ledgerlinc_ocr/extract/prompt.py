@@ -49,13 +49,14 @@ def _serialize_packet(packet: dict[str, Any]) -> str:
 def render_prompt(
     packet: dict[str, Any],
     template_path: Path,
-    voter_config: Any,
+    _voter_config: Any,
 ) -> str:
     """Load the Markdown prompt template and substitute the serialized packet
     view for `{EVIDENCE_BLOCK}`.
 
-    `voter_config` is accepted for forward compatibility (future prompts may
-    condition on voter metadata), but the base template is voter-agnostic.
+    The underscore-prefixed ``_voter_config`` is accepted positionally for
+    forward compatibility — future prompts may condition on voter metadata —
+    but the base template is voter-agnostic and ignores it today.
     """
 
     template = Path(template_path).read_text(encoding="utf-8")

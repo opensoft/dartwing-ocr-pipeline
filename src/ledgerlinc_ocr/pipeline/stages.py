@@ -37,6 +37,8 @@ from ledgerlinc_ocr import __version__ as _package_version
 from ledgerlinc_ocr.pipeline.profiles import Stage, StageProfile
 
 _SOURCE_PDF = "source.pdf"
+_STUB_BLOCK_TEXT = "stub block"
+_EDGE_EXTRACTION_OUTPUT_FILENAME = "edge_extraction_output.json"
 
 if TYPE_CHECKING:
     from ledgerlinc_ocr.pipeline.runner import CLIInvocation, ResolvedRunPlan
@@ -72,7 +74,7 @@ def default_preprocess(
                         "block_type": "text",
                         "bbox": [0, 0, 100, 20],
                         "reading_order": 1,
-                        "text": "stub block",
+                        "text": _STUB_BLOCK_TEXT,
                         "confidence": 0.9,
                     }
                 ],
@@ -80,13 +82,13 @@ def default_preprocess(
                     {
                         "line_id": "p1_l1",
                         "bbox": [0, 0, 100, 20],
-                        "text": "stub block",
+                        "text": _STUB_BLOCK_TEXT,
                         "confidence": 0.9,
                     }
                 ],
             }
         ],
-        "document_text": "stub block",
+        "document_text": _STUB_BLOCK_TEXT,
         "tables": [],
         "quality": {
             "scan_quality": "good",
@@ -170,7 +172,7 @@ def default_extraction(
 def default_routing(
     invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
 ) -> dict[str, Any]:
-    extraction = artifacts_so_far["edge_extraction_output.json"]
+    extraction = artifacts_so_far[_EDGE_EXTRACTION_OUTPUT_FILENAME]
     company_name = extraction["vendor_candidate"]["company_name"]
 
     present = bool(company_name.get("present"))
@@ -227,7 +229,7 @@ def default_routing(
 def default_final_payload(
     invocation: "CLIInvocation", artifacts_so_far: dict[str, Any]
 ) -> dict[str, Any]:
-    extraction = artifacts_so_far["edge_extraction_output.json"]
+    extraction = artifacts_so_far[_EDGE_EXTRACTION_OUTPUT_FILENAME]
     routing = artifacts_so_far["routing_decision.json"]
     vc = extraction["vendor_candidate"]
 
@@ -272,7 +274,7 @@ def default_final_payload(
         "trace": {
             "source_file": _SOURCE_PDF,
             "preprocess_output_file": "preprocess_output.json",
-            "edge_extraction_output_file": "edge_extraction_output.json",
+            "edge_extraction_output_file": _EDGE_EXTRACTION_OUTPUT_FILENAME,
             "routing_decision_file": "routing_decision.json",
         },
     }

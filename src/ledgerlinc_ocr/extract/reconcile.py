@@ -13,6 +13,9 @@ from typing import Any
 
 from .config import VoterConfig
 
+_TOTAL_AMOUNT_PATH = "invoice_header_fields/total_amount"
+_COMPANY_NAME_PATH = "vendor_candidate/company_name"
+
 _EVIDENCE_ID = re.compile(r"^p\d+_[bl]\d+$")
 
 _VCE_FIELDS = ("website", "phone", "email")
@@ -86,7 +89,7 @@ def _coerce_total_amount(
     warnings: list[str],
     soft: dict[str, bool],
 ) -> dict[str, Any]:
-    path = "invoice_header_fields/total_amount"
+    path = _TOTAL_AMOUNT_PATH
     if not isinstance(raw, dict):
         warnings.append(f"sub-field defaulted (wrong-type): {path}")
         soft["defaulted"] = True
@@ -134,7 +137,7 @@ def _coerce_company_name(
     warnings: list[str],
     soft: dict[str, bool],
 ) -> dict[str, Any]:
-    path = "vendor_candidate/company_name"
+    path = _COMPANY_NAME_PATH
     if not isinstance(raw, dict):
         warnings.append(f"sub-field defaulted (wrong-type): {path}")
         soft["defaulted"] = True
@@ -272,7 +275,7 @@ def reconcile(
     if "company_name" in parsed_vendor:
         company_name = _coerce_company_name(parsed_vendor["company_name"], warnings, soft)
     else:
-        warnings.append("sub-field defaulted (missing): vendor_candidate/company_name")
+        warnings.append(f"sub-field defaulted (missing): {_COMPANY_NAME_PATH}")
         soft["defaulted"] = True
         company_name = _new_company_name()
 
@@ -325,7 +328,7 @@ def reconcile(
     if "total_amount" in parsed_header:
         total_amount = _coerce_total_amount(parsed_header["total_amount"], warnings, soft)
     else:
-        warnings.append("sub-field defaulted (missing): invoice_header_fields/total_amount")
+        warnings.append(f"sub-field defaulted (missing): {_TOTAL_AMOUNT_PATH}")
         soft["defaulted"] = True
         total_amount = _new_total_amount()
 
@@ -349,7 +352,7 @@ def reconcile(
     def _filter_block(field: dict[str, Any], path: str) -> None:
         _filter_evidence(field, evidence_index, path, warnings, soft)
 
-    _filter_block(company_name, "vendor_candidate/company_name")
+    _filter_block(company_name, _COMPANY_NAME_PATH)
     for key in _ADDRESS_FIELDS:
         _filter_block(address[key], f"vendor_candidate/address/{key}")
     for key in _TAX_FIELDS:
@@ -358,7 +361,7 @@ def reconcile(
         _filter_block(vendor_scalars[key], f"vendor_candidate/{key}")
     for key in _HEADER_SCALAR_FIELDS:
         _filter_block(header_scalars[key], f"invoice_header_fields/{key}")
-    _filter_block(total_amount, "invoice_header_fields/total_amount")
+    _filter_block(total_amount, _TOTAL_AMOUNT_PATH)
 
     # Step 4 — Ungrounded-confidence cap
     cap = config.reconciliation.ungrounded_confidence_cap
@@ -472,7 +475,7 @@ def reconcile(
 
 def _iter_all_fields(artifact: dict[str, Any]):
     vc = artifact["vendor_candidate"]
-    yield "vendor_candidate/company_name", vc["company_name"]
+    yield _COMPANY_NAME_PATH, vc["company_name"]
     for key in _ADDRESS_FIELDS:
         yield f"vendor_candidate/address/{key}", vc["address"][key]
     for key in _TAX_FIELDS:
@@ -482,4 +485,4 @@ def _iter_all_fields(artifact: dict[str, Any]):
     hf = artifact["invoice_header_fields"]
     for key in _HEADER_SCALAR_FIELDS:
         yield f"invoice_header_fields/{key}", hf[key]
-    yield "invoice_header_fields/total_amount", hf["total_amount"]
+    yield _TOTAL_AMOUNT_PATH, hf["total_amount"]

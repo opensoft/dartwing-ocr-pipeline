@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ledgerlinc_ocr.validator.report import (
+
     ArtifactName,
     Severity,
     Violation,
@@ -16,6 +17,8 @@ from ledgerlinc_ocr.validator.report import (
 )
 
 
+
+_UNSET = "<unset>"
 def check_provenance_triad(
     artifacts: dict[ArtifactName, dict[str, Any]],
     *,
@@ -115,7 +118,7 @@ def _extract_triad_facts(
     present: bool | None = None
     inferred: bool | None = None
     mrr: bool | None = None
-    reason: Any = "<unset>"
+    reason: Any = _UNSET
 
     if name is ArtifactName.EXPECTED:
         evc = doc.get("expected_vendor_candidate") or {}
@@ -124,7 +127,7 @@ def _extract_triad_facts(
         present = cn.get("present") if "present" in cn else None
         inferred = cn.get("inferred") if "inferred" in cn else None
         mrr = er.get("manual_review_required") if "manual_review_required" in er else None
-        reason = er.get("review_reason") if "review_reason" in er else "<unset>"
+        reason = er.get("review_reason") if "review_reason" in er else _UNSET
     else:
         vc = doc.get("vendor_candidate") or {}
         cn = vc.get("company_name") or {}
@@ -132,14 +135,14 @@ def _extract_triad_facts(
         present = cn.get("present") if "present" in cn else None
         inferred = cn.get("inferred") if "inferred" in cn else None
         mrr = rs.get("manual_review_required") if "manual_review_required" in rs else None
-        reason = rs.get("review_reason") if "review_reason" in rs else "<unset>"
+        reason = rs.get("review_reason") if "review_reason" in rs else _UNSET
 
     out: dict[str, Any] = {
         "present": present,
         "inferred": inferred,
         "manual_review_required": mrr,
     }
-    if reason != "<unset>":
+    if reason != _UNSET:
         out["review_reason"] = reason
     return out
 
