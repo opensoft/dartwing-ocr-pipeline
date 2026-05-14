@@ -1,25 +1,27 @@
-name: SonarCloud Code Analysis
+name: SonarCloud Code Analysis (manual failsafe)
 
+# Manual-only break-glass workflow. SonarCloud's GitHub App Automatic
+# Analysis is the primary path on this repo and currently works; running
+# both at once trips Sonar's "CI analysis while Automatic Analysis is
+# enabled" guard (we hit this on run 25858216112). Keep this workflow as
+# a `workflow_dispatch` failsafe so if the App goes silent again (as it
+# did 2026-05-10 → 2026-05-14), an operator can fire a one-off scan
+# without needing to edit CI config under pressure.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened]
   workflow_dispatch: {}
 
 jobs:
   sonarcloud:
     name: SonarCloud Scan
     runs-on: ubuntu-latest
-    # The GitHub-App-driven analysis on this repo has gone silent;
-    # this workflow is the failsafe path that pushes the scan to
-    # SonarCloud directly via the scanner action. The project config
-    # (key / organization / sources / tests / coverage paths) lives in
-    # `sonar-project.properties` at the repo root.
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # Pinned to a full SHA per Sonar S7637 (supply-chain): floating
+        # tags like @v4 can be retargeted; commit SHAs cannot. SHA
+        # captures the commit that the @v4 tag pointed at when this
+        # workflow was authored; refresh when @v4 moves to a security
+        # release.
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           # SonarCloud requires the full git history so it can identify
           # changed lines vs. the PR base. A shallow clone causes the
@@ -27,7 +29,10 @@ jobs:
           fetch-depth: 0
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v3
+        # SonarSource/sonarcloud-github-action — pinned to the commit
+        # the @v3 tag currently points at (SCSCANGHA-24, Docker base
+        # image update). Refresh the SHA when the action's v3 tag moves.
+        uses: SonarSource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
