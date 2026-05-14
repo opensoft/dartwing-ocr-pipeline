@@ -45,16 +45,15 @@ from ledgerlinc_ocr.pipeline.timing import (
     measure_phase,
     measure_total,
 )
+from ledgerlinc_ocr.pipeline.filenames import (
+    EDGE_EXTRACTION_OUTPUT_FILENAME,
+    FINAL_STRUCTURED_PAYLOAD_FILENAME,
+    PREPROCESS_OUTPUT_FILENAME,
+    ROUTING_DECISION_FILENAME,
+)
 from ledgerlinc_ocr.validator.artifact import validate_artifact
 from ledgerlinc_ocr.validator.loader import load_contract_set
 from ledgerlinc_ocr.validator.report import ArtifactName
-
-# Canonical artifact filenames (Sonar S1192 — each previously appeared
-# 5-6 times across this module; centralized so a rename is one-line).
-PREPROCESS_OUTPUT_FILENAME = "preprocess_output.json"
-EDGE_EXTRACTION_OUTPUT_FILENAME = "edge_extraction_output.json"
-ROUTING_DECISION_FILENAME = "routing_decision.json"
-FINAL_STRUCTURED_PAYLOAD_FILENAME = "final_structured_payload.json"
 
 RESERVED_ARTIFACT_NAMES: tuple[str, ...] = (
     PREPROCESS_OUTPUT_FILENAME,

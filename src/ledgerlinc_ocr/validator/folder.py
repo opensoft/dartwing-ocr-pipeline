@@ -17,6 +17,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ledgerlinc_ocr.evaluator.filenames import EVAL_DOC_FILENAME
+from ledgerlinc_ocr.pipeline.filenames import (
+    EDGE_EXTRACTION_OUTPUT_FILENAME,
+    FINAL_STRUCTURED_PAYLOAD_FILENAME,
+    PREPROCESS_OUTPUT_FILENAME,
+    ROUTING_DECISION_FILENAME,
+)
 from ledgerlinc_ocr.validator.artifact import validate_artifact
 from ledgerlinc_ocr.validator.cross_artifact import (
     check_evidence_references,
@@ -36,11 +43,11 @@ _SOURCE_PDF_FIELD_PATH = "/source.pdf"
 _FR_003_EXPECTED = "FR-003 readable source.pdf"
 
 _ARTIFACT_FILENAMES: dict[str, ArtifactName] = {
-    "preprocess_output.json": ArtifactName.PREPROCESS_OUTPUT,
-    "edge_extraction_output.json": ArtifactName.EDGE_EXTRACTION_OUTPUT,
-    "routing_decision.json": ArtifactName.ROUTING_DECISION,
-    "final_structured_payload.json": ArtifactName.FINAL_STRUCTURED_PAYLOAD,
-    "evaluation_document.json": ArtifactName.EVALUATION_DOCUMENT,
+    PREPROCESS_OUTPUT_FILENAME: ArtifactName.PREPROCESS_OUTPUT,
+    EDGE_EXTRACTION_OUTPUT_FILENAME: ArtifactName.EDGE_EXTRACTION_OUTPUT,
+    ROUTING_DECISION_FILENAME: ArtifactName.ROUTING_DECISION,
+    FINAL_STRUCTURED_PAYLOAD_FILENAME: ArtifactName.FINAL_STRUCTURED_PAYLOAD,
+    EVAL_DOC_FILENAME: ArtifactName.EVALUATION_DOCUMENT,
     _EXPECTED_FILENAME: ArtifactName.EXPECTED,
     "evidence_packet.json": ArtifactName.EVIDENCE_PACKET,
 }

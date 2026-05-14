@@ -12,6 +12,7 @@ from ledgerlinc_ocr.contract_versions import (
     ContractVersionError,
     require_stage1_contract_version,
 )
+from ledgerlinc_ocr.pipeline.filenames import EDGE_EXTRACTION_OUTPUT_FILENAME
 from ledgerlinc_ocr.validator import (
     ArtifactName,
     validate_artifact,
@@ -19,7 +20,7 @@ from ledgerlinc_ocr.validator import (
 
 from .errors import ArtifactAssemblyError, FolderWriteError
 
-_OUTPUT_NAME = "edge_extraction_output.json"
+_OUTPUT_NAME = EDGE_EXTRACTION_OUTPUT_FILENAME
 
 
 def assemble_and_write(artifact_dict: dict[str, Any], folder_path: Path) -> Path:

@@ -13,8 +13,8 @@ from typing import Any
 _PLACEHOLDER = "{EVIDENCE_BLOCK}"
 
 
-def _serialize_packet(packet: dict[str, Any]) -> str:  # NOSONAR S3776 — evidence-packet serializer — branches over block / line / table / quality fields.
-    lines: list[str] = []
+def _serialize_ingestion_sources(packet: dict[str, Any]) -> list[str]:
+    """Format the `## ingestion_sources` block (one line + trailing blank)."""
     ingestion = packet.get("ingestion_sources", {})
     sources = []
     for name in ("paddleocr_vl", "falcon_ocr", "falcon_perception"):
@@ -22,27 +22,33 @@ def _serialize_packet(packet: dict[str, Any]) -> str:  # NOSONAR S3776 — evide
         status = src.get("status", "unknown")
         enabled = src.get("enabled", False)
         sources.append(f"{name}=(enabled={enabled}, status={status})")
-    lines.append("## ingestion_sources")
-    lines.append(", ".join(sources))
-    lines.append("")
+    return ["## ingestion_sources", ", ".join(sources), ""]
 
+
+def _serialize_page(page: dict[str, Any]) -> list[str]:
+    """Format a single page block: header + sorted blocks + raw lines."""
+    out: list[str] = [f"## page {page.get('page_number')}"]
+    blocks = page.get("blocks", []) or []
+    if blocks:
+        out.append("### blocks")
+        for block in sorted(blocks, key=lambda b: b.get("reading_order", 0)):
+            text = (block.get("text") or "").replace("\n", " ").strip()
+            out.append(f"{block['block_id']}: {text}")
+    ocr_lines = page.get("raw_ocr_lines", []) or []
+    if ocr_lines:
+        out.append("### raw_ocr_lines")
+        for line in ocr_lines:
+            text = (line.get("text") or "").replace("\n", " ").strip()
+            out.append(f"{line['line_id']}: {text}")
+    out.append("")
+    return out
+
+
+def _serialize_packet(packet: dict[str, Any]) -> str:
+    lines: list[str] = []
+    lines.extend(_serialize_ingestion_sources(packet))
     for page in packet.get("pages", []):
-        page_no = page.get("page_number")
-        lines.append(f"## page {page_no}")
-        blocks = page.get("blocks", []) or []
-        if blocks:
-            lines.append("### blocks")
-            for block in sorted(blocks, key=lambda b: b.get("reading_order", 0)):
-                text = (block.get("text") or "").replace("\n", " ").strip()
-                lines.append(f"{block['block_id']}: {text}")
-        ocr_lines = page.get("raw_ocr_lines", []) or []
-        if ocr_lines:
-            lines.append("### raw_ocr_lines")
-            for line in ocr_lines:
-                text = (line.get("text") or "").replace("\n", " ").strip()
-                lines.append(f"{line['line_id']}: {text}")
-        lines.append("")
-
+        lines.extend(_serialize_page(page))
     return "\n".join(lines).rstrip() + "\n"
 
 

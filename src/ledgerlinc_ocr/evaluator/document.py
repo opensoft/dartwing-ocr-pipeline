@@ -23,6 +23,7 @@ from ledgerlinc_ocr.evaluator.gates import (
     review_routing_passed,
     vendor_identity_passed,
 )
+from ledgerlinc_ocr.evaluator.filenames import EVAL_DOC_FILENAME
 from ledgerlinc_ocr.evaluator.io import read_json, write_json
 from ledgerlinc_ocr.evaluator.normalize import normalized_equal
 from ledgerlinc_ocr.evaluator.schema import (
@@ -40,7 +41,8 @@ from ledgerlinc_ocr.evaluator.scoring import (
     is_compatible_version,
 )
 
-_EVAL_DOC_FILENAME = "evaluation_document.json"
+# Local alias (keeps call sites private).
+_EVAL_DOC_FILENAME = EVAL_DOC_FILENAME
 
 Difficulty = Literal["easy", "medium", "hard", "missing_name"]
 

@@ -71,20 +71,22 @@ def _artifact_name(value: str) -> ArtifactName:
         ) from exc
 
 
-def load_contract_set(  # NOSONAR S3776 — contract loader — branches over version + override + amendment paths.
-    version: str | None = None,
-    *,
-    contracts_root: Path | None = None,
-) -> ContractSet:
-    root = contracts_root or _DEFAULT_CONTRACTS_ROOT
+def _resolve_version_dir(root: Path, version: str | None) -> Path:
+    """Pick the version directory: latest if version is None, else `v<version>`."""
     if version is None:
-        version_dir = _latest_version_dir(root)
-    else:
-        version_dir = root / f"v{version}"
-        if not version_dir.is_dir():
-            raise ContractSetNotFoundError(
-                f"contract set v{version} not found at {version_dir}"
-            )
+        return _latest_version_dir(root)
+    version_dir = root / f"v{version}"
+    if not version_dir.is_dir():
+        raise ContractSetNotFoundError(
+            f"contract set v{version} not found at {version_dir}"
+        )
+    return version_dir
+
+
+def _read_contract_spec(version_dir: Path) -> dict:
+    """Read + parse `contract_set.json`. Raises ContractSetCorruptError on
+    a missing file, invalid JSON, or any missing top-level key the spec
+    requires."""
     spec_path = version_dir / "contract_set.json"
     if not spec_path.is_file():
         raise ContractSetCorruptError(
@@ -96,27 +98,41 @@ def load_contract_set(  # NOSONAR S3776 — contract loader — branches over ve
         raise ContractSetCorruptError(
             f"contract_set.json is not valid JSON: {exc}"
         ) from exc
+    for required in ("contract_set_version", "artifact_schemas", "folder_schema"):
+        if required not in data:
+            raise ContractSetCorruptError(
+                f"contract_set.json missing required key: {required!r}"
+            )
+    return data
 
-    try:
-        declared_version = data["contract_set_version"]
-        artifact_schemas_raw = data["artifact_schemas"]
-        folder_schema_rel = data["folder_schema"]
-    except KeyError as exc:
-        raise ContractSetCorruptError(
-            f"contract_set.json missing required key: {exc}"
-        ) from exc
 
-    artifact_schemas: dict[ArtifactName, Path] = {}
-    for name, rel in artifact_schemas_raw.items():
+def _resolve_artifact_schemas(
+    version_dir: Path, raw: dict[str, str]
+) -> dict[ArtifactName, Path]:
+    """Resolve each artifact-name → schema-file path under `version_dir`."""
+    out: dict[ArtifactName, Path] = {}
+    for name, rel in raw.items():
         artifact = _artifact_name(name)
         schema_path = (version_dir / rel).resolve()
         if not schema_path.is_file():
             raise ContractSetCorruptError(
                 f"schema file missing for {name}: {schema_path}"
             )
-        artifact_schemas[artifact] = schema_path
+        out[artifact] = schema_path
+    return out
 
-    folder_schema_path = (version_dir / folder_schema_rel).resolve()
+
+def load_contract_set(
+    version: str | None = None,
+    *,
+    contracts_root: Path | None = None,
+) -> ContractSet:
+    root = contracts_root or _DEFAULT_CONTRACTS_ROOT
+    version_dir = _resolve_version_dir(root, version)
+    data = _read_contract_spec(version_dir)
+    declared_version = data["contract_set_version"]
+    artifact_schemas = _resolve_artifact_schemas(version_dir, data["artifact_schemas"])
+    folder_schema_path = (version_dir / data["folder_schema"]).resolve()
     if not folder_schema_path.is_file():
         raise ContractSetCorruptError(
             f"folder schema missing: {folder_schema_path}"

@@ -11,6 +11,10 @@ from typing import Iterable
 from ledgerlinc_ocr.evaluator.compare import FieldResult
 from ledgerlinc_ocr.evaluator.document import DocumentEvaluation, evaluate_document
 from ledgerlinc_ocr.evaluator.exceptions import EmptyCorpusError
+from ledgerlinc_ocr.evaluator.filenames import (
+    EVAL_DOC_FILENAME,
+    EVAL_RUN_SUMMARY_FILENAME,
+)
 from ledgerlinc_ocr.evaluator.gates import DocumentPassFail
 from ledgerlinc_ocr.evaluator.io import read_json, write_json, write_text
 from ledgerlinc_ocr.evaluator.schema import (
@@ -26,8 +30,9 @@ from ledgerlinc_ocr.evaluator.scoring import (
     compute_document_score,
 )
 
-_EVAL_DOC_FILENAME = "evaluation_document.json"
-_EVAL_RUN_SUMMARY_FILENAME = "evaluation_run_summary.json"
+# Local aliases (keep call sites private).
+_EVAL_DOC_FILENAME = EVAL_DOC_FILENAME
+_EVAL_RUN_SUMMARY_FILENAME = EVAL_RUN_SUMMARY_FILENAME
 
 
 @dataclass(frozen=True, slots=True)

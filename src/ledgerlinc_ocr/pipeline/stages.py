@@ -34,11 +34,13 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Callable
 
 from ledgerlinc_ocr import __version__ as _package_version
+from ledgerlinc_ocr.pipeline.filenames import EDGE_EXTRACTION_OUTPUT_FILENAME
 from ledgerlinc_ocr.pipeline.profiles import Stage, StageProfile
 
 _SOURCE_PDF = "source.pdf"
 _STUB_BLOCK_TEXT = "stub block"
-_EDGE_EXTRACTION_OUTPUT_FILENAME = "edge_extraction_output.json"
+# Local alias kept so existing call sites don't need to change visibility.
+_EDGE_EXTRACTION_OUTPUT_FILENAME = EDGE_EXTRACTION_OUTPUT_FILENAME
 
 if TYPE_CHECKING:
     from ledgerlinc_ocr.pipeline.runner import CLIInvocation, ResolvedRunPlan
