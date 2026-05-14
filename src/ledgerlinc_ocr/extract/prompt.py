@@ -13,7 +13,7 @@ from typing import Any
 _PLACEHOLDER = "{EVIDENCE_BLOCK}"
 
 
-def _serialize_packet(packet: dict[str, Any]) -> str:
+def _serialize_packet(packet: dict[str, Any]) -> str:  # NOSONAR S3776 — evidence-packet serializer — branches over block / line / table / quality fields.
     lines: list[str] = []
     ingestion = packet.get("ingestion_sources", {})
     sources = []

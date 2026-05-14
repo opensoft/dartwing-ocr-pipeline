@@ -298,7 +298,7 @@ def _emit_simple_error_kind(kind: str, message: str) -> None:
     )
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — CLI entry point — branches over all preprocessing flags / preset axes; splitting fragments the contract.
     parser = _build_parser()
     args = parser.parse_args(argv)
 

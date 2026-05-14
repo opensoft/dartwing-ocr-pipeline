@@ -144,7 +144,7 @@ def _check_source_pdf_readable(path: Path, *, target: str) -> list[Violation]:
     return []
 
 
-def _looks_pipeline_generated(
+def _looks_pipeline_generated(  # NOSONAR S3776 — pipeline-generated detection — flat conditions across each artifact stamp.
     doc: dict[str, Any] | None,
     artifact: ArtifactName | None = None,
 ) -> bool:

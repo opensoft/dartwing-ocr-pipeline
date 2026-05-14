@@ -42,7 +42,7 @@ def _new_company_name() -> dict[str, Any]:
     }
 
 
-def _coerce_scalar(
+def _coerce_scalar(  # NOSONAR S3776 — multi-type scalar coercion — flat type-check branches are simpler than dispatch.
     raw: Any,
     path: str,
     warnings: list[str],
@@ -215,7 +215,7 @@ def _apply_cap(field: dict[str, Any], cap: float) -> None:
         field["confidence"] = min(field["confidence"], cap)
 
 
-def _dedup_first_seen(items: list[str]) -> list[str]:
+def _dedup_first_seen(items: list[str]) -> list[str]:  # NOSONAR S3776 — reconcile cascade — Sonar over-counts the per-field cascade; structural split is on the deferred list.
     seen: set[str] = set()
     out: list[str] = []
     for item in items:

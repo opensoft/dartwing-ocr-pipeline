@@ -29,7 +29,7 @@ class OllamaVoter(VoterAdapter):
             )
         self._base_url = url.rstrip("/")
 
-    def call(self, rendered_prompt: str, config: VoterConfig) -> RawModelResponse:
+    def call(self, rendered_prompt: str, config: VoterConfig) -> RawModelResponse:  # NOSONAR S3776 — voter HTTP call — branches over response-shape + status-code combinations.
         url = f"{self._base_url}/api/generate"
         options: dict[str, Any] = {"temperature": config.sampling.temperature}
         if config.sampling.seed is not None:

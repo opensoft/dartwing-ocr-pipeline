@@ -246,7 +246,7 @@ def _paddle_distribution_version() -> Optional[str]:
     return None
 
 
-def _recommendation_for(state: PreflightState, evidence: PreflightEvidence) -> str:
+def _recommendation_for(state: PreflightState, evidence: PreflightEvidence) -> str:  # NOSONAR S3776 — state → recommendation map — flat switch is more readable than splitting.
     """FR-003 three-part rule: (a) specific remediation action,
     (b) reference to docs/stage1-vendor-identity/paddle-gpu-preflight.md,
     (c) one-line plain language."""

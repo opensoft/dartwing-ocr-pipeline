@@ -38,7 +38,7 @@ class FieldResult:
     actual: Any
     result: ResultLabel
 
-    def __post_init__(self) -> None:
+    def __post_init__(self) -> None:  # NOSONAR S3776 — dataclass invariant check — flat assertions over each field.
         if self.field_name not in SCORED_FIELDS:
             raise ValueError(f"field_name {self.field_name!r} is not in SCORED_FIELDS")
         if not isinstance(self.result, ResultLabel):

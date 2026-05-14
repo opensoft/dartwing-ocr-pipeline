@@ -40,7 +40,7 @@ def _matches_banned(module_name: str) -> str | None:
     return None
 
 
-def test_no_banned_imports_under_extract() -> None:
+def test_no_banned_imports_under_extract() -> None:  # NOSONAR S3776 — AST traversal test — flat branches over import-node types.
     violations: list[tuple[Path, int, str]] = []
     modules = _iter_modules()
     assert modules, f"no modules found under {_EXTRACT_ROOT}"

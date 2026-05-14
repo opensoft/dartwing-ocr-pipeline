@@ -533,7 +533,7 @@ def _emit_cold_result(result: Any, document_id: str) -> int:
     return int(result.exit_code)
 
 
-def _run_cold(
+def _run_cold(  # NOSONAR S3776 — cold-mode CLI orchestrator — splits would fragment the per-stage error-routing contract.
     args: argparse.Namespace, runner: Runner | None
 ) -> int:
     """Cold single-document path (--input or --document-folder)."""

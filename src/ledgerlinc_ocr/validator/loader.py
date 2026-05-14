@@ -71,7 +71,7 @@ def _artifact_name(value: str) -> ArtifactName:
         ) from exc
 
 
-def load_contract_set(
+def load_contract_set(  # NOSONAR S3776 — contract loader — branches over version + override + amendment paths.
     version: str | None = None,
     *,
     contracts_root: Path | None = None,

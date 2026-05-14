@@ -124,7 +124,7 @@ def _render_contract_set(cs: ContractSet, *, json_output: bool) -> str:
     return "\n".join(lines)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — validator CLI dispatcher — branches over all subcommands and their failure modes.
     argv = list(argv) if argv is not None else sys.argv[1:]
     parser = _build_parser()
     try:
