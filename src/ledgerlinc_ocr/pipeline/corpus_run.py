@@ -19,7 +19,6 @@ The aggregate process exit code follows R-008's severity ordering:
 ``0`` only when every executed document succeeded; otherwise the
 highest-severity per-document exit code observed.
 """
-
 from __future__ import annotations
 
 import argparse
@@ -52,7 +51,6 @@ from ledgerlinc_ocr.preprocessing.warmup_optin import (
     is_warmup_optin_set,
     warn_and_proceed_message,
 )
-
 # Feature 014 / VT-003: `preflight` types are imported lazily inside
 # the GPU warm factory. Module-level import would break collection
 # for unrelated tests when `preflight.py` is temporarily unavailable
@@ -67,7 +65,6 @@ from ledgerlinc_ocr.preprocessing.warmup_optin import (
 # The annotation uses `Any` here so this module loads without
 # preflight.py present; the actual runtime value is a PreflightReadout
 # (or None).
-# [ci trigger] trivial comment to trigger SonarQube analysis
 _PREFLIGHT_READOUT: Optional[Any] = None
 
 # Severity ranking per Research R-008. Lower rank == higher severity.
@@ -121,51 +118,35 @@ def _per_document_invocation(
     error_code is None.
     """
     if not folder.exists():
-        return (
-            None,
-            ExitCode.INPUT_NOT_FOUND,
-            (f"document folder does not exist: {folder}"),
+        return None, ExitCode.INPUT_NOT_FOUND, (
+            f"document folder does not exist: {folder}"
         )
     if not folder.is_dir():
-        return (
-            None,
-            ExitCode.OUTPUT_PATH_NOT_USABLE,
-            (f"document path is not a directory: {folder}"),
+        return None, ExitCode.OUTPUT_PATH_NOT_USABLE, (
+            f"document path is not a directory: {folder}"
         )
     document_id = derive_document_id(folder.name)
     if document_id is None:
-        return (
-            None,
-            ExitCode.USAGE_ERROR,
-            (
-                f"cannot derive document_id from folder name {folder.name!r}; "
-                f"warm-corpus mode requires inv_XXX_<difficulty> folder names"
-            ),
+        return None, ExitCode.USAGE_ERROR, (
+            f"cannot derive document_id from folder name {folder.name!r}; "
+            f"warm-corpus mode requires inv_XXX_<difficulty> folder names"
         )
     pdf_path = folder / "source.pdf"
     if not pdf_path.exists():
-        return (
-            None,
-            ExitCode.INPUT_NOT_FOUND,
-            (f"document folder missing source.pdf: {folder}"),
+        return None, ExitCode.INPUT_NOT_FOUND, (
+            f"document folder missing source.pdf: {folder}"
         )
     if not pdf_path.is_file():
-        return (
-            None,
-            ExitCode.INVALID_PDF,
-            (f"source.pdf is not a regular file: {pdf_path}"),
+        return None, ExitCode.INVALID_PDF, (
+            f"source.pdf is not a regular file: {pdf_path}"
         )
     if not is_pdf(pdf_path):
-        return (
-            None,
-            ExitCode.INVALID_PDF,
-            (f"source.pdf failed magic-byte check: {pdf_path}"),
+        return None, ExitCode.INVALID_PDF, (
+            f"source.pdf failed magic-byte check: {pdf_path}"
         )
     if not os.access(folder, os.W_OK):
-        return (
-            None,
-            ExitCode.OUTPUT_PATH_NOT_USABLE,
-            (f"document folder is not writable: {folder}"),
+        return None, ExitCode.OUTPUT_PATH_NOT_USABLE, (
+            f"document folder is not writable: {folder}"
         )
     invocation = CLIInvocation(
         input_pdf=pdf_path,
@@ -216,11 +197,7 @@ def run_warm_corpus(
     Path); the raw token is echoed verbatim into per_document.folder
     while filesystem operations use the resolved absolute path.
     """
-    from ledgerlinc_ocr.pipeline.cli import (
-        _build_resolved_plan,
-        _emit_failure,
-        _emit_stdout_summary,
-    )
+    from ledgerlinc_ocr.pipeline.cli import _build_resolved_plan, _emit_failure, _emit_stdout_summary
 
     # Build a synthetic placeholder invocation purely so plan resolution
     # has a CLIInvocation to attach. Each per-document iteration below
@@ -250,7 +227,9 @@ def run_warm_corpus(
     )
     if plan is None:
         _emit_failure(
-            StructuredFailureRecord.for_code(code, stage="arguments", message=msg)
+            StructuredFailureRecord.for_code(
+                code, stage="arguments", message=msg
+            )
         )
         return int(code)
 
@@ -271,12 +250,8 @@ def run_warm_corpus(
         det_rec_variant_warn_message as _det_rec_warn_017,
     )
 
-    _module_set_raw_017 = _resolve_module_set_value_017(
-        getattr(args, "module_set", None)
-    )
-    _det_rec_raw_017 = _resolve_det_rec_variant_value_017(
-        getattr(args, "det_rec_variant", None)
-    )
+    _module_set_raw_017 = _resolve_module_set_value_017(getattr(args, "module_set", None))
+    _det_rec_raw_017 = _resolve_det_rec_variant_value_017(getattr(args, "det_rec_variant", None))
     # Feature 018 (T009 / T010 / T019 / T020 / R-018.1 / R-018.4):
     # raster-profile + region-strategy axis resolution mirrors feature
     # 017's two axes above. Same parse-order, same cross-profile
@@ -293,7 +268,6 @@ def run_warm_corpus(
         resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value_019,
         preprocess_strategy_warn_message as _preprocess_strategy_warn_019,
     )
-
     _raster_profile_raw_018 = _resolve_raster_profile_value_018(
         getattr(args, "raster_profile", None)
     )
@@ -342,9 +316,7 @@ def run_warm_corpus(
             sys.stderr.write(_region_strategy_warn_018(_profile_for_warn_017) + "\n")
             _region_strategy_threaded_018 = None
         if _preprocess_strategy_raw_019 is not None:
-            sys.stderr.write(
-                _preprocess_strategy_warn_019(_profile_for_warn_017) + "\n"
-            )
+            sys.stderr.write(_preprocess_strategy_warn_019(_profile_for_warn_017) + "\n")
             _preprocess_strategy_threaded_019 = None
 
     # Resolve the threaded values to preset objects for the warm-init factory.
@@ -355,13 +327,10 @@ def run_warm_corpus(
             resolve_module_set as _resolve_module_set_017,
             resolve_det_rec_variant as _resolve_det_rec_variant_017,
         )
-
         if _module_set_threaded_017 is not None:
             _module_set_obj_017 = _resolve_module_set_017(_module_set_threaded_017)
         if _det_rec_threaded_017 is not None:
-            _det_rec_variant_obj_017 = _resolve_det_rec_variant_017(
-                _det_rec_threaded_017
-            )
+            _det_rec_variant_obj_017 = _resolve_det_rec_variant_017(_det_rec_threaded_017)
 
     runner = runner if runner is not None else Runner()
     registry = WarmProfileRegistry.empty()
@@ -499,8 +468,7 @@ def run_warm_corpus(
                 _preprocess_strategy_threaded_019 is not None
                 and _resolve_preprocess_strategy_019(
                     _preprocess_strategy_threaded_019
-                ).kind
-                == "ocr-only"
+                ).kind == "ocr-only"
             )
             if _is_ocr_only_warmup:
                 from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
@@ -552,9 +520,7 @@ def run_warm_corpus(
             observed_exit_codes.append(code)
             _emit_failure(
                 StructuredFailureRecord.for_code(
-                    code,
-                    stage="corpus_validation",
-                    message=msg,
+                    code, stage="corpus_validation", message=msg,
                 )
             )
             per_document_records.append(
@@ -614,12 +580,10 @@ def run_warm_corpus(
             from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
 
             preprocess_lane_now = (
-                "gpu0"
-                if (
+                "gpu0" if (
                     plan.profiles.get("preprocess") is not None
                     and plan.profiles["preprocess"].lane == "gpu"
-                )
-                else "cpu"
+                ) else "cpu"
             )
 
             # Build phase_timings from the StageTiming map.
@@ -632,7 +596,9 @@ def run_warm_corpus(
                     # form and the FR-013 phase set is the new canonical
                     # vocabulary. Coarse keys are not in FR-013.
                     if phase_key in {"rasterization", "artifact_write"}:
-                        phase_timings[phase_key] = {"seconds": round(ns / 1e9, 6)}
+                        phase_timings[phase_key] = {
+                            "seconds": round(ns / 1e9, 6)
+                        }
                 if preprocess_st.total_ns > 0:
                     phase_timings["total"] = {
                         "seconds": round(preprocess_st.total_ns / 1e9, 6)
@@ -655,7 +621,10 @@ def run_warm_corpus(
             )
             # Feature 014 (T030): legacy gpu_inference_seconds flat key
             # (sum of per-page seconds) preserved for one schema version.
-            if preprocess_lane_now.startswith("gpu") and _per_page_drained:
+            if (
+                preprocess_lane_now.startswith("gpu")
+                and _per_page_drained
+            ):
                 _gpu_inf = round(sum(s for _, s in _per_page_drained), 6)
                 stages_map = success_record.setdefault("stages", {})
                 preprocess_stage = stages_map.setdefault(
@@ -695,7 +664,9 @@ def run_warm_corpus(
                     result.exit_code,
                     stage=result.stage,
                     message=failure_message,
-                    artifacts_written=[str(p) for p in result.artifacts_written],
+                    artifacts_written=[
+                        str(p) for p in result.artifacts_written
+                    ],
                 )
             )
             # Feature 015 (T023 / Q5 / FP1 / FP2): build partial
@@ -731,9 +702,7 @@ def run_warm_corpus(
                     message=failure_message,
                     timings=result.timings,
                     gpu_lane_forced_abort=preprocess_is_gpu,
-                    phase_timings=(
-                        failure_phase_timings if failure_phase_timings else None
-                    ),
+                    phase_timings=failure_phase_timings if failure_phase_timings else None,
                     per_page_inference=failure_per_page,
                 )
             )
@@ -782,7 +751,6 @@ def run_warm_corpus(
         _warmup_seconds_for_attach: float | None = None
         if _is_gpu_warmup_active:
             from ledgerlinc_ocr.preprocessing import warmup as _warmup_mod
-
             _warmup_seconds_for_attach = _warmup_mod.get_cached_warmup_seconds()
         for record in per_document_records:
             if record.get("status") == "success":
@@ -806,7 +774,6 @@ def run_warm_corpus(
     from ledgerlinc_ocr.preprocessing.preset_optin import (
         derive_run_summary_identifiers as _derive_identifiers_017,
     )
-
     _module_set_id_017, _det_rec_variant_id_017 = _derive_identifiers_017(
         threaded_module_set=_module_set_threaded_017,
         threaded_det_rec_variant=_det_rec_threaded_017,
@@ -826,7 +793,6 @@ def run_warm_corpus(
     from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
         derive_run_summary_region_strategy_id as _derive_region_strategy_id_018,
     )
-
     _raster_profile_id_018 = _derive_raster_profile_id_018(
         threaded_raster_profile=_raster_profile_threaded_018,
         preprocess_lane=_resolved_preprocess_lane,
@@ -847,7 +813,6 @@ def run_warm_corpus(
     from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
         derive_run_summary_preprocess_strategy_id as _derive_preprocess_strategy_id_019,
     )
-
     _preprocess_strategy_id_019 = _derive_preprocess_strategy_id_019(
         threaded_preprocess_strategy=_preprocess_strategy_threaded_019,
         preprocess_lane=_resolved_preprocess_lane,
@@ -871,7 +836,8 @@ def run_warm_corpus(
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
-            stage: profile.raw_value for stage, profile in plan.profiles.items()
+            stage: profile.raw_value
+            for stage, profile in plan.profiles.items()
         },
         execution_slice={
             "start_at": plan.slice_.start_at,
@@ -961,7 +927,6 @@ def _emit_warm_init_failure_summary(
     from ledgerlinc_ocr.preprocessing.preset_optin import (
         derive_run_summary_identifiers as _derive_identifiers_017,
     )
-
     _failure_module_set_id, _failure_det_rec_variant_id = _derive_identifiers_017(
         threaded_module_set=module_set_threaded,
         threaded_det_rec_variant=det_rec_variant_threaded,
@@ -976,7 +941,6 @@ def _emit_warm_init_failure_summary(
     from ledgerlinc_ocr.preprocessing.region_strategy_optin import (
         derive_run_summary_region_strategy_id as _derive_region_strategy_id_018,
     )
-
     _failure_raster_profile_id = _derive_raster_profile_id_018(
         threaded_raster_profile=raster_profile_threaded,
         preprocess_lane=_warm_lane,
@@ -990,7 +954,6 @@ def _emit_warm_init_failure_summary(
     from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
         derive_run_summary_preprocess_strategy_id as _derive_preprocess_strategy_id_019,
     )
-
     _failure_preprocess_strategy_id = _derive_preprocess_strategy_id_019(
         threaded_preprocess_strategy=preprocess_strategy_threaded,
         preprocess_lane=_warm_lane,
@@ -1012,7 +975,8 @@ def _emit_warm_init_failure_summary(
     summary = RunSummary(
         stack_preset=plan.stack_preset_name,
         resolved_profiles={
-            stage: profile.raw_value for stage, profile in plan.profiles.items()
+            stage: profile.raw_value
+            for stage, profile in plan.profiles.items()
         },
         execution_slice={
             "start_at": plan.slice_.start_at,
@@ -1123,7 +1087,6 @@ def _maybe_register_warm_preprocess(
         from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
             resolve_preprocess_strategy as _resolve_preprocess_strategy_019,
         )
-
         _is_ocr_only_strategy = (
             _resolve_preprocess_strategy_019(preprocess_strategy_threaded).kind
             == "ocr-only"
@@ -1218,7 +1181,10 @@ def _warm_initialize_live_preprocess(
             )
         except ImportError:
             _GpuPrerequisiteError = None  # type: ignore[assignment]
-        if _GpuPrerequisiteError is not None and isinstance(exc, _GpuPrerequisiteError):
+        if (
+            _GpuPrerequisiteError is not None
+            and isinstance(exc, _GpuPrerequisiteError)
+        ):
             raise
 
         import logging
