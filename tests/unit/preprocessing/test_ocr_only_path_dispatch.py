@@ -189,12 +189,17 @@ def _make_invocation(tmp_path: Path) -> Any:
     # avoiding pypdfium2's "repair" path on hand-built xref tables.
     pdf_path = folder / "source.pdf"
     _write_blank_pdf(pdf_path)
+    # Use `preprocess_lane="gpu0"` to match the production conditions:
+    # the CLI warn-and-proceed path nulls `preprocess_strategy_id` on
+    # non-GPU profiles, so OCR-only is reachable only on the GPU lane.
+    # These tests remain CPU-safe because the PaddleOCR engine is mocked
+    # via `_make_fake_engine_handles` — no real `gpu:0` device is touched.
     return Invocation(
         document_folder=folder,
         source_file="source.pdf",
         write_page_images=False,
         pipeline_version=None,
-        preprocess_lane="cpu",
+        preprocess_lane="gpu0",
         warmup=False,
         preprocess_strategy_id="ocr-only-v1",
     )
