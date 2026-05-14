@@ -185,7 +185,7 @@ def _document_id_for_failure(folder: Path) -> str:
     return derive_document_id(folder.name) or folder.name
 
 
-def run_warm_corpus(
+def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split pending
     *,
     args: argparse.Namespace,
     documents: tuple[DocumentEntry, ...],
@@ -348,19 +348,19 @@ def run_warm_corpus(
     # not break this module at import time (T035 / VT-003).
     try:
         from ledgerlinc_ocr.preprocessing.preflight import (
-            GpuPrerequisiteError as _GpuPrerequisiteError,
+            GpuPrerequisiteError as _gpu_prerequisite_error_type,
             exit_code_for_state as _exit_code_for_state,
         )
     except ImportError:
-        _GpuPrerequisiteError = None  # type: ignore[assignment]
+        _gpu_prerequisite_error_type = None  # type: ignore[assignment]
         _exit_code_for_state = None  # type: ignore[assignment]
 
     try:
         warm_init_failure = _warm_initialize_live_preprocess(registry, plan)
     except Exception as _exc:  # noqa: BLE001 - intentional: route GPU prereq failures
         if (
-            _GpuPrerequisiteError is not None
-            and isinstance(_exc, _GpuPrerequisiteError)
+            _gpu_prerequisite_error_type is not None
+            and isinstance(_exc, _gpu_prerequisite_error_type)
             and _exit_code_for_state is not None
         ):
             # FR-009 stderr format: name both selected profile and FR-001 state.
@@ -1176,13 +1176,13 @@ def _warm_initialize_live_preprocess(
         # preflight.py is unavailable (T035 / VT-003 defensive scope).
         try:
             from ledgerlinc_ocr.preprocessing.preflight import (
-                GpuPrerequisiteError as _GpuPrerequisiteError,
+                GpuPrerequisiteError as _gpu_prerequisite_error_type,
             )
         except ImportError:
-            _GpuPrerequisiteError = None  # type: ignore[assignment]
+            _gpu_prerequisite_error_type = None  # type: ignore[assignment]
         if (
-            _GpuPrerequisiteError is not None
-            and isinstance(exc, _GpuPrerequisiteError)
+            _gpu_prerequisite_error_type is not None
+            and isinstance(exc, _gpu_prerequisite_error_type)
         ):
             raise
 
