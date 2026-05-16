@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from ledgerlinc_ocr.evidence_packet.serialization import write_packet_atomic
+from dartwing_ocr.evidence_packet.serialization import write_packet_atomic
 
 
 def test_two_writes_of_equal_dicts_produce_identical_bytes(tmp_path):

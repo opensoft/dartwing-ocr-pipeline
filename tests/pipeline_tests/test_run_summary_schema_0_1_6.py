@@ -23,13 +23,13 @@ from typing import Any
 
 import pytest
 
-timing = pytest.importorskip("ledgerlinc_ocr.pipeline.timing")
+timing = pytest.importorskip("dartwing_ocr.pipeline.timing")
 
-from ledgerlinc_ocr.pipeline.timing import (  # noqa: E402
+from dartwing_ocr.pipeline.timing import (  # noqa: E402
     RunSummary,
     SCHEMA_VERSION,
 )
-from ledgerlinc_ocr.preprocessing.identifiers import (  # noqa: E402
+from dartwing_ocr.preprocessing.identifiers import (  # noqa: E402
     CPU_DEFAULT_PREPROCESS_STRATEGY,
 )
 

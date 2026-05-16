@@ -14,8 +14,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ledgerlinc_ocr.validator import ArtifactName, validate_artifact
-from ledgerlinc_ocr.validator.loader import load_contract_set
+from dartwing_ocr.validator import ArtifactName, validate_artifact
+from dartwing_ocr.validator.loader import load_contract_set
 
 
 _HERE = Path(__file__).resolve().parent

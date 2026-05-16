@@ -13,12 +13,12 @@ import pytest
 _EVALUATOR_SRC = (
     Path(__file__).resolve().parents[2]
     / "src"
-    / "ledgerlinc_ocr"
+    / "dartwing_ocr"
     / "evaluator"
 )
 _FORBIDDEN_PREFIXES = (
-    "ledgerlinc_ocr.pipeline",
-    "ledgerlinc_ocr.preprocessing",
+    "dartwing_ocr.pipeline",
+    "dartwing_ocr.preprocessing",
 )
 
 

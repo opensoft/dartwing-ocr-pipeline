@@ -20,7 +20,7 @@ source .venv/bin/activate
 Verify the validator runs:
 
 ```bash
-python -m ledgerlinc_ocr.validator show contract-set
+python -m dartwing_ocr.validator show contract-set
 ```
 
 Expected: prints `contract_set_version = "1.0.0"` with the 7 artifact schemas listed.
@@ -190,7 +190,7 @@ For `easy` and `medium` docs, `notes.md` is optional — add one only if the pla
 Folder-level check:
 
 ```bash
-python -m ledgerlinc_ocr.validator validate folder tests/stage1_vendor_identity/inv_007_hard
+python -m dartwing_ocr.validator validate folder tests/stage1_vendor_identity/inv_007_hard
 ```
 
 Expected output:
@@ -206,7 +206,7 @@ If you see `FOLDER_SOURCE_PDF_UNREADABLE`, the PDF is truncated, empty, or not a
 Corpus-level check (runs once all 20 folders exist):
 
 ```bash
-python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity
+python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity
 ```
 
 This enforces the corpus-level rules: 20 folders, 5/5/5/5 distribution, contiguous `inv_001..inv_020`, reserved-filename absence, challenge-tag coverage against FR-015/FR-016, etc.

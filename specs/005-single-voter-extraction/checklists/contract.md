@@ -78,7 +78,7 @@ Every item tests the requirements themselves — not the implementation.
 
 - [x] CHK036 Does the spec require every emitted artifact to validate against `edge_extraction_output.schema.json` before being persisted? [Completeness, Spec §FR-002 §US1 AC#1]
 - [x] CHK037 Is the schema-validity requirement stated as status-independent (even a `status: "failure"` artifact must be schema-valid)? [Clarity, Spec §US5 AC#6]
-- [x] CHK038 Is the validator tool identified as a verification path (`python -m ledgerlinc_ocr.validator validate artifact`)? [Traceability, Spec §US1 Independent Test]
+- [x] CHK038 Is the validator tool identified as a verification path (`python -m dartwing_ocr.validator validate artifact`)? [Traceability, Spec §US1 Independent Test]
 
 ## Cross-Artifact Consistency (Gap Check)
 

@@ -67,7 +67,7 @@ _ENGINE = PPStructureV3(
 - `layout_det_res.boxes` — list of layout regions. Each region has `label` (string), `coordinate` (4-point or 4-tuple bbox), and `score`. This is the source of `pages[*].blocks`.
 - `overall_ocr_res.rec_texts` + `overall_ocr_res.rec_boxes` + `overall_ocr_res.rec_scores` (and the parallel `text_det_res.polys` if needed for bbox shape) — line-level OCR output. This is the source of `pages[*].raw_ocr_lines`.
 
-For the table branch, V3 exposes `table_res_list` with an HTML fragment per detected table; the existing `_parse_table_dims()` regex logic in `src/ledgerlinc_ocr/preprocessing/ocr.py:109-132` is reused unchanged.
+For the table branch, V3 exposes `table_res_list` with an HTML fragment per detected table; the existing `_parse_table_dims()` regex logic in `src/dartwing_ocr/preprocessing/ocr.py:109-132` is reused unchanged.
 
 The richer `parsing_res_list` (which holds Markdown-style block content V3 generates) is **discarded** at the persistence boundary — capturing it would require an AMENDMENTS entry to widen the `preprocess_output` contract, which is explicitly out of scope (see spec assumption §"Frozen contract" and FR-001).
 
@@ -81,7 +81,7 @@ The richer `parsing_res_list` (which holds Markdown-style block content V3 gener
 
 ## R-003: V3 label vocabulary + block_type mapping
 
-**Decision**: Extend `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE` in `src/ledgerlinc_ocr/preprocessing/ocr.py:15-26` with the V3-specific labels observed on `inv_001_easy` and the documented PP-DocLayout_plus-L class set:
+**Decision**: Extend `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE` in `src/dartwing_ocr/preprocessing/ocr.py:15-26` with the V3-specific labels observed on `inv_001_easy` and the documented PP-DocLayout_plus-L class set:
 
 ```python
 PPSTRUCTURE_LABEL_TO_BLOCK_TYPE = {
@@ -170,14 +170,14 @@ The Phase 2 implementation MUST add a determinism smoke as part of the integrati
 
 ## R-006: Corpus regeneration sweep — halt-on-fail
 
-**Decision**: The FR-010 regeneration sweep is implemented as a **shell loop** around the existing `ledgerlinc-preprocess` CLI, not a new Python orchestrator. The loop halts immediately on ANY non-zero exit code — `1` (unexpected), `2` (input_rejected, includes encrypted / malformed PDFs), or `3` (internal_error, includes FR-016 engine-init). This broad halt scope was formalized in Session 2026-04-23 (spec clarification Q23): baseline integrity is the target, and any non-zero exit means a document's artifact failed to land. A failure on document K of N leaves `inv_001..inv_{K-1}` regenerated and `inv_K..inv_N` un-touched — but the sweep will be re-run from the top after the root cause is fixed, and git will discard the partial progress (no commit happens until the sweep succeeds end-to-end).
+**Decision**: The FR-010 regeneration sweep is implemented as a **shell loop** around the existing `dartwing-preprocess` CLI, not a new Python orchestrator. The loop halts immediately on ANY non-zero exit code — `1` (unexpected), `2` (input_rejected, includes encrypted / malformed PDFs), or `3` (internal_error, includes FR-016 engine-init). This broad halt scope was formalized in Session 2026-04-23 (spec clarification Q23): baseline integrity is the target, and any non-zero exit means a document's artifact failed to land. A failure on document K of N leaves `inv_001..inv_{K-1}` regenerated and `inv_K..inv_N` un-touched — but the sweep will be re-run from the top after the root cause is fixed, and git will discard the partial progress (no commit happens until the sweep succeeds end-to-end).
 
 Reference invocation (quickstart pins the exact form):
 
 ```bash
 set -e
 for folder in tests/stage1_vendor_identity/inv_{001,002,...,020}_*; do
-    ledgerlinc-preprocess --document-folder "$folder"
+    dartwing-preprocess --document-folder "$folder"
 done
 ```
 
@@ -195,7 +195,7 @@ done
 
 **Decision**: FR-008 dictates bumping both the preprocessing semver and the engine segment. Target shape: `stage1-preprocess-v0.2.0+paddleocr3.5.0.<sha7>.dpi300`.
 
-Implementation in `src/ledgerlinc_ocr/preprocessing/version.py`:
+Implementation in `src/dartwing_ocr/preprocessing/version.py`:
 
 - `SEMVER = "v0.2.0"` (was `"v0.1.0"`).
 - `paddleocr_version` still comes from `importlib.metadata.version("paddleocr")` → `"3.5.0"`.
@@ -212,7 +212,7 @@ Implementation in `src/ledgerlinc_ocr/preprocessing/version.py`:
 
 ## R-008: FR-016 hard-fail error format
 
-**Decision**: On any exception raised during `PPStructureV3(...)` construction (or during the lazy `_get_engine()` lookup before the first page is processed), `src/ledgerlinc_ocr/preprocessing/pipeline.py` propagates the exception as `EngineInitError`. `src/ledgerlinc_ocr/preprocessing/cli.py` catches it and emits a structured JSON error on stderr with exit code `EXIT_INTERNAL_ERROR` (3). No `preprocess_output.json` is written.
+**Decision**: On any exception raised during `PPStructureV3(...)` construction (or during the lazy `_get_engine()` lookup before the first page is processed), `src/dartwing_ocr/preprocessing/pipeline.py` propagates the exception as `EngineInitError`. `src/dartwing_ocr/preprocessing/cli.py` catches it and emits a structured JSON error on stderr with exit code `EXIT_INTERNAL_ERROR` (3). No `preprocess_output.json` is written.
 
 Error payload:
 
@@ -242,7 +242,7 @@ Detection for the "weight-download" sub-case:
 
 ## R-009: Warning category vocabulary + ordering
 
-**Decision**: A new module `src/ledgerlinc_ocr/preprocessing/warnings.py` centralizes the closed warning vocabulary and the FR-020 ordering rules. Vocabulary (in lexical order):
+**Decision**: A new module `src/dartwing_ocr/preprocessing/warnings.py` centralizes the closed warning vocabulary and the FR-020 ordering rules. Vocabulary (in lexical order):
 
 ```python
 WARNING_CATEGORIES = [
@@ -296,7 +296,7 @@ Aggregate warnings that don't fit the `page N: [<token>]` format (e.g., the exis
 | Axis | Effort |
 |------|--------|
 | Dependency pin change: revert `paddleocr` to `>=2.8,<3`, remove `paddlex[ocr]`, keep `paddlepaddle>=3.0,<4`. | ~1 PR-hour. |
-| Swap `src/ledgerlinc_ocr/preprocessing/ocr.py`: restore `PaddleOCR` + `PPStructure` construction, point `layout_model_dir` at `picodet_lcnet_x1_0_fgd_layout_cdla_infer`, restore `run_ocr_lines()` as a separate call. | ~1 PR-day. |
+| Swap `src/dartwing_ocr/preprocessing/ocr.py`: restore `PaddleOCR` + `PPStructure` construction, point `layout_model_dir` at `picodet_lcnet_x1_0_fgd_layout_cdla_infer`, restore `run_ocr_lines()` as a separate call. | ~1 PR-day. |
 | Restore separate PP-OCRv4 line pass in `pipeline.py`. | ~1 PR-hour (mostly reverting this slice's collapse). |
 | Re-regenerate the `inv_001..inv_020` baseline under the fallback engine, commit with FR-010-style per-doc shift summaries. | ~1 PR-day. |
 | Update docs: `architecture.md`, `ollama-runtime.md`, preprocessing quickstart back to the 2.10-era language. | ~2 PR-hours. |
@@ -335,7 +335,7 @@ No previous-page or next-page header/footer context is fed into OCR/layout. The 
 
 ```python
 # Run from the repo root with the venv active.
-from ledgerlinc_ocr.preprocessing.ocr import _get_engine
+from dartwing_ocr.preprocessing.ocr import _get_engine
 engine = _get_engine()  # applies the 010 flags from ocr.py
 # Walk candidate attributes; record the first one that returns a float.
 for attr in ("text_rec_score_thresh", "drop_score", "rec_score_thresh"):
@@ -387,7 +387,7 @@ The current V2 path applied `max(0.0, min(1.0, float(...)))` clamping on OCR-lin
 
 ## R-014: `tables[]` projection boundary under V3
 
-**Decision**: Populate the artifact's `tables[]` field from PPStructureV3's `table_res_list`, projected into the frozen v1.0.0 schema shape **as of 010's landing commit** (strict-current-shape, formalized in Session 2026-04-23 spec clarification Q24). Discard richer HTML / cell-level structure the engine emits beyond the schema at the persistence boundary. Future AMENDMENTS entries that widen the schema (e.g., adding an optional `cell_confidence` field) DO NOT auto-populate through this projection — a matching preprocessing code change is required before the new field begins to appear in emitted artifacts. This prevents a silent drift where the schema accepts more fields than preprocessing emits. The existing `_parse_table_dims(html) → (rows, columns)` regex logic in `src/ledgerlinc_ocr/preprocessing/ocr.py:113-132` is reused unchanged — the regex treats HTML as opaque and is engine-version-agnostic.
+**Decision**: Populate the artifact's `tables[]` field from PPStructureV3's `table_res_list`, projected into the frozen v1.0.0 schema shape **as of 010's landing commit** (strict-current-shape, formalized in Session 2026-04-23 spec clarification Q24). Discard richer HTML / cell-level structure the engine emits beyond the schema at the persistence boundary. Future AMENDMENTS entries that widen the schema (e.g., adding an optional `cell_confidence` field) DO NOT auto-populate through this projection — a matching preprocessing code change is required before the new field begins to appear in emitted artifacts. This prevents a silent drift where the schema accepts more fields than preprocessing emits. The existing `_parse_table_dims(html) → (rows, columns)` regex logic in `src/dartwing_ocr/preprocessing/ocr.py:113-132` is reused unchanged — the regex treats HTML as opaque and is engine-version-agnostic.
 
 Projection table:
 
@@ -440,7 +440,7 @@ Project policy:
 
 | Invoice | Pages | First-run wall-clock | Second-run wall-clock | CPU | RAM | OS | paddleocr version | notes |
 |---------|-------|---------------------|-----------------------|-----|-----|----|-|-|
-| `inv_001_easy` | 1 | 270.452s (4m30.452s) | 254.790s (4m14.790s) | AMD RYZEN AI MAX+ 395 w/ Radeon 8060S | 54Gi | Linux 6.6.87.2-microsoft-standard-WSL2 x86_64 | 3.5.0 | captured 2026-04-30 in `ledgerlinc-t035-sweep` devcontainer; weights cached; digest `8cc744360fc611bbf3eed67ed2d4e24075668b684c539b02ee33cd14e1a30a55` both runs |
+| `inv_001_easy` | 1 | 270.452s (4m30.452s) | 254.790s (4m14.790s) | AMD RYZEN AI MAX+ 395 w/ Radeon 8060S | 54Gi | Linux 6.6.87.2-microsoft-standard-WSL2 x86_64 | 3.5.0 | captured 2026-04-30 in `dartwing-t035-sweep` devcontainer; weights cached; digest `8cc744360fc611bbf3eed67ed2d4e24075668b684c539b02ee33cd14e1a30a55` both runs |
 
 "First-run" means first CLI invocation after model-weight warm-up has completed (so weights are on disk but the process and engine are fresh). "Second-run" means the same CLI invocation repeated immediately with filesystem/page caches warm; each CLI process constructs a fresh engine.
 

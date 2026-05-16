@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.evaluator.compare import FieldResult
-from ledgerlinc_ocr.evaluator.scoring import (
+from dartwing_ocr.evaluator.compare import FieldResult
+from dartwing_ocr.evaluator.scoring import (
     FIELD_WEIGHTS,
     SCORED_FIELDS,
     ResultLabel,

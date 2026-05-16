@@ -7,8 +7,8 @@ from typing import Any, Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import Runner
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import Runner
 
 
 def test_extraction_failure_after_preprocess_wrote(

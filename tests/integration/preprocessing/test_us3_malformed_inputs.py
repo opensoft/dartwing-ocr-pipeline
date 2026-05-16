@@ -14,7 +14,7 @@ import pytest
 
 
 def _run_cli(folder: Path) -> int:
-    from ledgerlinc_ocr.preprocessing.cli import main
+    from dartwing_ocr.preprocessing.cli import main
 
     return main(["--document-folder", str(folder)])
 

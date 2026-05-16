@@ -1,4 +1,4 @@
-# LedgerLinc OCR Pipeline Constitution
+# Dartwing OCR Pipeline Constitution
 
 ## Core Principles
 
@@ -121,7 +121,7 @@ Schema changes, routing changes, and runtime changes are not complete until the 
 
 ## Governance
 
-This constitution governs the LedgerLinc OCR pipeline repository and takes precedence over informal local habits.
+This constitution governs the Dartwing OCR pipeline repository and takes precedence over informal local habits.
 
 Amendment rules:
 

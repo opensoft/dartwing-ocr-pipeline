@@ -7,8 +7,8 @@ from typing import Any, Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import Runner
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import Runner
 
 
 def test_connection_error_surfaces_cleanly(
@@ -32,4 +32,4 @@ def test_connection_error_surfaces_cleanly(
     assert url in rec["message"]
     # must not embed stack traces or module paths
     assert "Traceback" not in rec["message"]
-    assert "ledgerlinc_ocr." not in rec["message"]
+    assert "dartwing_ocr." not in rec["message"]

@@ -1,6 +1,6 @@
 """T093 / analysis C5 — FR-020/FR-021: module-boundary enforcement.
 
-Walk `src/ledgerlinc_ocr/extract/**/*.py` and assert no import references a
+Walk `src/dartwing_ocr/extract/**/*.py` and assert no import references a
 banned downstream module (routing, consensus, final_payload, evaluation), a
 cloud-provider SDK (boto3, google.cloud, azure.ai), or the `requests` HTTP
 library (R-001 pins the extractor to `httpx`).
@@ -12,7 +12,7 @@ import ast
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_EXTRACT_ROOT = _REPO_ROOT / "src" / "ledgerlinc_ocr" / "extract"
+_EXTRACT_ROOT = _REPO_ROOT / "src" / "dartwing_ocr" / "extract"
 
 _BANNED_PREFIXES = (
     "routing",
@@ -60,6 +60,6 @@ def test_no_banned_imports_under_extract() -> None:  # NOSONAR S3776 — AST tra
                     violations.append((path, node.lineno, f"from {mod} import ..."))
 
     assert not violations, (
-        "banned imports under src/ledgerlinc_ocr/extract/:\n"
+        "banned imports under src/dartwing_ocr/extract/:\n"
         + "\n".join(f"  {p.relative_to(_REPO_ROOT)}:{ln}  {msg}" for p, ln, msg in violations)
     )

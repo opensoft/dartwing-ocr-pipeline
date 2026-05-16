@@ -7,7 +7,7 @@ This feature is preset-and-observability heavy: it adds two closed-vocabulary pr
 
 ## Entity: ModuleSetPreset
 
-A named, closed-vocabulary preset that resolves to a frozen mapping of `PPStructureV3(...)` constructor kwargs plus an audit callable. Lives in `src/ledgerlinc_ocr/preprocessing/presets.py`. Entries in the registry are immutable across the process lifetime.
+A named, closed-vocabulary preset that resolves to a frozen mapping of `PPStructureV3(...)` constructor kwargs plus an audit callable. Lives in `src/dartwing_ocr/preprocessing/presets.py`. Entries in the registry are immutable across the process lifetime.
 
 ```python
 @dataclass(frozen=True)
@@ -70,7 +70,7 @@ class PresetResolution:
 
 ## Entity: UnknownPresetError
 
-New exception class in `src/ledgerlinc_ocr/preprocessing/errors.py`. Mirrors the `EngineInitError` / `WarmupError` shape used by features 014 / 016.
+New exception class in `src/dartwing_ocr/preprocessing/errors.py`. Mirrors the `EngineInitError` / `WarmupError` shape used by features 014 / 016.
 
 ```python
 class UnknownPresetError(ValueError):
@@ -142,13 +142,13 @@ The three new top-level fields added to the existing `kind: "run_summary"` stdou
 
 ## Entity: `RunSummary.SCHEMA_VERSION` (codebase-level bump)
 
-Codebase-level transition driven by this feature: `"0.1.3"` → `"0.1.4"`. Set in `src/ledgerlinc_ocr/pipeline/timing.py:86` (the single source of truth). Every run of the new binary emits `schema_version: "0.1.4"` regardless of preset selection (R-017.8 / FR-008 / FR-010).
+Codebase-level transition driven by this feature: `"0.1.3"` → `"0.1.4"`. Set in `src/dartwing_ocr/pipeline/timing.py:86` (the single source of truth). Every run of the new binary emits `schema_version: "0.1.4"` regardless of preset selection (R-017.8 / FR-008 / FR-010).
 
 The 0.1.4 schema is a strict superset of 0.1.3: it adds three top-level optional-but-always-emitted fields. Existing 0.1.3 fields (`schema_version`, `kind`, `stack_preset`, `resolved_profiles`, `execution_slice`, `on_failure`, `documents_total`, `documents_succeeded`, `documents_failed`, `profile_initialization_seconds`, `per_document`, `preprocess_lane`, plus per-document `phase_timings.{paddle_import, gpu_bind_probe, engine_init, warmup, rasterization, per_page_inference, artifact_write, total}`) MUST NOT be renamed, removed, or have their type changed (FR-009 / FR-019).
 
 ## Entity: `AUDIT_SUB_MODULE_VOCABULARY` (closed string set)
 
-Module-level constant in `src/ledgerlinc_ocr/preprocessing/identifiers.py`. The exhaustive set of strings allowed in `RunSummary.ppstructure_modules_invoked` at landing time:
+Module-level constant in `src/dartwing_ocr/preprocessing/identifiers.py`. The exhaustive set of strings allowed in `RunSummary.ppstructure_modules_invoked` at landing time:
 
 ```python
 AUDIT_SUB_MODULE_VOCABULARY: tuple[str, ...] = (
@@ -167,7 +167,7 @@ AUDIT_SUB_MODULE_VOCABULARY: tuple[str, ...] = (
 
 ## Entity: CPU/stub identifier constants
 
-Module-level constants in `src/ledgerlinc_ocr/preprocessing/identifiers.py`:
+Module-level constants in `src/dartwing_ocr/preprocessing/identifiers.py`:
 
 ```python
 CPU_DEFAULT_MODULE_SET: str = "cpu-default"
@@ -183,7 +183,7 @@ STUB_DEFAULT_DET_REC_VARIANT: str = "stub-default"
 
 ## Entity: `ExitCode.UNKNOWN_PRESET` (new exit code 16)
 
-New entry in `src/ledgerlinc_ocr/pipeline/exit_codes.py`. Immediately after feature 016's `WARMUP_FAILED = 15`.
+New entry in `src/dartwing_ocr/pipeline/exit_codes.py`. Immediately after feature 016's `WARMUP_FAILED = 15`.
 
 ```python
 class ExitCode(IntEnum):

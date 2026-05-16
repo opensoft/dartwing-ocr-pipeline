@@ -31,13 +31,13 @@ from pathlib import Path
 
 import pytest
 
-timing = pytest.importorskip("ledgerlinc_ocr.pipeline.timing")
+timing = pytest.importorskip("dartwing_ocr.pipeline.timing")
 
-from ledgerlinc_ocr.pipeline.timing import (  # noqa: E402
+from dartwing_ocr.pipeline.timing import (  # noqa: E402
     RunSummary,
     SCHEMA_VERSION,
 )
-from ledgerlinc_ocr.preprocessing.identifiers import (  # noqa: E402
+from dartwing_ocr.preprocessing.identifiers import (  # noqa: E402
     AUDIT_SUB_MODULE_VOCABULARY,
     CPU_DEFAULT_DET_REC_VARIANT,
     CPU_DEFAULT_MODULE_SET,
@@ -135,13 +135,13 @@ def test_stub_default_can_be_set_explicitly(
 ) -> None:
     """Stub-adapter warm-corpus summaries use the real stub override path,
     not the CPU defaults."""
-    from ledgerlinc_ocr.pipeline.corpus import DocumentEntry, WarmProfileRegistry
-    from ledgerlinc_ocr.pipeline.corpus_run import _emit_warm_init_failure_summary
-    from ledgerlinc_ocr.pipeline.failure_policy import FailurePolicy
-    from ledgerlinc_ocr.pipeline.ollama_lanes import resolve_endpoints
-    from ledgerlinc_ocr.pipeline.profiles import parse_profile
-    from ledgerlinc_ocr.pipeline.runner import CLIInvocation, ResolvedRunPlan
-    from ledgerlinc_ocr.pipeline.slice_control import ExecutionSlice
+    from dartwing_ocr.pipeline.corpus import DocumentEntry, WarmProfileRegistry
+    from dartwing_ocr.pipeline.corpus_run import _emit_warm_init_failure_summary
+    from dartwing_ocr.pipeline.failure_policy import FailurePolicy
+    from dartwing_ocr.pipeline.ollama_lanes import resolve_endpoints
+    from dartwing_ocr.pipeline.profiles import parse_profile
+    from dartwing_ocr.pipeline.runner import CLIInvocation, ResolvedRunPlan
+    from dartwing_ocr.pipeline.slice_control import ExecutionSlice
 
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()

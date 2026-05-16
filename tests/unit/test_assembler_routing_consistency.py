@@ -17,11 +17,11 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.assembler.errors import (
+from dartwing_ocr.assembler.errors import (
     InputSchemaInvalidError,
     RoutingContradictionError,
 )
-from ledgerlinc_ocr.assembler.validation import check_routing_internal_consistency
+from dartwing_ocr.assembler.validation import check_routing_internal_consistency
 
 
 def _routing(decision: str, mrr: bool, reason: str | None) -> dict:
@@ -143,7 +143,7 @@ def test_routing_contradiction_cli_hard_fail(
     routing_path.write_text(json.dumps(routing, indent=2) + "\n", encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, "-m", "ledgerlinc_ocr.assembler",
+        [sys.executable, "-m", "dartwing_ocr.assembler",
          "--document-folder", str(folder)],
         capture_output=True, text=True,
     )

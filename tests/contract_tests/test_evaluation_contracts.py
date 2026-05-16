@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ledgerlinc_ocr.validator import ArtifactName, validate_artifact
-from ledgerlinc_ocr.validator.report import ViolationCode
+from dartwing_ocr.validator import ArtifactName, validate_artifact
+from dartwing_ocr.validator.report import ViolationCode
 
 
 def test_good_evaluation_document_passes(good_fixtures_root: Path) -> None:

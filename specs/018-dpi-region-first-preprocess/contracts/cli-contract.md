@@ -1,7 +1,7 @@
 # CLI Contract: Raster-Profile And Region-Strategy Opt-In Surface
 
 **Feature**: 018-dpi-region-first-preprocess
-**Applies to**: `python -m ledgerlinc_ocr.preprocessing` (single-doc) and `python -m ledgerlinc_ocr.pipeline` (warm-corpus mode)
+**Applies to**: `python -m dartwing_ocr.preprocessing` (single-doc) and `python -m dartwing_ocr.pipeline` (warm-corpus mode)
 **Decision source**: research.md R-018.1, R-018.2, R-018.4, R-018.7, R-018.12; spec FR-001, FR-004, FR-008, FR-009, FR-011, FR-014; /speckit.clarify Q1, Q2, Q3, Q4.
 
 ## 1. Activation surfaces
@@ -9,11 +9,11 @@
 | Surface | Form | Default | Wins when both set |
 |---|---|---|---|
 | CLI flag — raster profile | `--raster-profile <id>` | unset (active profile's default identifier) | yes |
-| Env var — raster profile | `LEDGERLINC_RASTER_PROFILE=<id>` | unset (off) | no |
+| Env var — raster profile | `DARTWING_RASTER_PROFILE=<id>` | unset (off) | no |
 | CLI flag — region strategy | `--region-strategy <id>` | unset (active profile's default identifier) | yes |
-| Env var — region strategy | `LEDGERLINC_REGION_STRATEGY=<id>` | unset (off) | no |
+| Env var — region strategy | `DARTWING_REGION_STRATEGY=<id>` | unset (off) | no |
 
-**Env-var resolution**: `LEDGERLINC_RASTER_PROFILE` and `LEDGERLINC_REGION_STRATEGY` are read at CLI parse time, after argv parsing. The env-var value is passed verbatim to `resolve_raster_profile` / `resolve_region_strategy`; an unknown value raises `UnknownPresetError` (exit code 16) the same way an unknown CLI value does. There is no truthiness coercion — the env var carries an identifier name, not a boolean.
+**Env-var resolution**: `DARTWING_RASTER_PROFILE` and `DARTWING_REGION_STRATEGY` are read at CLI parse time, after argv parsing. The env-var value is passed verbatim to `resolve_raster_profile` / `resolve_region_strategy`; an unknown value raises `UnknownPresetError` (exit code 16) the same way an unknown CLI value does. There is no truthiness coercion — the env var carries an identifier name, not a boolean.
 
 **Orthogonality**: both flags are orthogonal to `--preprocess-profile`, `--gpu-warmup`, `--module-set`, and `--det-rec-variant`. An operator may combine `--preprocess-profile=ppstructurev3@gpu --gpu-warmup --module-set=reduced-v1 --det-rec-variant=ppocrv5-mobile --raster-profile=reduced-v1 --region-strategy=header-first-v1` in a single invocation; argv order does not matter.
 
@@ -27,7 +27,7 @@
                         Default on GPU: legacy. Default on CPU/stub: cpu-default
                         / stub-default (the flag is ignored on non-GPU profiles
                         with a stderr warning). Can also be set via the
-                        LEDGERLINC_RASTER_PROFILE environment variable; the CLI
+                        DARTWING_RASTER_PROFILE environment variable; the CLI
                         flag wins when both are present.
 
   --region-strategy ID  Select a named page-area-targeting strategy for the
@@ -38,7 +38,7 @@
                         page-1 result, header-first-v1 falls back to full-page on
                         that document and increments
                         region_strategy_fallback_count on run_summary. Can also
-                        be set via the LEDGERLINC_REGION_STRATEGY environment
+                        be set via the DARTWING_REGION_STRATEGY environment
                         variable; the CLI flag wins when both are present.
 ```
 
@@ -95,7 +95,7 @@ This order makes the stderr output for any single failing run unambiguous: at mo
 
 ## 6. Fallback observability on the single-doc CLI
 
-For `python -m ledgerlinc_ocr.preprocessing --document-folder X --preprocess-profile=ppstructurev3@gpu --region-strategy=header-first-v1`:
+For `python -m dartwing_ocr.preprocessing --document-folder X --preprocess-profile=ppstructurev3@gpu --region-strategy=header-first-v1`:
 
 - If the document does NOT trigger the fallback, the `kind: "run_summary"` line emits `region_strategy_fallback_count: 0`. The document's `preprocess_output.json` has page 1 populated and pages 2..N as empty records (Clarifications Q2).
 - If the document DOES trigger the fallback, the `kind: "run_summary"` line emits `region_strategy_fallback_count: 1`. The document's `preprocess_output.json` has all pages populated (the full-page strategy's output replaces the partial region-first attempt). `phase_timings.rasterization` and the sibling `per_page_inference` entries reflect the combined wall-clock cost (R-018.10).

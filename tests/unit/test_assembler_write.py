@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.assembler.write import FINAL_KEY_ORDER, write_final_payload
+from dartwing_ocr.assembler.write import FINAL_KEY_ORDER, write_final_payload
 
 
 def _sample_payload() -> dict:

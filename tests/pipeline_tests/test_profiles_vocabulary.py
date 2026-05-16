@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.profiles import (
+from dartwing_ocr.pipeline.profiles import (
     DEFAULT_PROFILES,
     PPSTRUCTUREV3_CPU,
     PPSTRUCTUREV3_GPU,
@@ -60,7 +60,7 @@ def test_resolve_profiles_no_override_yields_cpu() -> None:
 def test_default_pipeline_version_parses_to_cpu_lane() -> None:
     """FR-016 CPU-side: default build_pipeline_version() emits .cpu and
     parse_lane_segment recovers ('cpu', None)."""
-    from ledgerlinc_ocr.preprocessing.version import (
+    from dartwing_ocr.preprocessing.version import (
         build_pipeline_version,
         parse_lane_segment,
     )
@@ -71,7 +71,7 @@ def test_default_pipeline_version_parses_to_cpu_lane() -> None:
 
 
 def test_supported_profiles_contains_gpu_tuple() -> None:
-    from ledgerlinc_ocr.pipeline.profiles import SUPPORTED_PROFILES
+    from dartwing_ocr.pipeline.profiles import SUPPORTED_PROFILES
 
     assert ("preprocess", "ppstructurev3", "gpu") in SUPPORTED_PROFILES
     assert ("preprocess", "ppstructurev3", "cpu") in SUPPORTED_PROFILES
@@ -84,7 +84,7 @@ def test_ppstructurev3_gpu_constant_defined() -> None:
 def test_ppstructurev3_gpu_live_adapter_registered_by_default() -> None:
     """The opt-in GPU profile must resolve to a real adapter, not the
     generic FR-034 deferred placeholder."""
-    from ledgerlinc_ocr.pipeline import stages as stages_mod
+    from dartwing_ocr.pipeline import stages as stages_mod
 
     stages_mod.reset_live_registry(stub_fallback_only=False)
     assert stages_mod.is_live_capable("preprocess", "ppstructurev3", "gpu")
@@ -93,7 +93,7 @@ def test_ppstructurev3_gpu_live_adapter_registered_by_default() -> None:
 def test_pipeline_cli_pipeline_version_default_allows_lane_stamp() -> None:
     """When omitted, pipeline-version must stay None so the selected
     preprocessing lane can build `.cpu` or `.gpu0` itself."""
-    from ledgerlinc_ocr.pipeline.cli import _build_parser
+    from dartwing_ocr.pipeline.cli import _build_parser
 
     args = _build_parser().parse_args(
         ["run", "--document-folder", "tests/stage1_vendor_identity/inv_001_easy"]

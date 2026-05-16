@@ -13,7 +13,7 @@ Two independent assertions live in this file:
     callable's default-args output.
 
 (B) `test_cpu_byte_stability_repeat_runs` — live regression guard,
-    gated behind the `LEDGERLINC_LIVE_REGRESSION=1` environment
+    gated behind the `DARTWING_LIVE_REGRESSION=1` environment
     variable. Two consecutive CPU runs of the real PPStructureV3
     pipeline on `tests/stage1_vendor_identity/inv_001_easy/source.pdf`
     produce byte-identical `preprocess_output.json` (SHA-256 equality).
@@ -42,13 +42,13 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.version import (
+from dartwing_ocr.preprocessing.version import (
     build_pipeline_version,
     parse_lane_segment,
 )
 
 
-_LIVE_ENV_VAR = "LEDGERLINC_LIVE_REGRESSION"
+_LIVE_ENV_VAR = "DARTWING_LIVE_REGRESSION"
 
 
 def _sha256(path: Path) -> str:
@@ -65,7 +65,7 @@ def test_cpu_lane_segment_default_args() -> None:
     This is the assertion that runs on the default `pytest` invocation
     (no env vars, no flags). The complementary live byte-of-the-artifact
     assertion is `test_cpu_byte_stability_repeat_runs` below, gated
-    behind the `LEDGERLINC_LIVE_REGRESSION=1` env var.
+    behind the `DARTWING_LIVE_REGRESSION=1` env var.
 
     The unit-level parser-isolation tests live in T012
     (`tests/unit/test_pipeline_version_lane_segment.py`); this test
@@ -97,14 +97,14 @@ def test_cpu_byte_stability_repeat_runs(tmp_path: Path) -> None:
         to `("cpu", None)` — verifying the `.cpu` lane segment is
         uniformly emitted on every CPU run end-to-end (FR-016, VT13).
 
-    This test is **gated** behind the `LEDGERLINC_LIVE_REGRESSION=1`
+    This test is **gated** behind the `DARTWING_LIVE_REGRESSION=1`
     environment variable. The default `pytest` invocation skips this
     test because it constructs PPStructureV3 on a real PDF, which has
     been observed to OOM-kill the test process in py-bench. Operators
     deliberately running the live byte-stability regression guard set
-    `LEDGERLINC_LIVE_REGRESSION=1` before invoking pytest, e.g.::
+    `DARTWING_LIVE_REGRESSION=1` before invoking pytest, e.g.::
 
-        LEDGERLINC_LIVE_REGRESSION=1 .venv/bin/pytest \\
+        DARTWING_LIVE_REGRESSION=1 .venv/bin/pytest \\
             tests/pipeline_tests/test_pipeline_version_cpu_byte_stable.py
 
     The default-CI string-level coverage is provided by
@@ -128,8 +128,8 @@ def test_cpu_byte_stability_repeat_runs(tmp_path: Path) -> None:
     # Heavy imports are deliberately deferred until after the env-var
     # gate so the default-CI run never imports the live preprocessing
     # CLI (which transitively imports Paddle / PaddleOCR).
-    from ledgerlinc_ocr.preprocessing import cli as preprocessing_cli
-    from ledgerlinc_ocr.preprocessing import ocr as ocr_mod
+    from dartwing_ocr.preprocessing import cli as preprocessing_cli
+    from dartwing_ocr.preprocessing import ocr as ocr_mod
 
     # Ensure a clean engine singleton for each invocation; this is a
     # test-only reset to make the byte-stability test independent of

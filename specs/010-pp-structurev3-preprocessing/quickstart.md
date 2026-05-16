@@ -23,10 +23,10 @@ Reinstall:
 
 ## 2. First-run model weight warm-up
 
-The first `ledgerlinc-preprocess` invocation downloads ~500 MB of model weights into `~/.paddlex/official_models/`. Do this once explicitly so later steps don't block:
+The first `dartwing-preprocess` invocation downloads ~500 MB of model weights into `~/.paddlex/official_models/`. Do this once explicitly so later steps don't block:
 
 ```bash
-ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
+dartwing-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
 ```
 
 This will print download progress for PP-DocBlockLayout, PP-DocLayout_plus-L, PP-OCRv5 server det/rec, SLANeXt_wired, SLANet_plus, and the RT-DETR-L cell detectors. Once finished, subsequent invocations run network-free (FR-015).
@@ -44,7 +44,7 @@ Re-run once network is restored. No partial-state cleanup is needed.
 Re-run preprocessing on `inv_001_easy` (now with warmed weights) and inspect the artifact:
 
 ```bash
-ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
+dartwing-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
 jq '.pipeline_version, (.pages[0].blocks | length), .document_text[0:80], .ingestion_sources.paddleocr_vl' \
     tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json
 ```
@@ -69,7 +69,7 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json > "$tmp_dir/pp1.sha"
-ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
+dartwing-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
 sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json > "$tmp_dir/pp2.sha"
 diff "$tmp_dir/pp1.sha" "$tmp_dir/pp2.sha" && echo "DETERMINISTIC"
 ```
@@ -85,7 +85,7 @@ Halt-on-fail sweep (per R-006):
 ```bash
 set -e
 for folder in tests/stage1_vendor_identity/inv_*/ ; do
-    ledgerlinc-preprocess --document-folder "$folder"
+    dartwing-preprocess --document-folder "$folder"
 done
 ```
 
@@ -104,7 +104,7 @@ grep -rE '\[silent_empty_(layout|ocr)\]' tests/stage1_vendor_identity/inv_*/prep
 echo "SC-002 PASS"
 
 # SC-004 validator
-python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity
+python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity
 ```
 
 ## 6. Tests (SC-008)
@@ -120,7 +120,7 @@ For any integration test that required an update, verify the FR-013 free-form co
 
 ## 6a. Record the PP-OCRv5 default recognition threshold (R-012)
 
-Before moving on, capture the recognition-threshold default for `paddleocr==3.5.0` so FR-007's "engine default, no override" rule has a concrete value backing it. Start a Python REPL inside the devcontainer, construct the engine with the same flags used in `src/ledgerlinc_ocr/preprocessing/ocr.py`, and introspect the recognizer:
+Before moving on, capture the recognition-threshold default for `paddleocr==3.5.0` so FR-007's "engine default, no override" rule has a concrete value backing it. Start a Python REPL inside the devcontainer, construct the engine with the same flags used in `src/dartwing_ocr/preprocessing/ocr.py`, and introspect the recognizer:
 
 ```python
 from paddleocr import PPStructureV3
@@ -146,9 +146,9 @@ Measure the first-run and second-run wall-clocks for `inv_001_easy` in the devco
 
 ```bash
 # after a fresh engine warm-up, time a cold CLI invocation (fresh process = fresh engine init)
-time ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
+time dartwing-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
 # and a warm rerun
-time ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
+time dartwing-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy
 ```
 
 Fill the table row in `research.md` with `pages`, both wall-clocks, `CPU` (e.g. `lscpu | grep "Model name"`), `RAM` (`free -h`), `OS` (`uname -srm`), and the paddleocr version (`pip show paddleocr | grep Version`). No absolute deadline is imposed.
@@ -168,7 +168,7 @@ Grep for lingering `paddleocr2.10` / `PPStructure(` / `PaddleOCR(` references in
 
 Single commit that lands:
 
-- Code changes (`src/ledgerlinc_ocr/preprocessing/*.py`)
+- Code changes (`src/dartwing_ocr/preprocessing/*.py`)
 - Dep pins (`pyproject.toml`, `requirements.txt`)
 - Regenerated baselines (all 20 `preprocess_output.json` files)
 - Docs updates per step 8
@@ -190,8 +190,8 @@ No separate regeneration-notes file; the commit body is the record.
 
 ## Troubleshooting
 
-- **Engine init crashes with `ConvertPirAttribute2RuntimeAttribute` error** — the `enable_mkldnn=False` workaround is missing from `src/ledgerlinc_ocr/preprocessing/ocr.py`. See R-001.
+- **Engine init crashes with `ConvertPirAttribute2RuntimeAttribute` error** — the `enable_mkldnn=False` workaround is missing from `src/dartwing_ocr/preprocessing/ocr.py`. See R-001.
 - **Determinism diff after rerun** — check that `cpu_threads=1`, `use_mp=False`, `enable_mkldnn=False`, and `paddle.seed(0)` are all set before the first engine construction. See R-005.
-- **Multi-page fixture OOMs during preprocessing** — verify `src/ledgerlinc_ocr/preprocessing/rasterize.py` is yielding one page at a time and `pipeline.py` is not retaining a document-wide raster list. V3 is too heavy for whole-document raster materialization on this workstation; see R-011.
+- **Multi-page fixture OOMs during preprocessing** — verify `src/dartwing_ocr/preprocessing/rasterize.py` is yielding one page at a time and `pipeline.py` is not retaining a document-wide raster list. V3 is too heavy for whole-document raster materialization on this workstation; see R-011.
 - **`document_text` is empty but blocks exist** — a page with text-type blocks but zero OCR lines; FR-019 fires. Verify the `[silent_empty_ocr]` warning is present and `ingestion_sources.paddleocr_vl.status` is `"failure"`.
 - **Unknown V3 label warnings dominate `warnings[]`** — new V3 labels have appeared that aren't in `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE`. Extend the map per R-003, confirm the mapping is defensible, and re-run the sweep.

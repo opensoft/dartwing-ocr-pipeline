@@ -19,7 +19,7 @@ import pytest
 ROUTER_PKG = (
     Path(__file__).resolve().parents[3]
     / "src"
-    / "ledgerlinc_ocr"
+    / "dartwing_ocr"
     / "router"
 )
 
@@ -104,7 +104,7 @@ def test_router_opens_no_sockets_on_green_path(
     }
 
     result = subprocess.run(
-        [sys.executable, "-m", "ledgerlinc_ocr.router", "route", str(folder)],
+        [sys.executable, "-m", "dartwing_ocr.router", "route", str(folder)],
         capture_output=True,
         text=True,
         env=env,

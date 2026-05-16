@@ -17,18 +17,18 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.assembler.quality import (
+from dartwing_ocr.assembler.quality import (
     POLICY_WEIGHT_COMPANY_NAME,
     POLICY_WEIGHT_SECONDARY_MEAN,
 )
-from ledgerlinc_ocr.assembler.version import SEMVER, SEMVER_WEIGHT_LOCK
+from dartwing_ocr.assembler.version import SEMVER, SEMVER_WEIGHT_LOCK
 
 
 def test_current_semver_has_lock_entry():
     assert SEMVER in SEMVER_WEIGHT_LOCK, (
         f"SEMVER={SEMVER!r} has no entry in SEMVER_WEIGHT_LOCK. "
         f"Add {SEMVER!r}: (weight_company_name, weight_secondary_mean) to "
-        f"src/ledgerlinc_ocr/assembler/version.py — do not edit existing entries."
+        f"src/dartwing_ocr/assembler/version.py — do not edit existing entries."
     )
 
 

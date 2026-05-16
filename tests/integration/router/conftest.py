@@ -24,7 +24,7 @@ def _stage(tmp_path: Path, fixture_name: str) -> Path:
 
 
 def _run_cli(folder: Path, *extra: str) -> subprocess.CompletedProcess:
-    cmd = [sys.executable, "-m", "ledgerlinc_ocr.router", "route",
+    cmd = [sys.executable, "-m", "dartwing_ocr.router", "route",
            str(folder), *extra]
     return subprocess.run(cmd, capture_output=True, text=True)
 

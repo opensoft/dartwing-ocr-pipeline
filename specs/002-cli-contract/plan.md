@@ -43,7 +43,7 @@ No violations. Proceeding to Phase 0.
 
 All gates remain **PASS** after Phase 1 design. Specific confirmations:
 
-- **Gate I** (runtime boundaries): The pipeline module (`src/ledgerlinc_ocr/pipeline/`) is a sibling to `validator/`, not embedded in it. The runner stubs stages without collapsing harness or evaluator logic into the pipeline. Ollama is accessed over HTTP at a configurable URL.
+- **Gate I** (runtime boundaries): The pipeline module (`src/dartwing_ocr/pipeline/`) is a sibling to `validator/`, not embedded in it. The runner stubs stages without collapsing harness or evaluator logic into the pipeline. Ollama is accessed over HTTP at a configurable URL.
 - **Gate II** (schema-first): All four artifacts validated post-hoc against v1.0.0 schemas via the existing validator module. No new artifact fields introduced. Exit code 30 catches schema drift.
 - **Gate III** (deterministic control): Exit codes, path resolution, and overwrite guards are deterministic code. No model output influences CLI behavior — the CLI is a shell around pluggable stages.
 - **Gate V** (reproducible): Deterministic path resolution + stable exit codes + `--overwrite` flag enable reproducible corpus runs. The harness loop in `quickstart.md` demonstrates this.
@@ -68,11 +68,11 @@ specs/002-cli-contract/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── __init__.py                          # Package root (existing)
 ├── pipeline/                            # NEW — pipeline CLI module
 │   ├── __init__.py
-│   ├── __main__.py                      # Entry: python -m ledgerlinc_ocr.pipeline
+│   ├── __main__.py                      # Entry: python -m dartwing_ocr.pipeline
 │   ├── cli.py                           # argparse CLI: argument parsing, dispatch
 │   ├── exit_codes.py                    # Exit code enum + structured failure record
 │   ├── path_resolution.py               # Deterministic input/output/document-id resolution
@@ -106,7 +106,7 @@ tests/
     └── test_artifact_placement.py       # Four files in correct folder, no strays
 ```
 
-**Structure Decision**: The pipeline CLI lives at `src/ledgerlinc_ocr/pipeline/` — a sibling to the existing `validator/` module. Both share the `ledgerlinc_ocr` package namespace. The CLI is invoked via `python -m ledgerlinc_ocr.pipeline`. A `console_scripts` entry point (`ledgerlinc-pipeline`) will be added to `pyproject.toml` for convenience but the `python -m` form is the contract-stable surface the harness targets.
+**Structure Decision**: The pipeline CLI lives at `src/dartwing_ocr/pipeline/` — a sibling to the existing `validator/` module. Both share the `dartwing_ocr` package namespace. The CLI is invoked via `python -m dartwing_ocr.pipeline`. A `console_scripts` entry point (`dartwing-pipeline`) will be added to `pyproject.toml` for convenience but the `python -m` form is the contract-stable surface the harness targets.
 
 ## Complexity Tracking
 

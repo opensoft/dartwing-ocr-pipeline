@@ -19,7 +19,7 @@ from typing import Optional
 import pytest
 
 # VT-003 / T035: skip if preflight is unavailable.
-preflight = pytest.importorskip("ledgerlinc_ocr.preprocessing.preflight")
+preflight = pytest.importorskip("dartwing_ocr.preprocessing.preflight")
 PreflightEvidence = preflight.PreflightEvidence
 PreflightReadout = preflight.PreflightReadout
 PreflightState = preflight.PreflightState
@@ -196,7 +196,7 @@ def test_conftest_defensive_fallback_synthesizes_sentinel_on_import_error(
     monkeypatch,
 ) -> None:
     """Exercise the conftest's defensive `try/except Exception` path by
-    forcing `from ledgerlinc_ocr.preprocessing.preflight import classify`
+    forcing `from dartwing_ocr.preprocessing.preflight import classify`
     to raise, then invoking the conftest helper directly. The helper
     must synthesize a sentinel readout-shaped object with
     `state.value == "paddle_not_installed"` per T009's documented
@@ -205,12 +205,12 @@ def test_conftest_defensive_fallback_synthesizes_sentinel_on_import_error(
     # Re-bind the module attribute to None so the next `from … import classify`
     # raises, mirroring a missing-or-broken preflight module. Using
     # `monkeypatch.setitem(sys.modules, …, None)` makes Python raise
-    # `ImportError("import of ledgerlinc_ocr.preprocessing.preflight halted; …")`
+    # `ImportError("import of dartwing_ocr.preprocessing.preflight halted; …")`
     # on attribute resolution from the cached `None` entry — the same
     # observable shape the conftest's `try/except Exception` is written to
     # absorb.
     monkeypatch.setitem(
-        sys.modules, "ledgerlinc_ocr.preprocessing.preflight", None
+        sys.modules, "dartwing_ocr.preprocessing.preflight", None
     )
 
     # Bypass the conftest helper's own module-level cache so the

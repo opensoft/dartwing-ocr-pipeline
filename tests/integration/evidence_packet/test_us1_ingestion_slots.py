@@ -1,7 +1,7 @@
 """US1 AC#3: all three Trijunction slots present; payload null on failure / not_implemented."""
 from __future__ import annotations
 
-from ledgerlinc_ocr.evidence_packet import assemble_from_folder
+from dartwing_ocr.evidence_packet import assemble_from_folder
 
 
 def test_ac3_slot_preservation(folder_with_preprocess):

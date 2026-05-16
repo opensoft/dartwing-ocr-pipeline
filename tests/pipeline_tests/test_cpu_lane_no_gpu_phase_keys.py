@@ -15,7 +15,7 @@ CPU-runnable; no GPU hardware required.
 """
 from __future__ import annotations
 
-from ledgerlinc_ocr.pipeline.timing import (
+from dartwing_ocr.pipeline.timing import (
     DocumentTimings,
     RunSummary,
     StageTiming,

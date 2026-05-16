@@ -35,5 +35,5 @@ OpenSpec should not duplicate Speckit task lists. The expected handoff is:
 ## CLI
 
 Run OpenSpec from the bench/workbench container, not from the lightweight
-LedgerLinc project container. The expected bench image provides `openspec` on
+Dartwing project container. The expected bench image provides `openspec` on
 `PATH`; the current workbench-compatible version is `1.3.1`.

@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ledgerlinc-ocr"
+name = "dartwing-ocr"
 version = "0.1.0"
-description = "LedgerLinc Stage 1 OCR pipeline: contracts and validator for vendor-identity artifacts."
+description = "Dartwing Stage 1 OCR pipeline: contracts and validator for vendor-identity artifacts."
 requires-python = ">=3.12"
 dependencies = [
     "jsonschema>=4.22,<5",
@@ -30,18 +30,18 @@ dev = [
 ]
 
 [project.scripts]
-ledgerlinc-preprocess = "ledgerlinc_ocr.preprocessing.cli:main"
-ledgerlinc-pipeline = "ledgerlinc_ocr.pipeline.cli:main"
-ledgerlinc-evidence-packet = "ledgerlinc_ocr.evidence_packet.cli:main"
-ledgerlinc-extract = "ledgerlinc_ocr.extract.cli:main"
-ledgerlinc-assemble = "ledgerlinc_ocr.assembler.cli:main"
+dartwing-preprocess = "dartwing_ocr.preprocessing.cli:main"
+dartwing-pipeline = "dartwing_ocr.pipeline.cli:main"
+dartwing-evidence-packet = "dartwing_ocr.evidence_packet.cli:main"
+dartwing-extract = "dartwing_ocr.extract.cli:main"
+dartwing-assemble = "dartwing_ocr.assembler.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["ledgerlinc_ocr*"]
+include = ["dartwing_ocr*"]
 
 [tool.setuptools.package-data]
-"ledgerlinc_ocr.extract.voters" = ["configs/*.yaml", "configs/prompts/*.md"]
+"dartwing_ocr.extract.voters" = ["configs/*.yaml", "configs/prompts/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/contract_tests", "tests/pipeline_tests", "tests/unit", "tests/integration", "tests/evaluator_tests"]

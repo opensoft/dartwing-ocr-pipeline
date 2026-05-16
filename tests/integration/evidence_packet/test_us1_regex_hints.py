@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.evidence_packet import assemble_from_folder
+from dartwing_ocr.evidence_packet import assemble_from_folder
 
 _HINT_CATEGORIES = ("emails", "websites", "phones", "tax_ids")
 

@@ -37,9 +37,9 @@ EXPECTED_TOP_LEVEL_KEYS = {
 
 @pytest.mark.gpu
 def test_t015_preprocess_output_unchanged_with_sc003_subcriteria(tmp_path: Path) -> None:
-    from ledgerlinc_ocr.preprocessing import cli as preprocessing_cli
-    from ledgerlinc_ocr.preprocessing.version import parse_lane_segment
-    from ledgerlinc_ocr.validator.artifact import validate_artifact
+    from dartwing_ocr.preprocessing import cli as preprocessing_cli
+    from dartwing_ocr.preprocessing.version import parse_lane_segment
+    from dartwing_ocr.validator.artifact import validate_artifact
 
     repo_root = Path(__file__).resolve().parents[2]
     src_doc = repo_root / "tests" / "stage1_vendor_identity" / "inv_001_easy" / "source.pdf"

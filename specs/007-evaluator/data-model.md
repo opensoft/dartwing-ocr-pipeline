@@ -5,7 +5,7 @@
 
 This document specifies the runtime data model for the evaluator — the in-memory dataclasses that move between modules. The persisted JSON artifacts (`evaluation_document.json`, `evaluation_run_summary.json`) are governed by the frozen schemas under `contracts/stage1_vendor_identity/v1.1.0/` (older MINORs within the same major are accepted at ingress per FR-013); this file describes the Python surface that produces those artifacts.
 
-All dataclasses live under `src/ledgerlinc_ocr/evaluator/` and are `@dataclass(frozen=True, slots=True)` unless noted. All enums are Python `enum.Enum` subclasses. Every type is pickle-free and JSON-serializable via `io.to_dict`.
+All dataclasses live under `src/dartwing_ocr/evaluator/` and are `@dataclass(frozen=True, slots=True)` unless noted. All enums are Python `enum.Enum` subclasses. Every type is pickle-free and JSON-serializable via `io.to_dict`.
 
 ---
 

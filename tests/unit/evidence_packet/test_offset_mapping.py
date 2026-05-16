@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.evidence_packet.offset_mapping import (
+from dartwing_ocr.evidence_packet.offset_mapping import (
     build_offset_index,
     reverse_map,
 )
-from ledgerlinc_ocr.preprocessing.document_text import join_document_text
+from dartwing_ocr.preprocessing.document_text import join_document_text
 
 
 def _page(page_number: int, *block_texts: str) -> dict:

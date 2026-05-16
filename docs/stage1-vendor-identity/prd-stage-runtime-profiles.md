@@ -4,7 +4,7 @@
 
 This PRD defines the product requirements for turning the top-level stage 1 pipeline CLI into the real vertical-slice entrypoint while preserving explicit per-stage test seams.
 
-It covers how `python -m ledgerlinc_ocr.pipeline run` selects stage implementations, how callers run only part of the four-artifact flow, and how full-workstation, cloud-workstation, and Jetson edge lane selection fits into stage 1 benchmarking and diagnostics.
+It covers how `python -m dartwing_ocr.pipeline run` selects stage implementations, how callers run only part of the four-artifact flow, and how full-workstation, cloud-workstation, and Jetson edge lane selection fits into stage 1 benchmarking and diagnostics.
 
 It also records the preprocessing-profile direction that follows from the
 PPStructureV3 migration: stage 1 needs both a full document-structure stack and

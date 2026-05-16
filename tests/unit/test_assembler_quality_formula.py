@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.assembler.quality import (
+from dartwing_ocr.assembler.quality import (
     compute_overall_vendor_confidence,
     derive_secondary_identifiers,
 )

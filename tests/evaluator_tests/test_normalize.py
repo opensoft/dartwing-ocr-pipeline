@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.evaluator.normalize import (
+from dartwing_ocr.evaluator.normalize import (
     classify_company,
     classify_email,
     classify_phone,
@@ -23,7 +23,7 @@ from ledgerlinc_ocr.evaluator.normalize import (
     normalize_tax_id,
     normalize_website,
 )
-from ledgerlinc_ocr.evaluator.scoring import ResultLabel
+from dartwing_ocr.evaluator.scoring import ResultLabel
 
 
 # --- §1 State abbreviation map ------------------------------------------------

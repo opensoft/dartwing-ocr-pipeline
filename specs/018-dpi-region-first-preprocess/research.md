@@ -7,15 +7,15 @@ This document resolves the implementation-level decisions the spec deferred to `
 
 ## R-018.1: Activation mechanism for both new switches
 
-**Decision**: Add two CLI flags to BOTH the existing `python -m ledgerlinc_ocr.preprocessing` entry point and `python -m ledgerlinc_ocr.pipeline` (corpus mode):
+**Decision**: Add two CLI flags to BOTH the existing `python -m dartwing_ocr.preprocessing` entry point and `python -m dartwing_ocr.pipeline` (corpus mode):
 
 - `--raster-profile <id>` (string; default `cpu-default` on the CPU profile, default `legacy` on the GPU profile)
 - `--region-strategy <id>` (string; default `cpu-default` on the CPU profile, default `full-page` on the GPU profile)
 
 Each flag has an env-var fallback:
 
-- `LEDGERLINC_RASTER_PROFILE=<id>` (CLI flag wins when both are set)
-- `LEDGERLINC_REGION_STRATEGY=<id>` (CLI flag wins when both are set)
+- `DARTWING_RASTER_PROFILE=<id>` (CLI flag wins when both are set)
+- `DARTWING_REGION_STRATEGY=<id>` (CLI flag wins when both are set)
 
 **Env-var literal-value handling**: identical to feature 017 R-017.1 — the env-var value is passed verbatim to `resolve_raster_profile` / `resolve_region_strategy`; no `.strip()`, no case normalization, no whitespace trimming. A trailing newline, surrounding whitespace, or a mixed-case value (e.g., `Reduced-V1`) results in `UnknownPresetError` → exit code 16. Identifier values are case-sensitive lowercase by codebase convention; a forgiving normalization here would mask typos.
 

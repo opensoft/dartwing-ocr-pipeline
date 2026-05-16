@@ -1,6 +1,6 @@
 """FR-004 verbatim-encoding axes: bbox integer rounding and Unicode non-normalization.
 
-Pairs with the T051 audit in `src/ledgerlinc_ocr/preprocessing/ocr.py`. The
+Pairs with the T051 audit in `src/dartwing_ocr/preprocessing/ocr.py`. The
 spec pins two rules for byte-stable output whose violations would be visible
 only under pathological inputs (off-integer polys, non-ASCII glyphs):
 
@@ -16,7 +16,7 @@ import json
 import unicodedata
 from pathlib import Path
 
-from ledgerlinc_ocr.preprocessing.ocr import _bbox_from_coord, _clip_bbox
+from dartwing_ocr.preprocessing.ocr import _bbox_from_coord, _clip_bbox
 
 
 class TestClipBbox:
@@ -79,7 +79,7 @@ class TestTextVerbatim:
         src_root = (
             Path(__file__).resolve().parents[3]
             / "src"
-            / "ledgerlinc_ocr"
+            / "dartwing_ocr"
             / "preprocessing"
         )
         assert src_root.is_dir(), f"preprocessing source root missing: {src_root}"

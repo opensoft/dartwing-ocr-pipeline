@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from ledgerlinc_ocr.extract.errors import UnrepairableResponse
-from ledgerlinc_ocr.extract.parse import parse_model_response
+from dartwing_ocr.extract.errors import UnrepairableResponse
+from dartwing_ocr.extract.parse import parse_model_response
 
 
 _CLEAN = json.dumps({"document_type": {"value": "invoice", "confidence": 0.9}})

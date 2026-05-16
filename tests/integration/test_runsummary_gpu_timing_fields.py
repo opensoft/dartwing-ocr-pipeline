@@ -22,7 +22,7 @@ unit level by `tests/unit/test_preflight_classifier.py`; no dead
 """
 from __future__ import annotations
 
-from ledgerlinc_ocr.pipeline.timing import (
+from dartwing_ocr.pipeline.timing import (
     RunSummary,
     SCHEMA_VERSION,
 )
@@ -76,7 +76,7 @@ def test_build_per_document_failure_carries_optional_gpu_lane_forced_abort() -> 
     """T024 / CF9: build_per_document_failure(...) accepts the optional
     keyword `gpu_lane_forced_abort`; key is absent by default and
     present-and-true when the kwarg is True."""
-    from ledgerlinc_ocr.pipeline.timing import build_per_document_failure
+    from dartwing_ocr.pipeline.timing import build_per_document_failure
 
     rec_default = build_per_document_failure(
         document_id="inv_001_easy",
@@ -107,7 +107,7 @@ def test_take_gpu_inference_seconds_drains_and_resets() -> None:
     (page_number, ns) tuples. `_record_gpu_inference_ns` requires a
     page number argument. The legacy `take_gpu_inference_seconds()`
     helper is preserved as a back-compat wrapper that sums seconds."""
-    from ledgerlinc_ocr.preprocessing import ocr as ocr_mod
+    from dartwing_ocr.preprocessing import ocr as ocr_mod
 
     ocr_mod.reset_gpu_inference_ns()
     assert ocr_mod.take_gpu_inference_seconds() is None
@@ -123,7 +123,7 @@ def test_take_gpu_inference_seconds_drains_and_resets() -> None:
 def test_take_gpu_inference_per_page_returns_tuples() -> None:
     """Feature 015 (R-015.3 / T009): the new `take_gpu_inference_per_page()`
     helper returns per-page (page, seconds) tuples and resets."""
-    from ledgerlinc_ocr.preprocessing import ocr as ocr_mod
+    from dartwing_ocr.preprocessing import ocr as ocr_mod
 
     ocr_mod.reset_gpu_inference_ns()
     assert ocr_mod.take_gpu_inference_per_page() is None
@@ -136,7 +136,7 @@ def test_take_gpu_inference_per_page_returns_tuples() -> None:
 
 def test_take_gpu_inference_per_page_sums_duplicate_pages() -> None:
     """Feature 018 fallback may infer page 1 twice; emit one sorted page entry."""
-    from ledgerlinc_ocr.preprocessing import ocr as ocr_mod
+    from dartwing_ocr.preprocessing import ocr as ocr_mod
 
     ocr_mod.reset_gpu_inference_ns()
     ocr_mod._record_gpu_inference_ns(1, 500_000_000)

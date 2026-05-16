@@ -21,7 +21,7 @@ No other install steps — the evaluator adds no new third-party dependencies be
 Verify the CLI is wired up:
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.evaluator --help
+.venv/bin/python -m dartwing_ocr.evaluator --help
 ```
 
 You should see the two subcommands: `evaluate document` and `evaluate corpus`.
@@ -33,7 +33,7 @@ You should see the two subcommands: `evaluate document` and `evaluate corpus`.
 Assume a per-document folder at `tests/stage1_vendor_identity/inv_001_easy/` containing `expected.json` and `final_structured_payload.json`.
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.evaluator evaluate document \
+.venv/bin/python -m dartwing_ocr.evaluator evaluate document \
     tests/stage1_vendor_identity/inv_001_easy
 ```
 
@@ -48,7 +48,7 @@ On hard error (exit code `3`):
 To get the machine-readable outcome instead of the text summary, pass `--json`:
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.evaluator evaluate document \
+.venv/bin/python -m dartwing_ocr.evaluator evaluate document \
     tests/stage1_vendor_identity/inv_001_easy --json
 ```
 
@@ -99,7 +99,7 @@ Quick interpretation:
 ## 3. Evaluate the whole corpus
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.evaluator evaluate corpus \
+.venv/bin/python -m dartwing_ocr.evaluator evaluate corpus \
     tests/stage1_vendor_identity
 ```
 
@@ -118,14 +118,14 @@ Exit codes:
 To enforce strict aggregation (every folder must already have `evaluation_document.json`):
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.evaluator evaluate corpus \
+.venv/bin/python -m dartwing_ocr.evaluator evaluate corpus \
     tests/stage1_vendor_identity --no-lazy
 ```
 
 To force full re-evaluation and ignore any cached `evaluation_document.json` (e.g., after evaluator code or scoring weights change without a contract-set-version bump):
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.evaluator evaluate corpus \
+.venv/bin/python -m dartwing_ocr.evaluator evaluate corpus \
     tests/stage1_vendor_identity --refresh
 ```
 
@@ -168,11 +168,11 @@ The machine-readable `evaluation_run_summary.json` has the same headline numbers
 ## 5. Re-run and verify determinism
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.evaluator evaluate corpus \
+.venv/bin/python -m dartwing_ocr.evaluator evaluate corpus \
     tests/stage1_vendor_identity
 cp tests/stage1_vendor_identity/evaluation_run_summary.json /tmp/run_a.json
 
-.venv/bin/python -m ledgerlinc_ocr.evaluator evaluate corpus \
+.venv/bin/python -m dartwing_ocr.evaluator evaluate corpus \
     tests/stage1_vendor_identity
 cp tests/stage1_vendor_identity/evaluation_run_summary.json /tmp/run_b.json
 

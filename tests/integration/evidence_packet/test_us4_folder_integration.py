@@ -9,7 +9,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-from ledgerlinc_ocr.evidence_packet import assemble_from_folder
+from dartwing_ocr.evidence_packet import assemble_from_folder
 
 _FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "evidence_packet"
 _PACKET_SCHEMA_PATH = (
@@ -63,7 +63,7 @@ def test_ac2_debug_writes_packet_validates(tmp_path, caplog):
         for name in _SIBLING_FILES
     }
 
-    with caplog.at_level(logging.DEBUG, logger="ledgerlinc_ocr"):
+    with caplog.at_level(logging.DEBUG, logger="dartwing_ocr"):
         assemble_from_folder(folder)
 
     packet_path = folder / "evidence_packet.json"
@@ -89,8 +89,8 @@ def test_ac3_folder_validator_accepts_both_states(tmp_path, caplog):
     """
     folder = _seed_folder(tmp_path)
 
-    from ledgerlinc_ocr.validator.folder import validate_folder
-    from ledgerlinc_ocr.validator.loader import load_contract_set
+    from dartwing_ocr.validator.folder import validate_folder
+    from dartwing_ocr.validator.loader import load_contract_set
 
     contract_set = load_contract_set()
 
@@ -110,7 +110,7 @@ def test_ac3_folder_validator_accepts_both_states(tmp_path, caplog):
     absent_outcome = validate_folder(folder, contract_set=contract_set)
     absent_fingerprint = _fingerprint(absent_outcome)
 
-    with caplog.at_level(logging.DEBUG, logger="ledgerlinc_ocr"):
+    with caplog.at_level(logging.DEBUG, logger="dartwing_ocr"):
         assemble_from_folder(folder)
     assert (folder / "evidence_packet.json").is_file()
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ledgerlinc_ocr.validator import validate_artifact
+from dartwing_ocr.validator import validate_artifact
 
 
 def _validate_output(folder: Path) -> None:

@@ -3,7 +3,7 @@
 ## One Document, Stub-Safe Preparation
 
 ```bash
-python -m ledgerlinc_ocr.evaluator evaluate document \
+python -m dartwing_ocr.evaluator evaluate document \
   tests/stage1_vendor_identity/inv_001_easy \
   --run-pipeline \
   --pipeline-overwrite
@@ -14,7 +14,7 @@ This runs the pipeline with deterministic all-stub profiles, writes the four can
 ## One Document, Explicit Real Stack
 
 ```bash
-python -m ledgerlinc_ocr.evaluator evaluate document \
+python -m dartwing_ocr.evaluator evaluate document \
   tests/stage1_vendor_identity/inv_001_easy \
   --run-pipeline \
   --pipeline-overwrite \
@@ -27,7 +27,7 @@ This opts into the pipeline controller's `full-workstation` stack and then evalu
 ## Corpus, Warm Stub-Safe Preparation
 
 ```bash
-python -m ledgerlinc_ocr.evaluator evaluate corpus \
+python -m dartwing_ocr.evaluator evaluate corpus \
   tests/stage1_vendor_identity \
   --run-pipeline \
   --pipeline-overwrite \
@@ -39,7 +39,7 @@ This discovers corpus folders, invokes the pipeline once in warm `--documents-fi
 ## Corpus, Continue Through Preparation Failures
 
 ```bash
-python -m ledgerlinc_ocr.evaluator evaluate corpus \
+python -m dartwing_ocr.evaluator evaluate corpus \
   tests/stage1_vendor_identity \
   --run-pipeline \
   --pipeline-overwrite \
@@ -52,7 +52,7 @@ Documents successfully prepared by the pipeline are evaluated. Preparation failu
 ## Corpus, Real Warm Profile
 
 ```bash
-python -m ledgerlinc_ocr.evaluator evaluate corpus \
+python -m dartwing_ocr.evaluator evaluate corpus \
   tests/stage1_vendor_identity \
   --run-pipeline \
   --pipeline-overwrite \

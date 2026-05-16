@@ -30,7 +30,7 @@ def _ollama_reachable() -> bool:
 
 @pytest.fixture
 def opt_in_all_live_adapters():
-    from ledgerlinc_ocr.pipeline import stages as stages_mod
+    from dartwing_ocr.pipeline import stages as stages_mod
     stages_mod.register_ppstructurev3_cpu()
     stages_mod.register_ollama_gpu()
     stages_mod.register_routing_rules_cpu()
@@ -44,8 +44,8 @@ def opt_in_all_live_adapters():
 @pytest.mark.skipif(not _ollama_reachable(), reason="Ollama not reachable")
 def test_default_real_run_artifacts_pass_validator(tmp_path: Path, opt_in_all_live_adapters):
     """SC-002: each artifact validates against the installed contract set."""
-    from ledgerlinc_ocr.pipeline.cli import main
-    from ledgerlinc_ocr.validator.folder import validate_folder
+    from dartwing_ocr.pipeline.cli import main
+    from dartwing_ocr.validator.folder import validate_folder
 
     src = CORPUS_ROOT / "inv_001_easy" / "source.pdf"
     if not src.exists():

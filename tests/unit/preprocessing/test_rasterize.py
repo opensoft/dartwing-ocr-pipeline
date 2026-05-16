@@ -13,8 +13,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import rasterize
-from ledgerlinc_ocr.preprocessing.errors import (
+from dartwing_ocr.preprocessing import rasterize
+from dartwing_ocr.preprocessing.errors import (
     EncryptedPdfError,
     MalformedPdfError,
     NonPdfInputError,
@@ -109,7 +109,7 @@ def test_encrypted_pdf_raises():
 def test_zero_page_or_malformed_raises():
     """pypdfium2 cannot tell a true zero-page PDF apart from a malformed one —
     both must still fail loud as InputRejectedError subclasses, never silently."""
-    from ledgerlinc_ocr.preprocessing.errors import InputRejectedError
+    from dartwing_ocr.preprocessing.errors import InputRejectedError
 
     with pytest.raises(InputRejectedError):
         rasterize.open_pdf(_us3("inv_035_zero_page"))

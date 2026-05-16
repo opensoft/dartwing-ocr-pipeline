@@ -11,8 +11,8 @@
 - [x] CHK002 - Are the exact registry keys at landing enumerated for both axes (4 module-set, 5 det/rec)? [Completeness, R-017.2, R-017.4]
 - [x] CHK003 - Is preset resolution (`resolve_module_set`, `resolve_det_rec_variant`) defined as a pure dict lookup with no side effects? [Clarity, R-017.6]
 - [x] CHK004 - Is the order of `valid_values` materialized into the `UnknownPresetError` tuple specified deterministically (e.g., insertion-order, lexicographic, or registry-declaration order)? [Clarity, R-017.9, data-model.md "UnknownPresetError"]
-- [x] CHK005 - Is the precedence rule "CLI flag wins over env var" stated identically across both axes (`--module-set` vs `LEDGERLINC_MODULE_SET`; `--det-rec-variant` vs `LEDGERLINC_DET_REC_VARIANT`)? [Consistency, R-017.1, contracts/cli-contract.md §1]
-- [x] CHK006 - Is the env-var literal-value handling (whitespace stripping? case sensitivity? trailing-newline handling?) for `LEDGERLINC_MODULE_SET` / `LEDGERLINC_DET_REC_VARIANT` specified or explicitly matched to a known precedent (e.g., feature 016's `LEDGERLINC_GPU_WARMUP` parsing)? [Gap, R-017.1]
+- [x] CHK005 - Is the precedence rule "CLI flag wins over env var" stated identically across both axes (`--module-set` vs `DARTWING_MODULE_SET`; `--det-rec-variant` vs `DARTWING_DET_REC_VARIANT`)? [Consistency, R-017.1, contracts/cli-contract.md §1]
+- [x] CHK006 - Is the env-var literal-value handling (whitespace stripping? case sensitivity? trailing-newline handling?) for `DARTWING_MODULE_SET` / `DARTWING_DET_REC_VARIANT` specified or explicitly matched to a known precedent (e.g., feature 016's `DARTWING_GPU_WARMUP` parsing)? [Gap, R-017.1]
 - [x] CHK007 - Is the case-sensitive matching policy for identifier values explicit (so `Reduced-V1` is rejected with `UnknownPresetError`, not silently coerced)? [Clarity, R-017.9 alternatives]
 
 ## Audit-Callable Determinism

@@ -11,8 +11,8 @@ python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 ```
 
-This makes `python -m ledgerlinc_ocr.assembler` available. Once `pyproject.toml` is updated
-(tasks phase) the `ledgerlinc-assemble` console script will also be installed.
+This makes `python -m dartwing_ocr.assembler` available. Once `pyproject.toml` is updated
+(tasks phase) the `dartwing-assemble` console script will also be installed.
 
 ## 2. Stage a per-document folder
 
@@ -43,7 +43,7 @@ referenced by `trace` but not opened by this stage.
 ## 3. Run the assembler
 
 ```bash
-python -m ledgerlinc_ocr.assembler \
+python -m dartwing_ocr.assembler \
   --document-folder tests/fixtures/assembler/happy_grounded/
 ```
 
@@ -52,7 +52,7 @@ On success: exit `0`, no stdout, `final_structured_payload.json` written into th
 On failure: non-zero exit, one JSON line on stderr, no output file written. Example:
 
 ```bash
-$ python -m ledgerlinc_ocr.assembler \
+$ python -m dartwing_ocr.assembler \
     --document-folder tests/fixtures/assembler/document_id_mismatch/
 {"status": "error", "kind": "document_id_mismatch", "message": "edge_extraction_output.json:document_id='inv_005' but routing_decision.json:document_id='inv_006'"}
 $ echo $?
@@ -89,7 +89,7 @@ Key things to verify by eye:
 ## 5. Validate against the frozen contract
 
 ```bash
-python -m ledgerlinc_ocr.validator validate artifact \
+python -m dartwing_ocr.validator validate artifact \
   --contract final_structured_payload \
   tests/fixtures/assembler/happy_grounded/final_structured_payload.json
 ```
@@ -100,7 +100,7 @@ Exit `0` means the assembler's output matches the frozen v1.0.0 schema.
 
 ```bash
 cp tests/fixtures/assembler/happy_grounded/final_structured_payload.json /tmp/first.json
-python -m ledgerlinc_ocr.assembler --document-folder tests/fixtures/assembler/happy_grounded/
+python -m dartwing_ocr.assembler --document-folder tests/fixtures/assembler/happy_grounded/
 diff <(jq 'del(.processed_at)' /tmp/first.json) \
      <(jq 'del(.processed_at)' tests/fixtures/assembler/happy_grounded/final_structured_payload.json)
 ```

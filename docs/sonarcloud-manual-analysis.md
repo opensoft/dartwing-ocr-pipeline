@@ -18,13 +18,13 @@ The `pyBench` layer owns Python-only coverage tooling:
 Store tokens outside the mounted `.codex` folder:
 
 ```bash
-mkdir -p ~/.config/ledgerlinc/secrets
-chmod 700 ~/.config/ledgerlinc/secrets
-cat > ~/.config/ledgerlinc/secrets/sonar.env <<'EOF'
+mkdir -p ~/.config/dartwing/secrets
+chmod 700 ~/.config/dartwing/secrets
+cat > ~/.config/dartwing/secrets/sonar.env <<'EOF'
 SONARQUBE_TOKEN=replace-me
 SONARQUBE_ORG=opensoft
 EOF
-chmod 600 ~/.config/ledgerlinc/secrets/sonar.env
+chmod 600 ~/.config/dartwing/secrets/sonar.env
 ```
 
 Run the manual analysis:

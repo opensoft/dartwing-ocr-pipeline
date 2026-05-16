@@ -19,8 +19,8 @@ See the authoritative documentation:
 From repo root:
 
 ```bash
-python -m ledgerlinc_ocr.validator validate folder tests/stage1_vendor_identity/inv_001_easy
-python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity
+python -m dartwing_ocr.validator validate folder tests/stage1_vendor_identity/inv_001_easy
+python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity
 ```
 
 ## Required files per document

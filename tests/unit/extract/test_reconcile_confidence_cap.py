@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.extract.config import load_voter_config
-from ledgerlinc_ocr.extract.reconcile import reconcile
+from dartwing_ocr.extract.config import load_voter_config
+from dartwing_ocr.extract.reconcile import reconcile
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _US2_FIXTURE = _REPO_ROOT / "tests" / "fixtures" / "extract" / "us2_evidence"

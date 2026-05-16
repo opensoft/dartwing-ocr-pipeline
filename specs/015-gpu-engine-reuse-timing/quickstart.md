@@ -18,7 +18,7 @@ pip install -e ".[dev]"                          # idempotent
 Confirm the environment:
 
 ```bash
-python -m ledgerlinc_ocr.preprocessing.preflight --json
+python -m dartwing_ocr.preprocessing.preflight --json
 # expect: {"kind":"preflight_readout","state":"ppstructurev3_init_succeeded", …}
 # AND total wall-clock under ~60 s (this is the standalone CLI; the runtime gate persists the engine and pays this cost only once total per process)
 ```
@@ -26,7 +26,7 @@ python -m ledgerlinc_ocr.preprocessing.preflight --json
 ## Smoke 1 — single-document GPU run, one PPStructureV3 construction
 
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu \
     --pretty-stdout
@@ -46,10 +46,10 @@ Expected:
 Verify engine reuse from a Python REPL in the same process:
 
 ```python
-from ledgerlinc_ocr.preprocessing import ocr, preflight
+from dartwing_ocr.preprocessing import ocr, preflight
 preflight.ensure_gpu_ready()                 # cached after the CLI run above? No — CLI ran in a subprocess.
 # Instead, run within one Python process:
-from ledgerlinc_ocr.preprocessing.pipeline import run, Invocation
+from dartwing_ocr.preprocessing.pipeline import run, Invocation
 from pathlib import Path
 
 inv = Invocation(
@@ -76,7 +76,7 @@ EOF
 Run:
 
 ```bash
-python -m ledgerlinc_ocr.pipeline \
+python -m dartwing_ocr.pipeline \
     --documents-file /tmp/feature015_warm.txt \
     --preprocess-profile ppstructurev3@gpu
 ```
@@ -94,7 +94,7 @@ Expected:
 On a host where `paddlepaddle-dcu` is not installed (or `gpu:0` is not visible):
 
 ```bash
-time python -m ledgerlinc_ocr.preprocessing \
+time python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu
 ```
@@ -109,7 +109,7 @@ Expected:
 ## Smoke 4 — CPU lane stays GPU-cost-free
 
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     --pretty-stdout
@@ -140,7 +140,7 @@ The default suite skips `gpu`-marked tests via `tests/conftest.py`, so a CI run 
 After Smoke 1, parse the run_summary line:
 
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu \
     --pretty-stdout 2>/dev/null \

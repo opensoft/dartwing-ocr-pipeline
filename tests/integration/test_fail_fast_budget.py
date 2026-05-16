@@ -47,7 +47,7 @@ def test_t035_gpu_prereq_failure_within_10s_no_silent_fallback(tmp_path: Path) -
     t0 = time.perf_counter()
     result = subprocess.run(
         [
-            sys.executable, "-m", "ledgerlinc_ocr.preprocessing",
+            sys.executable, "-m", "dartwing_ocr.preprocessing",
             "--document-folder", str(work_folder),
             "--preprocess-profile", "ppstructurev3@gpu",
         ],

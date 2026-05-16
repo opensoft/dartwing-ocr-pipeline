@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.assembler import Invocation, run
-from ledgerlinc_ocr.assembler.version import SEMVER, build_pipeline_version
+from dartwing_ocr.assembler import Invocation, run
+from dartwing_ocr.assembler.version import SEMVER, build_pipeline_version
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "fixtures" / "assembler"
 
