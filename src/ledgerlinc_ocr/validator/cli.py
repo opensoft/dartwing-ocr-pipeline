@@ -124,12 +124,12 @@ def _render_contract_set(cs: ContractSet, *, json_output: bool) -> str:
     return "\n".join(lines)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — validator CLI dispatcher — branches over all subcommands and their failure modes.
     argv = list(argv) if argv is not None else sys.argv[1:]
     parser = _build_parser()
     try:
         args = parser.parse_args(argv)
-    except SystemExit as exc:
+    except SystemExit as exc:  # NOSONAR S5754 — intentional: argparse exits via SystemExit on --help / parse errors; convert to an integer return so library callers don't see an exception.
         return int(exc.code) if isinstance(exc.code, int) else 2
 
     json_output: bool = bool(getattr(args, "json_output", False))

@@ -161,6 +161,10 @@ def test_state_f_ppstructurev3_init_succeeded(monkeypatch) -> None:
 
     class _OkPPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` so
+            # classify() can reach the successful-init code path without
+            # actually constructing PaddleOCR.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_OkPPStructure))

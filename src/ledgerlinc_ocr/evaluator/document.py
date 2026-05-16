@@ -23,6 +23,7 @@ from ledgerlinc_ocr.evaluator.gates import (
     review_routing_passed,
     vendor_identity_passed,
 )
+from ledgerlinc_ocr.evaluator.filenames import EVAL_DOC_FILENAME
 from ledgerlinc_ocr.evaluator.io import read_json, write_json
 from ledgerlinc_ocr.evaluator.normalize import normalized_equal
 from ledgerlinc_ocr.evaluator.schema import (
@@ -39,6 +40,9 @@ from ledgerlinc_ocr.evaluator.scoring import (
     compute_document_score,
     is_compatible_version,
 )
+
+# Local alias (keeps call sites private).
+_EVAL_DOC_FILENAME = EVAL_DOC_FILENAME
 
 Difficulty = Literal["easy", "medium", "hard", "missing_name"]
 
@@ -211,11 +215,11 @@ def evaluate_document(
     validate_against_schema(
         persistable,
         load_evaluation_document_schema(pinned_version),
-        source=folder / "evaluation_document.json",
-        artifact_label="evaluation_document.json",
+        source=folder / _EVAL_DOC_FILENAME,
+        artifact_label=_EVAL_DOC_FILENAME,
     )
 
-    output_path = folder / "evaluation_document.json"
+    output_path = folder / _EVAL_DOC_FILENAME
     write_json(output_path, persistable)
 
     return DocumentEvaluationOutcome(

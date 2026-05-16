@@ -234,7 +234,7 @@ def test_score_below_threshold_fallback(tmp_path: Path) -> None:
             "hard": DifficultyStats(0, 0.0, 0.0),
             "missing_name": DifficultyStats(0, 0.0, 0.0),
         },
-        by_field={name: 1.0 for name in SCORED_FIELDS},
+        by_field=dict.fromkeys(SCORED_FIELDS, 1.0),
         documents=(
             DocumentListEntry(
                 document_id="inv_999_easy",

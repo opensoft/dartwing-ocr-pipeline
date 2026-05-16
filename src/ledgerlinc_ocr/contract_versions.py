@@ -48,7 +48,7 @@ def require_stage1_contract_version(value: Any, *, artifact_label: str) -> str:
     return value
 
 
-def require_matching_contract_version(
+def require_matching_contract_version(  # NOSONAR S3516 — both paths return `found`, but the side effect is the ContractVersionError raise in the mismatch case; callers receive the validated version back for direct reuse.
     *,
     found: str,
     expected: str | None,

@@ -43,26 +43,37 @@ class FieldResult:
             raise ValueError(f"field_name {self.field_name!r} is not in SCORED_FIELDS")
         if not isinstance(self.result, ResultLabel):
             raise TypeError(f"result must be a ResultLabel, got {type(self.result)!r}")
-        if self.expected is None and self.actual is None:
-            if self.result is not ResultLabel.NOT_APPLICABLE:
-                raise ValueError(
-                    f"{self.field_name}: both sides null requires NOT_APPLICABLE, got {self.result!r}"
-                )
+        self._check_nullability()
+        self._check_partial_eligibility()
+
+    def _check_nullability(self) -> None:
+        """Enforce the (expected, actual)-nullability ⇔ ResultLabel mapping."""
+        expected_null = self.expected is None
+        actual_null = self.actual is None
+        if expected_null and actual_null:
+            self._require_label(ResultLabel.NOT_APPLICABLE, "both sides null")
             return
-        if self.expected is not None and self.actual is None:
-            if self.result is not ResultLabel.MISSING_PREDICTION:
-                raise ValueError(
-                    f"{self.field_name}: expected non-null, actual null requires "
-                    f"MISSING_PREDICTION, got {self.result!r}"
-                )
+        if not expected_null and actual_null:
+            self._require_label(
+                ResultLabel.MISSING_PREDICTION,
+                "expected non-null, actual null",
+            )
             return
-        if self.expected is None and self.actual is not None:
-            if self.result is not ResultLabel.UNEXPECTED_PREDICTION:
-                raise ValueError(
-                    f"{self.field_name}: expected null, actual non-null requires "
-                    f"UNEXPECTED_PREDICTION, got {self.result!r}"
-                )
-            return
+        if expected_null and not actual_null:
+            self._require_label(
+                ResultLabel.UNEXPECTED_PREDICTION,
+                "expected null, actual non-null",
+            )
+
+    def _require_label(self, expected_label: ResultLabel, context: str) -> None:
+        if self.result is not expected_label:
+            raise ValueError(
+                f"{self.field_name}: {context} requires {expected_label.name}, "
+                f"got {self.result!r}"
+            )
+
+    def _check_partial_eligibility(self) -> None:
+        """FR-006: PARTIAL_MATCH is not allowed on the no-partial field set."""
         if (
             self.result is ResultLabel.PARTIAL_MATCH
             and self.field_name in _NO_PARTIAL_FIELDS

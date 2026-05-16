@@ -11,6 +11,10 @@ from typing import Iterable
 from ledgerlinc_ocr.evaluator.compare import FieldResult
 from ledgerlinc_ocr.evaluator.document import DocumentEvaluation, evaluate_document
 from ledgerlinc_ocr.evaluator.exceptions import EmptyCorpusError
+from ledgerlinc_ocr.evaluator.filenames import (
+    EVAL_DOC_FILENAME,
+    EVAL_RUN_SUMMARY_FILENAME,
+)
 from ledgerlinc_ocr.evaluator.gates import DocumentPassFail
 from ledgerlinc_ocr.evaluator.io import read_json, write_json, write_text
 from ledgerlinc_ocr.evaluator.schema import (
@@ -25,6 +29,10 @@ from ledgerlinc_ocr.evaluator.scoring import (
     ResultLabel,
     compute_document_score,
 )
+
+# Local aliases (keep call sites private).
+_EVAL_DOC_FILENAME = EVAL_DOC_FILENAME
+_EVAL_RUN_SUMMARY_FILENAME = EVAL_RUN_SUMMARY_FILENAME
 
 
 @dataclass(frozen=True, slots=True)
@@ -215,7 +223,7 @@ def _ensure_document_evaluation(
     and the document is always re-evaluated from scratch. This bypasses the
     lazy-mode cache and forces regeneration regardless of whether the
     on-disk artifact is schema-valid."""
-    eval_path = folder / "evaluation_document.json"
+    eval_path = folder / _EVAL_DOC_FILENAME
     if refresh:
         outcome = evaluate_document(folder, contract_set_version=contract_set_version)
         assert outcome.evaluation is not None
@@ -227,7 +235,7 @@ def _ensure_document_evaluation(
                 instance,
                 load_evaluation_document_schema(contract_set_version),
                 source=eval_path,
-                artifact_label="evaluation_document.json",
+                artifact_label=_EVAL_DOC_FILENAME,
             )
         except Exception:
             if not lazy:
@@ -294,9 +302,9 @@ def build_by_field(
     evaluations: tuple[DocumentEvaluation, ...],
 ) -> dict[str, float]:
     """Corpus-wide unweighted accuracy per dotted SCORED_FIELDS key (research §12)."""
-    per_field_applicable: dict[str, int] = {k: 0 for k in SCORED_FIELDS}
-    per_field_match: dict[str, int] = {k: 0 for k in SCORED_FIELDS}
-    per_field_partial: dict[str, int] = {k: 0 for k in SCORED_FIELDS}
+    per_field_applicable: dict[str, int] = dict.fromkeys(SCORED_FIELDS, 0)
+    per_field_match: dict[str, int] = dict.fromkeys(SCORED_FIELDS, 0)
+    per_field_partial: dict[str, int] = dict.fromkeys(SCORED_FIELDS, 0)
     for ev in evaluations:
         for fr in ev.field_results:
             if fr.result is ResultLabel.NOT_APPLICABLE:
@@ -422,7 +430,7 @@ def evaluate_corpus(
             DocumentEvaluationOutcome(
                 ok=True,
                 evaluation=ev,
-                output_path=folder / "evaluation_document.json",
+                output_path=folder / _EVAL_DOC_FILENAME,
             )
         )
 
@@ -451,11 +459,11 @@ def evaluate_corpus(
     validate_against_schema(
         persistable,
         load_evaluation_run_summary_schema(pinned),
-        source=root / "evaluation_run_summary.json",
-        artifact_label="evaluation_run_summary.json",
+        source=root / _EVAL_RUN_SUMMARY_FILENAME,
+        artifact_label=_EVAL_RUN_SUMMARY_FILENAME,
     )
 
-    json_path = root / "evaluation_run_summary.json"
+    json_path = root / _EVAL_RUN_SUMMARY_FILENAME
     write_json(json_path, persistable)
 
     from ledgerlinc_ocr.evaluator.report import render_run_summary

@@ -298,7 +298,7 @@ def _emit_simple_error_kind(kind: str, message: str) -> None:
     )
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — CLI entry point — branches over all preprocessing flags / preset axes; splitting fragments the contract.
     parser = _build_parser()
     args = parser.parse_args(argv)
 
@@ -400,7 +400,7 @@ def main(argv: list[str] | None = None) -> int:
     _preprocess_strategy_threaded: str | None = _preprocess_strategy_raw
     if not _is_gpu_lane_017(preprocess_lane):
         active_profile_name_017 = (
-            args.preprocess_profile if args.preprocess_profile else "ppstructurev3@cpu"
+            args.preprocess_profile if args.preprocess_profile else PPSTRUCTUREV3_CPU
         )
         if _module_set_raw is not None:
             print(_module_set_warn(active_profile_name_017), file=sys.stderr)
@@ -430,7 +430,7 @@ def main(argv: list[str] | None = None) -> int:
     warmup_threaded = warmup_optin and is_gpu_lane(preprocess_lane)
     if warmup_optin and not is_gpu_lane(preprocess_lane):
         active_profile_name = (
-            args.preprocess_profile if args.preprocess_profile else "ppstructurev3@cpu"
+            args.preprocess_profile if args.preprocess_profile else PPSTRUCTUREV3_CPU
         )
         print(warn_and_proceed_message(active_profile_name), file=sys.stderr)
 
@@ -786,7 +786,7 @@ def _profile_slug_for_lane(lane: str) -> str:
     """Reverse-map the lane string back to the canonical profile slug
     for `resolved_profiles`. CPU → ppstructurev3@cpu; gpu0 → ppstructurev3@gpu."""
     if lane == "cpu":
-        return "ppstructurev3@cpu"
+        return PPSTRUCTUREV3_CPU
     if lane.startswith("gpu"):
         return "ppstructurev3@gpu"
     return lane

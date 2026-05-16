@@ -13,6 +13,9 @@ from typing import Any
 
 from .config import VoterConfig
 
+_TOTAL_AMOUNT_PATH = "invoice_header_fields/total_amount"
+_COMPANY_NAME_PATH = "vendor_candidate/company_name"
+
 _EVIDENCE_ID = re.compile(r"^p\d+_[bl]\d+$")
 
 _VCE_FIELDS = ("website", "phone", "email")
@@ -39,6 +42,42 @@ def _new_company_name() -> dict[str, Any]:
     }
 
 
+def _coerce_value_str_or_none(
+    raw: Any, path: str, warnings: list[str], soft: dict[str, bool]
+) -> Any:
+    """Accept None or non-empty str; default to None on wrong type or empty str."""
+    value = raw.get("value", None)
+    if value is None or isinstance(value, str):
+        return value if value != "" else None
+    warnings.append(f"sub-field defaulted (wrong-type value): {path}/value")
+    soft["defaulted"] = True
+    return None
+
+
+def _coerce_confidence(
+    raw: Any, path: str, warnings: list[str], soft: dict[str, bool]
+) -> float:
+    """Accept int/float (excluding bool); clamp to [0.0, 1.0]; default 0.0 on wrong type."""
+    confidence = raw.get("confidence", 0.0)
+    if isinstance(confidence, (int, float)) and not isinstance(confidence, bool):
+        return max(0.0, min(1.0, float(confidence)))
+    warnings.append(f"sub-field defaulted (wrong-type confidence): {path}/confidence")
+    soft["defaulted"] = True
+    return 0.0
+
+
+def _coerce_evidence(
+    raw: Any, path: str, warnings: list[str], soft: dict[str, bool]
+) -> list[str]:
+    """Accept list[str]; default empty list on wrong type."""
+    evidence = raw.get("evidence", [])
+    if isinstance(evidence, list) and all(isinstance(e, str) for e in evidence):
+        return list(evidence)
+    warnings.append(f"sub-field defaulted (wrong-type evidence): {path}/evidence")
+    soft["defaulted"] = True
+    return []
+
+
 def _coerce_scalar(
     raw: Any,
     path: str,
@@ -46,38 +85,14 @@ def _coerce_scalar(
     soft: dict[str, bool],
 ) -> dict[str, Any]:
     """Normalize a model-proposed `{value, confidence, evidence}` field."""
-
     if not isinstance(raw, dict):
         warnings.append(f"sub-field defaulted (wrong-type): {path}")
         soft["defaulted"] = True
         return _new_scalar()
-
     out = _new_scalar()
-
-    value = raw.get("value", None)
-    if value is None or isinstance(value, str):
-        out["value"] = value if value != "" else None
-    else:
-        warnings.append(f"sub-field defaulted (wrong-type value): {path}/value")
-        soft["defaulted"] = True
-        out["value"] = None
-
-    confidence = raw.get("confidence", 0.0)
-    if isinstance(confidence, (int, float)) and not isinstance(confidence, bool):
-        out["confidence"] = max(0.0, min(1.0, float(confidence)))
-    else:
-        warnings.append(f"sub-field defaulted (wrong-type confidence): {path}/confidence")
-        soft["defaulted"] = True
-        out["confidence"] = 0.0
-
-    evidence = raw.get("evidence", [])
-    if isinstance(evidence, list) and all(isinstance(e, str) for e in evidence):
-        out["evidence"] = list(evidence)
-    else:
-        warnings.append(f"sub-field defaulted (wrong-type evidence): {path}/evidence")
-        soft["defaulted"] = True
-        out["evidence"] = []
-
+    out["value"] = _coerce_value_str_or_none(raw, path, warnings, soft)
+    out["confidence"] = _coerce_confidence(raw, path, warnings, soft)
+    out["evidence"] = _coerce_evidence(raw, path, warnings, soft)
     return out
 
 
@@ -86,7 +101,7 @@ def _coerce_total_amount(
     warnings: list[str],
     soft: dict[str, bool],
 ) -> dict[str, Any]:
-    path = "invoice_header_fields/total_amount"
+    path = _TOTAL_AMOUNT_PATH
     if not isinstance(raw, dict):
         warnings.append(f"sub-field defaulted (wrong-type): {path}")
         soft["defaulted"] = True
@@ -134,7 +149,7 @@ def _coerce_company_name(
     warnings: list[str],
     soft: dict[str, bool],
 ) -> dict[str, Any]:
-    path = "vendor_candidate/company_name"
+    path = _COMPANY_NAME_PATH
     if not isinstance(raw, dict):
         warnings.append(f"sub-field defaulted (wrong-type): {path}")
         soft["defaulted"] = True
@@ -212,7 +227,7 @@ def _apply_cap(field: dict[str, Any], cap: float) -> None:
         field["confidence"] = min(field["confidence"], cap)
 
 
-def _dedup_first_seen(items: list[str]) -> list[str]:
+def _dedup_first_seen(items: list[str]) -> list[str]:  # NOSONAR S3776 — reconcile cascade — Sonar over-counts the per-field cascade; structural split is on the deferred list.
     seen: set[str] = set()
     out: list[str] = []
     for item in items:
@@ -272,7 +287,7 @@ def reconcile(
     if "company_name" in parsed_vendor:
         company_name = _coerce_company_name(parsed_vendor["company_name"], warnings, soft)
     else:
-        warnings.append("sub-field defaulted (missing): vendor_candidate/company_name")
+        warnings.append(f"sub-field defaulted (missing): {_COMPANY_NAME_PATH}")
         soft["defaulted"] = True
         company_name = _new_company_name()
 
@@ -325,7 +340,7 @@ def reconcile(
     if "total_amount" in parsed_header:
         total_amount = _coerce_total_amount(parsed_header["total_amount"], warnings, soft)
     else:
-        warnings.append("sub-field defaulted (missing): invoice_header_fields/total_amount")
+        warnings.append(f"sub-field defaulted (missing): {_TOTAL_AMOUNT_PATH}")
         soft["defaulted"] = True
         total_amount = _new_total_amount()
 
@@ -349,7 +364,7 @@ def reconcile(
     def _filter_block(field: dict[str, Any], path: str) -> None:
         _filter_evidence(field, evidence_index, path, warnings, soft)
 
-    _filter_block(company_name, "vendor_candidate/company_name")
+    _filter_block(company_name, _COMPANY_NAME_PATH)
     for key in _ADDRESS_FIELDS:
         _filter_block(address[key], f"vendor_candidate/address/{key}")
     for key in _TAX_FIELDS:
@@ -358,7 +373,7 @@ def reconcile(
         _filter_block(vendor_scalars[key], f"vendor_candidate/{key}")
     for key in _HEADER_SCALAR_FIELDS:
         _filter_block(header_scalars[key], f"invoice_header_fields/{key}")
-    _filter_block(total_amount, "invoice_header_fields/total_amount")
+    _filter_block(total_amount, _TOTAL_AMOUNT_PATH)
 
     # Step 4 — Ungrounded-confidence cap
     cap = config.reconciliation.ungrounded_confidence_cap
@@ -472,7 +487,7 @@ def reconcile(
 
 def _iter_all_fields(artifact: dict[str, Any]):
     vc = artifact["vendor_candidate"]
-    yield "vendor_candidate/company_name", vc["company_name"]
+    yield _COMPANY_NAME_PATH, vc["company_name"]
     for key in _ADDRESS_FIELDS:
         yield f"vendor_candidate/address/{key}", vc["address"][key]
     for key in _TAX_FIELDS:
@@ -482,4 +497,4 @@ def _iter_all_fields(artifact: dict[str, Any]):
     hf = artifact["invoice_header_fields"]
     for key in _HEADER_SCALAR_FIELDS:
         yield f"invoice_header_fields/{key}", hf[key]
-    yield "invoice_header_fields/total_amount", hf["total_amount"]
+    yield _TOTAL_AMOUNT_PATH, hf["total_amount"]

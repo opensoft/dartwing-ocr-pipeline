@@ -25,11 +25,12 @@ from ledgerlinc_ocr.contract_versions import (
     ContractVersionError,
     require_stage1_contract_version,
 )
+from ledgerlinc_ocr.pipeline.filenames import ROUTING_DECISION_FILENAME
 from ledgerlinc_ocr.router.errors import ContractAssertionError, MissingInputError
 from ledgerlinc_ocr.validator import validate_artifact
 
 _OUTPUT_ARTIFACT_NAME = "routing_decision"
-_OUTPUT_FILE_NAME = "routing_decision.json"
+_OUTPUT_FILE_NAME = ROUTING_DECISION_FILENAME
 
 
 def _serialize(artifact: dict) -> bytes:
