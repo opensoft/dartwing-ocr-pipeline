@@ -219,7 +219,7 @@ def _classify_engine_init_exception(exc: Exception) -> tuple[str | None, str | N
     weight-download failure, else (None, None). Research R-008.
     """
     module = type(exc).__module__ or ""
-    if not (module.startswith("paddlex") or module.startswith("paddleocr")):
+    if not module.startswith(("paddlex", "paddleocr")):
         return None, None
     msg = str(exc)
     if not _WEIGHT_KEYWORDS_RE.search(msg):

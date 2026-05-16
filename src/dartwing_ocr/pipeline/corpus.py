@@ -86,7 +86,7 @@ def _resolve_document_entry(line: str, base: Path) -> DocumentEntry:
             "not allowed"
         )
     resolved = candidate if candidate.is_absolute() else (base / candidate)
-    return DocumentEntry(raw=line, resolved=resolved.resolve())  # NOSONAR
+    return DocumentEntry(raw=line, resolved=resolved.resolve())  # NOSONAR pythonsecurity:S2083 — relative parent-traversal is rejected at the `_PARENT_TRAVERSAL in candidate.parts` check above; remaining resolution normalizes the path for downstream filesystem checks.
 
 
 class WarmInstance(Protocol):

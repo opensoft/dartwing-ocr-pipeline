@@ -99,6 +99,12 @@ def main(argv: list[str] | None = None) -> int:
             template_path=template_path,
         )
     except ExtractionError as exc:
+        # NOSONAR S8572 — intentional: ExtractionError already carries a
+        # user-facing `.message` summary; we explicitly DON'T want the full
+        # Python traceback in CLI stderr (`_LOG.exception(...)` would leak
+        # internal frame paths). The next branch — for truly unexpected
+        # exceptions — does use `.exception(...)` because the traceback is
+        # the only diagnostic signal there.
         _LOG.error("%s", exc.message)
         return for_error(exc)
     except Exception as exc:  # pragma: no cover — safety net for unexpected failures

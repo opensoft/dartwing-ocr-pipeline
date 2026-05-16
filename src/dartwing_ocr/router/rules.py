@@ -71,8 +71,15 @@ def _map_input_status_to_output(input_status: str) -> str:
     return "partial"
 
 
-def apply_rules(checks: dict, scores: dict, input_dict: dict) -> RuleResult:
-    """Compute the decision, status, review_status, and ordered reasons."""
+def apply_rules(checks: dict, _scores: dict, input_dict: dict) -> RuleResult:  # NOSONAR S3776 — pipeline rules switch — priority-ordered branches per FR-020; flat structure is the spec.
+    """Compute the decision, status, review_status, and ordered reasons.
+
+    The ``_scores`` parameter is part of the pipeline signature
+    (``compute_scores → apply_rules``) and is accepted positionally for
+    contract stability. The current rule set decides purely on ``checks``
+    and ``input_dict.status``; future routing variants may condition on
+    score thresholds, in which case this parameter is already wired.
+    """
     input_status = input_dict.get("status", "success")
 
     # Research Decision 11 + FR-020: on ``input_status == "failure"``, the

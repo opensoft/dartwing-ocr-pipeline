@@ -597,7 +597,7 @@ def _run_full_page_path(
     return pages, warnings_out, tables, all_lines, pages_with_output, silent_empty
 
 
-def _run_ocr_only_path(
+def _run_ocr_only_path(  # NOSONAR S3776 — OCR-only orchestrator — branches over full-page vs header-first vs fallback; structural split is deferred.
     *,
     pdf_path: Path,
     preprocess_strategy: Any,
@@ -1119,7 +1119,7 @@ def _run_region_first_path(
     )
 
 
-def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
+def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:  # NOSONAR S3776 — top-level preprocessing dispatch — branches across four strategy kinds; structural split deferred to a follow-up refactor.
     # Feature 018 (H5 fix): defensive reset of the per-document fallback
     # flag at the top of every `_run_inner` call so a re-used Invocation
     # cannot inherit `True` from a prior call. corpus_run constructs a

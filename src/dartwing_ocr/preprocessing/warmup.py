@@ -168,7 +168,7 @@ def _classify_cause(exc: Exception) -> str:
     sufficient.
     """
     module = (type(exc).__module__ or "").lower()
-    if module.startswith("miopen") or module.startswith("comgr"):
+    if module.startswith(("miopen", "comgr")):
         return "MIOpenError"
     if module.startswith("paddle"):
         return "PaddleError"

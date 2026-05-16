@@ -184,7 +184,7 @@ def _add_pipeline_preparation_arguments(
     )
 
 
-def _handle_document(args: argparse.Namespace) -> int:
+def _handle_document(args: argparse.Namespace) -> int:  # NOSONAR S3776 — evaluator CLI per-document handler — branches over all error paths.
     from dartwing_ocr.evaluator.document import evaluate_document
 
     if args.run_pipeline:

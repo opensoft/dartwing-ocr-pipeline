@@ -25,11 +25,12 @@ from dartwing_ocr.contract_versions import (
     ContractVersionError,
     require_stage1_contract_version,
 )
+from dartwing_ocr.pipeline.filenames import ROUTING_DECISION_FILENAME
 from dartwing_ocr.router.errors import ContractAssertionError, MissingInputError
 from dartwing_ocr.validator import validate_artifact
 
 _OUTPUT_ARTIFACT_NAME = "routing_decision"
-_OUTPUT_FILE_NAME = "routing_decision.json"
+_OUTPUT_FILE_NAME = ROUTING_DECISION_FILENAME
 
 
 def _serialize(artifact: dict) -> bytes:

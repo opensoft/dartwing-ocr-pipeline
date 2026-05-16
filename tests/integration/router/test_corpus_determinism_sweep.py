@@ -27,7 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 CORPUS_ROOT = REPO_ROOT / "tests" / "stage1_vendor_identity"
 
 PROCESSED_AT_LINE = re.compile(
-    rb'^  "processed_at": "[0-9T:Z\-]+",\n',
+    rb'^ {2}"processed_at": "[0-9T:Z-]+",\n',
     re.MULTILINE,
 )
 

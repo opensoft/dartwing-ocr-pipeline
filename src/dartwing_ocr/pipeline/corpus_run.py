@@ -185,7 +185,7 @@ def _document_id_for_failure(folder: Path) -> str:
     return derive_document_id(folder.name) or folder.name
 
 
-def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split pending
+def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preserving split is deferred to a follow-up refactor.
     *,
     args: argparse.Namespace,
     documents: tuple[DocumentEntry, ...],

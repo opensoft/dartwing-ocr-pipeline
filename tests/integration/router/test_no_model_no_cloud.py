@@ -98,7 +98,7 @@ def test_router_opens_no_sockets_on_green_path(
     )
 
     env = {
-        **{k: v for k, v in _environ()},
+        **dict(_environ()),
         "PYTHONPATH": str(site_dir) + ":" +
             _environ_value("PYTHONPATH", default=""),
     }

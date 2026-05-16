@@ -258,7 +258,7 @@ class OcrOnlyPagePredict:
 # ---------------------------------------------------------------------------
 
 
-def run_ocr_only_page(
+def run_ocr_only_page(  # NOSONAR S3776 — OCR-only per-page predict — branches on PaddleOCR result-shape drift across 3.5.x patches.
     engine: Any,
     page_image: Image.Image,
     *,

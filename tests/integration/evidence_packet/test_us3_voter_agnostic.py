@@ -46,7 +46,7 @@ def _walk(node):
         yield "value", node
 
 
-def _walk_schema_properties(node):
+def _walk_schema_properties(node):  # NOSONAR S3776 — recursive schema walker — flat structure with type-dispatch branches.
     if isinstance(node, dict):
         props = node.get("properties")
         if isinstance(props, dict):

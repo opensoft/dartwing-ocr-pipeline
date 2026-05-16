@@ -210,6 +210,11 @@ def test_ensure_gpu_ready_rejects_mismatched_presets_after_first_call(monkeypatc
 
     class _PPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` to mock
+            # out PaddleOCR's `PPStructureV3` constructor. The tests only
+            # need the init path to be reachable; the body discards args
+            # without raising.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
@@ -234,6 +239,11 @@ def test_ensure_gpu_ready_accepts_matching_presets_on_subsequent_call(monkeypatc
 
     class _PPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` to mock
+            # out PaddleOCR's `PPStructureV3` constructor. The tests only
+            # need the init path to be reachable; the body discards args
+            # without raising.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
@@ -286,6 +296,11 @@ def test_classify_seeds_preset_key_so_subsequent_ensure_gpu_ready_does_not_raise
 
     class _PPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` to mock
+            # out PaddleOCR's `PPStructureV3` constructor. The tests only
+            # need the init path to be reachable; the body discards args
+            # without raising.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
@@ -306,6 +321,11 @@ def test_ensure_gpu_ready_treats_none_and_legacy_preset_as_equivalent(monkeypatc
 
     class _PPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` to mock
+            # out PaddleOCR's `PPStructureV3` constructor. The tests only
+            # need the init path to be reachable; the body discards args
+            # without raising.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))

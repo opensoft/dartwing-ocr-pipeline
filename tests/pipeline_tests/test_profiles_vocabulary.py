@@ -49,7 +49,7 @@ def test_default_profiles_preprocess_remains_cpu() -> None:
 def test_resolve_profiles_no_override_yields_cpu() -> None:
     """VT4 (analyze finding): when --preprocess-profile is omitted, the
     resolved profile is ppstructurev3@cpu and its lane is 'cpu'."""
-    profiles, preset_name = resolve_profiles(
+    profiles, _ = resolve_profiles(
         stack_preset=None,
         explicit={"preprocess": None, "extract": None, "routing": None, "final_payload": None},
     )

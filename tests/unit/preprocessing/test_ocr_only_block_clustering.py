@@ -130,10 +130,11 @@ def test_reading_order_is_sequential() -> None:
 def test_cy_distance_exactly_equals_threshold_clusters_together() -> None:
     """Inclusive `<=` comparison: cy distance == 1.5 * median_height MUST
     cluster (the threshold edge is part of the same-block half-space)."""
-    # Two height-ten lines yield a median height of ten and a fifteen-pixel proximity threshold;
-    # centers at fifteen and thirty give distance fifteen — sitting exactly at the threshold.
-    l1 = _line(0, 10, 100, 20, text="A")  # cy = 15
-    l2 = _line(0, 25, 100, 35, text="B")  # cy = 30; distance = 15
+    # Two height-ten lines yield a median height of ten and a fifteen-pixel proximity threshold.
+    # The first line's vertical center sits at fifteen and the second at thirty, giving a
+    # distance of fifteen — exactly at the inclusive threshold.
+    l1 = _line(0, 10, 100, 20, text="A")
+    l2 = _line(0, 25, 100, 35, text="B")
     blocks = cluster_lines_into_blocks([l1, l2])
     assert len(blocks) == 1, (
         "cy distance == 1.5 * median_height should cluster (inclusive edge)"
@@ -160,9 +161,11 @@ def test_all_zero_height_lines_do_not_collapse_to_zero_threshold() -> None:
     # Without the floor clamp the proximity threshold would collapse to zero and a one-pixel gap
     # would force a split; the clamp lifts the threshold to one-and-a-half pixels so adjacent centers
     # lines still cluster.
+    # Both bboxes are zero-height; the first has vertical center one hundred and the second
+    # has vertical center one hundred and one.
     lines = [
-        _line(0, 100, 50, 100, text="A"),   # cy = 100, height = 0
-        _line(60, 101, 100, 101, text="B"),  # cy = 101, height = 0
+        _line(0, 100, 50, 100, text="A"),
+        _line(60, 101, 100, 101, text="B"),
     ]
     blocks = cluster_lines_into_blocks(lines)
     assert len(blocks) == 1, (

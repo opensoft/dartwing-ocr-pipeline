@@ -44,8 +44,10 @@ def run_paddle_ocr(images):
         })
     return results
 
-def create_structured_output(paddle_results, doc_id: str, client_id: str = "test"):
-    # Stub for VLM ensemble - replace with real Qwen3-VL call later
+def create_structured_output(_paddle_results, doc_id: str, client_id: str = "test"):
+    # Stub for VLM ensemble - replace with real Qwen3-VL call later.
+    # The underscore-prefixed `_paddle_results` is wired through the call
+    # site at L90 for future expansion but ignored by this scaffold.
     structured = {
         "doc_id": doc_id,
         "client_id": client_id,

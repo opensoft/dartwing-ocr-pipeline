@@ -57,7 +57,7 @@ def _validate_packet(folder: Path, *, contract_set_version: str) -> None:
     )
     if not outcome.passed:
         raise InputContractDrift(
-            "preprocess_output.json failed schema validation",
+            f"{_INPUT_NAME} failed schema validation",
             detail={
                 "errors": [
                     {
@@ -112,12 +112,12 @@ def run(
     try:
         packet_contract_set_version = require_stage1_contract_version(
             packet.get("contract_set_version"),
-            artifact_label="preprocess_output.json",
+            artifact_label=_INPUT_NAME,
         )
         packet_contract_set_version = require_matching_contract_version(
             found=packet_contract_set_version,
             expected=contract_set_version,
-            artifact_label="preprocess_output.json",
+            artifact_label=_INPUT_NAME,
         )
     except ContractVersionError as exc:
         raise InputContractDrift(

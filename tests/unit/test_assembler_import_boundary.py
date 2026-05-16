@@ -62,7 +62,7 @@ def _forbidden(name: str) -> str | None:
 
 
 def _assembler_modules() -> list[Path]:
-    return sorted(p for p in ASSEMBLER_ROOT.rglob("*.py"))
+    return sorted(ASSEMBLER_ROOT.rglob("*.py"))
 
 
 def test_assembler_package_exists():

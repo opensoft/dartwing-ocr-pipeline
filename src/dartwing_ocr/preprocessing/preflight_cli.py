@@ -78,7 +78,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = _build_parser()
     try:
         args = parser.parse_args(list(argv) if argv is not None else None)
-    except SystemExit as exc:
+    except SystemExit as exc:  # NOSONAR S5754 — see comment below.
         # argparse exits via SystemExit: --help raises SystemExit(0) after
         # printing help to stdout, and our _UsageErrorParser.error() calls
         # self.exit(1, ...) which raises SystemExit(1) after writing the

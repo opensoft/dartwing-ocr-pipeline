@@ -7,6 +7,8 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from dartwing_ocr.extract.config import load_voter_config
 from dartwing_ocr.extract.reconcile import reconcile
 
@@ -62,7 +64,7 @@ def test_cap_not_applied_to_grounded_scalar_fields() -> None:
     st1 = out["vendor_candidate"]["address"]["street_1"]
     assert st1["evidence"] == ["p1_l2"]
     assert st1["confidence"] > cap
-    assert st1["confidence"] == 0.93
+    assert st1["confidence"] == pytest.approx(0.93)
 
     # ein, website, email, invoice_date all kept their evidence
     assert out["vendor_candidate"]["tax_ids"]["ein"]["confidence"] > cap
@@ -76,7 +78,7 @@ def test_cap_not_applied_when_any_field_grounded_for_document_type() -> None:
     packet, parsed, config = _load(_US2_FIXTURE, "voter_response_bogus_evidence.json")
     out = _run(packet, parsed, config)
     # At least one field is grounded → document_type.confidence preserved
-    assert out["document_type"]["confidence"] == 0.9
+    assert out["document_type"]["confidence"] == pytest.approx(0.9)
 
 
 def test_cap_applied_to_total_amount_when_ungrounded() -> None:
@@ -91,7 +93,7 @@ def test_cap_applied_to_total_amount_when_ungrounded() -> None:
     assert total["evidence"] == []
     assert total["confidence"] <= cap
     # Value and currency still preserved — cap is on confidence only.
-    assert total["value"] == 1250.0
+    assert total["value"] == pytest.approx(1250.0)
     assert total["currency"] == "USD"
 
 
