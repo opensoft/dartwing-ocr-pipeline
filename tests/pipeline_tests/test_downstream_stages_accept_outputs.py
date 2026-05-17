@@ -25,6 +25,9 @@ from typing import Callable
 
 import pytest
 
+from ledgerlinc_ocr.evaluator.pipeline_invocation import (
+    parse_pipeline_run_summary,
+)
 from ledgerlinc_ocr.pipeline.cli import main
 from ledgerlinc_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES
 from ledgerlinc_ocr.validator.artifact import validate_artifact
@@ -229,12 +232,18 @@ def test_e2e_corpus_path_with_gate_active_emits_four_valid_canonical_artifacts(
     )
     assert code == 0, f"warm-corpus E2E pipeline run failed with exit={code}"
 
-    # Gate-active witness: the final stdout line is a run_summary that
+    # Gate-active witness: stdout contains a run_summary line that
     # carries the four feature-020 fields and at least one per-doc record.
+    # Use parse_pipeline_run_summary (backward-scanning helper from the
+    # evaluator package) instead of assuming the run_summary is the very
+    # last non-empty line — any later log/warn line would otherwise
+    # break this test even though nothing is wrong (Copilot review feedback).
     out = capsys.readouterr().out
-    last_line = [ln for ln in out.splitlines() if ln.strip()][-1]
-    summary = json.loads(last_line)
-    assert summary.get("kind") == "run_summary"
+    summary = parse_pipeline_run_summary(out)
+    assert summary is not None, (
+        "no `kind: run_summary` line found in stdout; the gate-active "
+        "witness for this test depends on the corpus run emitting one"
+    )
     assert summary.get("evidence_gate_id") == "v1"
     assert "evidence_gate_state_counts" in summary
     assert "evidence_gate_documents" in summary

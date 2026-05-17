@@ -43,6 +43,14 @@ _FIXTURE_DIR = (
 )
 _BASELINE_FILENAME = "preprocess_output_cpu_default_inv_001_easy.json"
 
+# Pin pipeline_version to the value embedded in the committed baseline
+# so a routine package version bump does not invalidate the byte-identity
+# guard. The invariant under test is "the gate does not mutate
+# preprocess_output.json on the default path", NOT "the package version
+# string stays at 0.1.0 forever" — pinning isolates the former from the
+# latter (Copilot review feedback).
+_BASELINE_PIPELINE_VERSION = "0.1.0"
+
 
 def _baseline_path() -> Path:
     return _FIXTURE_DIR / _BASELINE_FILENAME
@@ -70,7 +78,16 @@ def _run_pipeline_for_inv_001_easy(
     folder = parent / subdir / "inv_001_easy"
     folder.mkdir(parents=True)
     (folder / "source.pdf").write_bytes(pdf_bytes)
-    code = main(["run", "--document-folder", str(folder), "--overwrite"])
+    code = main(
+        [
+            "run",
+            "--document-folder",
+            str(folder),
+            "--overwrite",
+            "--pipeline-version",
+            _BASELINE_PIPELINE_VERSION,
+        ]
+    )
     assert code == 0, f"baseline pipeline run failed (exit={code})"
     artifact = folder / "preprocess_output.json"
     assert artifact.exists(), "preprocess_output.json was not written"
