@@ -68,6 +68,16 @@ _ARTIFACT_MAP: dict[str, ArtifactName] = {
     "final_structured_payload.json": ArtifactName.FINAL_STRUCTURED_PAYLOAD,
 }
 
+# Drift guard: every artifact we schema-validate must also be in the
+# presence-check set. If a future change adds a new canonical artifact
+# to RESERVED_ARTIFACT_NAMES without updating _ARTIFACT_MAP, this
+# assertion fails at import time rather than silently masking the
+# unvalidated artifact (Sourcery review feedback).
+assert set(_ARTIFACT_MAP.keys()).issubset(set(RESERVED_ARTIFACT_NAMES)), (
+    f"_ARTIFACT_MAP keys {sorted(_ARTIFACT_MAP.keys())!r} must be a "
+    f"subset of RESERVED_ARTIFACT_NAMES {sorted(RESERVED_ARTIFACT_NAMES)!r}"
+)
+
 
 def _walk_keys(obj: object) -> set[str]:
     """Walk a JSON-ish object and return the set of every dict key
@@ -109,6 +119,55 @@ def _assert_no_unexpected_files(
     )
 
 
+def _assert_canonical_artifacts_present_valid_and_gate_clean(
+    folder: Path,
+    *,
+    pre_snapshot: set[str],
+    post_snapshot: set[str],
+    context: str,
+) -> None:
+    """SC-007 + FR-021 combined post-run assertion bundle shared by the
+    cold-mode and gate-active-corpus tests:
+
+    - All four canonical artifacts are present in ``folder``.
+    - Each canonical artifact validates against its v1.2.0 schema.
+    - No gate-related field (namespace prefix OR explicit signal name)
+      appears anywhere in any artifact's JSON tree (FR-021).
+    - Absolute folder-state check: exactly the pre-run files plus the
+      four canonical artifacts (FR-021 sidecar guard).
+    """
+    for name in RESERVED_ARTIFACT_NAMES:
+        assert (folder / name).is_file(), (
+            f"expected canonical artifact {name!r} missing after run "
+            f"({context})"
+        )
+
+    for filename, contract in _ARTIFACT_MAP.items():
+        outcome = validate_artifact(
+            folder / filename, contract, version="1.2.0"
+        )
+        assert outcome.passed, (
+            f"{filename}: schema validation failed ({context}): "
+            f"{[v.reason for v in outcome.violations]}"
+        )
+
+    for filename in _ARTIFACT_MAP:
+        payload = json.loads((folder / filename).read_text(encoding="utf-8"))
+        leaked = {k for k in _walk_keys(payload) if _is_forbidden_gate_field(k)}
+        assert not leaked, (
+            f"FR-021 violation ({context}): gate-related field name(s) "
+            f"leaked into {filename}: {sorted(leaked)!r}. The gate is "
+            "observability only — it MUST NOT contribute fields to "
+            "canonical artifacts."
+        )
+
+    _assert_no_unexpected_files(
+        pre_snapshot=pre_snapshot,
+        post_snapshot=post_snapshot,
+        context=context,
+    )
+
+
 def test_e2e_default_pipeline_emits_four_valid_canonical_artifacts(
     tmp_document_folder: Callable[..., Path],
 ) -> None:
@@ -125,45 +184,14 @@ def test_e2e_default_pipeline_emits_four_valid_canonical_artifacts(
     invariant on the gate-active path.
     """
     folder = tmp_document_folder(1, "easy")
-
     pre_snapshot: set[str] = {p.name for p in folder.iterdir()}
 
     code = main(["run", "--document-folder", str(folder), "--overwrite"])
     assert code == 0, f"E2E pipeline run failed with exit={code}"
 
-    # SC-007 (a): all four canonical artifacts present.
     post_snapshot: set[str] = {p.name for p in folder.iterdir()}
-    for name in RESERVED_ARTIFACT_NAMES:
-        assert (folder / name).is_file(), (
-            f"expected canonical artifact {name!r} missing after E2E run"
-        )
-
-    # SC-007 (b): each artifact validates against its v1.2.0 schema.
-    for filename, contract in _ARTIFACT_MAP.items():
-        outcome = validate_artifact(
-            folder / filename, contract, version="1.2.0"
-        )
-        assert outcome.passed, (
-            f"{filename}: schema validation failed: "
-            f"{[v.reason for v in outcome.violations]}"
-        )
-
-    # FR-021 (a): no gate-related field appears anywhere in the JSON
-    # tree of any canonical artifact (namespace-based check — no
-    # closed list to maintain).
-    for filename in _ARTIFACT_MAP:
-        payload = json.loads((folder / filename).read_text(encoding="utf-8"))
-        leaked = {k for k in _walk_keys(payload) if _is_forbidden_gate_field(k)}
-        assert not leaked, (
-            f"FR-021 violation: gate-related field name(s) leaked into "
-            f"{filename}: {sorted(leaked)!r}. The gate is observability "
-            "only — it MUST NOT contribute fields to canonical artifacts."
-        )
-
-    # FR-021 (b): absolute folder-state check — exactly pre-run files
-    # plus the four canonical artifacts. Catches any sidecar leak,
-    # whether new (this-run) or pre-existing (test pollution).
-    _assert_no_unexpected_files(
+    _assert_canonical_artifacts_present_valid_and_gate_clean(
+        folder,
         pre_snapshot=pre_snapshot,
         post_snapshot=post_snapshot,
         context="cold default-mode path",
@@ -216,33 +244,9 @@ def test_e2e_corpus_path_with_gate_active_emits_four_valid_canonical_artifacts(
         "expected, weakening the FR-021 isolation claim of this test"
     )
 
-    # Four canonical artifacts present and v1.2.0-valid (SC-007).
     post_snapshot: set[str] = {p.name for p in folder.iterdir()}
-    for name in RESERVED_ARTIFACT_NAMES:
-        assert (folder / name).is_file(), (
-            f"expected canonical artifact {name!r} missing after corpus run"
-        )
-    for filename, contract in _ARTIFACT_MAP.items():
-        outcome = validate_artifact(
-            folder / filename, contract, version="1.2.0"
-        )
-        assert outcome.passed, (
-            f"{filename}: schema validation failed: "
-            f"{[v.reason for v in outcome.violations]}"
-        )
-
-    # FR-021: no gate field leak into any canonical artifact, even
-    # though the gate ran. Namespace-based check.
-    for filename in _ARTIFACT_MAP:
-        payload = json.loads((folder / filename).read_text(encoding="utf-8"))
-        leaked = {k for k in _walk_keys(payload) if _is_forbidden_gate_field(k)}
-        assert not leaked, (
-            f"FR-021 violation (gate-active path): gate-related field "
-            f"name(s) leaked into {filename}: {sorted(leaked)!r}"
-        )
-
-    # FR-021: absolute folder-state check on the gate-active path.
-    _assert_no_unexpected_files(
+    _assert_canonical_artifacts_present_valid_and_gate_clean(
+        folder,
         pre_snapshot=pre_snapshot,
         post_snapshot=post_snapshot,
         context="warm-corpus gate-active path",

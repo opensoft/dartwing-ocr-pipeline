@@ -40,13 +40,20 @@ def resolve_diff_target(root: Path) -> str:
     ``git fetch origin main:refs/remotes/origin/main`` fix immediately.
     """
     for ref in ("origin/main", "main"):
-        result = subprocess.run(
-            ["git", "rev-parse", "--verify", "--quiet", ref],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--verify", "--quiet", ref],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except FileNotFoundError:
+            pytest.fail(
+                "git binary not found on PATH. The contracts-immutability "
+                "guard requires git to resolve the base ref. Install git "
+                "or adjust the test runner's PATH before invoking pytest."
+            )
         if result.returncode == 0 and result.stdout.strip():
             return ref
     pytest.fail(
