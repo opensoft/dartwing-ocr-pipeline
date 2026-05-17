@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from dartwing_ocr.preprocessing import pipeline
+from dartwing_ocr.preprocessing.identifiers import EVIDENCE_GATE_ID_DEFAULT
 from dartwing_ocr.preprocessing.errors import (
     EXIT_INPUT_REJECTED,
     EXIT_INTERNAL_ERROR,
@@ -750,6 +751,28 @@ def _emit_single_doc_run_summary(
     _ocr_only_fallback_count_019 = (
         1 if getattr(invocation, "ocr_only_fallback_fired", False) else 0
     )
+    # Feature 020 (T029 / R-020.7 / R-020.10 / R-020.11 / FR-003 /
+    # FR-006): evaluate the evidence gate on the FINAL preprocess_output.json
+    # for the single-document path. Mirrors the corpus_run.py per-success
+    # wiring (T028). On failure-path (`documents_succeeded == 0`) the
+    # gate skips and accumulators stay at defaults — the always-emit
+    # contract per MI-16 / MI-17 still ships the four `run_summary`
+    # fields with default-zero values.
+    _evidence_gate_state_counts_020: dict[str, int] = {
+        "sufficient": 0,
+        "borderline": 0,
+        "insufficient": 0,
+    }
+    _evidence_gate_documents_020: list[dict[str, Any]] = []
+    if documents_succeeded == 1:
+        from dartwing_ocr.preprocessing.evidence_gate import evaluate_and_record
+
+        evaluate_and_record(
+            document_folder=invocation.document_folder,
+            document_id=document_id or invocation.document_folder.name,
+            state_counts=_evidence_gate_state_counts_020,
+            documents=_evidence_gate_documents_020,
+        )
     summary = RunSummary(
         stack_preset=None,
         resolved_profiles={"preprocess": _profile_slug_for_lane(preprocess_lane)},
@@ -778,6 +801,16 @@ def _emit_single_doc_run_summary(
         # single-doc CLI = 0 or 1).
         preprocess_strategy_id=_preprocess_strategy_id_019,
         ocr_only_fallback_count=_ocr_only_fallback_count_019,
+        # Feature 020 (T029 / R-020.10 / MI-16 / MI-17): four additive
+        # top-level fields. Same wiring discipline as corpus_run.py —
+        # `evidence_gate_id` is `"v1"` uniformly; `state_counts` and
+        # `documents` come from the single-doc accumulator above (or
+        # the all-zero defaults if the doc failed); suppression counter
+        # stays at 0 on the MVP slice.
+        evidence_gate_id=EVIDENCE_GATE_ID_DEFAULT,
+        evidence_gate_state_counts=_evidence_gate_state_counts_020,
+        evidence_gate_documents=_evidence_gate_documents_020,
+        evidence_gate_suppressed_fallback_count=0,
     )
     emit_run_summary(summary)
 

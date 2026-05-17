@@ -46,6 +46,8 @@ from dartwing_ocr.pipeline.timing import (
     emit_run_summary,
 )
 from dartwing_ocr.preprocessing.errors import WarmupError
+from dartwing_ocr.preprocessing.evidence_gate import evaluate_and_record
+from dartwing_ocr.preprocessing.identifiers import EVIDENCE_GATE_ID_DEFAULT
 from dartwing_ocr.preprocessing.warmup_optin import (
     is_gpu_lane,
     is_warmup_optin_set,
@@ -501,6 +503,23 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
     # this loop aggregates the flag the same way feature 018 does for
     # `region_strategy_fallback_fired`.
     _ocr_only_fallback_count_019 = 0
+    # Feature 020 (T028 / R-020.10 / R-020.11 / FR-003 / FR-006 / MI-18):
+    # per-doc evidence-gate accumulators. The gate runs on the FINAL
+    # `preprocess_output.json` of each successful document (R-020.7) and
+    # contributes one record to `evidence_gate_documents` plus an
+    # increment to the matching `evidence_gate_state_counts[decision]`.
+    # Per MI-18: `state_counts[s]` MUST equal the count of
+    # `documents[i].decision == s` for each state. The
+    # `evidence_gate_suppressed_fallback_count` accumulator stays at 0
+    # on the MVP slice — US4 (a follow-up PR) wires the per-doc
+    # suppression-event flag onto this counter when shape (b) fires.
+    _evidence_gate_state_counts_020: dict[str, int] = {
+        "sufficient": 0,
+        "borderline": 0,
+        "insufficient": 0,
+    }
+    _evidence_gate_documents_020: list[dict[str, Any]] = []
+    _evidence_gate_suppressed_fallback_count_020 = 0
 
     for entry in documents:
         folder_raw = entry.raw
@@ -631,6 +650,19 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
                 )
                 preprocess_stage["gpu_inference_seconds"] = _gpu_inf
             per_document_records.append(success_record)
+            # Feature 020 (T028 / R-020.7 / R-020.10 / R-020.11 / FR-003 /
+            # FR-006): evaluate the evidence gate on the FINAL
+            # preprocess_output.json of this successful document. The
+            # gate is a pure read over preprocess_output content — no
+            # Paddle, no GPU, runs on CPU + stub adapters uniformly per
+            # FR-014. Failures are observability-only and never abort
+            # the corpus run; see `evaluate_and_record` for the policy.
+            evaluate_and_record(
+                document_folder=folder_resolved,
+                document_id=invocation.document_id,
+                state_counts=_evidence_gate_state_counts_020,
+                documents=_evidence_gate_documents_020,
+            )
         else:
             failed += 1
             # Feature 014 (T024 / R-014.4 / FR-010): when the resolved
@@ -868,6 +900,20 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
         # (increments per fallen-back document per I-019.4).
         preprocess_strategy_id=_preprocess_strategy_id_019,
         ocr_only_fallback_count=_ocr_only_fallback_count_019,
+        # Feature 020 (T028 / R-020.10 / R-020.11 / FR-003 / FR-006 /
+        # FR-008 / MI-16 / MI-17 / MI-18): four additive top-level
+        # fields. `evidence_gate_id` is the closed-vocabulary preset
+        # identifier — `"v1"` uniformly across CPU / stub / GPU lanes
+        # (no cpu-default / stub-default discrimination — gate is a
+        # pure read; data-model.md §9). `state_counts` and `documents`
+        # come from the per-doc accumulators (gate evaluation happened
+        # on each success per the block above). `suppressed_fallback_count`
+        # stays at default 0 on the MVP slice; US4 (follow-up PR) wires
+        # the suppression-event counter when shape (b) fires.
+        evidence_gate_id=EVIDENCE_GATE_ID_DEFAULT,
+        evidence_gate_state_counts=_evidence_gate_state_counts_020,
+        evidence_gate_documents=_evidence_gate_documents_020,
+        evidence_gate_suppressed_fallback_count=_evidence_gate_suppressed_fallback_count_020,
     )
     emit_run_summary(summary)
 
@@ -998,6 +1044,20 @@ def _emit_warm_init_failure_summary(
         # ocr_only_fallback_count is always 0.
         preprocess_strategy_id=_failure_preprocess_strategy_id,
         ocr_only_fallback_count=0,
+        # Feature 020 (T028 / R-020.10 / MI-16 / MI-17 / M1 cleanup):
+        # always-emit the four evidence-gate fields on the warm-init
+        # failure path too. No documents reached the gate, so
+        # state_counts is all-zero, documents is empty, and the
+        # suppression counter is 0. ALL FOUR fields are passed
+        # explicitly (rather than relying on factory defaults for
+        # state_counts and documents) so a future edit that supplies
+        # one but not the others cannot silently violate MI-18.
+        evidence_gate_id=EVIDENCE_GATE_ID_DEFAULT,
+        evidence_gate_state_counts={
+            "sufficient": 0, "borderline": 0, "insufficient": 0,
+        },
+        evidence_gate_documents=[],
+        evidence_gate_suppressed_fallback_count=0,
         documents_total=len(documents),
         documents_succeeded=0,
         documents_failed=1,

@@ -72,9 +72,22 @@ class TestTextVerbatim:
         assert out != "é"
 
     def test_preprocessing_sources_do_not_call_unicodedata_normalize(self):
-        """Guard: no preprocessing source file imports or calls
-        `unicodedata.normalize(...)`. FR-004's "text verbatim" rule forbids
-        silent NFC/NFD transformations during artifact construction.
+        """Guard: no ARTIFACT-CONSTRUCTING preprocessing source file imports
+        or calls `unicodedata.normalize(...)`. FR-004's "text verbatim" rule
+        forbids silent NFC/NFD transformations during artifact construction
+        (i.e., on the path from OCR output → `preprocess_output.json` on
+        disk).
+
+        **Feature 020 exception** (`evidence_gate.py`): the evidence-gate
+        module is a PURE READ over already-written `preprocess_output.json`
+        artifacts — it never mutates or rewrites them. The NFKC
+        normalization it performs (R-020.3 / MI-9) is on the READ side for
+        signal-computation purposes only; the on-disk artifact stays
+        verbatim. FR-004's constraint targets artifact construction, not
+        downstream signal computation, so `evidence_gate.py` is excluded
+        from this guard. The exclusion is name-pinned so a future module
+        cannot accidentally weaken the guard by sneaking in a normalize
+        call.
         """
         src_root = (
             Path(__file__).resolve().parents[3]
@@ -83,8 +96,15 @@ class TestTextVerbatim:
             / "preprocessing"
         )
         assert src_root.is_dir(), f"preprocessing source root missing: {src_root}"
+        # Files explicitly allowed to call unicodedata.normalize because
+        # they are pure-read consumers of already-written artifacts, not
+        # artifact constructors. Add to this set only with a documented
+        # spec-level justification (e.g., feature 020 R-020.3 / MI-9).
+        ALLOWED = {"evidence_gate.py"}
         offenders: list[str] = []
         for py in src_root.glob("*.py"):
+            if py.name in ALLOWED:
+                continue
             content = py.read_text(encoding="utf-8")
             if "unicodedata.normalize" in content:
                 offenders.append(py.name)
@@ -92,5 +112,8 @@ class TestTextVerbatim:
                 offenders.append(py.name)
         assert offenders == [], (
             f"Preprocessing source files call unicodedata.normalize: {offenders}. "
-            "FR-004 requires verbatim text persistence with no NFC/NFD normalization."
+            "FR-004 requires verbatim text persistence with no NFC/NFD "
+            "normalization in artifact-constructing modules. Pure-read "
+            "consumers (like feature 020's `evidence_gate.py`) may be added "
+            "to the ALLOWED set above WITH a documented justification."
         )

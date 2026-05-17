@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import contextvars
 import json
+import math
 import sys
 import time
 from contextlib import contextmanager
@@ -33,7 +34,20 @@ from dartwing_ocr.preprocessing.identifiers import (
     CPU_DEFAULT_PREPROCESS_STRATEGY,
     CPU_DEFAULT_RASTER_PROFILE,
     CPU_DEFAULT_REGION_STRATEGY,
+    EVIDENCE_GATE_ID_DEFAULT,
 )
+
+
+def _default_evidence_gate_state_counts() -> dict[str, int]:
+    """Default value for ``RunSummary.evidence_gate_state_counts``.
+
+    The closed three-state vocabulary is fixed at landing — all three keys
+    are always present (NOT sparse) per R-020.10 / MI-17 / contracts/
+    run-summary-schema.md §2. Returned as a fresh dict per call (dataclass
+    ``default_factory`` semantics) so two RunSummary instances do not share
+    a mutable default.
+    """
+    return {"sufficient": 0, "borderline": 0, "insufficient": 0}
 
 
 # Feature 015 (T021): contextvar that the Runner populates with the
@@ -125,11 +139,187 @@ def bind_current_stage_timing(stage_timing: "StageTiming"):
 # 0.1.6 is a strict superset of 0.1.5 — no existing field is renamed,
 # removed, or retyped (FR-009 / FR-022). Consumers built against 0.1.5
 # continue to read 0.1.6 output without changes.
-SCHEMA_VERSION = "0.1.6"
+#
+# Feature 020 (T025 / R-020.9 / FR-008 / FR-010 /
+# contracts/run-summary-schema.md): codebase-level patch bump
+# 0.1.6 → 0.1.7 for FOUR additive top-level `run_summary` fields —
+# `evidence_gate_id` (string, always `"v1"` at landing per R-020.2),
+# `evidence_gate_state_counts` (object with all three keys
+# `sufficient`/`borderline`/`insufficient`, default-zero integers),
+# `evidence_gate_documents` (array of per-doc records with `document_id`,
+# `decision`, and the five FR-001 signal values), and
+# `evidence_gate_suppressed_fallback_count` (integer, default 0;
+# increments only when shape (b) suppression actually fires).
+# All four are emitted on EVERY run of the new binary regardless of
+# profile or preset selection per FR-008 / FR-010 / MI-16 / MI-17.
+# Unlike features 017/018/019, the `evidence_gate_id` axis emits the
+# same `"v1"` identifier uniformly on CPU, stub-adapter, and GPU lanes
+# — the gate is a pure read over `preprocess_output.json` content and
+# runs on every profile (FR-014 / data-model.md §9). 0.1.7 is a strict
+# superset of 0.1.6 — no existing field is renamed, removed, or
+# retyped (FR-011 / FR-022 / MI-19). Consumers built against 0.1.6
+# continue to read 0.1.7 output without changes.
+SCHEMA_VERSION = "0.1.7"
 
 
 def _ns_to_seconds(ns: int) -> float:
     return round(ns / 1e9, 6)
+
+
+# Feature 020 (Phase 3 post-review): closed-vocabulary decision set for
+# the evidence-gate per-document record. Used by
+# `_canonicalize_evidence_gate_record` at the serializer boundary so a
+# caller-supplied record cannot leak an out-of-vocabulary `decision`
+# onto the wire format. The record-keys and signal-keys whitelists are
+# enforced implicitly by the canonicalizer building a fresh dict with
+# exactly those keys; explicit frozensets would be redundant.
+_EVIDENCE_GATE_DECISION_VOCAB: frozenset[str] = frozenset(
+    {"sufficient", "borderline", "insufficient"}
+)
+
+# Phase 6 (post-review): closed gate-id vocabulary at landing. The
+# serializer clamps any out-of-vocabulary value to the default so a
+# caller-supplied ``evidence_gate_id="v99"`` cannot leak onto the wire
+# format. When v2 lands this set grows; the clamp logic is unchanged.
+_EVIDENCE_GATE_ID_VOCAB: frozenset[str] = frozenset({"v1"})
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    """Coerce ``value`` to a non-negative int; return ``default`` on
+    anything else (None, bool, non-numeric, infinity, NaN, negative).
+
+    Phase 4 hardening (post-review): the prior ``int(...)`` call raised
+    on bad input (e.g., ``int("not a number")``); also `bool` is a
+    subclass of `int` so ``int(True) == 1`` silently. This helper is
+    used at the serializer boundary where a buggy caller's bad scalar
+    must NOT propagate to the wire format.
+
+    Phase 5 hardening (post-review): also catches ``OverflowError``
+    from ``int(float('inf'))`` / ``int(float('-inf'))``.
+    """
+    if isinstance(value, bool) or value is None:
+        return default
+    if isinstance(value, int):
+        return value if value >= 0 else default
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return default
+    try:
+        coerced = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return coerced if coerced >= 0 else default
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    """Coerce ``value`` to a finite float in ``[0.0, 1.0]``.
+
+    Behavior matrix:
+    - Real finite number in ``[0.0, 1.0]`` → returned as-is.
+    - Real finite number outside the range → **clamped** to
+      ``[0.0, 1.0]`` (over-range → 1.0, under-range → 0.0).
+    - Anything else (None, bool, non-numeric, NaN, ±Infinity, raises
+      on conversion) → ``default``.
+
+    Phase 4 hardening (post-review): the prior ``float(...)`` call
+    accepted ``float("nan")`` / ``float("inf")`` (which emit non-finite
+    JSON) and raised on non-numeric strings. This helper replaces
+    NaN/Inf and unconvertible values with the safe default at the
+    serializer boundary, AND clamps in-range-but-numerically-drifted
+    values to the contracted ``[0.0, 1.0]`` range.
+    """
+    if isinstance(value, bool) or value is None:
+        return default
+    try:
+        coerced = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    if math.isnan(coerced) or math.isinf(coerced):
+        return default
+    return max(0.0, min(1.0, coerced))
+
+
+def _safe_bool(value: Any, default: bool = False) -> bool:
+    """Coerce ``value`` to bool; return ``default`` on anything that
+    is not strictly a ``bool``.
+
+    Phase 5 hardening (post-review): raw ``bool(...)`` converts any
+    non-empty string (including ``"false"`` and arbitrary text) to
+    ``True``, breaking the serializer-boundary guarantee that
+    wrong-typed inputs land on safe defaults. Only accept actual
+    ``True`` / ``False``.
+    """
+    return value if isinstance(value, bool) else default
+
+
+def _canonicalize_evidence_gate_record(
+    record: dict[str, Any],
+) -> dict[str, Any]:
+    """Restrict a per-document gate record to the documented shape AND
+    re-derive the decision from the canonicalized signals.
+
+    Returns a fresh dict with EXACTLY the three top-level keys
+    (``document_id``, ``decision``, ``signals``) and the nested
+    ``signals`` dict restricted to the five FR-001 signal names. Extra
+    keys at either level are dropped; out-of-range / non-finite /
+    wrong-typed values are coerced to safe defaults via
+    ``_safe_int`` / ``_safe_float`` / ``_safe_bool``.
+
+    Phase 6 strengthening (post-review): after coercing the signals,
+    the decision is **re-derived** from the canonical signals via
+    ``decide_for_gate`` rather than just clamped to the closed-vocab
+    set. This closes a hole where a caller could pass
+    ``decision="sufficient"`` with all-negative signals — the prior
+    canonicalizer accepted that as a valid decision string and emitted
+    it verbatim. The new behavior makes ``decision`` a function of
+    ``signals``, satisfying MI-7 / SC-012 at the serializer boundary.
+
+    Defense-in-depth for FR-003 PII closure: the
+    ``build_evidence_gate_document_record`` constructor already produces
+    the canonical shape, but a future code path that builds records
+    directly (or a regression that lets caller-supplied extras
+    through) cannot leak raw token strings, matched tax-ID values, or
+    other invoice content onto the run_summary wire format.
+    """
+    # Lazy import to avoid the timing.py → evidence_gate.py circular
+    # dependency at module load.
+    from dartwing_ocr.preprocessing.evidence_gate import (
+        FiveSignalSet,
+        decide_for_gate,
+    )
+
+    document_id = str(record.get("document_id", ""))
+    raw_signals = record.get("signals") or {}
+    if not isinstance(raw_signals, dict):
+        raw_signals = {}
+    canonical_signals_dict = {
+        "vendor_name_candidate_count": _safe_int(
+            raw_signals.get("vendor_name_candidate_count")
+        ),
+        "header_band_token_density": _safe_int(
+            raw_signals.get("header_band_token_density")
+        ),
+        "ocr_detection_confidence_mean": _safe_float(
+            raw_signals.get("ocr_detection_confidence_mean")
+        ),
+        "business_suffix_present": _safe_bool(
+            raw_signals.get("business_suffix_present")
+        ),
+        "tax_id_shaped_present": _safe_bool(
+            raw_signals.get("tax_id_shaped_present")
+        ),
+    }
+    # Phase 6: derive the decision from the canonical signals. Closed
+    # the hole where a caller could pass `decision="sufficient"` with
+    # all-negative signals.
+    derived_decision = decide_for_gate(
+        "v1", FiveSignalSet(**canonical_signals_dict)
+    )
+    return {
+        "document_id": document_id,
+        "decision": derived_decision,
+        "signals": canonical_signals_dict,
+    }
 
 
 @dataclass
@@ -276,6 +466,42 @@ class RunSummary:
     # orchestrator in `preprocessing/pipeline.py` per R-019.10 / I-019.4.
     preprocess_strategy_id: str = CPU_DEFAULT_PREPROCESS_STRATEGY
     ocr_only_fallback_count: int = 0
+    # Feature 020 (T026 / R-020.10 / FR-003 / FR-006 / FR-007 / FR-008 /
+    # FR-010 / data-model.md §5): four additive top-level fields.
+    #
+    # `evidence_gate_id` — always `"v1"` at landing (closed registry of
+    # size one per R-020.2). Emits the SAME string uniformly on CPU,
+    # stub-adapter, and GPU lanes (no `cpu-default` / `stub-default`
+    # discrimination — see data-model.md §9). FR-014 / SC-005.
+    #
+    # `evidence_gate_state_counts` — aggregate state distribution across
+    # the run. ALL THREE keys present (NOT sparse) per R-020.10 / MI-17.
+    # Default-zero counters on every key for runs that processed zero
+    # documents (stub-adapter empty corpus, etc.).
+    #
+    # `evidence_gate_documents` — per-doc records. Each element has
+    # exactly three top-level keys (`document_id` / `decision` /
+    # `signals`) and the nested `signals` object has exactly the five
+    # FR-001 signal names per data-model.md §4. FR-003 PII-safety
+    # closure: only signal TYPES (int / bool / float) — never raw token
+    # text. Deterministic ordering per `corpus_run.py` iteration
+    # (typically alphabetical by `document_id` per R-020.11).
+    #
+    # `evidence_gate_suppressed_fallback_count` — incremented by exactly
+    # 1 per document where shape (b) suppression actually fired (the
+    # four-conjunct predicate in R-020.8 returned True). Stays at 0 on
+    # the legacy (no-opt-in) path. Always-emit per FR-007 / FR-008.
+    #
+    # MVP slice (US3, this commit): `evidence_gate_id` / `state_counts`
+    # / `documents` are populated by the corpus_run / runner wiring as
+    # observability. `suppressed_fallback_count` defaults to 0 and is
+    # wired by the US4 skip-fallback behavior in a follow-up PR.
+    evidence_gate_id: str = EVIDENCE_GATE_ID_DEFAULT
+    evidence_gate_state_counts: dict[str, int] = field(
+        default_factory=_default_evidence_gate_state_counts
+    )
+    evidence_gate_documents: list[dict[str, Any]] = field(default_factory=list)
+    evidence_gate_suppressed_fallback_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         # Last-line-of-defense canonicalization for the closed-vocabulary
@@ -288,6 +514,29 @@ class RunSummary:
             {str(m) for m in self.ppstructure_modules_invoked}
             & set(AUDIT_SUB_MODULE_VOCABULARY)
         )
+        # Phase 6: canonicalize the per-doc records ONCE; derive
+        # state_counts from those canonicalized records so MI-18 holds
+        # at the wire format even when the caller's in-process
+        # accumulator drifts (e.g., the canonicalizer re-derives a
+        # decision from coerced signals).
+        _canonical_evidence_gate_documents = [
+            _canonicalize_evidence_gate_record(r)
+            for r in self.evidence_gate_documents
+        ]
+        _derived_state_counts = {
+            "sufficient": sum(
+                1 for d in _canonical_evidence_gate_documents
+                if d["decision"] == "sufficient"
+            ),
+            "borderline": sum(
+                1 for d in _canonical_evidence_gate_documents
+                if d["decision"] == "borderline"
+            ),
+            "insufficient": sum(
+                1 for d in _canonical_evidence_gate_documents
+                if d["decision"] == "insufficient"
+            ),
+        }
         return {
             "kind": "run_summary",
             "schema_version": SCHEMA_VERSION,
@@ -322,6 +571,33 @@ class RunSummary:
             # in fixed order. Always-emit per FR-007 / FR-008 / FR-010.
             "preprocess_strategy_id": self.preprocess_strategy_id,
             "ocr_only_fallback_count": self.ocr_only_fallback_count,
+            # Feature 020 additive top-level fields (T027 / R-020.10 /
+            # contracts/run-summary-schema.md): emitted in fixed order
+            # AFTER feature 019's two fields and before the closing
+            # brace. Always-emit per FR-008 / FR-010 / MI-16 / MI-17.
+            # Per-doc `signals` shape is validated at construction time
+            # in the gate's `EvidenceGateResult` — but as a defense in
+            # depth at the serializer boundary, we coerce the
+            # `state_counts` dict to an explicit-three-key form so a
+            # buggy caller cannot leak a sparse object onto the wire.
+            # Phase 6: clamp gate-id to the closed vocabulary so a buggy
+            # caller cannot emit `evidence_gate_id="v99"` on the wire
+            # format. The closed set has size 1 at landing; future
+            # presets grow it via additive code change (R-020.2).
+            "evidence_gate_id": (
+                self.evidence_gate_id
+                if self.evidence_gate_id in _EVIDENCE_GATE_ID_VOCAB
+                else "v1"
+            ),
+            # Phase 6: derive state_counts from the canonicalized
+            # document records (computed above), not from the caller's
+            # accumulator. Ensures MI-18 holds at the wire format even
+            # when the canonicalizer re-derived a decision.
+            "evidence_gate_state_counts": _derived_state_counts,
+            "evidence_gate_documents": _canonical_evidence_gate_documents,
+            "evidence_gate_suppressed_fallback_count": _safe_int(
+                self.evidence_gate_suppressed_fallback_count
+            ),
         }
 
     def as_json_line(self) -> str:
