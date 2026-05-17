@@ -3,17 +3,28 @@ quality-gate verdict producing Appendix B numbers.
 
 Marked ``@pytest.mark.gpu`` and **deferrable per R-020.15** — GPU workstation
 hardware is required to produce the legacy- and candidate-run
-``evaluation_run_summary.json`` files this test compares. The default
-CI invocation uses pytest's ``-m "not gpu"`` expression, which
-deselects every test bearing the ``gpu`` marker; this test is
-collected but never executes there. Separately, ``tests/conftest.py``
-contributes a runtime skip that fires when a GPU IS available but
-PaddleOCR's GPU readiness preflight fails (so a flaky-GPU host still
-ends in a clean skip rather than a hard error). On a GPU host where
-the preflight passes, the current body raises ``pytest.fail`` so the
-deferred-implementation state surfaces loudly the moment GPU
-verification is attempted; the follow-up replaces the body with the
-real two-metric comparison.
+``evaluation_run_summary.json`` files this test compares. Two
+independent mechanisms keep this test from executing on a non-GPU
+host:
+
+1. The default CI invocation uses pytest's ``-m "not gpu"`` expression,
+   which deselects every test bearing the ``gpu`` marker (these tests
+   are not collected for execution at all).
+2. ``tests/conftest.py`` contributes a runtime ``skip`` for every
+   ``gpu``-marked test whenever the cached preflight state is not
+   ``ppstructurev3_init_succeeded``. That state covers every non-happy
+   path: CPU-only hosts, hosts without Paddle installed, hosts where
+   Paddle is installed but GPU-bind fails, and hosts where the
+   preflight import itself crashes (FR-001 / FR-019). The skip reason
+   traces back to the FR-001 state.
+
+The test executes only when BOTH conditions allow it: the ``-m`` filter
+does not exclude ``gpu`` (or no ``-m`` is set) AND preflight resolved
+to ``ppstructurev3_init_succeeded`` on a working GPU host. When that
+happens, the current body raises ``pytest.fail`` so the deferred-
+implementation state surfaces loudly the moment GPU verification is
+attempted; the follow-up replaces the body with the real two-metric
+comparison.
 
 Two-metric promotion gate (FR-016 / R-020.14 / SC-008) — field names
 match ``contracts/stage1_vendor_identity/v1.2.0/evaluation_run_summary.schema.json``:
