@@ -44,11 +44,15 @@ quality may improve or stay flat, never regress.
 Inputs (over the same fixed 5-doc subset as T053 — see
 ``test_evidence_gate_benchmark.py`` for the subset lookup procedure):
 
-- Legacy run: ``--no-evidence-gate-skip-fallback`` (or absence /
-  ``LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=`` unset). Emits
-  ``evaluation_run_summary.json`` over the subset.
-- Candidate run: ``--evidence-gate-skip-fallback`` (opt-in active).
-  Emits ``evaluation_run_summary.json`` over the same subset.
+- Legacy run: omit ``--evidence-gate-skip-fallback`` entirely AND
+  ensure ``LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`` is unset (or set
+  to ``""`` / ``"0"`` / any falsy value per R-020.1). The CLI uses
+  ``argparse store_true`` for the flag, so there is NO
+  ``--no-evidence-gate-skip-fallback`` counterpart — absence of the
+  flag IS the off-state. Emits ``evaluation_run_summary.json`` over
+  the subset.
+- Candidate run: pass ``--evidence-gate-skip-fallback`` (opt-in
+  active). Emits ``evaluation_run_summary.json`` over the same subset.
 """
 
 from __future__ import annotations
