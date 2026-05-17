@@ -23,7 +23,9 @@ PY = sys.executable
 
 
 def _run(doc: Path) -> dict:
-    subprocess.run(
+    # List-form subprocess (no shell=True) over `sys.executable` + a static
+    # module + a corpus-glob path. Inputs are not user-controllable.
+    subprocess.run(  # noqa: S603
         [PY, "-m", "dartwing_ocr.preprocessing", "--document-folder", str(doc)],
         check=True,
         stdout=subprocess.DEVNULL,

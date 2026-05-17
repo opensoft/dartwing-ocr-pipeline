@@ -160,6 +160,8 @@ class CLIInvocation:
     # mode aggregates the flag into `RunSummary.ocr_only_fallback_count`.
     preprocess_strategy_id: str | None = None
     ocr_only_fallback_fired: bool = False
+    evidence_gate_skip_fallback_optin: bool = False
+    evidence_gate_suppressed_fired: bool = False
 
 
 StageCallable = Callable[[CLIInvocation, dict[str, Any]], Any]

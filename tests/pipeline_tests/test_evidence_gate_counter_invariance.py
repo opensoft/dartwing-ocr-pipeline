@@ -21,8 +21,8 @@ Paddle, no GPU.
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.pipeline.timing import RunSummary
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.pipeline.timing import RunSummary
+from dartwing_ocr.preprocessing.evidence_gate import (
     EvidenceGateResult,
     FiveSignalSet,
     build_evidence_gate_document_record,

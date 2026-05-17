@@ -667,6 +667,22 @@ def evaluate_and_record(
         _emit_insufficient_record("evaluation raised an unexpected exception")
 
 
+def should_suppress_fallback(
+    *,
+    preprocess_strategy_id: str | None,
+    fr_005_trigger_would_fire: bool,
+    opt_in_active: bool,
+    candidate_gate_decision: GateDecision | str,
+) -> bool:
+    """Return True iff the OCR-only fallback should be suppressed (MI-13)."""
+    return (
+        preprocess_strategy_id == "ocr-only-v1"
+        and fr_005_trigger_would_fire
+        and opt_in_active
+        and candidate_gate_decision == "sufficient"
+    )
+
+
 __all__ = (
     "EVIDENCE_GATE_ID_V1",
     "EvidenceGateResult",
@@ -678,4 +694,5 @@ __all__ = (
     "evaluate_and_record",
     "evaluate_evidence_gate",
     "load_preprocess_output_for_gate",
+    "should_suppress_fallback",
 )

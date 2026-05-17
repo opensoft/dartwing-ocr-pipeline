@@ -106,6 +106,7 @@ def _per_document_invocation(
     raster_profile_id: str | None = None,
     region_strategy_id: str | None = None,
     preprocess_strategy_id: str | None = None,
+    evidence_gate_skip_fallback_optin: bool = False,
 ) -> tuple[CLIInvocation | None, ExitCode | None, str]:
     """Build a CLIInvocation for one document folder.
 
@@ -168,6 +169,7 @@ def _per_document_invocation(
         raster_profile_id=raster_profile_id,
         region_strategy_id=region_strategy_id,
         preprocess_strategy_id=preprocess_strategy_id,
+        evidence_gate_skip_fallback_optin=evidence_gate_skip_fallback_optin,
     )
     return invocation, None, ""
 
@@ -266,6 +268,9 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
         resolve_region_strategy_value as _resolve_region_strategy_value_018,
         region_strategy_warn_message as _region_strategy_warn_018,
     )
+    from dartwing_ocr.preprocessing.evidence_gate_optin import (
+        apply_skip_fallback_optin as _apply_evidence_gate_skip_fallback_optin,
+    )
     from dartwing_ocr.preprocessing.preprocess_strategy_optin import (
         resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value_019,
         preprocess_strategy_warn_message as _preprocess_strategy_warn_019,
@@ -320,6 +325,20 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
             sys.stderr.write(_preprocess_strategy_warn_019(_profile_for_warn_017) + "\n")
             _preprocess_strategy_threaded_019 = None
 
+    try:
+        _evidence_gate_skip_fallback_threaded = _apply_evidence_gate_skip_fallback_optin(
+            cli_value=args.evidence_gate_skip_fallback,
+            is_gpu_profile=_is_gpu_lane_017(_warm_lane_017),
+            active_profile_name=(
+                _warm_pp_profile_017.raw_value
+                if _warm_pp_profile_017 is not None
+                else (getattr(args, "preprocess_profile", None) or "ppstructurev3@cpu")
+            ),
+        )
+    except ValueError as exc:
+        sys.stderr.write(f"error: {exc}\n")
+        return 2
+
     # Resolve the threaded values to preset objects for the warm-init factory.
     _module_set_obj_017: object | None = None
     _det_rec_variant_obj_017: object | None = None
@@ -341,6 +360,7 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
         module_set=_module_set_obj_017,
         det_rec_variant=_det_rec_variant_obj_017,
         preprocess_strategy_threaded=_preprocess_strategy_threaded_019,
+        evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_threaded,
     )
     # Feature 014 (Contracts §2 Pre-write GPU gate): warm-corpus GPU
     # preflight failures emit the FR-009 stderr form and exit with the
@@ -503,23 +523,17 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
     # this loop aggregates the flag the same way feature 018 does for
     # `region_strategy_fallback_fired`.
     _ocr_only_fallback_count_019 = 0
-    # Feature 020 (T028 / R-020.10 / R-020.11 / FR-003 / FR-006 / MI-18):
-    # per-doc evidence-gate accumulators. The gate runs on the FINAL
-    # `preprocess_output.json` of each successful document (R-020.7) and
-    # contributes one record to `evidence_gate_documents` plus an
-    # increment to the matching `evidence_gate_state_counts[decision]`.
-    # Per MI-18: `state_counts[s]` MUST equal the count of
-    # `documents[i].decision == s` for each state. The
-    # `evidence_gate_suppressed_fallback_count` accumulator stays at 0
-    # on the MVP slice — US4 (a follow-up PR) wires the per-doc
-    # suppression-event flag onto this counter when shape (b) fires.
-    _evidence_gate_state_counts_020: dict[str, int] = {
+    # Per-doc evidence-gate accumulators. The gate runs on the FINAL
+    # preprocess_output.json of each successful document and contributes
+    # one record to `documents` plus an increment to `state_counts[decision]`.
+    # Per MI-18: `state_counts[s]` equals `count(documents[i].decision == s)`.
+    _evidence_gate_state_counts: dict[str, int] = {
         "sufficient": 0,
         "borderline": 0,
         "insufficient": 0,
     }
-    _evidence_gate_documents_020: list[dict[str, Any]] = []
-    _evidence_gate_suppressed_fallback_count_020 = 0
+    _evidence_gate_documents: list[dict[str, Any]] = []
+    _evidence_gate_suppressed_fallback_count = 0
 
     for entry in documents:
         folder_raw = entry.raw
@@ -532,6 +546,7 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
             raster_profile_id=_raster_profile_threaded_018,
             region_strategy_id=_region_strategy_threaded_018,
             preprocess_strategy_id=_preprocess_strategy_threaded_019,
+            evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_threaded,
         )
         if invocation is None:
             failed += 1
@@ -580,6 +595,11 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
         if getattr(invocation, "ocr_only_fallback_fired", False):
             _ocr_only_fallback_count_019 += 1
         observed_exit_codes.append(result.exit_code)
+        if (
+            result.exit_code == ExitCode.SUCCESS
+            and invocation.evidence_gate_suppressed_fired
+        ):
+            _evidence_gate_suppressed_fallback_count += 1
         if result.exit_code == ExitCode.SUCCESS:
             succeeded += 1
             _emit_stdout_summary(
@@ -660,8 +680,8 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
             evaluate_and_record(
                 document_folder=folder_resolved,
                 document_id=invocation.document_id,
-                state_counts=_evidence_gate_state_counts_020,
-                documents=_evidence_gate_documents_020,
+                state_counts=_evidence_gate_state_counts,
+                documents=_evidence_gate_documents,
             )
         else:
             failed += 1
@@ -900,20 +920,10 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
         # (increments per fallen-back document per I-019.4).
         preprocess_strategy_id=_preprocess_strategy_id_019,
         ocr_only_fallback_count=_ocr_only_fallback_count_019,
-        # Feature 020 (T028 / R-020.10 / R-020.11 / FR-003 / FR-006 /
-        # FR-008 / MI-16 / MI-17 / MI-18): four additive top-level
-        # fields. `evidence_gate_id` is the closed-vocabulary preset
-        # identifier — `"v1"` uniformly across CPU / stub / GPU lanes
-        # (no cpu-default / stub-default discrimination — gate is a
-        # pure read; data-model.md §9). `state_counts` and `documents`
-        # come from the per-doc accumulators (gate evaluation happened
-        # on each success per the block above). `suppressed_fallback_count`
-        # stays at default 0 on the MVP slice; US4 (follow-up PR) wires
-        # the suppression-event counter when shape (b) fires.
         evidence_gate_id=EVIDENCE_GATE_ID_DEFAULT,
-        evidence_gate_state_counts=_evidence_gate_state_counts_020,
-        evidence_gate_documents=_evidence_gate_documents_020,
-        evidence_gate_suppressed_fallback_count=_evidence_gate_suppressed_fallback_count_020,
+        evidence_gate_state_counts=_evidence_gate_state_counts,
+        evidence_gate_documents=_evidence_gate_documents,
+        evidence_gate_suppressed_fallback_count=_evidence_gate_suppressed_fallback_count,
     )
     emit_run_summary(summary)
 
@@ -1089,6 +1099,7 @@ def _maybe_register_warm_preprocess(
     module_set: object | None = None,
     det_rec_variant: object | None = None,
     preprocess_strategy_threaded: str | None = None,
+    evidence_gate_skip_fallback_optin: bool = False,
 ) -> None:
     """Register a warm-instance factory for the live preprocessing profile.
 
@@ -1172,7 +1183,10 @@ def _maybe_register_warm_preprocess(
                     text_detection_model_name=_text_det_name,
                     text_recognition_model_name=_text_rec_name,
                 )
-                return
+                if not evidence_gate_skip_fallback_optin:
+                    return
+                # FR-007 exception: also construct PPStructureV3 below so
+                # the fallback engine is pre-warmed.
 
             from dartwing_ocr.preprocessing import ocr as _ocr_mod
 

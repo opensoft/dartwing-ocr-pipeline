@@ -431,6 +431,8 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
                 det_rec_variant_id=invocation.det_rec_variant_id,
                 raster_profile_id=invocation.raster_profile_id,
                 region_strategy_id=invocation.region_strategy_id,
+                preprocess_strategy_id=invocation.preprocess_strategy_id,
+                evidence_gate_skip_fallback_optin=invocation.evidence_gate_skip_fallback_optin,
             )
             try:
                 out_path = preprocessing_run(
@@ -440,6 +442,12 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
             finally:
                 invocation.region_strategy_fallback_fired = (
                     pre_invocation.region_strategy_fallback_fired
+                )
+                invocation.ocr_only_fallback_fired = (
+                    pre_invocation.ocr_only_fallback_fired
+                )
+                invocation.evidence_gate_suppressed_fired = (
+                    pre_invocation.evidence_gate_suppressed_fired
                 )
             from dartwing_ocr.pipeline.runner import StageRunOutput
 

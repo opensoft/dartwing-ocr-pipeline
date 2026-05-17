@@ -56,6 +56,9 @@ from dartwing_ocr.pipeline.runner import (
     Runner,
 )
 from dartwing_ocr.pipeline.slice_control import SliceError, parse_slice
+from dartwing_ocr.preprocessing.evidence_gate_optin import (
+    apply_skip_fallback_optin as _apply_evidence_gate_skip_fallback_optin,
+)
 from dartwing_ocr.preprocessing.warmup_optin import (
     is_warmup_optin_set,
     warn_and_proceed_message,
@@ -214,6 +217,20 @@ def _build_parser() -> argparse.ArgumentParser:
             "falls back to ppstructurev3 on that document and "
             "increments ocr_only_fallback_count. Can also be set via "
             "DARTWING_PREPROCESS_STRATEGY; the CLI flag wins."
+        ),
+    )
+    run.add_argument(
+        "--evidence-gate-skip-fallback",
+        action="store_true",
+        default=False,
+        help=(
+            "Suppress feature 019's OCR-only-to-PPStructureV3 fallback "
+            "when the evidence gate concludes 'sufficient' on the "
+            "OCR-only candidate. Off by default. Requires "
+            "--preprocess-profile=ppstructurev3@gpu AND "
+            "--preprocess-strategy=ocr-only-v1 to have effect. "
+            "Warn-and-proceed on non-GPU profiles. Env-var fallback: "
+            "DARTWING_EVIDENCE_GATE_SKIP_FALLBACK."
         ),
     )
     # Stack preset (FR-004A).
@@ -448,11 +465,8 @@ def _run_cold_warmup_if_active(invocation: CLIInvocation) -> int | None:
             warmup_optin=True,
             module_set_id=invocation.module_set_id,
             det_rec_variant_id=invocation.det_rec_variant_id,
-            # Feature 019 (T035 / R-019.16 / I-019.16): warmup binds the
-            # engine implied by the selected preprocess_strategy_id.
-            preprocess_strategy_id=getattr(
-                invocation, "preprocess_strategy_id", None
-            ),
+            preprocess_strategy_id=invocation.preprocess_strategy_id,
+            evidence_gate_skip_fallback_optin=invocation.evidence_gate_skip_fallback_optin,
         )
     except WarmupError as exc:
         sys.stderr.write(f"error: warmup failed: {exc.cause_class}: {exc}\n")
@@ -712,6 +726,18 @@ def _run_cold(  # NOSONAR S3776 — cold-mode CLI orchestrator — splits would 
             + "\n"
         )
         _preprocess_strategy_raw_019 = None
+    try:
+        _evidence_gate_skip_fallback_threaded = _apply_evidence_gate_skip_fallback_optin(
+            cli_value=args.evidence_gate_skip_fallback,
+            is_gpu_profile=_preprocess_is_gpu,
+            active_profile_name=_resolve_warning_profile_name(
+                _preprocess_profile, args.preprocess_profile
+            ),
+        )
+    except ValueError as exc:
+        sys.stderr.write(f"error: {exc}\n")
+        return 2
+
     # Thread the post-warn-and-proceed values onto the cold-path
     # invocation so `_run_inner`'s ensure_gpu_ready call receives them.
     invocation.module_set_id = _module_set_raw_017
@@ -719,6 +745,7 @@ def _run_cold(  # NOSONAR S3776 — cold-mode CLI orchestrator — splits would 
     invocation.raster_profile_id = _raster_profile_raw_018
     invocation.region_strategy_id = _region_strategy_raw_018
     invocation.preprocess_strategy_id = _preprocess_strategy_raw_019
+    invocation.evidence_gate_skip_fallback_optin = _evidence_gate_skip_fallback_threaded
 
     # Hoisted warmup: must run BEFORE the runner's stage dispatch so
     # warmup duration is excluded from per-doc `phase_timings.total`.

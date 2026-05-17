@@ -25,13 +25,13 @@ from typing import Callable
 
 import pytest
 
-from ledgerlinc_ocr.evaluator.pipeline_invocation import (
+from dartwing_ocr.evaluator.pipeline_invocation import (
     parse_pipeline_run_summary,
 )
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES
-from ledgerlinc_ocr.validator.artifact import validate_artifact
-from ledgerlinc_ocr.validator.report import ArtifactName
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES
+from dartwing_ocr.validator.artifact import validate_artifact
+from dartwing_ocr.validator.report import ArtifactName
 
 
 # FR-021 namespace check: any key beginning with these prefixes is a

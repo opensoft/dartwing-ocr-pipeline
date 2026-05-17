@@ -18,7 +18,7 @@ is a real failure, not a recovery scenario — the test fails loudly so
 the regeneration path lands as a deliberate, separately-reviewed action.
 
 Skip-fallback note: the ``--evidence-gate-skip-fallback`` flag and the
-``LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`` env var are introduced by
+``DARTWING_EVIDENCE_GATE_SKIP_FALLBACK`` env var are introduced by
 US4 (parallel PR). On this branch they do not exist; the default
 (legacy) path is the only path. This test therefore exercises the
 default-path invariant; US4 lands a companion test for the opt-in
@@ -33,7 +33,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.cli import main
 
 
 _FIXTURE_DIR = (
@@ -57,13 +57,13 @@ def _baseline_path() -> Path:
 
 
 def _gate_skip_fallback_active() -> bool:
-    """True iff a truthy ``LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`` env var
+    """True iff a truthy ``DARTWING_EVIDENCE_GATE_SKIP_FALLBACK`` env var
     is set. US4 introduces this flag; on this branch it should never be
     truthy in CI. We guard the test anyway so a developer who sets the
     env var locally does not get a false-positive byte-identity failure
     (the opt-in path is allowed to differ from the legacy path).
     """
-    val = os.environ.get("LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK", "")
+    val = os.environ.get("DARTWING_EVIDENCE_GATE_SKIP_FALLBACK", "")
     return val.strip().lower() in ("1", "true", "yes", "on")
 
 
@@ -107,7 +107,7 @@ def test_legacy_path_preprocess_output_is_byte_identical_across_runs(
     """
     if _gate_skip_fallback_active():
         pytest.skip(
-            "LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK is truthy; "
+            "DARTWING_EVIDENCE_GATE_SKIP_FALLBACK is truthy; "
             "this test guards the legacy / default path only — the "
             "opt-in suppression path is covered by US4."
         )
@@ -152,7 +152,7 @@ def test_legacy_path_matches_committed_baseline(
     """
     if _gate_skip_fallback_active():
         pytest.skip(
-            "LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK is truthy; "
+            "DARTWING_EVIDENCE_GATE_SKIP_FALLBACK is truthy; "
             "legacy-path baseline does not apply."
         )
 

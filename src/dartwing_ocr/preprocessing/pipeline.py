@@ -28,6 +28,10 @@ from typing import Any, Optional
 from dartwing_ocr.preprocessing import artifact as artifact_mod
 from dartwing_ocr.preprocessing import ocr, rasterize
 from dartwing_ocr.preprocessing.errors import InputRejectedError
+from dartwing_ocr.preprocessing.evidence_gate import (
+    evaluate_evidence_gate,
+    should_suppress_fallback,
+)
 from dartwing_ocr.preprocessing.ingestion_sources import build_ingestion_sources
 from dartwing_ocr.preprocessing.quality import compute_quality
 from dartwing_ocr.preprocessing.version import (
@@ -122,6 +126,8 @@ class Invocation:
     # default-False on every run kind. Per I-019.4, granularity is per-
     # document — never per-page, never per threshold trip.
     ocr_only_fallback_fired: bool = False
+    evidence_gate_skip_fallback_optin: bool = False
+    evidence_gate_suppressed_fired: bool = False
 
 
 def _derive_document_id(folder_name: str) -> str:
@@ -160,6 +166,7 @@ def run_warmup_if_active(
     module_set_id: str | None = None,
     det_rec_variant_id: str | None = None,
     preprocess_strategy_id: str | None = None,
+    evidence_gate_skip_fallback_optin: bool = False,
 ) -> None:
     """Hoisted GPU warmup helper. Callers MUST invoke this BEFORE wrapping
     ``pipeline.run`` in ``measure_total`` so warmup duration does not
@@ -262,6 +269,16 @@ def run_warmup_if_active(
             text_recognition_model_name=_text_rec_name,
         )
         _warmup_mod.run_warmup(_ocr_only_mod.get_active_ocr_engine())
+        # FR-007 exception: --evidence-gate-skip-fallback opts the operator
+        # into pre-warming PPStructureV3 even when the OCR-only strategy is
+        # selected, because the fallback engine may still be needed on
+        # `borderline` / `insufficient` candidates.
+        if evidence_gate_skip_fallback_optin:
+            _ensure_gpu_ready(
+                module_set=_module_set_obj,
+                det_rec_variant=_det_rec_variant_obj,
+            )
+            _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
     else:
         _ensure_gpu_ready(
             module_set=_module_set_obj,
@@ -1119,6 +1136,42 @@ def _run_region_first_path(
     )
 
 
+def decide_ocr_only_fallback_disposition(
+    *,
+    preprocess_strategy_id: str | None,
+    fr_005_trigger_would_fire: bool,
+    opt_in_active: bool,
+    candidate_pages: list[dict[str, Any]],
+) -> tuple[str, str | None]:
+    """Return ``(disposition, candidate_gate_decision)`` for the OCR-only path.
+
+    Disposition is one of ``"suppress"``, ``"fallback"``, ``"keep"``. The
+    injection seam for CPU-safe tests exercising R-020.8 without PaddleOCR.
+
+    On any gate-evaluation exception, fails closed to the legacy fallback —
+    suppression is never silently applied if the gate cannot be evaluated.
+    """
+    if not fr_005_trigger_would_fire:
+        return "keep", None
+    if not opt_in_active or preprocess_strategy_id != "ocr-only-v1":
+        return "fallback", None
+
+    candidate_output = {"pages": candidate_pages}
+    try:
+        candidate_decision = evaluate_evidence_gate(candidate_output).decision
+    except Exception:
+        return "fallback", None
+
+    if should_suppress_fallback(
+        preprocess_strategy_id=preprocess_strategy_id,
+        fr_005_trigger_would_fire=fr_005_trigger_would_fire,
+        opt_in_active=opt_in_active,
+        candidate_gate_decision=candidate_decision,
+    ):
+        return "suppress", candidate_decision
+    return "fallback", candidate_decision
+
+
 def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:  # NOSONAR S3776 — top-level preprocessing dispatch — branches across four strategy kinds; structural split deferred to a follow-up refactor.
     # Feature 018 (H5 fix): defensive reset of the per-document fallback
     # flag at the top of every `_run_inner` call so a re-used Invocation
@@ -1127,6 +1180,7 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:  # NO
     # invariant ("flag reflects THIS run only") is now guaranteed.
     invocation.region_strategy_fallback_fired = False
     invocation.ocr_only_fallback_fired = False
+    invocation.evidence_gate_suppressed_fired = False
 
     _resolved_preprocess_strategy = None
     _is_ocr_only = False
@@ -1281,10 +1335,16 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:  # NO
                 dpi=_resolved_dpi,
                 invocation=invocation,
             )
-            if _eligibility_insufficient:
-                # R-019.10 / I-019.4 fallback: discard OCR-only partial
-                # output and re-run the document under the active
-                # region strategy on PPStructureV3.
+            _disposition, _ = decide_ocr_only_fallback_disposition(
+                preprocess_strategy_id=invocation.preprocess_strategy_id,
+                fr_005_trigger_would_fire=_eligibility_insufficient,
+                opt_in_active=invocation.evidence_gate_skip_fallback_optin,
+                candidate_pages=_ocr_tuple[0],
+            )
+            if _disposition == "suppress":
+                invocation.evidence_gate_suppressed_fired = True
+                _acc.merge_tuple(tuple(_ocr_tuple))  # type: ignore[arg-type]
+            elif _disposition == "fallback":
                 invocation.ocr_only_fallback_fired = True
                 if _is_region_first and _resolved_region_strategy is not None:
                     if _region_first_into_acc():

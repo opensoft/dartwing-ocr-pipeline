@@ -35,6 +35,9 @@ from dartwing_ocr.preprocessing.errors import (
     InputRejectedError,
     WarmupError,
 )
+from dartwing_ocr.preprocessing.evidence_gate_optin import (
+    apply_skip_fallback_optin as _apply_evidence_gate_skip_fallback_optin,
+)
 from dartwing_ocr.preprocessing.warmup_optin import (
     is_warmup_optin_set,
     is_gpu_lane,
@@ -220,6 +223,23 @@ def _build_parser() -> argparse.ArgumentParser:
             "CLI flag wins."
         ),
     )
+    p.add_argument(
+        "--evidence-gate-skip-fallback",
+        action="store_true",
+        default=False,
+        help=(
+            "Suppress feature 019's OCR-only-to-PPStructureV3 fallback "
+            "when the evidence gate concludes 'sufficient' on the "
+            "OCR-only candidate. Off by default. Requires "
+            "--preprocess-profile=ppstructurev3@gpu AND "
+            "--preprocess-strategy=ocr-only-v1 to have effect. On "
+            "non-GPU profiles a stderr warning is emitted "
+            "(--evidence-gate-skip-fallback ignored:) and the run "
+            "proceeds unchanged. Env-var fallback: "
+            "DARTWING_EVIDENCE_GATE_SKIP_FALLBACK "
+            "(truthy: 1/true/yes/on)."
+        ),
+    )
     return p
 
 
@@ -364,7 +384,6 @@ def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — CLI entry p
     from dartwing_ocr.preprocessing.preprocess_strategies import (
         resolve_user_preprocess_strategy as _resolve_user_preprocess_strategy,
     )
-
     _module_set_raw = _resolve_module_set_value(args.module_set)
     _det_rec_raw = _resolve_det_rec_variant_value(args.det_rec_variant)
     _raster_profile_raw = _resolve_raster_profile_value(args.raster_profile)
@@ -422,6 +441,20 @@ def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — CLI entry p
             print(_preprocess_strategy_warn(active_profile_name_017), file=sys.stderr)
             _preprocess_strategy_threaded = None
 
+    try:
+        _evidence_gate_skip_fallback_optin = _apply_evidence_gate_skip_fallback_optin(
+            cli_value=args.evidence_gate_skip_fallback,
+            is_gpu_profile=_is_gpu_lane_017(preprocess_lane),
+            active_profile_name=(
+                args.preprocess_profile
+                if args.preprocess_profile
+                else "ppstructurev3@cpu"
+            ),
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
     # Feature 016 (T008 / T010 / T021 / FR-010 / SC-007): resolve the warmup
     # opt-in surface (CLI flag + DARTWING_GPU_WARMUP env var). When set on
     # a non-GPU lane, emit the FR-010 warn-and-proceed line and force the
@@ -458,6 +491,7 @@ def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — CLI entry p
         # pipeline orchestrator (T011) reads this and dispatches on
         # PreprocessStrategy.kind (ppstructurev3 / ocr-only / identity).
         preprocess_strategy_id=_preprocess_strategy_threaded,
+        evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_optin,
     )
 
     # Feature 016 (Copilot PR #24 round 2 finding 1 / FR-007 / SC-004):
@@ -473,9 +507,8 @@ def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — CLI entry p
             warmup_optin=warmup_optin,
             module_set_id=_module_set_threaded,
             det_rec_variant_id=_det_rec_threaded,
-            # Feature 019 (T035 / R-019.16 / I-019.16): warmup binds the
-            # engine implied by the selected preprocess_strategy_id.
             preprocess_strategy_id=_preprocess_strategy_threaded,
+            evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_optin,
         )
     except WarmupError as exc:
         print(
@@ -758,20 +791,20 @@ def _emit_single_doc_run_summary(
     # gate skips and accumulators stay at defaults — the always-emit
     # contract per MI-16 / MI-17 still ships the four `run_summary`
     # fields with default-zero values.
-    _evidence_gate_state_counts_020: dict[str, int] = {
+    _evidence_gate_state_counts: dict[str, int] = {
         "sufficient": 0,
         "borderline": 0,
         "insufficient": 0,
     }
-    _evidence_gate_documents_020: list[dict[str, Any]] = []
+    _evidence_gate_documents: list[dict[str, Any]] = []
     if documents_succeeded == 1:
         from dartwing_ocr.preprocessing.evidence_gate import evaluate_and_record
 
         evaluate_and_record(
             document_folder=invocation.document_folder,
             document_id=document_id or invocation.document_folder.name,
-            state_counts=_evidence_gate_state_counts_020,
-            documents=_evidence_gate_documents_020,
+            state_counts=_evidence_gate_state_counts,
+            documents=_evidence_gate_documents,
         )
     summary = RunSummary(
         stack_preset=None,
@@ -805,12 +838,13 @@ def _emit_single_doc_run_summary(
         # top-level fields. Same wiring discipline as corpus_run.py —
         # `evidence_gate_id` is `"v1"` uniformly; `state_counts` and
         # `documents` come from the single-doc accumulator above (or
-        # the all-zero defaults if the doc failed); suppression counter
-        # stays at 0 on the MVP slice.
+        # the all-zero defaults if the doc failed).
         evidence_gate_id=EVIDENCE_GATE_ID_DEFAULT,
-        evidence_gate_state_counts=_evidence_gate_state_counts_020,
-        evidence_gate_documents=_evidence_gate_documents_020,
-        evidence_gate_suppressed_fallback_count=0,
+        evidence_gate_state_counts=_evidence_gate_state_counts,
+        evidence_gate_documents=_evidence_gate_documents,
+        evidence_gate_suppressed_fallback_count=(
+            1 if success and invocation.evidence_gate_suppressed_fired else 0
+        ),
     )
     emit_run_summary(summary)
 
