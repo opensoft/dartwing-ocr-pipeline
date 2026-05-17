@@ -11,40 +11,8 @@ AMENDMENTS).
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
 
-import pytest
-
-
-def _repo_root() -> Path:
-    """Walk up from this test file to find the repo root (the directory
-    containing `contracts/` and `pyproject.toml`)."""
-    here = Path(__file__).resolve()
-    for ancestor in here.parents:
-        if (ancestor / "contracts" / "stage1_vendor_identity").is_dir():
-            return ancestor
-    raise RuntimeError("Could not locate repo root (looking for contracts/stage1_vendor_identity/)")
-
-
-def _resolve_diff_target(root: Path) -> str:
-    """Return the first ref from a priority list that resolves locally.
-    Tries ``origin/main`` first (PR CI almost always has it), then
-    ``main`` (developer checkouts). Skips the test when neither
-    resolves — this guard is intended for CI runs against a PR base."""
-    for ref in ("origin/main", "main"):
-        result = subprocess.run(
-            ["git", "rev-parse", "--verify", "--quiet", ref],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return ref
-    pytest.skip(
-        "neither origin/main nor main resolves in this checkout; "
-        "this guard is intended for CI runs against a PR base"
-    )
+from tests.pipeline_tests._git_helpers import repo_root, resolve_diff_target
 
 
 def test_no_diff_against_main_in_canonical_contracts_directory() -> None:
@@ -60,11 +28,8 @@ def test_no_diff_against_main_in_canonical_contracts_directory() -> None:
     this test should then be updated to reflect the new contract set
     version).
     """
-    root = _repo_root()
-    try:
-        target_ref = _resolve_diff_target(root)
-    except FileNotFoundError:
-        pytest.skip("git not installed")
+    root = repo_root()
+    target_ref = resolve_diff_target(root)
 
     result = subprocess.run(
         [

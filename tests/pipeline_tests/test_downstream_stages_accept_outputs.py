@@ -31,20 +31,19 @@ from ledgerlinc_ocr.validator.artifact import validate_artifact
 from ledgerlinc_ocr.validator.report import ArtifactName
 
 
-# Closed-vocabulary set of forbidden gate-related field names. If any of
-# these appears anywhere in any canonical artifact (top-level, nested,
-# or inside an array element), FR-021 is violated.
-_FORBIDDEN_GATE_FIELD_NAMES: frozenset[str] = frozenset(
+# FR-021 namespace check: any key beginning with these prefixes is a
+# gate-related field. This catches future gate fields without manual
+# list maintenance — the spec's gate-namespace contract (R-020.10) is
+# encoded directly. Defense in depth against rename / new sidecar
+# naming: ``gate_decision`` is included alongside ``evidence_gate``.
+_GATE_NAMESPACE_PREFIXES: tuple[str, ...] = ("evidence_gate", "gate_decision")
+
+# The five deliberately-non-namespaced signal field names per R-020.3.
+# These cannot be matched by a prefix rule, so we keep an explicit
+# closed list for them. If a future R-020 amendment renames a signal,
+# update this set together with the amendment.
+_GATE_SIGNAL_FIELDS: frozenset[str] = frozenset(
     {
-        "evidence_gate_id",
-        "evidence_gate_state_counts",
-        "evidence_gate_documents",
-        "evidence_gate_suppressed_fallback_count",
-        "evidence_gate",
-        "gate_decision",
-        "gate_decision_state",
-        "evidence_gate_decision",
-        "evidence_gate_signals",
         "vendor_name_candidate_count",
         "header_band_token_density",
         "ocr_detection_confidence_mean",
@@ -53,17 +52,13 @@ _FORBIDDEN_GATE_FIELD_NAMES: frozenset[str] = frozenset(
     }
 )
 
-# Closed-vocabulary set of forbidden sidecar file names. None of these
-# may appear in the per-document folder after a successful run.
-_FORBIDDEN_SIDECAR_FILES: frozenset[str] = frozenset(
-    {
-        "evidence_gate.json",
-        "gate_decision.json",
-        "signals.json",
-        "evidence_gate_result.json",
-        "evidence_gate_signals.json",
-    }
-)
+
+def _is_forbidden_gate_field(key: str) -> bool:
+    """True iff a key in a canonical artifact would constitute an FR-021
+    leak of gate state into the downstream payload."""
+    if key in _GATE_SIGNAL_FIELDS:
+        return True
+    return any(key.startswith(prefix) for prefix in _GATE_NAMESPACE_PREFIXES)
 
 
 _ARTIFACT_MAP: dict[str, ArtifactName] = {
@@ -89,6 +84,31 @@ def _walk_keys(obj: object) -> set[str]:
     return out
 
 
+def _assert_no_unexpected_files(
+    *,
+    pre_snapshot: set[str],
+    post_snapshot: set[str],
+    context: str,
+) -> None:
+    """FR-021 absolute folder-state check. After a successful run the
+    per-document folder MUST contain exactly the pre-run files PLUS the
+    four canonical artifact names — nothing more, nothing less.
+
+    Failing on the absolute set (rather than only the delta) catches
+    pre-existing sidecars left by a previous run AND new sidecars
+    written by this run in a single check, and is robust to cross-test
+    pollution of ``tmp_path``."""
+    expected = pre_snapshot | set(RESERVED_ARTIFACT_NAMES)
+    extras = post_snapshot - expected
+    missing = expected - post_snapshot
+    assert not extras and not missing, (
+        f"FR-021 violation ({context}): per-document folder did not "
+        f"contain exactly the expected set after run. "
+        f"Unexpected files: {sorted(extras)!r}. "
+        f"Missing expected files: {sorted(missing)!r}."
+    )
+
+
 def test_e2e_default_pipeline_emits_four_valid_canonical_artifacts(
     tmp_document_folder: Callable[..., Path],
 ) -> None:
@@ -106,8 +126,6 @@ def test_e2e_default_pipeline_emits_four_valid_canonical_artifacts(
     """
     folder = tmp_document_folder(1, "easy")
 
-    # FR-021 no-sidecar pre-snapshot: capture the folder contents BEFORE
-    # the pipeline run so we can diff the new file set afterward.
     pre_snapshot: set[str] = {p.name for p in folder.iterdir()}
 
     code = main(["run", "--document-folder", str(folder), "--overwrite"])
@@ -130,42 +148,31 @@ def test_e2e_default_pipeline_emits_four_valid_canonical_artifacts(
             f"{[v.reason for v in outcome.violations]}"
         )
 
-    # FR-021 (a): no gate-related field appears in any canonical
-    # artifact. Walk the full JSON tree of each artifact.
+    # FR-021 (a): no gate-related field appears anywhere in the JSON
+    # tree of any canonical artifact (namespace-based check — no
+    # closed list to maintain).
     for filename in _ARTIFACT_MAP:
         payload = json.loads((folder / filename).read_text(encoding="utf-8"))
-        keys_seen = _walk_keys(payload)
-        leaked = keys_seen & _FORBIDDEN_GATE_FIELD_NAMES
+        leaked = {k for k in _walk_keys(payload) if _is_forbidden_gate_field(k)}
         assert not leaked, (
             f"FR-021 violation: gate-related field name(s) leaked into "
             f"{filename}: {sorted(leaked)!r}. The gate is observability "
             "only — it MUST NOT contribute fields to canonical artifacts."
         )
 
-    # FR-021 (b): no gate sidecar file appears in the per-document
-    # folder. The only NEW files since pre-snapshot are the four
-    # canonical artifacts (optional debug page_*.png tolerated only if
-    # already present pre-run).
-    new_files = post_snapshot - pre_snapshot
-    expected_new = set(RESERVED_ARTIFACT_NAMES)
-    unexpected_new = new_files - expected_new
-    assert not unexpected_new, (
-        f"FR-021 violation: unexpected new files in per-document folder "
-        f"after gate-instrumented run: {sorted(unexpected_new)!r}. "
-        "Only the four canonical artifacts may be written."
-    )
-    # Symmetric assertion: none of the explicit-named gate sidecars
-    # appears, even if other unexpected new files don't (defense in
-    # depth against a sidecar name not yet enumerated).
-    sidecar_hits = post_snapshot & _FORBIDDEN_SIDECAR_FILES
-    assert not sidecar_hits, (
-        f"FR-021 violation: gate sidecar file(s) appeared in per-document "
-        f"folder: {sorted(sidecar_hits)!r}"
+    # FR-021 (b): absolute folder-state check — exactly pre-run files
+    # plus the four canonical artifacts. Catches any sidecar leak,
+    # whether new (this-run) or pre-existing (test pollution).
+    _assert_no_unexpected_files(
+        pre_snapshot=pre_snapshot,
+        post_snapshot=post_snapshot,
+        context="cold default-mode path",
     )
 
 
 def test_e2e_corpus_path_with_gate_active_emits_four_valid_canonical_artifacts(
     tmp_path: Path,
+    tmp_pdf_bytes: bytes,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Companion to the cold-mode test above: this one exercises the
@@ -178,18 +185,7 @@ def test_e2e_corpus_path_with_gate_active_emits_four_valid_canonical_artifacts(
     """
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
-    # Minimal valid PDF; the stub adapter doesn't actually parse it.
-    (folder / "source.pdf").write_bytes(
-        b"%PDF-1.4\n"
-        b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
-        b"2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\n"
-        b"xref\n0 3\n"
-        b"0000000000 65535 f \n"
-        b"0000000009 00000 n \n"
-        b"0000000053 00000 n \n"
-        b"trailer<</Size 3/Root 1 0 R>>\n"
-        b"startxref\n100\n%%EOF\n"
-    )
+    (folder / "source.pdf").write_bytes(tmp_pdf_bytes)
     docs_file = tmp_path / "documents.txt"
     docs_file.write_text(f"{folder}\n", encoding="utf-8")
 
@@ -214,9 +210,6 @@ def test_e2e_corpus_path_with_gate_active_emits_four_valid_canonical_artifacts(
     assert summary.get("evidence_gate_id") == "v1"
     assert "evidence_gate_state_counts" in summary
     assert "evidence_gate_documents" in summary
-    # The stub adapter writes a schema-valid preprocess_output.json, so
-    # the gate evaluates it successfully — expect at least one per-doc
-    # record (this is the witness that the gate-active path ran).
     assert len(summary["evidence_gate_documents"]) >= 1, (
         "expected at least one evidence_gate_documents record from the "
         "stub-adapter corpus run; got 0 — the gate did not fire as "
@@ -239,24 +232,18 @@ def test_e2e_corpus_path_with_gate_active_emits_four_valid_canonical_artifacts(
         )
 
     # FR-021: no gate field leak into any canonical artifact, even
-    # though the gate ran.
+    # though the gate ran. Namespace-based check.
     for filename in _ARTIFACT_MAP:
         payload = json.loads((folder / filename).read_text(encoding="utf-8"))
-        leaked = _walk_keys(payload) & _FORBIDDEN_GATE_FIELD_NAMES
+        leaked = {k for k in _walk_keys(payload) if _is_forbidden_gate_field(k)}
         assert not leaked, (
             f"FR-021 violation (gate-active path): gate-related field "
             f"name(s) leaked into {filename}: {sorted(leaked)!r}"
         )
 
-    # FR-021: no sidecar file appears.
-    new_files = post_snapshot - pre_snapshot
-    unexpected_new = new_files - set(RESERVED_ARTIFACT_NAMES)
-    assert not unexpected_new, (
-        f"FR-021 violation (gate-active path): unexpected new files in "
-        f"per-document folder: {sorted(unexpected_new)!r}"
-    )
-    sidecar_hits = post_snapshot & _FORBIDDEN_SIDECAR_FILES
-    assert not sidecar_hits, (
-        f"FR-021 violation (gate-active path): gate sidecar file(s) "
-        f"appeared: {sorted(sidecar_hits)!r}"
+    # FR-021: absolute folder-state check on the gate-active path.
+    _assert_no_unexpected_files(
+        pre_snapshot=pre_snapshot,
+        post_snapshot=post_snapshot,
+        context="warm-corpus gate-active path",
     )

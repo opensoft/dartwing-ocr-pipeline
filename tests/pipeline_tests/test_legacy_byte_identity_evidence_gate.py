@@ -10,14 +10,12 @@ state-distribution counters to the ``run_summary`` stdout line, and does
 NOT write back. Round-tripping the same fixture twice MUST produce a
 byte-identical ``preprocess_output.json``.
 
-The baseline is captured under
+The baseline at
 ``tests/fixtures/feature_020_baseline/preprocess_output_cpu_default_inv_001_easy.json``
-on the first run and reused thereafter. This validates the MI-20
-byte-identity property (no gate-induced drift) — it does NOT compare
-against a pre-feature-020 ground truth (the legacy code path cannot be
-run retroactively from this branch). The pre-feature-020 RunSummary
-baseline at ``tests/fixtures/feature_020_baseline/run_summary_pre_020.json``
-covers the additive-superset story for the RunSummary contract.
+is committed to the repo (regenerable from the ``tmp_pdf_bytes`` fixture
+in ``conftest.py`` plus a cold CPU stub-adapter run). A missing baseline
+is a real failure, not a recovery scenario — the test fails loudly so
+the regeneration path lands as a deliberate, separately-reviewed action.
 
 Skip-fallback note: the ``--evidence-gate-skip-fallback`` flag and the
 ``LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`` env var are introduced by
@@ -36,19 +34,6 @@ from pathlib import Path
 import pytest
 
 from ledgerlinc_ocr.pipeline.cli import main
-
-
-MINIMAL_PDF_BYTES = (
-    b"%PDF-1.4\n"
-    b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
-    b"2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\n"
-    b"xref\n0 3\n"
-    b"0000000000 65535 f \n"
-    b"0000000009 00000 n \n"
-    b"0000000053 00000 n \n"
-    b"trailer<</Size 3/Root 1 0 R>>\n"
-    b"startxref\n100\n%%EOF\n"
-)
 
 
 _FIXTURE_DIR = (
@@ -74,7 +59,9 @@ def _gate_skip_fallback_active() -> bool:
     return val.strip().lower() in ("1", "true", "yes", "on")
 
 
-def _run_pipeline_for_inv_001_easy(parent: Path, *, subdir: str) -> Path:
+def _run_pipeline_for_inv_001_easy(
+    parent: Path, *, subdir: str, pdf_bytes: bytes
+) -> Path:
     """Run the default-profile (cpu stub) pipeline against a freshly
     created ``inv_001_easy`` folder under ``parent / subdir`` and return
     the path to the emitted ``preprocess_output.json``. The ``subdir``
@@ -82,7 +69,7 @@ def _run_pipeline_for_inv_001_easy(parent: Path, *, subdir: str) -> Path:
     collision."""
     folder = parent / subdir / "inv_001_easy"
     folder.mkdir(parents=True)
-    (folder / "source.pdf").write_bytes(MINIMAL_PDF_BYTES)
+    (folder / "source.pdf").write_bytes(pdf_bytes)
     code = main(["run", "--document-folder", str(folder), "--overwrite"])
     assert code == 0, f"baseline pipeline run failed (exit={code})"
     artifact = folder / "preprocess_output.json"
@@ -90,21 +77,9 @@ def _run_pipeline_for_inv_001_easy(parent: Path, *, subdir: str) -> Path:
     return artifact
 
 
-def _capture_baseline_if_missing(artifact: Path) -> None:
-    """First-run helper: write the baseline file from the current run's
-    artifact when no baseline exists yet. On CI the baseline file MUST
-    already exist (committed to the repo) so this branch is unreachable.
-    The defensive write only fires the first time a developer runs the
-    test locally after a clean checkout."""
-    baseline = _baseline_path()
-    if baseline.exists():
-        return
-    baseline.parent.mkdir(parents=True, exist_ok=True)
-    baseline.write_bytes(artifact.read_bytes())
-
-
 def test_legacy_path_preprocess_output_is_byte_identical_across_runs(
     tmp_path: Path,
+    tmp_pdf_bytes: bytes,
 ) -> None:
     """MI-20 round-trip determinism: two independent runs of the
     default-profile pipeline against the same fixture produce
@@ -120,13 +95,14 @@ def test_legacy_path_preprocess_output_is_byte_identical_across_runs(
             "opt-in suppression path is covered by US4."
         )
 
-    first_artifact = _run_pipeline_for_inv_001_easy(tmp_path, subdir="run1")
+    first_artifact = _run_pipeline_for_inv_001_easy(
+        tmp_path, subdir="run1", pdf_bytes=tmp_pdf_bytes
+    )
     first_bytes = first_artifact.read_bytes()
-    # Capture the baseline on first ever local run; CI baseline is
-    # committed to the repo so this is a no-op there.
-    _capture_baseline_if_missing(first_artifact)
 
-    second_artifact = _run_pipeline_for_inv_001_easy(tmp_path, subdir="run2")
+    second_artifact = _run_pipeline_for_inv_001_easy(
+        tmp_path, subdir="run2", pdf_bytes=tmp_pdf_bytes
+    )
     second_bytes = second_artifact.read_bytes()
 
     assert first_bytes == second_bytes, (
@@ -139,7 +115,10 @@ def test_legacy_path_preprocess_output_is_byte_identical_across_runs(
     )
 
 
-def test_legacy_path_matches_committed_baseline(tmp_path: Path) -> None:
+def test_legacy_path_matches_committed_baseline(
+    tmp_path: Path,
+    tmp_pdf_bytes: bytes,
+) -> None:
     """SC-007 / FR-019: the default-path ``preprocess_output.json``
     matches the committed baseline byte-for-byte.
 
@@ -149,11 +128,10 @@ def test_legacy_path_matches_committed_baseline(tmp_path: Path) -> None:
     gate-derived fields into the artifact, or alters serialization of
     any existing field, will diff against this baseline.
 
-    If the baseline file does not exist yet (clean checkout, first ever
-    local run), the prior test in this module captured it on its way
-    through; we skip rather than fail because the second-run comparison
-    here would compare bytes against bytes just written. CI always has
-    the committed baseline so this skip path is local-developer only.
+    A missing baseline file is a real failure: this guard depends on
+    the committed fixture, and a stealth regeneration path would defeat
+    the guard's purpose. Re-baselining is a deliberate, reviewed action
+    (see the regeneration procedure in this module's docstring).
     """
     if _gate_skip_fallback_active():
         pytest.skip(
@@ -162,21 +140,20 @@ def test_legacy_path_matches_committed_baseline(tmp_path: Path) -> None:
         )
 
     baseline = _baseline_path()
-    if not baseline.exists():
-        pytest.skip(
-            f"baseline {baseline.name} not yet committed; the round-trip "
-            "test above will capture it on first run. Re-run this test "
-            "after the baseline lands in the repo."
-        )
+    assert baseline.exists(), (
+        f"committed baseline {baseline} is missing. Re-baselining is a "
+        "deliberate, separately-reviewed action — restore the file from "
+        "git, or regenerate it via a cold CPU stub-adapter run against "
+        "the tmp_pdf_bytes fixture and review the diff before committing."
+    )
 
-    artifact = _run_pipeline_for_inv_001_easy(tmp_path, subdir="match-baseline")
+    artifact = _run_pipeline_for_inv_001_easy(
+        tmp_path, subdir="match-baseline", pdf_bytes=tmp_pdf_bytes
+    )
     actual = artifact.read_bytes()
     expected = baseline.read_bytes()
 
     if actual != expected:
-        # Best-effort diagnostic: parse both as JSON and show the
-        # top-level key set diff. Falls back to raw byte lengths if
-        # either side is not valid JSON.
         try:
             actual_obj = json.loads(actual)
             expected_obj = json.loads(expected)

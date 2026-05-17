@@ -1,71 +1,38 @@
-"""Feature 020 / T049 / US6 (SC-010 / FR-020):
+"""Feature 020 / T049 / US6 (SC-006 / SC-010 / FR-020):
 canonical-contracts immutability guard for this feature's PR.
 
-FR-020: feature 020 MUST NOT touch any file under
+FR-020 / SC-010: feature 020 MUST NOT touch any file under
 ``contracts/stage1_vendor_identity/``. The four canonical artifact
 schemas and ``contract_set.json`` are frozen at the v1.2.0 contract set;
 schema-evolution lives in ``contracts/stage1_vendor_identity/AMENDMENTS.md``
 and is out of scope for this feature.
 
-This test replicates the pattern of ``test_no_contract_diff.py`` (feature
-017) but is owned by feature 020's US6 regression bundle. It runs as a
-CPU-safe check on every PR. It is intentionally NOT redundant with
-feature 017's copy — each feature owns its own contracts-immutability
-guard so a future contract leak attributable to this feature lands on
-this test's stack trace specifically.
+SC-006: feature 020 MUST NOT modify any committed corpus baseline file
+under ``tests/stage1_vendor_identity/inv_*/`` (source.pdf, expected.json,
+preprocess_output.json, notes.md). README and .gitkeep are doc-only and
+not in scope.
 
-Also asserts SC-010 / FR-020 cont: ``contract_set_version`` on the
-working tree reads the same string as on the main branch.
+These tests replicate the pattern of ``test_no_contract_diff.py`` (feature
+017) but are owned by feature 020's US6 regression bundle. They run as
+CPU-safe checks on every PR. They are intentionally NOT redundant —
+each feature owns its own immutability guard so a future leak
+attributable to this feature lands on this test's stack trace
+specifically.
 """
 
 from __future__ import annotations
 
 import json
 import subprocess
-from pathlib import Path
 
 import pytest
+
+from tests.pipeline_tests._git_helpers import repo_root, resolve_diff_target
 
 
 _CONTRACT_SET_VERSION_PATH = (
     "contracts/stage1_vendor_identity/v1.2.0/contract_set.json"
 )
-
-
-def _repo_root() -> Path:
-    """Walk up from this test file to the repo root (the directory that
-    contains ``contracts/stage1_vendor_identity/``)."""
-    here = Path(__file__).resolve()
-    for ancestor in here.parents:
-        if (ancestor / "contracts" / "stage1_vendor_identity").is_dir():
-            return ancestor
-    raise RuntimeError(
-        "Could not locate repo root (looking for "
-        "contracts/stage1_vendor_identity/)"
-    )
-
-
-def _resolve_diff_target(root: Path) -> str:
-    """Return the first ref from a priority list that resolves locally.
-    Tries ``origin/main`` first (PR CI typically has it), then ``main``
-    (developer checkouts). Skips when neither resolves (CI variants that
-    do not fetch ``main`` cannot run this guard)."""
-    for ref in ("origin/main", "main"):
-        result = subprocess.run(
-            ["git", "rev-parse", "--verify", "--quiet", ref],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return ref
-    pytest.skip(
-        "neither origin/main nor main resolves in this checkout; "
-        "this contracts-immutability guard requires a base ref. "
-        "Re-run with `git fetch origin main:main` (or in CI against "
-        "a PR base)."
-    )
 
 
 def test_feature_020_changes_no_canonical_contract_file() -> None:
@@ -79,11 +46,8 @@ def test_feature_020_changes_no_canonical_contract_file() -> None:
     OUT OF SCOPE for feature 020 (the gate is observability over
     existing artifacts, never a schema change).
     """
-    root = _repo_root()
-    try:
-        target_ref = _resolve_diff_target(root)
-    except FileNotFoundError:
-        pytest.skip("git not installed")
+    root = repo_root()
+    target_ref = resolve_diff_target(root)
 
     result = subprocess.run(
         [
@@ -114,6 +78,51 @@ def test_feature_020_changes_no_canonical_contract_file() -> None:
     )
 
 
+def test_feature_020_changes_no_corpus_baseline_file() -> None:
+    """SC-006: feature 020 MUST NOT modify any committed corpus baseline
+    file under ``tests/stage1_vendor_identity/inv_*/`` relative to
+    ``main``. Per-document folders hold the frozen ground truth
+    (source.pdf, expected.json, preprocess_output.json, notes.md) for
+    the evaluator harness; a regression that re-baselines them would
+    silently change pass/fail outcomes.
+
+    The corpus README and .gitkeep at the directory root are NOT in
+    scope — only files under ``inv_*/`` subfolders.
+    """
+    root = repo_root()
+    target_ref = resolve_diff_target(root)
+
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-only",
+            target_ref,
+            "--",
+            "tests/stage1_vendor_identity/inv_*/",
+        ],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        f"git diff against {target_ref!r} failed: rc={result.returncode} "
+        f"stderr={result.stderr.strip()!r}"
+    )
+    changed_files = [
+        line.strip() for line in result.stdout.splitlines() if line.strip()
+    ]
+    assert not changed_files, (
+        "SC-006 violation: feature 020 must not modify any committed "
+        "corpus baseline file under tests/stage1_vendor_identity/inv_*/. "
+        f"Changed files (vs {target_ref}): {changed_files}\n"
+        "Corpus re-baselining is a deliberate, separately-reviewed action "
+        "(see docs/stage1-vendor-identity/labeling-guide.md) — never a "
+        "side effect of a feature implementation."
+    )
+
+
 def test_contract_set_version_unchanged_vs_main() -> None:
     """FR-020: ``contract_set_version`` on the working tree reads the
     same string as on the base ref (``main`` / ``origin/main``).
@@ -123,19 +132,15 @@ def test_contract_set_version_unchanged_vs_main() -> None:
     the broader file-level diff guard above catches the reformat
     separately.
     """
-    root = _repo_root()
-    try:
-        target_ref = _resolve_diff_target(root)
-    except FileNotFoundError:
-        pytest.skip("git not installed")
+    root = repo_root()
+    target_ref = resolve_diff_target(root)
 
-    # Local version (working tree).
     local_path = root / _CONTRACT_SET_VERSION_PATH
-    if not local_path.exists():
-        pytest.skip(
-            f"working-tree {_CONTRACT_SET_VERSION_PATH} not found; "
-            "contract set may have been renamed — investigate."
-        )
+    assert local_path.exists(), (
+        f"working-tree {_CONTRACT_SET_VERSION_PATH} missing. The "
+        "contract set has been renamed or removed — investigate before "
+        "merging this PR."
+    )
     local_obj = json.loads(local_path.read_text(encoding="utf-8"))
     local_version = local_obj.get("contract_set_version")
     assert isinstance(local_version, str) and local_version, (
@@ -143,7 +148,6 @@ def test_contract_set_version_unchanged_vs_main() -> None:
         "contract_set_version string"
     )
 
-    # Base-ref version (committed on target_ref).
     show_result = subprocess.run(
         ["git", "show", f"{target_ref}:{_CONTRACT_SET_VERSION_PATH}"],
         cwd=root,
@@ -151,11 +155,12 @@ def test_contract_set_version_unchanged_vs_main() -> None:
         text=True,
         check=False,
     )
-    if show_result.returncode != 0:
-        pytest.skip(
-            f"contract_set.json not available on {target_ref}: "
-            f"{show_result.stderr.strip()!r}"
-        )
+    assert show_result.returncode == 0, (
+        f"contract_set.json not available on {target_ref}: "
+        f"{show_result.stderr.strip()!r}. If the file was intentionally "
+        "renamed, update this test together with the rename — a missing "
+        "base-ref version is NOT a valid skip condition."
+    )
     base_obj = json.loads(show_result.stdout)
     base_version = base_obj.get("contract_set_version")
     assert isinstance(base_version, str) and base_version, (
