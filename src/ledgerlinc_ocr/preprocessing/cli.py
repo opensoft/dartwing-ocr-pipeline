@@ -506,9 +506,8 @@ def main(argv: list[str] | None = None) -> int:
             warmup_optin=warmup_optin,
             module_set_id=_module_set_threaded,
             det_rec_variant_id=_det_rec_threaded,
-            # Feature 019 (T035 / R-019.16 / I-019.16): warmup binds the
-            # engine implied by the selected preprocess_strategy_id.
             preprocess_strategy_id=_preprocess_strategy_threaded,
+            evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_optin,
         )
     except WarmupError as exc:
         print(

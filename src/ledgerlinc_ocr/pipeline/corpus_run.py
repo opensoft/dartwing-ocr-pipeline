@@ -358,6 +358,7 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         module_set=_module_set_obj_017,
         det_rec_variant=_det_rec_variant_obj_017,
         preprocess_strategy_threaded=_preprocess_strategy_threaded_019,
+        evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_threaded,
     )
     # Feature 014 (Contracts §2 Pre-write GPU gate): warm-corpus GPU
     # preflight failures emit the FR-009 stderr form and exit with the
@@ -1120,6 +1121,7 @@ def _maybe_register_warm_preprocess(
     module_set: object | None = None,
     det_rec_variant: object | None = None,
     preprocess_strategy_threaded: str | None = None,
+    evidence_gate_skip_fallback_optin: bool = False,
 ) -> None:
     """Register a warm-instance factory for the live preprocessing profile.
 
@@ -1203,7 +1205,10 @@ def _maybe_register_warm_preprocess(
                     text_detection_model_name=_text_det_name,
                     text_recognition_model_name=_text_rec_name,
                 )
-                return
+                if not evidence_gate_skip_fallback_optin:
+                    return
+                # FR-007 exception: also construct PPStructureV3 below so
+                # the fallback engine is pre-warmed.
 
             from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod
 

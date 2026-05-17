@@ -465,11 +465,8 @@ def _run_cold_warmup_if_active(invocation: CLIInvocation) -> int | None:
             warmup_optin=True,
             module_set_id=invocation.module_set_id,
             det_rec_variant_id=invocation.det_rec_variant_id,
-            # Feature 019 (T035 / R-019.16 / I-019.16): warmup binds the
-            # engine implied by the selected preprocess_strategy_id.
-            preprocess_strategy_id=getattr(
-                invocation, "preprocess_strategy_id", None
-            ),
+            preprocess_strategy_id=invocation.preprocess_strategy_id,
+            evidence_gate_skip_fallback_optin=invocation.evidence_gate_skip_fallback_optin,
         )
     except WarmupError as exc:
         sys.stderr.write(f"error: warmup failed: {exc.cause_class}: {exc}\n")

@@ -166,6 +166,7 @@ def run_warmup_if_active(
     module_set_id: str | None = None,
     det_rec_variant_id: str | None = None,
     preprocess_strategy_id: str | None = None,
+    evidence_gate_skip_fallback_optin: bool = False,
 ) -> None:
     """Hoisted GPU warmup helper. Callers MUST invoke this BEFORE wrapping
     ``pipeline.run`` in ``measure_total`` so warmup duration does not
@@ -268,6 +269,16 @@ def run_warmup_if_active(
             text_recognition_model_name=_text_rec_name,
         )
         _warmup_mod.run_warmup(_ocr_only_mod.get_active_ocr_engine())
+        # FR-007 exception: --evidence-gate-skip-fallback opts the operator
+        # into pre-warming PPStructureV3 even when the OCR-only strategy is
+        # selected, because the fallback engine may still be needed on
+        # `borderline` / `insufficient` candidates.
+        if evidence_gate_skip_fallback_optin:
+            _ensure_gpu_ready(
+                module_set=_module_set_obj,
+                det_rec_variant=_det_rec_variant_obj,
+            )
+            _warmup_mod.run_warmup(_ocr_mod.get_active_engine())
     else:
         _ensure_gpu_ready(
             module_set=_module_set_obj,
