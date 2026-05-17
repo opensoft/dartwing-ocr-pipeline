@@ -3,29 +3,29 @@ quality-gate verdict producing Appendix B numbers.
 
 Marked ``@pytest.mark.gpu`` and **deferrable per R-020.15** — GPU workstation
 hardware is required to produce the legacy- and candidate-run
-``evaluation_run_summary.json`` files this test compares. Two
-independent mechanisms keep this test from executing on a non-GPU
-host:
+``evaluation_run_summary.json`` files this test compares. The repo's
+``pyproject.toml`` does NOT configure a default ``-m`` marker filter
+(``addopts = "-ra --import-mode=importlib"``), so a plain ``pytest``
+invocation collects this test. ``tests/conftest.py`` then skip-gates
+every ``gpu``-marked test at runtime whenever the cached preflight
+state is not ``ppstructurev3_init_succeeded`` — that state covers
+every non-happy path: CPU-only hosts, hosts without Paddle installed,
+hosts where Paddle is installed but GPU-bind fails, and hosts where
+the preflight import itself crashes (FR-001 / FR-019). On those hosts
+the test shows up as ``skipped`` in the pytest summary (skip reason
+traces back to the FR-001 state).
 
-1. The default CI invocation uses pytest's ``-m "not gpu"`` expression.
-   Marker expressions filter AFTER collection — these tests are
-   collected, then deselected before execution, so they show up as
-   ``deselected`` in the pytest summary line rather than running.
-2. ``tests/conftest.py`` contributes a runtime ``skip`` for every
-   ``gpu``-marked test whenever the cached preflight state is not
-   ``ppstructurev3_init_succeeded``. That state covers every non-happy
-   path: CPU-only hosts, hosts without Paddle installed, hosts where
-   Paddle is installed but GPU-bind fails, and hosts where the
-   preflight import itself crashes (FR-001 / FR-019). The skip reason
-   traces back to the FR-001 state.
+Operators may additionally pass ``pytest -m "not gpu"`` to deselect
+``gpu``-marked tests at marker-filter time (before the conftest gate
+runs); the test then shows up as ``deselected`` rather than
+``skipped``. This is a caller-opt-in alternative — not a default.
 
-The test executes only when BOTH conditions allow it: the ``-m`` filter
-does not exclude ``gpu`` (or no ``-m`` is set) AND preflight resolved
-to ``ppstructurev3_init_succeeded`` on a working GPU host. When that
-happens, the current body raises ``pytest.fail`` so the deferred-
-implementation state surfaces loudly the moment GPU verification is
-attempted; the follow-up replaces the body with the real two-metric
-comparison.
+The test actually executes only when preflight resolves to
+``ppstructurev3_init_succeeded`` on a working GPU host AND no ``-m``
+expression excludes it. When that happens, the current body raises
+``pytest.fail`` so the deferred-implementation state surfaces loudly
+the moment GPU verification is attempted; the follow-up replaces the
+body with the real two-metric comparison.
 
 Two-metric promotion gate (FR-016 / R-020.14 / SC-008) — field names
 match ``contracts/stage1_vendor_identity/v1.2.0/evaluation_run_summary.schema.json``:
