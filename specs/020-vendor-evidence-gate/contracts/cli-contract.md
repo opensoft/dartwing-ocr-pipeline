@@ -79,8 +79,10 @@ This feature introduces **no new exit codes**. All existing exit codes from feat
 
 The CLI's existing handling applies:
 - `0` — successful run.
-- `1` — generic CLI/argparse error (covers invalid env-var value via the existing `_PRESET_ENV_VAR` helper raising `ValueError`).
-- `2` — argparse usage error (e.g., unknown flag — does not apply to `--evidence-gate-skip-fallback` itself, but applies to malformed usage like `--evidence-gate-skip-fallback=yes` since the flag is boolean).
+- `1` — generic CLI error (uncaught runtime failure).
+- `2` — argparse usage error. Two paths fall here:
+  - Malformed flag usage (e.g., `--evidence-gate-skip-fallback=yes` — the flag is boolean, no value accepted).
+  - Invalid `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` env-var value: the existing `_PRESET_ENV_VAR` helper raises `ValueError`, argparse catches it in its `type=` conversion path and calls `parser.error()` which exits 2. This is the same behavior the precedence section above documents.
 - Other codes (3, 4, 5, ... 16, ...) — unchanged from prior features.
 
 ---
