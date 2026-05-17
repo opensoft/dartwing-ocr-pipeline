@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from ledgerlinc_ocr.preprocessing import pipeline
+from ledgerlinc_ocr.preprocessing.identifiers import EVIDENCE_GATE_ID_DEFAULT
 from ledgerlinc_ocr.preprocessing.errors import (
     EXIT_INPUT_REJECTED,
     EXIT_INTERNAL_ERROR,
@@ -806,7 +807,7 @@ def _emit_single_doc_run_summary(
         # `documents` come from the single-doc accumulator above (or
         # the all-zero defaults if the doc failed); suppression counter
         # stays at 0 on the MVP slice.
-        evidence_gate_id="v1",
+        evidence_gate_id=EVIDENCE_GATE_ID_DEFAULT,
         evidence_gate_state_counts=_evidence_gate_state_counts_020,
         evidence_gate_documents=_evidence_gate_documents_020,
         evidence_gate_suppressed_fallback_count=0,

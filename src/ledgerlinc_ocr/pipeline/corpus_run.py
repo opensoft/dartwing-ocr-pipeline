@@ -47,6 +47,7 @@ from ledgerlinc_ocr.pipeline.timing import (
 )
 from ledgerlinc_ocr.preprocessing.errors import WarmupError
 from ledgerlinc_ocr.preprocessing.evidence_gate import evaluate_and_record
+from ledgerlinc_ocr.preprocessing.identifiers import EVIDENCE_GATE_ID_DEFAULT
 from ledgerlinc_ocr.preprocessing.warmup_optin import (
     is_gpu_lane,
     is_warmup_optin_set,
@@ -909,7 +910,7 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         # on each success per the block above). `suppressed_fallback_count`
         # stays at default 0 on the MVP slice; US4 (follow-up PR) wires
         # the suppression-event counter when shape (b) fires.
-        evidence_gate_id="v1",
+        evidence_gate_id=EVIDENCE_GATE_ID_DEFAULT,
         evidence_gate_state_counts=_evidence_gate_state_counts_020,
         evidence_gate_documents=_evidence_gate_documents_020,
         evidence_gate_suppressed_fallback_count=_evidence_gate_suppressed_fallback_count_020,
@@ -1051,7 +1052,7 @@ def _emit_warm_init_failure_summary(
         # explicitly (rather than relying on factory defaults for
         # state_counts and documents) so a future edit that supplies
         # one but not the others cannot silently violate MI-18.
-        evidence_gate_id="v1",
+        evidence_gate_id=EVIDENCE_GATE_ID_DEFAULT,
         evidence_gate_state_counts={
             "sufficient": 0, "borderline": 0, "insufficient": 0,
         },

@@ -246,16 +246,31 @@ def _v1_decide(signals: FiveSignalSet) -> GateDecision:
 def _bbox_top_y(block: Mapping[str, Any]) -> float | None:
     """Return the top-y coordinate of a block's bbox.
 
-    Top-left origin: ``bbox == [x1, y1, x2, y2]`` with ``y1 <= y2``; the
-    "top" of the block is ``y1``. Returns ``None`` on malformed bbox.
+    Top-left origin: ``bbox == [x1, y1, x2, y2]`` with ``y1 <= y2`` and
+    non-negative coords; the "top" of the block is ``y1``. Returns
+    ``None`` (fail-closed) when the bbox is malformed:
+
+    - not a list/tuple
+    - length != exactly 4 (schema pins bbox to 4 elements)
+    - ``y1`` not convertible to float
+    - ``y1`` is negative (schema requires non-negative coords)
+    - ``y1`` is NaN or infinity
+
+    Phase 4 hardening (post-review): the prior version accepted
+    ``len(bbox) >= 4`` (allowing extra coords) and accepted negative or
+    non-finite ``y1`` — both fail-open paths that let malformed blocks
+    leak into the header-band signal.
     """
     bbox = block.get("bbox")
-    if not isinstance(bbox, (list, tuple)) or len(bbox) < 4:
+    if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
         return None
     try:
-        return float(bbox[1])
+        y1 = float(bbox[1])
     except (TypeError, ValueError):
         return None
+    if math.isnan(y1) or math.isinf(y1) or y1 < 0:
+        return None
+    return y1
 
 
 def _nfkc(text: str) -> str:
@@ -330,10 +345,14 @@ def _count_vendor_name_candidates(tokens: list[str]) -> int:
     """
     count = 0
     for tok in tokens:
-        if len(tok) < 2:
-            continue
         alpha_only = "".join(ch for ch in tok if ch.isalpha())
-        if not alpha_only:
+        # Phase 4 hardening (post-review): the length check now runs on
+        # the alpha-only projection, not the raw token. The prior order
+        # accepted tokens like ``A.`` and ``1A`` because their RAW
+        # length is 2 even though they have only ONE alphabetic
+        # character — too short to be a plausible vendor-name
+        # candidate.
+        if len(alpha_only) < 2:
             continue
         # B1: compare the punctuation-stripped projection against the
         # bare-word stop-word set. The prior code used
@@ -372,11 +391,16 @@ def _mean_band_confidence(blocks: list[Mapping[str, Any]]) -> float:
     above the 0.70 threshold despite having NO textual evidence. The
     mean now considers only blocks whose ``text`` is a string — keeping
     the confidence signal aligned with the token signal.
+
+    Phase 4 hardening (post-review): also reject blocks whose ``text``
+    is an empty or whitespace-only string. Such blocks split into zero
+    tokens but previously still contributed confidence weight — same
+    bug as the non-string case, just on the empty-string boundary.
     """
     confidences: list[float] = []
     for block in blocks:
         text = block.get("text")
-        if not isinstance(text, str):
+        if not isinstance(text, str) or not text.strip():
             continue
         c = block.get("confidence")
         if c is None:

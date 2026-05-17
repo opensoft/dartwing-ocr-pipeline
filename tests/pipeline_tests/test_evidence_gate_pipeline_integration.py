@@ -1,17 +1,23 @@
 """Feature 020 review cleanup (B3): real integration test for the
 ``evidence_gate`` wiring layer.
 
-The existing ``test_evidence_gate_corpus_run.py`` is a UNIT test that
-synthesizes ``RunSummary`` objects in-process; it does NOT exercise the
-on-disk-file → ``evaluate_and_record`` → accumulator path that both
-``pipeline/corpus_run.py`` and ``preprocessing/cli.py`` actually run in
-production. A wiring regression that drops a call to
-``evaluate_and_record`` or mis-builds the per-document record would not
-be caught by that unit test.
+The synthetic-RunSummary unit coverage lives in
+``test_evidence_gate_runsummary_aggregation.py`` (renamed from the
+original ``test_evidence_gate_corpus_run.py`` per Phase 2 C2). That
+test constructs ``RunSummary`` objects in-process and asserts the
+MI-18 aggregate-vs-per-doc invariant at the dataclass level. It does
+NOT exercise the on-disk-file → ``evaluate_and_record`` → accumulator
+path that both ``pipeline/corpus_run.py`` and
+``preprocessing/cli.py`` actually run in production. A wiring
+regression that drops a call to ``evaluate_and_record`` or mis-builds
+the per-document record would not be caught at that level.
 
-This file fills that gap: it writes real ``preprocess_output.json``
-fixtures to a ``tmp_path`` directory, invokes the production helper, and
-asserts the accumulators populate correctly.
+This file fills the gap: it writes real ``preprocess_output.json``
+fixtures to a ``tmp_path`` directory, invokes the production helper,
+and asserts the accumulators populate correctly. The companion
+``test_evidence_gate_callsite_regression.py`` adds an AST-level guard
+that the production call sites in ``run_warm_corpus`` and the
+single-doc CLI continue to invoke ``evaluate_and_record``.
 """
 
 from __future__ import annotations

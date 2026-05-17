@@ -24,7 +24,7 @@ Hard invariants enforced at the module-import and module-call boundaries. Each i
 |---|---|---|
 | MI-6 | Two invocations of `evaluate_evidence_gate(input_dict)` on byte-identical input dicts MUST produce byte-identical `EvidenceGateResult`s on the same host AND across hosts. | `test_evidence_gate_signals_unit.py` asserts byte-equality across two invocations on the same input. |
 | MI-7 | The decision `d` produced by `evaluate_evidence_gate(input_dict)` MUST satisfy `d == decide_for_gate(result.evidence_gate_id, result.signals)` (re-derivability). | `test_evidence_gate_rederivability_unit.py` asserts the invariant on a parameterized table of synthetic `FiveSignalSet` values. |
-| MI-8 | `Y_THRESHOLD_FRACTION`, `DENSITY_THRESHOLD`, `CONFIDENCE_THRESHOLD`, and the regex constants MUST be `Final[...]` and immutable at module load. | Static analysis (mypy / pyright); a runtime test attempts mutation and asserts `AttributeError` / `FrozenInstanceError`. |
+| MI-8 | `Y_THRESHOLD_FRACTION`, `DENSITY_THRESHOLD`, `CONFIDENCE_THRESHOLD`, and the regex constants MUST be declared `Final[...]` and have their landing values pinned. | Static analysis (mypy / pyright) enforces the `Final[...]` annotation — runtime mutation is not blocked by Python (`Final` is a type-checker-level hint), but the project's CI mypy pass treats violations as errors. The pinned landing values are runtime-asserted by `test_evidence_gate_registry_unit.py::test_threshold_constants_pinned` and `test_module_constants_are_deterministic`. |
 | MI-9 | Token extraction MUST use NFKC Unicode normalization before tokenization. | Unit test passes a string containing combining characters / fullwidth forms; asserts the normalized token list matches the expected canonical list. |
 
 ---

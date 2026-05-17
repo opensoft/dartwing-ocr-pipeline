@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import contextvars
 import json
+import math
 import sys
 import time
 from contextlib import contextmanager
@@ -189,6 +190,49 @@ _EVIDENCE_GATE_DECISION_VOCAB: frozenset[str] = frozenset(
 )
 
 
+def _safe_int(value: Any, default: int = 0) -> int:
+    """Coerce ``value`` to a non-negative int; return ``default`` on
+    anything else (None, bool, non-numeric, infinity, NaN, negative).
+
+    Phase 4 hardening (post-review): the prior ``int(...)`` call raised
+    on bad input (e.g., ``int("not a number")``); also `bool` is a
+    subclass of `int` so ``int(True) == 1`` silently. This helper is
+    used at the serializer boundary where a buggy caller's bad scalar
+    must NOT propagate to the wire format.
+    """
+    if isinstance(value, bool) or value is None:
+        return default
+    if isinstance(value, int):
+        return value if value >= 0 else default
+    try:
+        coerced = int(value)
+    except (TypeError, ValueError):
+        return default
+    return coerced if coerced >= 0 else default
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    """Coerce ``value`` to a finite float in ``[0.0, 1.0]``; return
+    ``default`` on anything else (None, non-numeric, NaN, infinity,
+    out-of-range).
+
+    Phase 4 hardening (post-review): the prior ``float(...)`` call
+    accepted ``float("nan")`` / ``float("inf")`` (which emit non-finite
+    JSON) and raised on non-numeric strings. This helper clamps to the
+    contracted ``[0.0, 1.0]`` range and replaces NaN/Inf with the
+    safe default at the serializer boundary.
+    """
+    if isinstance(value, bool) or value is None:
+        return default
+    try:
+        coerced = float(value)
+    except (TypeError, ValueError):
+        return default
+    if math.isnan(coerced) or math.isinf(coerced):
+        return default
+    return max(0.0, min(1.0, coerced))
+
+
 def _canonicalize_evidence_gate_record(
     record: dict[str, Any],
 ) -> dict[str, Any]:
@@ -197,16 +241,17 @@ def _canonicalize_evidence_gate_record(
     Returns a fresh dict with EXACTLY the three top-level keys
     (``document_id``, ``decision``, ``signals``) and the nested
     ``signals`` dict restricted to the five FR-001 signal names. Extra
-    keys at either level are dropped; missing keys default to safe
-    null-equivalent values (decision → ``"insufficient"``, missing
-    signal counts → 0 / 0.0 / False).
+    keys at either level are dropped; out-of-range / non-finite /
+    wrong-typed values are coerced to safe defaults via
+    ``_safe_int`` / ``_safe_float``; decision strings outside the
+    closed vocabulary are clamped to ``"insufficient"``.
 
     Defense-in-depth for FR-003 PII closure: the
     ``build_evidence_gate_document_record`` constructor already produces
     the canonical shape, but a future code path that builds records
-    directly (or a regression that lets caller-supplied extras through)
-    cannot leak raw token strings, matched tax-ID values, or other
-    invoice content onto the run_summary wire format.
+    directly (or a regression that lets caller-supplied extras
+    through) cannot leak raw token strings, matched tax-ID values, or
+    other invoice content onto the run_summary wire format.
     """
     document_id = str(record.get("document_id", ""))
     decision = record.get("decision", "insufficient")
@@ -219,14 +264,14 @@ def _canonicalize_evidence_gate_record(
         "document_id": document_id,
         "decision": decision,
         "signals": {
-            "vendor_name_candidate_count": int(
-                raw_signals.get("vendor_name_candidate_count", 0)
+            "vendor_name_candidate_count": _safe_int(
+                raw_signals.get("vendor_name_candidate_count")
             ),
-            "header_band_token_density": int(
-                raw_signals.get("header_band_token_density", 0)
+            "header_band_token_density": _safe_int(
+                raw_signals.get("header_band_token_density")
             ),
-            "ocr_detection_confidence_mean": float(
-                raw_signals.get("ocr_detection_confidence_mean", 0.0)
+            "ocr_detection_confidence_mean": _safe_float(
+                raw_signals.get("ocr_detection_confidence_mean")
             ),
             "business_suffix_present": bool(
                 raw_signals.get("business_suffix_present", False)

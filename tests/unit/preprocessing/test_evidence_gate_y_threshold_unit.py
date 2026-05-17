@@ -144,16 +144,21 @@ def test_dimension_invariant_fraction_works_on_us_letter() -> None:
 def test_bbox_top_left_origin_y1_is_top_y() -> None:
     """L1: producer contract is top-left origin with ``bbox == [x1, y1,
     x2, y2]`` where ``y1 <= y2`` and ``y1`` is the "top" of the block.
-    Two blocks at the same y2=300 but different y1=100/y1=400 must
+    Two blocks at the same y2=900 but different y1=100/y1=400 must
     classify differently — the smaller-y block is in-band, the
-    larger-y block is out-of-band."""
+    larger-y block is out-of-band.
+
+    Phase 4 hardening (post-review): the prior fixture used `y1=400,
+    y2=300` which violates the `y1 <= y2` producer contract; an
+    implementation that rejects malformed bboxes would still pass by
+    accident. Fixture now uses valid `y1 < y2` bboxes throughout.
+    """
     doc = _doc(
         [
             # y1=100 → ratio 0.10 < 0.25 → in-band
-            {"text": "TopBlock", "confidence": 0.9, "bbox": [0, 100, 100, 300]},
-            # y1=400 → ratio 0.40 > 0.25 → out-of-band (even though it
-            # extends down to the same y2 as TopBlock)
-            {"text": "BottomBlock", "confidence": 0.9, "bbox": [0, 400, 100, 300]},
+            {"text": "TopBlock", "confidence": 0.9, "bbox": [0, 100, 100, 200]},
+            # y1=400 → ratio 0.40 > 0.25 → out-of-band
+            {"text": "BottomBlock", "confidence": 0.9, "bbox": [0, 400, 100, 900]},
         ],
         page_height=1000,
     )

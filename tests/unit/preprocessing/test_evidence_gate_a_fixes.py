@@ -335,3 +335,165 @@ def test_canonicalization_clamps_unknown_decision_to_insufficient() -> None:
     )
     d = rs.to_dict()
     assert d["evidence_gate_documents"][0]["decision"] == "insufficient"
+
+
+# --- Phase 4 fixes: bbox guards, token-length, confidence text guard, ---
+# --- serializer scalar safety ----------------------------------------------
+
+
+def test_bbox_negative_y1_rejected_fail_closed() -> None:
+    """Phase 4 #2: a block whose ``bbox[1]`` is negative is malformed
+    per the producer schema (non-negative coords). The gate must
+    fail-closed by excluding such blocks from the header band, not
+    fail-open by treating ``y1 < 0`` as "even higher up = definitely
+    in-band"."""
+    doc = {
+        "pages": [{
+            "page_number": 1, "width": 1000, "height": 1000,
+            "rotation_detected": 0,
+            "blocks": [
+                # Malformed: y1 < 0. Must be excluded.
+                {"text": "MalformedNegative", "confidence": 0.95,
+                 "bbox": [0, -50, 100, 100]},
+                # Valid in-band: y1=50 < 250 threshold.
+                {"text": "ValidInBand", "confidence": 0.85,
+                 "bbox": [0, 50, 100, 100]},
+            ],
+            "raw_ocr_lines": [],
+        }]
+    }
+    result = compute_five_signals(doc)
+    # Only "ValidInBand" counted as a token; "MalformedNegative" dropped.
+    assert result.header_band_token_density == 1
+
+
+def test_bbox_with_more_than_four_elements_rejected() -> None:
+    """Phase 4 #3: the schema pins bbox to exactly 4 elements. A bbox
+    with 5+ elements (extra junk) is malformed; the gate must drop the
+    block rather than silently reading bbox[1] from the first 4."""
+    doc = {
+        "pages": [{
+            "page_number": 1, "width": 1000, "height": 1000,
+            "rotation_detected": 0,
+            "blocks": [
+                # Malformed: 5 elements. Must be excluded.
+                {"text": "FiveElementBbox", "confidence": 0.95,
+                 "bbox": [0, 100, 100, 200, 999]},
+                # Valid 4-element in-band.
+                {"text": "ValidInBand", "confidence": 0.85,
+                 "bbox": [0, 100, 100, 200]},
+            ],
+            "raw_ocr_lines": [],
+        }]
+    }
+    result = compute_five_signals(doc)
+    assert result.header_band_token_density == 1
+
+
+def test_short_alpha_tokens_rejected_as_candidates() -> None:
+    """Phase 4 #5: ``A.`` (raw len 2, alpha-only 1) and ``1A`` (raw
+    len 2, alpha-only 1) previously passed the candidate check
+    because the length test ran on the raw token. Now they're filtered
+    because the length check runs on the alpha-only projection."""
+    assert _count_vendor_name_candidates(["A.", "1A", "B,", "9C", "X"]) == 0
+
+
+def test_real_two_letter_alpha_tokens_still_count() -> None:
+    """Phase 4 #5: the tightened length check doesn't over-correct —
+    real two-letter capitalized tokens (``Co``, ``LA``) still count
+    EXCEPT when they're in the stop-word set (A5 expansion)."""
+    # "Co" / "LA" / "JP" are NOT in stop words (after A5 / Phase 3 #8
+    # the suffix tokens like CO are bare-uppercase). "Co" is title-case,
+    # the alpha-only projection is "Co" (len 2, NOT in stop words since
+    # the stop word is the upper-case "CO"). Wait: the upper().upper()
+    # comparison means "Co" → "CO" → IS in stop words. So Co is rejected.
+    # Try something unambiguously not in stops: "Mu" (a real Greek-style
+    # vendor prefix); alpha-only "Mu" → "MU", not in stop words.
+    assert _count_vendor_name_candidates(["Mu", "Pi"]) == 2
+
+
+def test_empty_text_blocks_excluded_from_confidence_mean() -> None:
+    """Phase 4 #6: blocks whose ``text`` is an empty or whitespace-only
+    string contribute zero tokens; they must also contribute zero
+    weight to the confidence mean. Otherwise a doc with only-whitespace
+    blocks at high confidence falsely passes the 0.70 threshold."""
+    from ledgerlinc_ocr.preprocessing.evidence_gate import _mean_band_confidence
+
+    blocks = [
+        # Empty text — must be ignored.
+        {"text": "", "confidence": 0.99, "bbox": [0, 0, 10, 10]},
+        # Whitespace-only — must be ignored.
+        {"text": "   \t\n  ", "confidence": 0.98, "bbox": [0, 0, 10, 10]},
+        # Real text — counted.
+        {"text": "Acme Inc.", "confidence": 0.80, "bbox": [0, 0, 10, 10]},
+    ]
+    assert _mean_band_confidence(blocks) == 0.80
+
+
+def test_serializer_safe_int_rejects_garbage() -> None:
+    """Phase 4 #4: ``_safe_int`` in timing.py rejects garbage
+    (non-numeric strings, booleans, None, negative, NaN-via-float)
+    at the run_summary serializer boundary."""
+    from ledgerlinc_ocr.pipeline.timing import _safe_int
+
+    assert _safe_int(5) == 5
+    assert _safe_int(0) == 0
+    assert _safe_int(-3) == 0  # negative → default
+    assert _safe_int(True) == 0  # bool → default (not silently 1)
+    assert _safe_int(False) == 0
+    assert _safe_int(None) == 0
+    assert _safe_int("not a number") == 0
+    assert _safe_int("5") == 5
+    assert _safe_int(3.7) == 3  # truncating float OK
+
+
+def test_serializer_safe_float_rejects_non_finite() -> None:
+    """Phase 4 #4: ``_safe_float`` in timing.py clamps NaN/inf/inf
+    strings to the safe default; clamps out-of-range to [0.0, 1.0]."""
+    from ledgerlinc_ocr.pipeline.timing import _safe_float
+
+    assert _safe_float(0.5) == 0.5
+    assert _safe_float(0.0) == 0.0
+    assert _safe_float(1.0) == 1.0
+    assert _safe_float(1.5) == 1.0  # over-range → clamped
+    assert _safe_float(-0.1) == 0.0  # under-range → clamped
+    assert _safe_float(float("nan")) == 0.0
+    assert _safe_float(float("inf")) == 0.0
+    assert _safe_float(float("-inf")) == 0.0
+    assert _safe_float("nan") == 0.0  # string form → default
+    assert _safe_float("inf") == 0.0
+    assert _safe_float("not a number") == 0.0
+    assert _safe_float(True) == 0.0  # bool → default
+    assert _safe_float(None) == 0.0
+
+
+def test_canonicalization_rejects_nan_inf_strings_in_signals() -> None:
+    """Phase 4 #4 end-to-end: a per-doc record carrying NaN/inf strings
+    in the signals dict gets coerced to safe defaults at the
+    serializer boundary, NOT emitted as non-finite JSON."""
+    from ledgerlinc_ocr.pipeline.timing import RunSummary
+
+    rs = RunSummary(
+        stack_preset="cpu", resolved_profiles={}, execution_slice={},
+        on_failure="abort", documents_total=1, documents_succeeded=1,
+        documents_failed=0,
+        evidence_gate_state_counts={"sufficient": 0, "borderline": 0, "insufficient": 1},
+        evidence_gate_documents=[
+            {
+                "document_id": "inv_001_easy",
+                "decision": "insufficient",
+                "signals": {
+                    "vendor_name_candidate_count": "garbage",
+                    "header_band_token_density": -5,
+                    "ocr_detection_confidence_mean": "nan",
+                    "business_suffix_present": False,
+                    "tax_id_shaped_present": False,
+                },
+            },
+        ],
+    )
+    d = rs.to_dict()
+    signals = d["evidence_gate_documents"][0]["signals"]
+    assert signals["vendor_name_candidate_count"] == 0
+    assert signals["header_band_token_density"] == 0
+    assert signals["ocr_detection_confidence_mean"] == 0.0
