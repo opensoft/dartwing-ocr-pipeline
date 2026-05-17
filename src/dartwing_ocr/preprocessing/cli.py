@@ -236,7 +236,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "non-GPU profiles a stderr warning is emitted "
             "(--evidence-gate-skip-fallback ignored:) and the run "
             "proceeds unchanged. Env-var fallback: "
-            "LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK "
+            "DARTWING_EVIDENCE_GATE_SKIP_FALLBACK "
             "(truthy: 1/true/yes/on)."
         ),
     )

@@ -230,7 +230,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "--preprocess-profile=ppstructurev3@gpu AND "
             "--preprocess-strategy=ocr-only-v1 to have effect. "
             "Warn-and-proceed on non-GPU profiles. Env-var fallback: "
-            "LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK."
+            "DARTWING_EVIDENCE_GATE_SKIP_FALLBACK."
         ),
     )
     # Stack preset (FR-004A).
