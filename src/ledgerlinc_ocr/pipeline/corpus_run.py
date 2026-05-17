@@ -520,16 +520,10 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
     # this loop aggregates the flag the same way feature 018 does for
     # `region_strategy_fallback_fired`.
     _ocr_only_fallback_count_019 = 0
-    # Feature 020 (T028 / R-020.10 / R-020.11 / FR-003 / FR-006 / MI-18):
-    # per-doc evidence-gate accumulators. The gate runs on the FINAL
-    # `preprocess_output.json` of each successful document (R-020.7) and
-    # contributes one record to `evidence_gate_documents` plus an
-    # increment to the matching `evidence_gate_state_counts[decision]`.
-    # Per MI-18: `state_counts[s]` MUST equal the count of
-    # `documents[i].decision == s` for each state. The
-    # `evidence_gate_suppressed_fallback_count` accumulator stays at 0
-    # on the MVP slice — US4 (a follow-up PR) wires the per-doc
-    # suppression-event flag onto this counter when shape (b) fires.
+    # Per-doc evidence-gate accumulators. The gate runs on the FINAL
+    # preprocess_output.json of each successful document and contributes
+    # one record to `documents` plus an increment to `state_counts[decision]`.
+    # Per MI-18: `state_counts[s]` equals `count(documents[i].decision == s)`.
     _evidence_gate_state_counts: dict[str, int] = {
         "sufficient": 0,
         "borderline": 0,
@@ -953,16 +947,6 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         # (increments per fallen-back document per I-019.4).
         preprocess_strategy_id=_preprocess_strategy_id_019,
         ocr_only_fallback_count=_ocr_only_fallback_count_019,
-        # Feature 020 (T028 / R-020.10 / R-020.11 / FR-003 / FR-006 /
-        # FR-008 / MI-16 / MI-17 / MI-18): four additive top-level
-        # fields. `evidence_gate_id` is the closed-vocabulary preset
-        # identifier — `"v1"` uniformly across CPU / stub / GPU lanes
-        # (no cpu-default / stub-default discrimination — gate is a
-        # pure read; data-model.md §9). `state_counts` and `documents`
-        # come from the per-doc accumulators (gate evaluation happened
-        # on each success per the block above). `suppressed_fallback_count`
-        # stays at default 0 on the MVP slice; US4 (follow-up PR) wires
-        # the suppression-event counter when shape (b) fires.
         evidence_gate_id="v1",
         evidence_gate_state_counts=_evidence_gate_state_counts,
         evidence_gate_documents=_evidence_gate_documents,

@@ -177,10 +177,9 @@ def test_non_ocr_only_strategy_yields_fallback() -> None:
         opt_in_active=True,
         candidate_pages=_build_sufficient_candidate_pages(),
     )
-    # Strategy != ocr-only-v1 means suppression's predicate returns
-    # False; trigger fires, so caller falls back. The gate IS evaluated
-    # (opt-in + trigger both True) but the predicate refuses suppression
-    # on the non-OCR-only strategy.
+    # Strategy != ocr-only-v1 short-circuits before gate evaluation; the
+    # disposition is `fallback` and the candidate decision is None
+    # because the gate was never evaluated.
     assert disposition == "fallback"
 
 

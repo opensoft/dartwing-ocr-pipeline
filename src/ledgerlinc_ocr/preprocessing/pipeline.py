@@ -1142,7 +1142,7 @@ def decide_ocr_only_fallback_disposition(
     """
     if not fr_005_trigger_would_fire:
         return "keep", None
-    if not opt_in_active:
+    if not opt_in_active or preprocess_strategy_id != "ocr-only-v1":
         return "fallback", None
 
     candidate_output = {"pages": candidate_pages}
