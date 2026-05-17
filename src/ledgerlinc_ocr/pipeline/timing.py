@@ -165,6 +165,79 @@ def _ns_to_seconds(ns: int) -> float:
     return round(ns / 1e9, 6)
 
 
+# Feature 020 (Phase 3 post-review): closed-vocabulary key sets for the
+# evidence-gate per-document record. Used by `_canonicalize_evidence_gate_record`
+# at the serializer boundary so a buggy caller cannot leak extra keys
+# (or raw token fields) onto the operator-facing run_summary line. This
+# is the last-line-of-defense PII closure parallel to the
+# `ppstructure_modules_invoked` sort-and-intersect canonicalization
+# already enforced for that field.
+_EVIDENCE_GATE_RECORD_KEYS: frozenset[str] = frozenset(
+    {"document_id", "decision", "signals"}
+)
+_EVIDENCE_GATE_SIGNAL_KEYS: frozenset[str] = frozenset(
+    {
+        "vendor_name_candidate_count",
+        "header_band_token_density",
+        "ocr_detection_confidence_mean",
+        "business_suffix_present",
+        "tax_id_shaped_present",
+    }
+)
+_EVIDENCE_GATE_DECISION_VOCAB: frozenset[str] = frozenset(
+    {"sufficient", "borderline", "insufficient"}
+)
+
+
+def _canonicalize_evidence_gate_record(
+    record: dict[str, Any],
+) -> dict[str, Any]:
+    """Restrict a per-document gate record to the documented shape.
+
+    Returns a fresh dict with EXACTLY the three top-level keys
+    (``document_id``, ``decision``, ``signals``) and the nested
+    ``signals`` dict restricted to the five FR-001 signal names. Extra
+    keys at either level are dropped; missing keys default to safe
+    null-equivalent values (decision → ``"insufficient"``, missing
+    signal counts → 0 / 0.0 / False).
+
+    Defense-in-depth for FR-003 PII closure: the
+    ``build_evidence_gate_document_record`` constructor already produces
+    the canonical shape, but a future code path that builds records
+    directly (or a regression that lets caller-supplied extras through)
+    cannot leak raw token strings, matched tax-ID values, or other
+    invoice content onto the run_summary wire format.
+    """
+    document_id = str(record.get("document_id", ""))
+    decision = record.get("decision", "insufficient")
+    if decision not in _EVIDENCE_GATE_DECISION_VOCAB:
+        decision = "insufficient"
+    raw_signals = record.get("signals") or {}
+    if not isinstance(raw_signals, dict):
+        raw_signals = {}
+    return {
+        "document_id": document_id,
+        "decision": decision,
+        "signals": {
+            "vendor_name_candidate_count": int(
+                raw_signals.get("vendor_name_candidate_count", 0)
+            ),
+            "header_band_token_density": int(
+                raw_signals.get("header_band_token_density", 0)
+            ),
+            "ocr_detection_confidence_mean": float(
+                raw_signals.get("ocr_detection_confidence_mean", 0.0)
+            ),
+            "business_suffix_present": bool(
+                raw_signals.get("business_suffix_present", False)
+            ),
+            "tax_id_shaped_present": bool(
+                raw_signals.get("tax_id_shaped_present", False)
+            ),
+        },
+    }
+
+
 @dataclass
 class StageTiming:
     """Captured timings for a single stage on a single document."""
@@ -406,7 +479,10 @@ class RunSummary:
                 "borderline": int(self.evidence_gate_state_counts.get("borderline", 0)),
                 "insufficient": int(self.evidence_gate_state_counts.get("insufficient", 0)),
             },
-            "evidence_gate_documents": list(self.evidence_gate_documents),
+            "evidence_gate_documents": [
+                _canonicalize_evidence_gate_record(r)
+                for r in self.evidence_gate_documents
+            ],
             "evidence_gate_suppressed_fallback_count": self.evidence_gate_suppressed_fallback_count,
         }
 

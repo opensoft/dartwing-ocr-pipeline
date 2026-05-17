@@ -17,6 +17,7 @@ import pytest
 from ledgerlinc_ocr.preprocessing.evidence_gate import (
     CONFIDENCE_THRESHOLD,
     DENSITY_THRESHOLD,
+    EvidenceGateResult,
     FiveSignalSet,
     decide_for_gate,
     evaluate_evidence_gate,
@@ -31,9 +32,18 @@ def test_recorded_decision_re_derivable_from_signals(
     has_name: bool, has_density: bool, has_confidence: bool,
     has_suffix: bool, has_tax_id: bool,
 ) -> None:
-    """Construct synthetic signals matching the requested derivative-tuple;
-    assert ``decide_for_gate`` applied to those signals is stable
-    (idempotent) for the truth-table cell."""
+    """For each row in the 32-row truth table: construct the signals, get
+    the canonical decision via ``decide_for_gate``, wrap into an
+    ``EvidenceGateResult``, and assert the recorded ``result.decision``
+    re-derives from ``result.signals`` + ``result.evidence_gate_id``.
+
+    The prior version of this test was tautological — it just called
+    ``decide_for_gate`` twice on the same input and asserted idempotency.
+    That proved determinism but did NOT verify the actual SC-012
+    re-derivability contract on an ``EvidenceGateResult``. The new
+    form mirrors the operator's audit workflow: given a result, can
+    the recorded decision be reproduced from the recorded inputs?
+    """
     signals = FiveSignalSet(
         vendor_name_candidate_count=1 if has_name else 0,
         header_band_token_density=DENSITY_THRESHOLD if has_density else 0,
@@ -41,9 +51,15 @@ def test_recorded_decision_re_derivable_from_signals(
         business_suffix_present=has_suffix,
         tax_id_shaped_present=has_tax_id,
     )
-    first = decide_for_gate("v1", signals)
-    second = decide_for_gate("v1", signals)
-    assert first == second
+    canonical = decide_for_gate("v1", signals)
+    # Build the result through the public constructor (this exercises
+    # the EvidenceGateResult.__post_init__ re-derivability check too).
+    result = EvidenceGateResult(
+        signals=signals, decision=canonical, evidence_gate_id="v1",
+    )
+    # The operator-side audit: re-derive from recorded inputs.
+    re_derived = decide_for_gate(result.evidence_gate_id, result.signals)
+    assert result.decision == re_derived
 
 
 def test_evaluate_result_satisfies_rederivability_on_synthetic_doc() -> None:

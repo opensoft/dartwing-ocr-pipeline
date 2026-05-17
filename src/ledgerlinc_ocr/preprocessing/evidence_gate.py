@@ -88,9 +88,13 @@ VENDOR_NAME_STOP_WORDS: Final[frozenset[str]] = frozenset(
         "AMOUNT", "DUE", "PAYMENT", "FROM", "TO",
         # Tax-ID label tokens
         "EIN", "VAT",
-        # Business-entity suffixes (also captured by business_suffix_present)
+        # Business-entity suffixes (also captured by business_suffix_present).
+        # `SA` and `SAS` are the alpha-only projections of `S.A.` and
+        # `S.A.S.` from BUSINESS_SUFFIX_RE — the stop-word check
+        # compares against the punctuation-stripped form, so the dotted
+        # and dotless forms must both be in the set for consistency.
         "LLC", "INC", "INCORPORATED", "LTD", "LIMITED", "GMBH", "CORP",
-        "CORPORATION", "CO",
+        "CORPORATION", "CO", "SA", "SAS",
     }
 )
 
@@ -163,16 +167,55 @@ class FiveSignalSet:
 
 
 GateDecision = Literal["sufficient", "borderline", "insufficient"]
+_CLOSED_DECISION_VOCABULARY: Final[frozenset[str]] = frozenset(
+    {"sufficient", "borderline", "insufficient"}
+)
 
 
 @dataclass(frozen=True)
 class EvidenceGateResult:
     """Output of one gate evaluation: the five signals + the decision + the
-    active preset identifier (data-model.md §3)."""
+    active preset identifier (data-model.md §3).
+
+    Validation invariants (enforced in ``__post_init__``):
+
+    - ``decision`` is in the closed three-state vocabulary (MI-26).
+    - ``evidence_gate_id`` is in the closed gate-ID vocabulary
+      (currently only ``"v1"`` per MI-25).
+    - ``decision`` re-derives from ``signals`` via the gate's
+      decision function: ``decision == decide_for_gate(evidence_gate_id,
+      signals)`` (MI-7 / SC-002 / SC-012). This catches direct
+      construction with mismatched (decision, signals, gate_id) tuples
+      — important because the dataclass is a public export and a
+      caller using it without going through ``evaluate_evidence_gate``
+      could otherwise build an invalid result.
+    """
 
     signals: FiveSignalSet
     decision: GateDecision
     evidence_gate_id: str
+
+    def __post_init__(self) -> None:
+        if self.decision not in _CLOSED_DECISION_VOCABULARY:
+            raise ValueError(
+                f"decision must be one of "
+                f"{sorted(_CLOSED_DECISION_VOCABULARY)!r}, got "
+                f"{self.decision!r}"
+            )
+        if self.evidence_gate_id != EVIDENCE_GATE_ID_V1:
+            raise ValueError(
+                f"evidence_gate_id must be {EVIDENCE_GATE_ID_V1!r}, "
+                f"got {self.evidence_gate_id!r}"
+            )
+        rederived = _v1_decide(self.signals)
+        if self.decision != rederived:
+            raise ValueError(
+                f"decision {self.decision!r} does not re-derive from "
+                f"signals via {self.evidence_gate_id!r}'s decision "
+                f"function (re-derived: {rederived!r}); the "
+                f"(decision, signals, evidence_gate_id) tuple must "
+                f"satisfy MI-7 / SC-012"
+            )
 
 
 def _v1_decide(signals: FiveSignalSet) -> GateDecision:

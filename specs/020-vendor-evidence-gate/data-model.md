@@ -149,12 +149,28 @@ The `evidence_gate_id` is not repeated per-document — it appears once on the t
 
 **Order invariant**: Emitted in `RunSummary.to_dict()` AFTER feature 019's fields and BEFORE any future additive fields. Existing keys (paddle_import, gpu_bind_probe, engine_init, warmup, rasterization, per_page_inference, artifact_write, total, module_set_id, det_rec_variant_id, ppstructure_modules_invoked, raster_profile_id, region_strategy_id, region_strategy_fallback_count, preprocess_strategy_id, ocr_only_fallback_count) MUST NOT be renamed, removed, or retyped (FR-011 / FR-022).
 
-**JSON example** (full `run_summary` after the bump):
+**JSON example** (full `run_summary` after the bump — illustrative; the authoritative key order and types are in `pipeline/timing.py::RunSummary.to_dict()`):
 ```json
 {
     "kind": "run_summary",
     "schema_version": "0.1.7",
-    "phase_timings": { "...": "..." },
+    "stack_preset": "cpu-default",
+    "resolved_profiles": {"preprocess": "ppstructurev3@gpu"},
+    "execution_slice": {"start_at": "preprocess", "stop_after": "preprocess"},
+    "on_failure": "abort",
+    "documents_total": 5,
+    "documents_succeeded": 5,
+    "documents_failed": 0,
+    "profile_initialization_seconds": {},
+    "per_document": [
+        {
+            "document_id": "inv_001_easy",
+            "folder": "tests/stage1_vendor_identity/inv_001_easy",
+            "status": "success",
+            "phase_timings": {"total": {"seconds": 0.42}}
+        }
+    ],
+    "preprocess_lane": "gpu0",
     "module_set_id": "minimal-text-only",
     "det_rec_variant_id": "lightweight-v1",
     "ppstructure_modules_invoked": ["text_detection", "text_recognition"],
@@ -182,6 +198,8 @@ The `evidence_gate_id` is not repeated per-document — it appears once on the t
 }
 ```
 
+Note: `phase_timings` is NOT a top-level `run_summary` field — it lives inside each `per_document[i]` record (per feature 015 / R-015.4). The pre-Phase-3 version of this example incorrectly showed it at the top level.
+
 ---
 
 ## 6. Module-level regex constants (R-020.4)
@@ -191,7 +209,7 @@ The `evidence_gate_id` is not repeated per-document — it appears once on the t
 
 | Name | Pattern | Flags | Matches |
 |---|---|---|---|
-| `BUSINESS_SUFFIX_RE` | `r"(?i)\b(LLC\|Incorporated\|Inc\|Limited\|Ltd\|GmbH\|S\.A\.S\.\|S\.A\.\|Corporation\|Corp\|Co\.)(?!\w)"` | `re.IGNORECASE` via `(?i)` flag in pattern | Common business-entity suffixes (English, French, Spanish, German); case-insensitive. Trailing `(?!\w)` (vs. `\b`) lets `.`-suffixed forms match at end-of-string; longer alternatives listed before their prefixes. |
+| `BUSINESS_SUFFIX_RE` | `r"(?i)\b(LLC\|Incorporated\|Inc\|Limited\|Ltd\|GmbH\|S\.A\.S\.\|S\.A\.\|Corporation\|Corp\|Co\.)(?![\w-])"` | `re.IGNORECASE` via `(?i)` flag in pattern | Common business-entity suffixes (English, French, Spanish, German); case-insensitive. Trailing `(?![\w-])` (vs. `\b`) lets `.`-suffixed forms match at end-of-string while rejecting hyphenated compounds like `Inc-related` / `Incorporated-by-reference`. Longer alternatives listed before their prefixes so the engine commits to the longer match. |
 | `TAX_ID_EIN_RE` | `r"\b\d{2}-\d{7}\b"` | none | US EIN canonical shape `XX-XXXXXXX`. |
 | `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"` | none | EU-style VAT shape: 2-letter country prefix + 2..12 alphanumerics with **at least one digit**. The digit requirement rejects all-letter invoice header words (`INVOICE`, `PAYMENT`, `NUMBER`, `BALANCE`, ...) that the prior `[A-Z]{2}[A-Z0-9]{2,12}` pattern falsely matched. |
 
@@ -223,12 +241,23 @@ All three constants are module-level frozen constants; they are NOT operator-tun
 
 ```python
 VENDOR_NAME_STOP_WORDS: Final[frozenset[str]] = frozenset({
+    # Invoice-header labels
     "INVOICE", "BILL", "TAX", "DATE", "PAGE", "NUMBER",
     "TOTAL", "AMOUNT", "DUE", "PAYMENT", "FROM", "TO",
+    # Tax-ID label tokens (Phase 2 A5 expansion)
+    "EIN", "VAT",
+    # Business-entity suffixes — also captured by `business_suffix_present`;
+    # including them here prevents double-counting the same evidence in
+    # the vendor-name-candidate signal. (Phase 2 A5 + Phase 3 #8 expansion.
+    # `SA` and `SAS` are the alpha-only projections of `S.A.` and `S.A.S.`
+    # from BUSINESS_SUFFIX_RE — required because the stop-word check
+    # compares the punctuation-stripped form.)
+    "LLC", "INC", "INCORPORATED", "LTD", "LIMITED", "GMBH", "CORP",
+    "CORPORATION", "CO", "SA", "SAS",
 })
 ```
 
-Used by `vendor_name_candidate_count` computation to exclude common invoice header tokens that ARE uppercase / title-case but are not vendor names. Case-folded comparison.
+Used by `vendor_name_candidate_count` computation to exclude tokens that ARE uppercase / title-case but are not vendor NAMES — either invoice-header labels, tax-ID label markers, or business-entity suffixes. The comparison is against the punctuation-stripped (alpha-only) projection of each token after upper-casing, so `INVOICE:` / `Payment.` / `Inc.` / `S.A.` are filtered the same as their bare forms.
 
 ---
 

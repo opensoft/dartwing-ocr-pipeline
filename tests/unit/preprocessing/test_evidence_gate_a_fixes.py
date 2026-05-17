@@ -203,3 +203,135 @@ def test_real_vendor_name_with_suffix_now_counts_name_only() -> None:
     assert result.vendor_name_candidate_count == 2  # Acme + Widget; not Inc
     # business_suffix_present captures the Inc. as evidence.
     assert result.business_suffix_present is True
+
+
+# --- Phase 3 fixes: SA/SAS in stop words; EvidenceGateResult validation ----
+
+
+@pytest.mark.parametrize("token", ["S.A.", "S.A.S.", "SA", "SAS"])
+def test_dotted_and_dotless_french_spanish_suffixes_filtered(token: str) -> None:
+    """Phase 3 #8: ``S.A.`` and ``S.A.S.`` are in BUSINESS_SUFFIX_RE.
+    Their punctuation-stripped projections (``SA``, ``SAS``) are what
+    the vendor-name stop-word check actually compares against — the
+    dotted and dotless forms must both be filtered for consistency
+    with the A5 intent."""
+    assert _count_vendor_name_candidates([token]) == 0
+
+
+def test_evidence_gate_result_rejects_invalid_decision() -> None:
+    """Phase 3 #6: EvidenceGateResult.__post_init__ rejects a decision
+    string outside the closed three-state vocabulary."""
+    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+        EvidenceGateResult,
+        FiveSignalSet,
+    )
+    signals = FiveSignalSet(0, 0, 0.0, False, False)
+    with pytest.raises(ValueError, match="decision must be one of"):
+        EvidenceGateResult(
+            signals=signals, decision="maybe", evidence_gate_id="v1",  # type: ignore[arg-type]
+        )
+
+
+def test_evidence_gate_result_rejects_unknown_gate_id() -> None:
+    """Phase 3 #6: EvidenceGateResult.__post_init__ rejects an
+    evidence_gate_id outside the closed vocabulary."""
+    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+        EvidenceGateResult,
+        FiveSignalSet,
+    )
+    signals = FiveSignalSet(0, 0, 0.0, False, False)
+    with pytest.raises(ValueError, match="evidence_gate_id must be"):
+        EvidenceGateResult(
+            signals=signals, decision="insufficient", evidence_gate_id="v2",
+        )
+
+
+def test_evidence_gate_result_rejects_mismatched_decision_signals() -> None:
+    """Phase 3 #6: EvidenceGateResult.__post_init__ enforces the
+    re-derivability invariant (MI-7 / SC-012). A caller cannot
+    construct an EvidenceGateResult where the decision contradicts
+    what the gate's decision function would produce from the signals.
+    """
+    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+        EvidenceGateResult,
+        FiveSignalSet,
+    )
+    # All-negative signals → canonical decision is "insufficient".
+    insufficient_signals = FiveSignalSet(0, 0, 0.0, False, False)
+    # Building with "sufficient" violates re-derivability.
+    with pytest.raises(ValueError, match="does not re-derive"):
+        EvidenceGateResult(
+            signals=insufficient_signals,
+            decision="sufficient",
+            evidence_gate_id="v1",
+        )
+
+
+def test_canonicalization_drops_extra_keys_from_records() -> None:
+    """Phase 3 #7: RunSummary.to_dict() canonicalizes
+    evidence_gate_documents records, dropping extra keys (incl.
+    potential PII leaks). Defense-in-depth for FR-003."""
+    from ledgerlinc_ocr.pipeline.timing import RunSummary
+
+    rs = RunSummary(
+        stack_preset="cpu", resolved_profiles={}, execution_slice={},
+        on_failure="abort", documents_total=1, documents_succeeded=1,
+        documents_failed=0,
+        evidence_gate_state_counts={"sufficient": 0, "borderline": 0, "insufficient": 1},
+        evidence_gate_documents=[
+            {
+                "document_id": "inv_001_easy",
+                "decision": "insufficient",
+                "signals": {
+                    "vendor_name_candidate_count": 0,
+                    "header_band_token_density": 0,
+                    "ocr_detection_confidence_mean": 0.0,
+                    "business_suffix_present": False,
+                    "tax_id_shaped_present": False,
+                    # Extra PII leak attempt:
+                    "matched_tax_id_value": "12-3456789",
+                    "vendor_name_candidates": ["Acme", "Widget"],
+                },
+                # Extra top-level field attempt:
+                "extracted_text": "secret invoice content",
+            },
+        ],
+    )
+    d = rs.to_dict()
+    record = d["evidence_gate_documents"][0]
+    # Top-level keys: exactly three, no extras.
+    assert set(record.keys()) == {"document_id", "decision", "signals"}
+    # Nested signals: exactly five FR-001 names, no extras.
+    assert set(record["signals"].keys()) == {
+        "vendor_name_candidate_count",
+        "header_band_token_density",
+        "ocr_detection_confidence_mean",
+        "business_suffix_present",
+        "tax_id_shaped_present",
+    }
+    # The PII leak attempts were dropped.
+    assert "matched_tax_id_value" not in record["signals"]
+    assert "extracted_text" not in record
+
+
+def test_canonicalization_clamps_unknown_decision_to_insufficient() -> None:
+    """Phase 3 #7: a caller-supplied record with an out-of-vocabulary
+    decision gets clamped to ``insufficient`` at the serializer
+    boundary (last-line-of-defense for the closed vocabulary)."""
+    from ledgerlinc_ocr.pipeline.timing import RunSummary
+
+    rs = RunSummary(
+        stack_preset="cpu", resolved_profiles={}, execution_slice={},
+        on_failure="abort", documents_total=1, documents_succeeded=1,
+        documents_failed=0,
+        evidence_gate_state_counts={"sufficient": 0, "borderline": 0, "insufficient": 1},
+        evidence_gate_documents=[
+            {
+                "document_id": "inv_001_easy",
+                "decision": "maybe",
+                "signals": {},
+            },
+        ],
+    )
+    d = rs.to_dict()
+    assert d["evidence_gate_documents"][0]["decision"] == "insufficient"
