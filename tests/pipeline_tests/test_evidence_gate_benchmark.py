@@ -5,9 +5,10 @@ Marked ``@pytest.mark.gpu`` and **deferrable per R-020.15** — GPU workstation
 hardware is required to actually run the benchmark. Two independent
 mechanisms keep this test from executing on a non-GPU host:
 
-1. The default CI invocation uses pytest's ``-m "not gpu"`` expression,
-   which deselects every test bearing the ``gpu`` marker (these tests
-   are not collected for execution at all).
+1. The default CI invocation uses pytest's ``-m "not gpu"`` expression.
+   Marker expressions filter AFTER collection — these tests are
+   collected, then deselected before execution, so they show up as
+   ``deselected`` in the pytest summary line rather than running.
 2. ``tests/conftest.py`` contributes a runtime ``skip`` for every
    ``gpu``-marked test whenever the cached preflight state is not
    ``ppstructurev3_init_succeeded``. That state covers every non-happy
