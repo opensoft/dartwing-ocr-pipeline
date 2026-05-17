@@ -88,7 +88,7 @@ validates the **requirements**, not the implementation.
 
 ## Module-Level Immutability
 
-- [x] CHK049 Are all module-level constants (`Y_THRESHOLD_FRACTION`, `DENSITY_THRESHOLD`, `CONFIDENCE_THRESHOLD`, `BUSINESS_SUFFIX_RE`, `TAX_ID_EIN_RE`, `TAX_ID_VAT_RE`, `VENDOR_NAME_STOP_WORDS`, `EVIDENCE_GATE_ID_V1`, `EVIDENCE_GATE_ID_DEFAULT`, `EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR`) declared `Final[...]` (or equivalent) at module load? [Completeness, module-invariants.md MI-8 / data-model.md Appendix A] *(B post-review: `EVIDENCE_GATES` registry collapsed to constants + `decide_for_gate` dispatch — the closed-vocabulary discipline now lives in the dispatch guard.)*
+- [x] CHK049 Are all module-level constants declared `Final[...]` (or equivalent) at module load? Specifically on PR #38 (MVP): `Y_THRESHOLD_FRACTION`, `DENSITY_THRESHOLD`, `CONFIDENCE_THRESHOLD`, `BUSINESS_SUFFIX_RE`, `TAX_ID_EIN_RE`, `TAX_ID_VAT_RE`, `VENDOR_NAME_STOP_WORDS`, `EVIDENCE_GATE_ID_V1`, `EVIDENCE_GATE_ID_DEFAULT`. On stacked PR #40 (US4): `EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR` in `preprocessing/evidence_gate_optin.py`. [Completeness, module-invariants.md MI-8 / data-model.md Appendix A] *(B post-review: `EVIDENCE_GATES` registry collapsed to constants + `decide_for_gate` dispatch — the closed-vocabulary discipline now lives in the dispatch guard.)*
 - [x] CHK050 Is the rule "unknown gate id is a developer error" enforced by `decide_for_gate` / `evaluate_evidence_gate` raising `KeyError` for any id other than `"v1"`? [Clarity, module-invariants.md MI-25]
 - [x] CHK051 Is the rule "the gate is stateless at module level; no in-process mutable globals" stated as an invariant? [Clarity, data-model.md §10]
 

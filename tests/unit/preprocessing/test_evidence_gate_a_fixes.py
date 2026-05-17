@@ -563,10 +563,12 @@ def test_canonicalization_uses_safe_bool_for_signal_booleans() -> None:
 
 
 def test_state_counts_serializer_uses_safe_int() -> None:
-    """Phase 5: the ``evidence_gate_state_counts`` serializer now uses
-    ``_safe_int`` so a buggy accumulator carrying a non-int value
-    (e.g., ``float('inf')`` or a string) coerces to 0 rather than
-    raising or emitting garbage."""
+    """Phase 5 / Phase 6: the ``evidence_gate_state_counts`` serializer
+    is now derived from the canonicalized ``evidence_gate_documents``
+    list, not the in-process accumulator. A buggy accumulator carrying
+    garbage is therefore ignored — state_counts always reflects the
+    canonical per-doc records (an even stronger guarantee than the
+    Phase 5 ``_safe_int`` coercion of accumulator values)."""
     from ledgerlinc_ocr.pipeline.timing import RunSummary
 
     rs = RunSummary(
@@ -581,4 +583,220 @@ def test_state_counts_serializer_uses_safe_int() -> None:
     )
     d = rs.to_dict()
     state_counts = d["evidence_gate_state_counts"]
+    # Empty documents list ⇒ all-zero state counts regardless of
+    # accumulator content.
     assert state_counts == {"sufficient": 0, "borderline": 0, "insufficient": 0}
+
+
+# --- Phase 6 fixes: bool-in-float, bbox guards, regex tightening,
+# --- post_init dispatch, canonicalizer re-derivation, exception path
+# --- emits insufficient, etc. ----------------------------------------------
+
+
+def test_bbox_with_bool_coord_rejected(tmp_path) -> None:
+    """Phase 6: `float(True) == 1.0` would silently coerce a JSON `true`
+    in a bbox slot into a numeric coord. The guard now rejects any
+    bool in any bbox position — schema says coords are numeric."""
+    doc = {
+        "pages": [{
+            "page_number": 1, "width": 1000, "height": 1000,
+            "rotation_detected": 0,
+            "blocks": [
+                {"text": "BoolBbox", "confidence": 0.9,
+                 "bbox": [0, True, 10, 200]},
+                {"text": "ValidInBand", "confidence": 0.9,
+                 "bbox": [0, 100, 10, 200]},
+            ],
+            "raw_ocr_lines": [],
+        }]
+    }
+    result = compute_five_signals(doc)
+    assert result.header_band_token_density == 1
+
+
+def test_inverted_bbox_rejected() -> None:
+    """Phase 6: producer contract is `y1 <= y2`. An inverted bbox
+    (`y1=100, y2=50`) violates the contract and must be excluded."""
+    doc = {
+        "pages": [{
+            "page_number": 1, "width": 1000, "height": 1000,
+            "rotation_detected": 0,
+            "blocks": [
+                # Inverted bbox: y1=100, y2=50.
+                {"text": "InvertedBbox", "confidence": 0.9,
+                 "bbox": [0, 100, 10, 50]},
+                # Valid bbox.
+                {"text": "Valid", "confidence": 0.9,
+                 "bbox": [0, 100, 10, 200]},
+            ],
+            "raw_ocr_lines": [],
+        }]
+    }
+    result = compute_five_signals(doc)
+    assert result.header_band_token_density == 1
+
+
+def test_page_height_infinity_rejected() -> None:
+    """Phase 6: a non-finite `page_height` would make `threshold_y`
+    infinite, classifying every finite-y block as in-band (fail-OPEN).
+    The guard now rejects NaN/inf page heights."""
+    doc = {
+        "pages": [{
+            "page_number": 1, "width": 1000, "height": float("inf"),
+            "rotation_detected": 0,
+            "blocks": [
+                {"text": "SomeText", "confidence": 0.9,
+                 "bbox": [0, 100, 10, 200]},
+            ],
+            "raw_ocr_lines": [],
+        }]
+    }
+    result = compute_five_signals(doc)
+    # Fail-closed: malformed page → no in-band tokens.
+    assert result.header_band_token_density == 0
+
+
+def test_page_height_bool_rejected() -> None:
+    """Phase 6: `height = true` would coerce to 1.0 via float()."""
+    doc = {
+        "pages": [{
+            "page_number": 1, "width": 1000, "height": True,
+            "rotation_detected": 0,
+            "blocks": [
+                {"text": "Token", "confidence": 0.9,
+                 "bbox": [0, 0, 10, 1]},
+            ],
+            "raw_ocr_lines": [],
+        }]
+    }
+    result = compute_five_signals(doc)
+    assert result.header_band_token_density == 0
+
+
+def test_confidence_bool_rejected() -> None:
+    """Phase 6: `confidence = true` would coerce to 1.0 via float() and
+    inflate the mean. JSON booleans are not valid confidence values."""
+    from ledgerlinc_ocr.preprocessing.evidence_gate import _mean_band_confidence
+
+    blocks = [
+        {"text": "Bool", "confidence": True, "bbox": [0, 0, 10, 10]},
+        {"text": "Real", "confidence": 0.80, "bbox": [0, 0, 10, 10]},
+    ]
+    # The bool block is excluded; mean is just the real block's 0.80.
+    assert _mean_band_confidence(blocks) == 0.80
+
+
+def test_vat_shaped_token_not_counted_as_vendor_name() -> None:
+    """Phase 6: ``GB123456789`` is a VAT-shaped token, captured by
+    ``tax_id_shaped_present``. It must NOT also count as a
+    ``vendor_name_candidate`` — double-counts the same evidence."""
+    assert _count_vendor_name_candidates(
+        ["GB123456789", "DE12345", "Acme", "Widget"]
+    ) == 2  # Acme + Widget; not the two VATs
+
+
+def test_ein_shaped_token_not_counted_as_vendor_name() -> None:
+    """Phase 6: a bare EIN like ``12-3456789`` must not count as a
+    vendor name candidate either."""
+    assert _count_vendor_name_candidates(["12-3456789", "Acme"]) == 1
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "12-3456789-extra",  # trailing junk after the 7-digit run
+        "12-3456789-1234",
+        "extra-12-3456789",  # leading junk
+        "112-3456789",  # extra leading digit
+        "12-34567890",  # extra trailing digit
+    ],
+)
+def test_ein_regex_rejects_trailing_junk(token: str) -> None:
+    """Phase 6: ``TAX_ID_EIN_RE`` now uses ``(?<![\\w-])`` / ``(?![\\w-])``
+    instead of ``\\b`` so tokens with trailing/leading word chars or
+    hyphens don't partial-match the EIN shape."""
+    from ledgerlinc_ocr.preprocessing.evidence_gate import TAX_ID_EIN_RE
+
+    assert not TAX_ID_EIN_RE.search(token), (
+        f"{token!r} falsely matched TAX_ID_EIN_RE — trailing-junk regression"
+    )
+
+
+def test_ein_regex_still_matches_canonical() -> None:
+    """Phase 6: canonical EIN forms still match (regression doesn't
+    over-correct)."""
+    from ledgerlinc_ocr.preprocessing.evidence_gate import TAX_ID_EIN_RE
+
+    assert TAX_ID_EIN_RE.search("12-3456789")
+    assert TAX_ID_EIN_RE.search("EIN: 12-3456789")
+    assert TAX_ID_EIN_RE.search("(12-3456789)")
+    assert TAX_ID_EIN_RE.search("12-3456789.")
+
+
+def test_evidence_gate_result_dispatch_through_decide_for_gate() -> None:
+    """Phase 6: ``EvidenceGateResult.__post_init__`` now dispatches
+    through ``decide_for_gate(evidence_gate_id, signals)`` rather than
+    calling ``_v1_decide`` directly. This keeps the validation in lock-
+    step with the dispatch table — when v2 lands, adding a branch to
+    ``decide_for_gate`` is enough."""
+    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+        EvidenceGateResult,
+        FiveSignalSet,
+    )
+
+    # Unknown gate_id should raise ValueError (mapped from KeyError).
+    s = FiveSignalSet(0, 0, 0.0, False, False)
+    with pytest.raises(ValueError, match="evidence_gate_id"):
+        EvidenceGateResult(signals=s, decision="insufficient", evidence_gate_id="v2")
+
+
+def test_canonicalizer_rederives_decision_from_signals() -> None:
+    """Phase 6: the canonicalizer re-derives ``decision`` from
+    canonical signals rather than just clamping the decision string.
+    A caller-supplied ``decision="sufficient"`` with all-negative
+    signals is overridden to the derived value (``"insufficient"``)."""
+    from ledgerlinc_ocr.pipeline.timing import RunSummary
+
+    rs = RunSummary(
+        stack_preset="cpu", resolved_profiles={}, execution_slice={},
+        on_failure="abort", documents_total=1, documents_succeeded=1,
+        documents_failed=0,
+        evidence_gate_documents=[
+            {
+                "document_id": "inv_001_easy",
+                # Mismatched: caller says sufficient, but signals are
+                # all-negative.
+                "decision": "sufficient",
+                "signals": {
+                    "vendor_name_candidate_count": 0,
+                    "header_band_token_density": 0,
+                    "ocr_detection_confidence_mean": 0.0,
+                    "business_suffix_present": False,
+                    "tax_id_shaped_present": False,
+                },
+            },
+        ],
+    )
+    d = rs.to_dict()
+    # Decision overridden to the derived value.
+    assert d["evidence_gate_documents"][0]["decision"] == "insufficient"
+    # state_counts derived from canonicalized records (MI-18 at wire).
+    assert d["evidence_gate_state_counts"] == {
+        "sufficient": 0, "borderline": 0, "insufficient": 1,
+    }
+
+
+def test_serializer_clamps_unknown_evidence_gate_id_to_v1() -> None:
+    """Phase 6: a buggy caller cannot leak ``evidence_gate_id="v99"``
+    onto the wire format. The serializer clamps unknown IDs to the
+    default ``"v1"``."""
+    from ledgerlinc_ocr.pipeline.timing import RunSummary
+
+    rs = RunSummary(
+        stack_preset="cpu", resolved_profiles={}, execution_slice={},
+        on_failure="abort", documents_total=0, documents_succeeded=0,
+        documents_failed=0,
+        evidence_gate_id="v99",
+    )
+    d = rs.to_dict()
+    assert d["evidence_gate_id"] == "v1"

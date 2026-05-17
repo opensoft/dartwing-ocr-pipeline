@@ -210,7 +210,7 @@ Note: `phase_timings` is NOT a top-level `run_summary` field — it lives inside
 | Name | Pattern | Flags | Matches |
 |---|---|---|---|
 | `BUSINESS_SUFFIX_RE` | `r"(?i)\b(LLC\|Incorporated\|Inc\|Limited\|Ltd\|GmbH\|S\.A\.S\.\|S\.A\.\|Corporation\|Corp\|Co\.)(?![\w-])"` | `re.IGNORECASE` via `(?i)` flag in pattern | Common business-entity suffixes (English, French, Spanish, German); case-insensitive. Trailing `(?![\w-])` (vs. `\b`) lets `.`-suffixed forms match at end-of-string while rejecting hyphenated compounds like `Inc-related` / `Incorporated-by-reference`. Longer alternatives listed before their prefixes so the engine commits to the longer match. |
-| `TAX_ID_EIN_RE` | `r"\b\d{2}-\d{7}\b"` | none | US EIN canonical shape `XX-XXXXXXX`. |
+| `TAX_ID_EIN_RE` | `r"(?<![\w-])\d{2}-\d{7}(?![\w-])"` | none | US EIN canonical shape `XX-XXXXXXX`. The `(?<![\w-])` / `(?![\w-])` lookarounds (vs. `\b`) reject trailing/leading word chars OR hyphens — prevents partial matches like `12-3456789-extra` (Phase 6 post-review). |
 | `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"` | none | EU-style VAT shape: 2-letter country prefix + 2..12 alphanumerics with **at least one digit**. The digit requirement rejects all-letter invoice header words (`INVOICE`, `PAYMENT`, `NUMBER`, `BALANCE`, ...) that the prior `[A-Z]{2}[A-Z0-9]{2,12}` pattern falsely matched. |
 
 **Validation invariants**:

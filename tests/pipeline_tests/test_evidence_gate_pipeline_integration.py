@@ -270,15 +270,20 @@ def test_evaluate_and_record_non_utf8_emits_insufficient(
     assert len(documents) == 1
 
 
-def test_evaluate_and_record_logs_warning_on_internal_exception(
+def test_evaluate_and_record_emits_insufficient_on_internal_exception(
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """If the gate raises an unexpected exception (e.g., a bug in
-    ``evaluate_evidence_gate``), the helper MUST log a warning and
-    return without aborting — and the warning MUST NOT contain
-    exception content (PII safety per FR-003)."""
+    """Phase 6 strengthening: if the gate raises an unexpected
+    exception (e.g., a bug in ``evaluate_evidence_gate``), the helper
+    MUST emit an ``insufficient`` record AND log a warning. The
+    always-one-record-per-successful-document contract (MI-18) holds
+    across ALL failure modes — exceptions no longer silently drop the
+    document.
+
+    The warning MUST NOT contain exception content (PII safety per
+    FR-003)."""
     folder = tmp_path / "inv_007_easy"
     _write_preprocess_output(folder, _vendor_doc())
 
@@ -306,9 +311,12 @@ def test_evaluate_and_record_logs_warning_on_internal_exception(
             documents=documents,
         )
 
-    # No record, no counter increment.
-    assert documents == []
-    assert sum(state_counts.values()) == 0
+    # Phase 6: an insufficient record IS emitted on exception.
+    assert len(documents) == 1
+    record = documents[0]
+    assert record["document_id"] == "inv_007_easy"
+    assert record["decision"] == "insufficient"
+    assert state_counts == {"sufficient": 0, "borderline": 0, "insufficient": 1}
     # Exactly one warning recorded.
     warnings = [r for r in caplog.records if r.levelname == "WARNING"]
     assert len(warnings) == 1

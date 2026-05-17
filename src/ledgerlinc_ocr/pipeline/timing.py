@@ -177,6 +177,12 @@ _EVIDENCE_GATE_DECISION_VOCAB: frozenset[str] = frozenset(
     {"sufficient", "borderline", "insufficient"}
 )
 
+# Phase 6 (post-review): closed gate-id vocabulary at landing. The
+# serializer clamps any out-of-vocabulary value to the default so a
+# caller-supplied ``evidence_gate_id="v99"`` cannot leak onto the wire
+# format. When v2 lands this set grows; the clamp logic is unchanged.
+_EVIDENCE_GATE_ID_VOCAB: frozenset[str] = frozenset({"v1"})
+
 
 def _safe_int(value: Any, default: int = 0) -> int:
     """Coerce ``value`` to a non-negative int; return ``default`` on
@@ -206,15 +212,21 @@ def _safe_int(value: Any, default: int = 0) -> int:
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
-    """Coerce ``value`` to a finite float in ``[0.0, 1.0]``; return
-    ``default`` on anything else (None, non-numeric, NaN, infinity,
-    out-of-range).
+    """Coerce ``value`` to a finite float in ``[0.0, 1.0]``.
+
+    Behavior matrix:
+    - Real finite number in ``[0.0, 1.0]`` → returned as-is.
+    - Real finite number outside the range → **clamped** to
+      ``[0.0, 1.0]`` (over-range → 1.0, under-range → 0.0).
+    - Anything else (None, bool, non-numeric, NaN, ±Infinity, raises
+      on conversion) → ``default``.
 
     Phase 4 hardening (post-review): the prior ``float(...)`` call
     accepted ``float("nan")`` / ``float("inf")`` (which emit non-finite
-    JSON) and raised on non-numeric strings. This helper clamps to the
-    contracted ``[0.0, 1.0]`` range and replaces NaN/Inf with the
-    safe default at the serializer boundary.
+    JSON) and raised on non-numeric strings. This helper replaces
+    NaN/Inf and unconvertible values with the safe default at the
+    serializer boundary, AND clamps in-range-but-numerically-drifted
+    values to the contracted ``[0.0, 1.0]`` range.
     """
     if isinstance(value, bool) or value is None:
         return default
@@ -243,15 +255,24 @@ def _safe_bool(value: Any, default: bool = False) -> bool:
 def _canonicalize_evidence_gate_record(
     record: dict[str, Any],
 ) -> dict[str, Any]:
-    """Restrict a per-document gate record to the documented shape.
+    """Restrict a per-document gate record to the documented shape AND
+    re-derive the decision from the canonicalized signals.
 
     Returns a fresh dict with EXACTLY the three top-level keys
     (``document_id``, ``decision``, ``signals``) and the nested
     ``signals`` dict restricted to the five FR-001 signal names. Extra
     keys at either level are dropped; out-of-range / non-finite /
     wrong-typed values are coerced to safe defaults via
-    ``_safe_int`` / ``_safe_float``; decision strings outside the
-    closed vocabulary are clamped to ``"insufficient"``.
+    ``_safe_int`` / ``_safe_float`` / ``_safe_bool``.
+
+    Phase 6 strengthening (post-review): after coercing the signals,
+    the decision is **re-derived** from the canonical signals via
+    ``decide_for_gate`` rather than just clamped to the closed-vocab
+    set. This closes a hole where a caller could pass
+    ``decision="sufficient"`` with all-negative signals — the prior
+    canonicalizer accepted that as a valid decision string and emitted
+    it verbatim. The new behavior makes ``decision`` a function of
+    ``signals``, satisfying MI-7 / SC-012 at the serializer boundary.
 
     Defense-in-depth for FR-003 PII closure: the
     ``build_evidence_gate_document_record`` constructor already produces
@@ -260,33 +281,44 @@ def _canonicalize_evidence_gate_record(
     through) cannot leak raw token strings, matched tax-ID values, or
     other invoice content onto the run_summary wire format.
     """
+    # Lazy import to avoid the timing.py → evidence_gate.py circular
+    # dependency at module load.
+    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+        FiveSignalSet,
+        decide_for_gate,
+    )
+
     document_id = str(record.get("document_id", ""))
-    decision = record.get("decision", "insufficient")
-    if decision not in _EVIDENCE_GATE_DECISION_VOCAB:
-        decision = "insufficient"
     raw_signals = record.get("signals") or {}
     if not isinstance(raw_signals, dict):
         raw_signals = {}
+    canonical_signals_dict = {
+        "vendor_name_candidate_count": _safe_int(
+            raw_signals.get("vendor_name_candidate_count")
+        ),
+        "header_band_token_density": _safe_int(
+            raw_signals.get("header_band_token_density")
+        ),
+        "ocr_detection_confidence_mean": _safe_float(
+            raw_signals.get("ocr_detection_confidence_mean")
+        ),
+        "business_suffix_present": _safe_bool(
+            raw_signals.get("business_suffix_present")
+        ),
+        "tax_id_shaped_present": _safe_bool(
+            raw_signals.get("tax_id_shaped_present")
+        ),
+    }
+    # Phase 6: derive the decision from the canonical signals. Closed
+    # the hole where a caller could pass `decision="sufficient"` with
+    # all-negative signals.
+    derived_decision = decide_for_gate(
+        "v1", FiveSignalSet(**canonical_signals_dict)
+    )
     return {
         "document_id": document_id,
-        "decision": decision,
-        "signals": {
-            "vendor_name_candidate_count": _safe_int(
-                raw_signals.get("vendor_name_candidate_count")
-            ),
-            "header_band_token_density": _safe_int(
-                raw_signals.get("header_band_token_density")
-            ),
-            "ocr_detection_confidence_mean": _safe_float(
-                raw_signals.get("ocr_detection_confidence_mean")
-            ),
-            "business_suffix_present": _safe_bool(
-                raw_signals.get("business_suffix_present")
-            ),
-            "tax_id_shaped_present": _safe_bool(
-                raw_signals.get("tax_id_shaped_present")
-            ),
-        },
+        "decision": derived_decision,
+        "signals": canonical_signals_dict,
     }
 
 
@@ -482,6 +514,29 @@ class RunSummary:
             {str(m) for m in self.ppstructure_modules_invoked}
             & set(AUDIT_SUB_MODULE_VOCABULARY)
         )
+        # Phase 6: canonicalize the per-doc records ONCE; derive
+        # state_counts from those canonicalized records so MI-18 holds
+        # at the wire format even when the caller's in-process
+        # accumulator drifts (e.g., the canonicalizer re-derives a
+        # decision from coerced signals).
+        _canonical_evidence_gate_documents = [
+            _canonicalize_evidence_gate_record(r)
+            for r in self.evidence_gate_documents
+        ]
+        _derived_state_counts = {
+            "sufficient": sum(
+                1 for d in _canonical_evidence_gate_documents
+                if d["decision"] == "sufficient"
+            ),
+            "borderline": sum(
+                1 for d in _canonical_evidence_gate_documents
+                if d["decision"] == "borderline"
+            ),
+            "insufficient": sum(
+                1 for d in _canonical_evidence_gate_documents
+                if d["decision"] == "insufficient"
+            ),
+        }
         return {
             "kind": "run_summary",
             "schema_version": SCHEMA_VERSION,
@@ -525,22 +580,21 @@ class RunSummary:
             # depth at the serializer boundary, we coerce the
             # `state_counts` dict to an explicit-three-key form so a
             # buggy caller cannot leak a sparse object onto the wire.
-            "evidence_gate_id": self.evidence_gate_id,
-            "evidence_gate_state_counts": {
-                "sufficient": _safe_int(
-                    self.evidence_gate_state_counts.get("sufficient", 0)
-                ),
-                "borderline": _safe_int(
-                    self.evidence_gate_state_counts.get("borderline", 0)
-                ),
-                "insufficient": _safe_int(
-                    self.evidence_gate_state_counts.get("insufficient", 0)
-                ),
-            },
-            "evidence_gate_documents": [
-                _canonicalize_evidence_gate_record(r)
-                for r in self.evidence_gate_documents
-            ],
+            # Phase 6: clamp gate-id to the closed vocabulary so a buggy
+            # caller cannot emit `evidence_gate_id="v99"` on the wire
+            # format. The closed set has size 1 at landing; future
+            # presets grow it via additive code change (R-020.2).
+            "evidence_gate_id": (
+                self.evidence_gate_id
+                if self.evidence_gate_id in _EVIDENCE_GATE_ID_VOCAB
+                else "v1"
+            ),
+            # Phase 6: derive state_counts from the canonicalized
+            # document records (computed above), not from the caller's
+            # accumulator. Ensures MI-18 holds at the wire format even
+            # when the canonicalizer re-derived a decision.
+            "evidence_gate_state_counts": _derived_state_counts,
+            "evidence_gate_documents": _canonical_evidence_gate_documents,
             "evidence_gate_suppressed_fallback_count": _safe_int(
                 self.evidence_gate_suppressed_fallback_count
             ),

@@ -237,7 +237,9 @@ def test_tax_id_EIN_shape() -> None:
 
 
 def test_tax_id_VAT_shape() -> None:
-    """EU VAT pattern: ``[A-Z]{2}[A-Z0-9]{2,12}``."""
+    """EU VAT pattern: 2-letter country prefix + 2..12 alphanumerics
+    with **at least one digit** (B2 / Phase 6 post-review tightening
+    — see `data-model.md §6` for the literal regex)."""
     doc = _doc_with_blocks(
         [{"text": "VAT GB123456789", "confidence": 0.9, "bbox": [0, 0, 100, 100]}]
     )

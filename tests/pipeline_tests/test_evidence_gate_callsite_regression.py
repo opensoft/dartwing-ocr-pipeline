@@ -111,36 +111,45 @@ def test_run_warm_corpus_calls_evaluate_and_record_in_success_branch() -> None:
 
 
 def test_single_doc_cli_calls_evaluate_and_record_in_success_branch() -> None:
-    """The single-doc run_summary emission path in
-    ``preprocessing/cli.py`` MUST call ``evaluate_and_record`` from
-    inside the ``if documents_succeeded == 1:`` branch. The branch
-    gates whether the gate evaluates at all on the single-doc path;
-    moving the call outside it skips evaluation entirely.
+    """The single-doc run_summary emission function
+    ``preprocessing.cli._emit_single_doc_run_summary`` MUST call
+    ``evaluate_and_record`` from inside the ``if documents_succeeded
+    == 1:`` branch. The branch gates whether the gate evaluates at all
+    on the single-doc path; moving the call outside it skips
+    evaluation entirely.
+
+    Phase 6 hardening (post-review): pinned to the specific function
+    by name rather than scanning every function in the module. The
+    prior wildcard scan would have passed if any dead-code helper or
+    test-only function in the module contained the matching branch
+    plus call — a false positive that would let the real emission
+    path silently drop the call.
     """
     from ledgerlinc_ocr.preprocessing import cli as preproc_cli
 
-    found_in_success_branch: list[str] = []
-    for name, obj in inspect.getmembers(preproc_cli, inspect.isfunction):
-        if obj.__module__ != preproc_cli.__name__:
-            continue
-        try:
-            source = inspect.getsource(obj)
-            tree = ast.parse(source)
-        except (OSError, TypeError, SyntaxError):
-            continue
-        branches = [
-            node for node in ast.walk(tree)
-            if _is_single_doc_success_branch(node)
-        ]
-        for branch in branches:
-            if _calls_in_subtree(
-                ast.Module(body=branch.body, type_ignores=[]),
-                "evaluate_and_record",
-            ):
-                found_in_success_branch.append(name)
-                break
-    assert found_in_success_branch, (
-        "preprocessing/cli.py must call evaluate_and_record() inside "
-        "an `if documents_succeeded == 1:` branch on the single-doc "
-        "emission path. A regression has moved or removed this call."
+    fn = getattr(preproc_cli, "_emit_single_doc_run_summary", None)
+    assert fn is not None, (
+        "preprocessing/cli.py must define _emit_single_doc_run_summary; "
+        "a regression has renamed or removed the single-doc emission "
+        "function."
+    )
+    source = inspect.getsource(fn)
+    tree = ast.parse(source)
+    branches = [
+        node for node in ast.walk(tree)
+        if _is_single_doc_success_branch(node)
+    ]
+    assert branches, (
+        "_emit_single_doc_run_summary must contain an "
+        "`if documents_succeeded == 1:` branch — control-flow shape changed."
+    )
+    in_success = any(
+        _calls_in_subtree(ast.Module(body=branch.body, type_ignores=[]),
+                          "evaluate_and_record")
+        for branch in branches
+    )
+    assert in_success, (
+        "_emit_single_doc_run_summary must call evaluate_and_record() "
+        "INSIDE the `if documents_succeeded == 1:` branch. A regression "
+        "has moved or removed this call."
     )

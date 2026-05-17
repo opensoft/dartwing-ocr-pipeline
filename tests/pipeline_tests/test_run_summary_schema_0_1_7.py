@@ -252,17 +252,30 @@ def test_state_counts_dict_can_be_mutated_safely_per_instance() -> None:
 
 def test_state_counts_emitted_as_exact_three_keys_even_if_internal_sparse(
 ) -> None:
-    """Defense in depth at the serializer boundary: even if a caller
-    accidentally builds a sparse state_counts dict, ``to_dict()`` MUST
-    emit all three keys with the missing ones at zero (MI-17 defense
-    in depth)."""
+    """Defense in depth at the serializer boundary: regardless of the
+    in-process accumulator state, ``to_dict()`` MUST emit all three
+    keys (NOT a sparse object).
+
+    Phase 6 strengthening: state_counts is now DERIVED from the
+    canonicalized ``evidence_gate_documents`` list, not from the
+    caller's accumulator dict. This makes MI-18 a hard invariant at
+    the wire format. The test asserts the all-three-keys shape on an
+    empty corpus (no documents → all zero counters)."""
     rs = _minimal_summary()
-    # Corrupt the dict to sparse form intentionally.
+    # Corrupt the accumulator to sparse form intentionally. Phase 6
+    # serializer ignores the accumulator and derives from documents
+    # instead — so this corruption is irrelevant to the wire format.
     rs.evidence_gate_state_counts.clear()
     rs.evidence_gate_state_counts["sufficient"] = 3
     d = rs.to_dict()
+    # Empty documents list → all-zero state counts (regardless of
+    # corrupt accumulator).
     assert d["evidence_gate_state_counts"] == {
-        "sufficient": 3,
+        "sufficient": 0,
         "borderline": 0,
         "insufficient": 0,
+    }
+    # All three keys present (defense against sparse object on wire).
+    assert set(d["evidence_gate_state_counts"].keys()) == {
+        "sufficient", "borderline", "insufficient",
     }

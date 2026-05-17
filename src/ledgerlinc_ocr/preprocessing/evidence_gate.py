@@ -54,7 +54,15 @@ CONFIDENCE_THRESHOLD: Final[float] = 0.70
 BUSINESS_SUFFIX_RE: Final[re.Pattern[str]] = re.compile(
     r"(?i)\b(LLC|Incorporated|Inc|Limited|Ltd|GmbH|S\.A\.S\.|S\.A\.|Corporation|Corp|Co\.)(?![\w-])"
 )
-TAX_ID_EIN_RE: Final[re.Pattern[str]] = re.compile(r"\b\d{2}-\d{7}\b")
+# `TAX_ID_EIN_RE` uses `(?<![\w-])` / `(?![\w-])` instead of `\b`. The
+# `\b` form treats the `-` after the 7-digit run as a word/non-word
+# transition and fires, so tokens like `12-3456789-extra` match the
+# first 9 chars. The lookaround form rejects both word chars AND
+# hyphens on either side, requiring whitespace / start / end / non-`-`
+# punctuation boundaries (Phase 6).
+TAX_ID_EIN_RE: Final[re.Pattern[str]] = re.compile(
+    r"(?<![\w-])\d{2}-\d{7}(?![\w-])"
+)
 # A 2-letter country prefix followed by 2..12 alphanumerics that MUST
 # include at least one digit. The leading lookahead rejects all-letter
 # tokens like INVOICE / PAYMENT / NUMBER / BALANCE / RECEIPT — common
@@ -202,12 +210,20 @@ class EvidenceGateResult:
                 f"{sorted(_CLOSED_DECISION_VOCABULARY)!r}, got "
                 f"{self.decision!r}"
             )
-        if self.evidence_gate_id != EVIDENCE_GATE_ID_V1:
+        # Phase 6: dispatch through `decide_for_gate` instead of calling
+        # `_v1_decide` directly. When v2 lands, adding a branch to
+        # `decide_for_gate` is enough — without this dispatch, a future
+        # v2 result would be silently validated against the v1 table.
+        # `decide_for_gate` itself enforces the gate-id closed
+        # vocabulary (raises KeyError on unknown ids), so the explicit
+        # `evidence_gate_id != "v1"` check is redundant.
+        try:
+            rederived = decide_for_gate(self.evidence_gate_id, self.signals)
+        except KeyError as e:
             raise ValueError(
-                f"evidence_gate_id must be {EVIDENCE_GATE_ID_V1!r}, "
-                f"got {self.evidence_gate_id!r}"
-            )
-        rederived = _v1_decide(self.signals)
+                f"evidence_gate_id must be a known gate id, got "
+                f"{self.evidence_gate_id!r}"
+            ) from e
         if self.decision != rederived:
             raise ValueError(
                 f"decision {self.decision!r} does not re-derive from "
@@ -248,27 +264,31 @@ def _bbox_top_y(block: Mapping[str, Any]) -> float | None:
 
     Top-left origin: ``bbox == [x1, y1, x2, y2]`` with ``y1 <= y2`` and
     non-negative coords; the "top" of the block is ``y1``. Returns
-    ``None`` (fail-closed) when the bbox is malformed:
+    ``None`` (fail-closed) on any malformed bbox:
 
     - not a list/tuple
     - length != exactly 4 (schema pins bbox to 4 elements)
+    - any element is a ``bool`` (``float(True) == 1.0`` would silently
+      coerce a boolean coord into a numeric one — Phase 6)
     - ``y1`` not convertible to float
-    - ``y1`` is negative (schema requires non-negative coords)
-    - ``y1`` is NaN or infinity
-
-    Phase 4 hardening (post-review): the prior version accepted
-    ``len(bbox) >= 4`` (allowing extra coords) and accepted negative or
-    non-finite ``y1`` — both fail-open paths that let malformed blocks
-    leak into the header-band signal.
+    - ``y1`` is NaN, infinity, or negative
+    - ``y2 < y1`` (inverted bbox violates producer's ``y1 <= y2`` contract — Phase 6)
     """
     bbox = block.get("bbox")
     if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
         return None
+    # Phase 6: bool is a subclass of int, and float(True) == 1.0 — a
+    # bool in any bbox slot must not silently coerce to a numeric coord.
+    if any(isinstance(c, bool) for c in bbox):
+        return None
     try:
         y1 = float(bbox[1])
+        y2 = float(bbox[3])
     except (TypeError, ValueError):
         return None
     if math.isnan(y1) or math.isinf(y1) or y1 < 0:
+        return None
+    if math.isnan(y2) or math.isinf(y2) or y2 < y1:
         return None
     return y1
 
@@ -300,11 +320,18 @@ def _band_blocks(
     page = pages[0]
     if not isinstance(page, Mapping):
         return []
+    # Phase 6: reject booleans (float(True) == 1.0 would silently treat
+    # `height = true` as a 1-pt page → threshold_y = 0.25), and reject
+    # NaN/infinity (a non-finite height makes threshold_y infinite and
+    # classifies every finite-y block as in-band — fail-open).
+    raw_height = page.get("height", 0)
+    if isinstance(raw_height, bool):
+        return []
     try:
-        page_height = float(page.get("height", 0))
+        page_height = float(raw_height)
     except (TypeError, ValueError):
         return []
-    if page_height <= 0:
+    if math.isnan(page_height) or math.isinf(page_height) or page_height <= 0:
         return []
     blocks = page.get("blocks")
     if not isinstance(blocks, (list, tuple)):
@@ -345,6 +372,14 @@ def _count_vendor_name_candidates(tokens: list[str]) -> int:
     """
     count = 0
     for tok in tokens:
+        # Phase 6: tax-ID-shaped tokens (EIN / VAT) are captured by
+        # `tax_id_shaped_present`; do NOT double-count them as
+        # vendor-name candidates. The prior filter accepted tokens like
+        # `GB123456789` because `alpha_only == "GB"` passed the
+        # uppercase + non-stop-word checks — but `GB123456789` is a
+        # VAT shape, not a vendor name.
+        if TAX_ID_VAT_RE.search(tok) or TAX_ID_EIN_RE.search(tok):
+            continue
         alpha_only = "".join(ch for ch in tok if ch.isalpha())
         # Phase 4 hardening (post-review): the length check now runs on
         # the alpha-only projection, not the raw token. The prior order
@@ -404,6 +439,11 @@ def _mean_band_confidence(blocks: list[Mapping[str, Any]]) -> float:
             continue
         c = block.get("confidence")
         if c is None:
+            continue
+        # Phase 6: reject booleans — `float(True) == 1.0` would treat a
+        # malformed `confidence: true` as max confidence and inflate the
+        # mean. JSON booleans are not valid confidence values.
+        if isinstance(c, bool):
             continue
         try:
             value = float(c)
@@ -565,52 +605,58 @@ def evaluate_and_record(
     On success: increments ``state_counts[result.decision]`` and appends one
     record to ``documents``.
 
-    On unreadable / non-dict / corrupt input: emits an ``insufficient``
-    record with all-negative-level signals and logs a warning (A6
-    post-review). Previously this path silently skipped — but the
-    spec's malformed-input edge case says wrong-shape input should
-    produce an ``insufficient`` record. The new behavior keeps MI-18
-    invariant strong: ``sum(state_counts) == documents_succeeded``
-    holds even when some documents have corrupt preprocess outputs.
+    On ANY failure (unreadable / non-dict / corrupt input, or
+    unexpected exception from the gate itself): emits an
+    ``insufficient`` record with all-negative-level signals and logs a
+    warning. The PII-safe warning carries only ``document_id`` — no
+    file content, no exception payload (FR-003).
 
-    On unexpected exception from the gate itself: logs a warning (no
-    exception content surfaced — PII-safe per FR-003) and continues
-    without emitting a record; the gate is observability and a bug
-    here MUST NOT abort the run.
+    Phase 6 strengthening (post-review): the prior version emitted
+    ``insufficient`` on load failure but SKIPPED on internal exception.
+    Per Copilot's review, this violated the always-one-record-per-
+    successful-document contract — a gate bug could silently drop a
+    document from ``evidence_gate_documents`` while it still counted
+    in ``documents_succeeded``. The new behavior keeps MI-18 strong:
+    ``sum(state_counts) == documents_succeeded`` holds across ALL
+    failure modes.
 
     Used identically by ``pipeline/corpus_run.py`` and
-    ``preprocessing/cli.py`` to avoid drift between the two call sites
-    (H3 review cleanup).
+    ``preprocessing/cli.py`` to avoid drift between the two call sites.
     """
+    def _emit_insufficient_record(reason: str) -> None:
+        _logger.warning(
+            "evidence_gate: %s for document_id=%r; emitting insufficient record",
+            reason,
+            document_id,
+        )
+        insufficient_signals = FiveSignalSet(
+            vendor_name_candidate_count=0,
+            header_band_token_density=0,
+            ocr_detection_confidence_mean=0.0,
+            business_suffix_present=False,
+            tax_id_shaped_present=False,
+        )
+        record = build_evidence_gate_document_record(
+            document_id=document_id,
+            result=EvidenceGateResult(
+                signals=insufficient_signals,
+                decision="insufficient",
+                evidence_gate_id=EVIDENCE_GATE_ID_V1,
+            ),
+        )
+        state_counts["insufficient"] += 1
+        documents.append(record)
+
     try:
         gate_input = load_preprocess_output_for_gate(
             Path(document_folder) / "preprocess_output.json"
         )
         if gate_input is None:
-            # A6: emit insufficient record so state_counts always sums
-            # to documents_succeeded. Warning surfaces the
-            # corrupt-input case to operators without disclosing file
-            # contents (PII-safe per FR-003).
-            _logger.warning(
-                "evidence_gate: preprocess_output.json for document_id=%r "
-                "is missing, unreadable, or not a JSON object; emitting "
-                "insufficient record",
-                document_id,
+            _emit_insufficient_record(
+                "preprocess_output.json missing, unreadable, or not a JSON object"
             )
-            insufficient_signals = FiveSignalSet(
-                vendor_name_candidate_count=0,
-                header_band_token_density=0,
-                ocr_detection_confidence_mean=0.0,
-                business_suffix_present=False,
-                tax_id_shaped_present=False,
-            )
-            result = EvidenceGateResult(
-                signals=insufficient_signals,
-                decision="insufficient",
-                evidence_gate_id=EVIDENCE_GATE_ID_V1,
-            )
-        else:
-            result = evaluate_evidence_gate(gate_input)
+            return
+        result = evaluate_evidence_gate(gate_input)
         state_counts[result.decision] += 1
         documents.append(
             build_evidence_gate_document_record(
@@ -618,14 +664,7 @@ def evaluate_and_record(
             )
         )
     except Exception:
-        # PII-safety: surface ONLY the document_id, not the exception
-        # content (which could carry OCR text from a buggy code path).
-        _logger.warning(
-            "evidence_gate evaluation failed for document_id=%r; "
-            "skipping record (gate is observability — failure does not "
-            "abort the run)",
-            document_id,
-        )
+        _emit_insufficient_record("evaluation raised an unexpected exception")
 
 
 __all__ = (

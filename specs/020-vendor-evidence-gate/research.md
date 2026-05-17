@@ -61,9 +61,9 @@ All five values are computed by `evaluate_evidence_gate(preprocess_output_dict, 
 
 ```python
 BUSINESS_SUFFIX_RE = re.compile(
-    r"(?i)\b(LLC|Incorporated|Inc|Limited|Ltd|GmbH|S\.A\.S\.|S\.A\.|Corporation|Corp|Co\.)(?!\w)"
+    r"(?i)\b(LLC|Incorporated|Inc|Limited|Ltd|GmbH|S\.A\.S\.|S\.A\.|Corporation|Corp|Co\.)(?![\w-])"
 )
-TAX_ID_EIN_RE = re.compile(r"\b\d{2}-\d{7}\b")
+TAX_ID_EIN_RE = re.compile(r"(?<![\w-])\d{2}-\d{7}(?![\w-])")
 TAX_ID_VAT_RE = re.compile(
     r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"
 )
@@ -71,7 +71,9 @@ TAX_ID_VAT_RE = re.compile(
 
 `business_suffix_present` matches against `BUSINESS_SUFFIX_RE`. `tax_id_shaped_present` matches against `TAX_ID_EIN_RE` OR `TAX_ID_VAT_RE`. Matching is whole-token only; the `\.` escapes prevent dot-class wildcards. Patterns are case-insensitive only for the business-suffix list (legitimately variant cased in invoices — `inc.` / `Inc.` / `INC.`); tax-id patterns are case-sensitive because EIN is numeric and VAT is conventionally uppercase.
 
-`BUSINESS_SUFFIX_RE` uses `\b...(?!\w)` rather than `\b...\b` so suffixes ending in `.` (Co. / S.A. / S.A.S.) still match when they sit at end-of-string — the trailing `\b` fails on a `.`-to-end transition because both sides are non-word and no boundary fires. Longer alternatives (`Incorporated` / `Limited` / `S.A.S.` / `Corporation`) are listed before their shorter prefixes so the regex engine commits to the longer match first.
+`BUSINESS_SUFFIX_RE` uses `\b...(?![\w-])` rather than `\b...\b` so suffixes ending in `.` (Co. / S.A. / S.A.S.) still match when they sit at end-of-string while rejecting hyphenated compounds like `Inc-related` / `Incorporated-by-reference` (the hyphen exclusion in the trailing lookahead — A1 / Phase 4 post-review). Longer alternatives (`Incorporated` / `Limited` / `S.A.S.` / `Corporation`) are listed before their shorter prefixes so the regex engine commits to the longer match first.
+
+`TAX_ID_EIN_RE` uses `(?<![\w-])` / `(?![\w-])` rather than `\b` boundaries so tokens like `12-3456789-extra` do NOT partial-match the EIN shape (Phase 6 post-review tightening). The `\b` form treats the `-` after the 7-digit run as a word/non-word transition and fires, producing a false 9-character match.
 
 `TAX_ID_VAT_RE` requires **at least one digit** in the alphanumeric run (the `(?=[A-Z0-9]{2,12}\b)` lookahead pins the overall length, then `[A-Z0-9]*\d[A-Z0-9]*` requires a digit somewhere). The prior pattern `\b[A-Z]{2}[A-Z0-9]{2,12}\b` matched common all-letter invoice header words (`INVOICE`, `PAYMENT`, `NUMBER`, `BALANCE`, `RECEIPT`, ...) and inflated `tax_id_shaped_present` on virtually every invoice — a correctness bug surfaced during review (B2).
 
@@ -353,7 +355,7 @@ Cold-cache runs (e.g., after `~/.cache/miopen` clearance per feature 016 operato
 | `DENSITY_THRESHOLD` | `8` | R-020.6 | `preprocessing/evidence_gate.py` module level |
 | `CONFIDENCE_THRESHOLD` | `0.70` | R-020.6 | `preprocessing/evidence_gate.py` module level |
 | `BUSINESS_SUFFIX_RE` | per R-020.4 | R-020.4 | `preprocessing/evidence_gate.py` module level |
-| `TAX_ID_EIN_RE` | `r"\b\d{2}-\d{7}\b"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
+| `TAX_ID_EIN_RE` | `r"(?<![\w-])\d{2}-\d{7}(?![\w-])"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
 | `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
 | `EVIDENCE_GATE_ID_V1` | `"v1"` | R-020.2 | `preprocessing/identifiers.py` module level |
 | `EVIDENCE_GATE_ID_DEFAULT` | `EVIDENCE_GATE_ID_V1` | R-020.2 | `preprocessing/identifiers.py` module level |

@@ -31,18 +31,20 @@ def test_evidence_gate_module_loads_without_paddle() -> None:
 
 
 def test_evidence_gate_dependencies_are_stdlib_only() -> None:
-    """The module-level imports of ``evidence_gate`` MUST be confined to
-    Python stdlib + the project's own ``identifiers`` module. No Paddle,
-    no third-party data-science packages.
+    """The module-level imports of ``evidence_gate`` (and its direct
+    intra-project dependency ``identifiers``) MUST be confined to
+    Python stdlib. No Paddle, no third-party data-science packages,
+    no transitive load of a heavy dependency.
 
-    We assert this by reading the source file and checking the import
-    statements. Static source inspection avoids depending on
-    sys.modules-mutating side effects."""
-    module = importlib.import_module("ledgerlinc_ocr.preprocessing.evidence_gate")
-    source_path = module.__file__
-    assert source_path is not None
-    with open(source_path, encoding="utf-8") as f:
-        source = f.read()
+    Phase 6 strengthening (post-review): the prior version only
+    scanned ``evidence_gate.py`` itself. An indirect Paddle import
+    through ``identifiers`` or another transitive module would have
+    slipped through. The scan now covers the closure of
+    ``evidence_gate.py``'s intra-project imports.
+
+    Static source inspection avoids depending on sys.modules-mutating
+    side effects (an `importlib.reload` would create test-order
+    dependence — see C4 review)."""
     forbidden = (
         "import paddleocr",
         "from paddleocr",
@@ -57,11 +59,27 @@ def test_evidence_gate_dependencies_are_stdlib_only() -> None:
         "from tensorflow",
         "import requests",  # network
         "from requests",
+        "import httpx",
+        "from httpx",
     )
-    for needle in forbidden:
-        assert needle not in source, (
-            f"evidence_gate.py must not import {needle!r} (FR-014 / MI-4 / MI-5)"
-        )
+    # Scan evidence_gate.py + every intra-project module it imports
+    # at module load. At landing the only intra-project import is
+    # `ledgerlinc_ocr.preprocessing.identifiers`. If a future edit
+    # adds another, list it here.
+    modules_to_scan = (
+        "ledgerlinc_ocr.preprocessing.evidence_gate",
+        "ledgerlinc_ocr.preprocessing.identifiers",
+    )
+    for mod_name in modules_to_scan:
+        module = importlib.import_module(mod_name)
+        source_path = module.__file__
+        assert source_path is not None
+        with open(source_path, encoding="utf-8") as f:
+            source = f.read()
+        for needle in forbidden:
+            assert needle not in source, (
+                f"{mod_name} must not import {needle!r} (FR-014 / MI-4 / MI-5)"
+            )
 
 
 def test_evidence_gate_module_load_does_not_import_network_libs() -> None:
