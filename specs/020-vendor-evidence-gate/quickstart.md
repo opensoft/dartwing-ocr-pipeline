@@ -265,13 +265,29 @@ Per-document `evidence_gate_documents` records, the aggregate `evidence_gate_sta
 
 Per R-020.15 / FR-026, the following GPU-marked tests / benchmarks MAY be deferred if workstation GPU hardware is unavailable at landing time:
 
-- [ ] `test_evidence_gate_skip_fallback.py @gpu` — verifies Path 3 scenario end-to-end.
-- [ ] `test_evidence_gate_skip_fallback_borderline.py @gpu` — verifies Path 4 scenario end-to-end.
-- [ ] `test_evidence_gate_benchmark.py @gpu` — produces Appendix A numbers.
-- [ ] `test_quality_gate_two_metric_evidence_gate.py @gpu` — produces the FR-016 / R-020.14 promotion-gate verdict.
+- [ ] `test_evidence_gate_skip_fallback.py @gpu` (US4 / T033) — verifies Path 3 scenario end-to-end (`sufficient` candidate → fallback suppressed, counter increments).
+- [ ] `test_evidence_gate_skip_fallback_borderline.py @gpu` (US4 / T034) — verifies Path 4 scenario end-to-end (`borderline` candidate → fallback runs, counter unchanged).
+- [ ] `test_evidence_gate_all_suppressed_lazy_construction.py::test_lazy_no_warmup @gpu` (US4 / T033a) — verifies the FR-007 lazy-construction clause: all-suppressed corpus + no `--gpu-warmup` ⇒ PPStructureV3 never constructed, `phase_timings.warmup` for PPStructureV3 == `0`.
+- [ ] `test_evidence_gate_all_suppressed_lazy_construction.py::test_forced_construction_with_warmup @gpu` (US4 / T033a) — verifies the FR-007 `--gpu-warmup` exception clause: all-suppressed + `--gpu-warmup` ⇒ PPStructureV3 IS constructed (operator-opt-in trade-off); suppression counter still equals doc count.
+- [ ] `test_evidence_gate_benchmark.py @gpu` (US7 / T053) — runs the FR-015 four-run benchmark discipline (warmup once, legacy×2 + candidate×2, discard run 1 each); produces Appendix A numbers; asserts per-key change pattern (only `per_page_inference` + `total` decrease on suppressed docs; others within jitter band).
+- [ ] `test_quality_gate_two_metric_evidence_gate.py @gpu` (US7 / T054) — produces the FR-016 / R-020.14 two-metric promotion-gate verdict (aggregate vendor-identity field score + per-document pass count, both ≥ legacy on the 5-doc subset).
 - [ ] FR-015 corpus benchmark run on workstation GPU.
 - [ ] FR-016 quality-gate evidence in `research.md` Appendix B.
 
 Each deferred item is captured as a checkbox in this Appendix and as a follow-up task in `tasks.md`. The deferral cannot be quietly skipped; closing each box requires the corresponding GPU run output to be attached to this feature's PR or follow-up issue.
+
+**CPU-safe variants of GPU-deferrable tests** (MUST pass before merge — these are NOT deferrable; they live in the merge-gating floor below):
+
+- `test_evidence_gate_skip_fallback_borderline_cpu.py` (US4 / T034a) — CPU-safe variant of T034 via the `decide_ocr_only_fallback_disposition` injection seam in `preprocessing/pipeline.py`; asserts MI-11 (gate evaluated twice — once on candidate for suppression decision, once on post-fallback output for recorded decision) without requiring GPU.
+- `test_evidence_gate_all_suppressed_lazy_construction.py::test_lazy_cpu_safe` (US4 / T033a CPU variant) — CPU-safe variant; asserts the construction-decision path in `preprocessing/pipeline.py` never calls the PPStructureV3 factory when all candidates are `sufficient` AND opt-in active.
+- `test_evidence_gate_recorded_over_final.py` (US4 / T035) — CPU-safe via injection; asserts MI-10 (recorded decision is over the FINAL output, not the candidate).
+
+## Surveillance follow-up (Clarifications Session 2026-05-16 Q3 Option D — permanent deferral)
+
+Per the Q3 clarification, **over-time regression surveillance for `evidence_gate_suppressed_fallback_count`** (recurring GPU benchmark / snapshot-diff PR gating / alerting) is **DEFERRED to a follow-up ops feature**, not feature 020 scope. T033's in-PR `>= 1` assertion is the safety net at landing; over-time drift detection belongs alongside `pipeline/corpus_run.py` infrastructure in a future feature.
+
+- [ ] Out-of-PR surveillance: recurring GPU benchmark / snapshot-diff / alerting for `evidence_gate_suppressed_fallback_count` regression — **DEFERRED to follow-up ops feature**; T033 is the in-PR safety net at landing.
+
+This entry persists in Appendix B even if all other GPU deferrals close — the surveillance question is a permanent follow-up, not a deferred verification.
 
 CPU-safe floor that MUST pass before merge: items 1–7 of "Smoke tests" above plus the eight CPU-safe unit tests listed in `plan.md` § Source Code (`test_evidence_gate_signals_unit.py`, `test_evidence_gate_decision_unit.py`, `test_evidence_gate_optin_unit.py`, `test_evidence_gate_y_threshold_unit.py`, `test_cpu_warn_and_proceed_evidence_gate.py`, `test_run_summary_schema_0_1_7.py`, `test_evidence_gate_corpus_run.py`, `test_legacy_byte_identity_evidence_gate.py` CPU variant).
