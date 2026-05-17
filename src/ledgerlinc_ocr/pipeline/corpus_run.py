@@ -501,6 +501,23 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
     # this loop aggregates the flag the same way feature 018 does for
     # `region_strategy_fallback_fired`.
     _ocr_only_fallback_count_019 = 0
+    # Feature 020 (T028 / R-020.10 / R-020.11 / FR-003 / FR-006 / MI-18):
+    # per-doc evidence-gate accumulators. The gate runs on the FINAL
+    # `preprocess_output.json` of each successful document (R-020.7) and
+    # contributes one record to `evidence_gate_documents` plus an
+    # increment to the matching `evidence_gate_state_counts[decision]`.
+    # Per MI-18: `state_counts[s]` MUST equal the count of
+    # `documents[i].decision == s` for each state. The
+    # `evidence_gate_suppressed_fallback_count` accumulator stays at 0
+    # on the MVP slice — US4 (a follow-up PR) wires the per-doc
+    # suppression-event flag onto this counter when shape (b) fires.
+    _evidence_gate_state_counts_020: dict[str, int] = {
+        "sufficient": 0,
+        "borderline": 0,
+        "insufficient": 0,
+    }
+    _evidence_gate_documents_020: list[dict[str, Any]] = []
+    _evidence_gate_suppressed_fallback_count_020 = 0
 
     for entry in documents:
         folder_raw = entry.raw
@@ -631,6 +648,49 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
                 )
                 preprocess_stage["gpu_inference_seconds"] = _gpu_inf
             per_document_records.append(success_record)
+            # Feature 020 (T028 / R-020.7 / R-020.10 / R-020.11 / FR-003 /
+            # FR-006): evaluate the evidence gate on the FINAL
+            # preprocess_output.json of this successful document. The
+            # decision is recorded against the file as it actually
+            # landed on disk (post-fallback if fallback fired per
+            # feature 019). The gate is a pure read over
+            # preprocess_output content — no Paddle, no GPU, runs on
+            # CPU profiles + stub adapters uniformly per FR-014.
+            try:
+                from ledgerlinc_ocr.preprocessing.evidence_gate import (
+                    build_evidence_gate_document_record,
+                    evaluate_evidence_gate,
+                    load_preprocess_output_for_gate,
+                )
+
+                _gate_input = load_preprocess_output_for_gate(
+                    folder_resolved / "preprocess_output.json"
+                )
+                if _gate_input is not None:
+                    _gate_result = evaluate_evidence_gate(_gate_input)
+                    _evidence_gate_state_counts_020[_gate_result.decision] += 1
+                    _evidence_gate_documents_020.append(
+                        build_evidence_gate_document_record(
+                            document_id=invocation.document_id,
+                            result=_gate_result,
+                        )
+                    )
+                # If the file cannot be loaded (missing / malformed),
+                # the gate skips this document — counters stay where
+                # they are. This is a conservative miss; the document
+                # is already counted in `documents_succeeded` so the
+                # discrepancy is auditable (state_counts sum can be
+                # less than documents_succeeded when artifact writes
+                # raced). In normal operation every successful
+                # document has a readable preprocess_output.json.
+            except Exception:  # noqa: BLE001 — gate failure must not break the run
+                # Defensive: a bug in the gate module MUST NOT abort
+                # the corpus run. The gate is observability — its
+                # failure surfaces as missing per-doc records in
+                # `evidence_gate_documents`, which the always-emit
+                # contract on the four `run_summary` fields still
+                # honors (default-zero counters + empty array).
+                pass
         else:
             failed += 1
             # Feature 014 (T024 / R-014.4 / FR-010): when the resolved
@@ -868,6 +928,20 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         # (increments per fallen-back document per I-019.4).
         preprocess_strategy_id=_preprocess_strategy_id_019,
         ocr_only_fallback_count=_ocr_only_fallback_count_019,
+        # Feature 020 (T028 / R-020.10 / R-020.11 / FR-003 / FR-006 /
+        # FR-008 / MI-16 / MI-17 / MI-18): four additive top-level
+        # fields. `evidence_gate_id` is the closed-vocabulary preset
+        # identifier — `"v1"` uniformly across CPU / stub / GPU lanes
+        # (no cpu-default / stub-default discrimination — gate is a
+        # pure read; data-model.md §9). `state_counts` and `documents`
+        # come from the per-doc accumulators (gate evaluation happened
+        # on each success per the block above). `suppressed_fallback_count`
+        # stays at default 0 on the MVP slice; US4 (follow-up PR) wires
+        # the suppression-event counter when shape (b) fires.
+        evidence_gate_id="v1",
+        evidence_gate_state_counts=_evidence_gate_state_counts_020,
+        evidence_gate_documents=_evidence_gate_documents_020,
+        evidence_gate_suppressed_fallback_count=_evidence_gate_suppressed_fallback_count_020,
     )
     emit_run_summary(summary)
 
@@ -998,6 +1072,14 @@ def _emit_warm_init_failure_summary(
         # ocr_only_fallback_count is always 0.
         preprocess_strategy_id=_failure_preprocess_strategy_id,
         ocr_only_fallback_count=0,
+        # Feature 020 (T028 / R-020.10 / MI-16 / MI-17): always-emit
+        # the four evidence-gate fields on the warm-init failure path
+        # too. No documents reached the gate, so state_counts is all-
+        # zero, documents is empty, and the suppression counter is 0.
+        # `evidence_gate_id` is still "v1" — the closed-vocabulary
+        # identifier is profile-independent (data-model.md §9).
+        evidence_gate_id="v1",
+        evidence_gate_suppressed_fallback_count=0,
         documents_total=len(documents),
         documents_succeeded=0,
         documents_failed=1,

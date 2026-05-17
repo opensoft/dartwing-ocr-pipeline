@@ -33,7 +33,20 @@ from ledgerlinc_ocr.preprocessing.identifiers import (
     CPU_DEFAULT_PREPROCESS_STRATEGY,
     CPU_DEFAULT_RASTER_PROFILE,
     CPU_DEFAULT_REGION_STRATEGY,
+    EVIDENCE_GATE_ID_DEFAULT,
 )
+
+
+def _default_evidence_gate_state_counts() -> dict[str, int]:
+    """Default value for ``RunSummary.evidence_gate_state_counts``.
+
+    The closed three-state vocabulary is fixed at landing — all three keys
+    are always present (NOT sparse) per R-020.10 / MI-17 / contracts/
+    run-summary-schema.md §2. Returned as a fresh dict per call (dataclass
+    ``default_factory`` semantics) so two RunSummary instances do not share
+    a mutable default.
+    """
+    return {"sufficient": 0, "borderline": 0, "insufficient": 0}
 
 
 # Feature 015 (T021): contextvar that the Runner populates with the
@@ -125,7 +138,27 @@ def bind_current_stage_timing(stage_timing: "StageTiming"):
 # 0.1.6 is a strict superset of 0.1.5 — no existing field is renamed,
 # removed, or retyped (FR-009 / FR-022). Consumers built against 0.1.5
 # continue to read 0.1.6 output without changes.
-SCHEMA_VERSION = "0.1.6"
+#
+# Feature 020 (T025 / R-020.9 / FR-008 / FR-010 /
+# contracts/run-summary-schema.md): codebase-level patch bump
+# 0.1.6 → 0.1.7 for FOUR additive top-level `run_summary` fields —
+# `evidence_gate_id` (string, always `"v1"` at landing per R-020.2),
+# `evidence_gate_state_counts` (object with all three keys
+# `sufficient`/`borderline`/`insufficient`, default-zero integers),
+# `evidence_gate_documents` (array of per-doc records with `document_id`,
+# `decision`, and the five FR-001 signal values), and
+# `evidence_gate_suppressed_fallback_count` (integer, default 0;
+# increments only when shape (b) suppression actually fires).
+# All four are emitted on EVERY run of the new binary regardless of
+# profile or preset selection per FR-008 / FR-010 / MI-16 / MI-17.
+# Unlike features 017/018/019, the `evidence_gate_id` axis emits the
+# same `"v1"` identifier uniformly on CPU, stub-adapter, and GPU lanes
+# — the gate is a pure read over `preprocess_output.json` content and
+# runs on every profile (FR-014 / data-model.md §9). 0.1.7 is a strict
+# superset of 0.1.6 — no existing field is renamed, removed, or
+# retyped (FR-011 / FR-022 / MI-19). Consumers built against 0.1.6
+# continue to read 0.1.7 output without changes.
+SCHEMA_VERSION = "0.1.7"
 
 
 def _ns_to_seconds(ns: int) -> float:
@@ -276,6 +309,42 @@ class RunSummary:
     # orchestrator in `preprocessing/pipeline.py` per R-019.10 / I-019.4.
     preprocess_strategy_id: str = CPU_DEFAULT_PREPROCESS_STRATEGY
     ocr_only_fallback_count: int = 0
+    # Feature 020 (T026 / R-020.10 / FR-003 / FR-006 / FR-007 / FR-008 /
+    # FR-010 / data-model.md §5): four additive top-level fields.
+    #
+    # `evidence_gate_id` — always `"v1"` at landing (closed registry of
+    # size one per R-020.2). Emits the SAME string uniformly on CPU,
+    # stub-adapter, and GPU lanes (no `cpu-default` / `stub-default`
+    # discrimination — see data-model.md §9). FR-014 / SC-005.
+    #
+    # `evidence_gate_state_counts` — aggregate state distribution across
+    # the run. ALL THREE keys present (NOT sparse) per R-020.10 / MI-17.
+    # Default-zero counters on every key for runs that processed zero
+    # documents (stub-adapter empty corpus, etc.).
+    #
+    # `evidence_gate_documents` — per-doc records. Each element has
+    # exactly three top-level keys (`document_id` / `decision` /
+    # `signals`) and the nested `signals` object has exactly the five
+    # FR-001 signal names per data-model.md §4. FR-003 PII-safety
+    # closure: only signal TYPES (int / bool / float) — never raw token
+    # text. Deterministic ordering per `corpus_run.py` iteration
+    # (typically alphabetical by `document_id` per R-020.11).
+    #
+    # `evidence_gate_suppressed_fallback_count` — incremented by exactly
+    # 1 per document where shape (b) suppression actually fired (the
+    # four-conjunct predicate in R-020.8 returned True). Stays at 0 on
+    # the legacy (no-opt-in) path. Always-emit per FR-007 / FR-008.
+    #
+    # MVP slice (US3, this commit): `evidence_gate_id` / `state_counts`
+    # / `documents` are populated by the corpus_run / runner wiring as
+    # observability. `suppressed_fallback_count` defaults to 0 and is
+    # wired by the US4 skip-fallback behavior in a follow-up PR.
+    evidence_gate_id: str = EVIDENCE_GATE_ID_DEFAULT
+    evidence_gate_state_counts: dict[str, int] = field(
+        default_factory=_default_evidence_gate_state_counts
+    )
+    evidence_gate_documents: list[dict[str, Any]] = field(default_factory=list)
+    evidence_gate_suppressed_fallback_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         # Last-line-of-defense canonicalization for the closed-vocabulary
@@ -322,6 +391,23 @@ class RunSummary:
             # in fixed order. Always-emit per FR-007 / FR-008 / FR-010.
             "preprocess_strategy_id": self.preprocess_strategy_id,
             "ocr_only_fallback_count": self.ocr_only_fallback_count,
+            # Feature 020 additive top-level fields (T027 / R-020.10 /
+            # contracts/run-summary-schema.md): emitted in fixed order
+            # AFTER feature 019's two fields and before the closing
+            # brace. Always-emit per FR-008 / FR-010 / MI-16 / MI-17.
+            # Per-doc `signals` shape is validated at construction time
+            # in the gate's `EvidenceGateResult` — but as a defense in
+            # depth at the serializer boundary, we coerce the
+            # `state_counts` dict to an explicit-three-key form so a
+            # buggy caller cannot leak a sparse object onto the wire.
+            "evidence_gate_id": self.evidence_gate_id,
+            "evidence_gate_state_counts": {
+                "sufficient": int(self.evidence_gate_state_counts.get("sufficient", 0)),
+                "borderline": int(self.evidence_gate_state_counts.get("borderline", 0)),
+                "insufficient": int(self.evidence_gate_state_counts.get("insufficient", 0)),
+            },
+            "evidence_gate_documents": list(self.evidence_gate_documents),
+            "evidence_gate_suppressed_fallback_count": self.evidence_gate_suppressed_fallback_count,
         }
 
     def as_json_line(self) -> str:

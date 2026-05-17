@@ -53,23 +53,31 @@ def _make_minimal_run_summary(**overrides: Any) -> RunSummary:
 # ---------------------------------------------------------------------------
 
 
-def test_schema_version_is_0_1_6_codebase_level() -> None:
-    """`SCHEMA_VERSION` is exactly `"0.1.6"` for every run of the new
-    binary regardless of preset selection (per R-019.14 +
-    `contracts/run-summary-schema.md` §1)."""
-    assert timing.SCHEMA_VERSION == "0.1.6", (
-        f"feature 019 must bump SCHEMA_VERSION from 0.1.5 to 0.1.6 "
-        f"(got {timing.SCHEMA_VERSION!r})"
+def test_schema_version_is_at_least_0_1_6_codebase_level() -> None:
+    """`SCHEMA_VERSION` is at least `"0.1.6"` (current chain head: 0.1.7
+    after feature 020). The 0.1.6 floor was established by feature 019
+    when it landed the two feature-019 additive top-level fields —
+    every later bump must preserve 0.1.6-shape parsers' ability to read
+    `preprocess_strategy_id` and `ocr_only_fallback_count`. Strict-pin
+    `== 0.1.7` lives in `test_run_summary_schema_0_1_7.py`."""
+    _version_tuple = tuple(int(p) for p in timing.SCHEMA_VERSION.split("."))
+    assert _version_tuple >= (0, 1, 6), (
+        f"SCHEMA_VERSION must be at least 0.1.6 (feature 019 floor); "
+        f"got {timing.SCHEMA_VERSION!r}."
     )
-    assert SCHEMA_VERSION == "0.1.6"
+    assert tuple(int(p) for p in SCHEMA_VERSION.split(".")) >= (0, 1, 6)
 
 
-def test_run_summary_emits_0_1_6_in_json_line() -> None:
-    """A serialized `run_summary` line carries `schema_version: "0.1.6"`
-    on the wire."""
+def test_run_summary_emits_at_least_0_1_6_in_json_line() -> None:
+    """A serialized `run_summary` line carries `schema_version >= "0.1.6"`
+    on the wire (current chain head: 0.1.7)."""
     summary = _make_minimal_run_summary()
     parsed = json.loads(summary.as_json_line())
-    assert parsed["schema_version"] == "0.1.6"
+    _version_tuple = tuple(int(p) for p in parsed["schema_version"].split("."))
+    assert _version_tuple >= (0, 1, 6), (
+        f"on-wire schema_version must be at least 0.1.6; "
+        f"got {parsed['schema_version']!r}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -175,8 +183,19 @@ def test_feature_019_fields_emit_after_feature_018_fields_in_order() -> None:
         "ocr_only_fallback_count",
     ]
     assert keys[pl_idx : pl_idx + len(expected_tail)] == expected_tail
-    # Feature 019's two are the LAST two keys (no later additive yet)
-    assert keys[-2:] == ["preprocess_strategy_id", "ocr_only_fallback_count"]
+    # Feature 020 (T026 / T027) added FOUR keys AFTER feature 019's pair
+    # (`evidence_gate_id`, `evidence_gate_state_counts`,
+    # `evidence_gate_documents`, `evidence_gate_suppressed_fallback_count`).
+    # The pair is no longer the LAST two keys but stays adjacent in
+    # documented order — assert that invariant instead. The new tail
+    # under feature 020 is exercised in
+    # `test_run_summary_schema_0_1_7.py` and `test_evidence_gate_field_order.py`.
+    ps_idx = keys.index("preprocess_strategy_id")
+    of_idx = keys.index("ocr_only_fallback_count")
+    assert of_idx == ps_idx + 1, (
+        f"feature 019's pair must stay adjacent in order; got "
+        f"preprocess_strategy_id at {ps_idx}, ocr_only_fallback_count at {of_idx}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -185,9 +204,12 @@ def test_feature_019_fields_emit_after_feature_018_fields_in_order() -> None:
 
 
 def test_schema_version_unchanged_across_preprocess_strategy_selections() -> None:
-    """`schema_version` is `"0.1.6"` for every emission regardless of
-    which preprocess_strategy the run used — fixed at the codebase
-    level (R-019.14)."""
+    """`schema_version` is fixed at the codebase level (R-019.14) and is
+    independent of which preprocess_strategy the run used. After feature
+    020 the head version is `"0.1.7"`; this test asserts the version
+    stays at the SAME (at-least-0.1.6) value across all strategy
+    selections — not that it stays at the 0.1.6 literal."""
+    seen_versions = set()
     for strategy_id in [
         "cpu-default",
         "stub-default",
@@ -196,11 +218,19 @@ def test_schema_version_unchanged_across_preprocess_strategy_selections() -> Non
     ]:
         summary = _make_minimal_run_summary(preprocess_strategy_id=strategy_id)
         parsed = json.loads(summary.as_json_line())
-        assert parsed["schema_version"] == "0.1.6", (
-            f"schema_version must stay 0.1.6 across all preprocess_strategy "
-            f"selections; got {parsed['schema_version']!r} for "
-            f"preprocess_strategy_id={strategy_id!r}"
+        seen_versions.add(parsed["schema_version"])
+        _version_tuple = tuple(int(p) for p in parsed["schema_version"].split("."))
+        assert _version_tuple >= (0, 1, 6), (
+            f"schema_version must be at least 0.1.6 across all "
+            f"preprocess_strategy selections; got {parsed['schema_version']!r} "
+            f"for preprocess_strategy_id={strategy_id!r}"
         )
+    # Critical invariant: the version is the SAME across all strategy
+    # selections (does not vary by configuration).
+    assert len(seen_versions) == 1, (
+        f"schema_version must not vary across preprocess_strategy "
+        f"selections; observed values: {seen_versions}"
+    )
 
 
 # Cross-configuration producer-path coverage for SC-004 lives in

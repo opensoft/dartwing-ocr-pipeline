@@ -750,6 +750,43 @@ def _emit_single_doc_run_summary(
     _ocr_only_fallback_count_019 = (
         1 if getattr(invocation, "ocr_only_fallback_fired", False) else 0
     )
+    # Feature 020 (T029 / R-020.7 / R-020.10 / R-020.11 / FR-003 /
+    # FR-006): evaluate the evidence gate on the FINAL preprocess_output.json
+    # for the single-document path. Mirrors the corpus_run.py per-success
+    # wiring (T028). On failure-path (`documents_succeeded == 0`) the
+    # gate skips and accumulators stay at defaults — the always-emit
+    # contract per MI-16 / MI-17 still ships the four `run_summary`
+    # fields with default-zero values.
+    _evidence_gate_state_counts_020: dict[str, int] = {
+        "sufficient": 0,
+        "borderline": 0,
+        "insufficient": 0,
+    }
+    _evidence_gate_documents_020: list[dict[str, Any]] = []
+    if documents_succeeded == 1:
+        try:
+            from ledgerlinc_ocr.preprocessing.evidence_gate import (
+                build_evidence_gate_document_record,
+                evaluate_evidence_gate,
+                load_preprocess_output_for_gate,
+            )
+
+            _gate_input = load_preprocess_output_for_gate(
+                invocation.document_folder / "preprocess_output.json"
+            )
+            if _gate_input is not None:
+                _gate_result = evaluate_evidence_gate(_gate_input)
+                _evidence_gate_state_counts_020[_gate_result.decision] += 1
+                _evidence_gate_documents_020.append(
+                    build_evidence_gate_document_record(
+                        document_id=document_id or invocation.document_folder.name,
+                        result=_gate_result,
+                    )
+                )
+        except Exception:  # noqa: BLE001 — gate failure must not break the run
+            # Defensive — bug in the gate module surfaces as a missing
+            # per-doc record, not an aborted CLI invocation.
+            pass
     summary = RunSummary(
         stack_preset=None,
         resolved_profiles={"preprocess": _profile_slug_for_lane(preprocess_lane)},
@@ -778,6 +815,16 @@ def _emit_single_doc_run_summary(
         # single-doc CLI = 0 or 1).
         preprocess_strategy_id=_preprocess_strategy_id_019,
         ocr_only_fallback_count=_ocr_only_fallback_count_019,
+        # Feature 020 (T029 / R-020.10 / MI-16 / MI-17): four additive
+        # top-level fields. Same wiring discipline as corpus_run.py —
+        # `evidence_gate_id` is `"v1"` uniformly; `state_counts` and
+        # `documents` come from the single-doc accumulator above (or
+        # the all-zero defaults if the doc failed); suppression counter
+        # stays at 0 on the MVP slice.
+        evidence_gate_id="v1",
+        evidence_gate_state_counts=_evidence_gate_state_counts_020,
+        evidence_gate_documents=_evidence_gate_documents_020,
+        evidence_gate_suppressed_fallback_count=0,
     )
     emit_run_summary(summary)
 

@@ -86,3 +86,18 @@ LEGACY_PREPROCESS_STRATEGY: str = "ppstructurev3"
 OCR_ONLY_V1_PREPROCESS_STRATEGY: str = "ocr-only-v1"
 CPU_DEFAULT_PREPROCESS_STRATEGY: str = "cpu-default"
 STUB_DEFAULT_PREPROCESS_STRATEGY: str = "stub-default"
+
+# Feature 020 (T004 / R-020.2 / data-model.md §1 / contracts/evidence-gate-rule.md
+# §Closed-vocabulary preset registry): closed-vocabulary `run_summary` identifier
+# for the evidence-gate axis. Registry size at landing is exactly one — only
+# `"v1"` is a valid value. Future presets (`"v2"`, `"v3"`, ...) land via additive
+# code change in `preprocessing/evidence_gate.py::EVIDENCE_GATES` plus a new
+# `--evidence-gate <id>` CLI flag at that time (R-020.2). Unlike features
+# 017/018/019, the evidence-gate axis emits the same `"v1"` identifier on CPU,
+# stub-adapter, and GPU lanes uniformly — the gate is a pure read over
+# `preprocess_output.json` content and runs on every profile (FR-014 /
+# data-model.md §9 "CPU/stub identity values for `evidence_gate_id`"). There
+# are NO `CPU_DEFAULT_EVIDENCE_GATE` / `STUB_DEFAULT_EVIDENCE_GATE` constants
+# because no CPU/stub-default discrimination is needed for this axis.
+EVIDENCE_GATE_ID_V1: str = "v1"
+EVIDENCE_GATE_ID_DEFAULT: str = EVIDENCE_GATE_ID_V1
