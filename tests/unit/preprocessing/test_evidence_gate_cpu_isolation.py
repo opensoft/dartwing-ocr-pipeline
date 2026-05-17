@@ -49,13 +49,19 @@ from typing import Iterable
 # This list is the contract: any addition to feature 020's CPU
 # surface that imports one of these breaks FR-014.
 _GPU_TAINTED_MODULE_NEEDLES: tuple[str, ...] = (
-    # Module-name needles for `import X` or `from X import ...` lines.
-    "preprocessing.ocr",
-    "preprocessing.ocr_only",
-    "preprocessing.warmup",
-    "preprocessing.preflight",
-    "preprocessing.pipeline",
-    "preprocessing.rasterize",
+    # Project-internal module-name needles. The full package prefix
+    # `ledgerlinc_ocr.preprocessing.` is REQUIRED — every internal
+    # import in `src/ledgerlinc_ocr/preprocessing/*.py` uses the fully-
+    # qualified form, so substring-matching the bare `preprocessing.X`
+    # never fires on a regression. The prefix-qualified form is the
+    # canonical regression vector and the only form the test scan can
+    # catch.
+    "ledgerlinc_ocr.preprocessing.ocr",
+    "ledgerlinc_ocr.preprocessing.ocr_only",
+    "ledgerlinc_ocr.preprocessing.warmup",
+    "ledgerlinc_ocr.preprocessing.preflight",
+    "ledgerlinc_ocr.preprocessing.pipeline",
+    "ledgerlinc_ocr.preprocessing.rasterize",
     # Third-party GPU/ML stack — anything from these is forbidden in a
     # CPU-only helper module.
     "paddleocr",
