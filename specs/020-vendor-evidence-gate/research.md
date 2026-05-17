@@ -282,6 +282,8 @@ The warn fires only when the opt-in is GPU-relevant but the profile isn't GPU. I
 
 **Rationale**: Reusing the same 5-doc subset across features 017/018/019/020 enables direct cross-feature comparison (Assumptions §3, FR-015). The subset is small enough to fit under GPU verification windows and large enough to include both `sufficient` and `borderline`/`insufficient` cases.
 
+**GPU-only benchmark scope**: Shape (b) skip-fallback is GPU-only by design (FR-012 — opt-in defaults off on the GPU lane, never engages on CPU). The FR-015 benchmark records ONLY GPU-lane numbers in `quickstart.md` Appendix A; no CPU benchmark row appears because suppression cannot fire on a CPU profile (the warn-and-proceed path engages instead — R-020.12). CPU runs still emit the four `run_summary` evidence-gate fields with `evidence_gate_suppressed_fallback_count = 0` (FR-014 / SC-005), but those CPU values are observability, not benchmark candidates.
+
 **Alternatives considered**:
 - Expand to all 20 corpus docs (rejected: longer GPU verification window; smaller subset is already cross-feature-comparable).
 - Use a different subset to exercise edge cases (rejected: violates the cross-feature comparability the prior features rely on; edge cases can be tested as unit tests in `tests/unit/preprocessing/`).
@@ -315,6 +317,22 @@ CPU-safe deferral floor: signal-set unit tests (`test_evidence_gate_signals_unit
 **Alternatives considered**:
 - Block merge until GPU verification completes (rejected: feature 016–019 precedent; would slow the CPU-safe code from landing).
 - Silently skip GPU tests with no tracking (rejected: the spec's FR-026 explicitly forbids "quietly skipping" and mandates the deferral capture).
+
+---
+
+## R-020.16 — Warm-vs-cold-cache discipline for the FR-015 benchmark
+
+**Decision**: The FR-015 latency-harvest benchmark is measured on **warm-cache runs** only, with explicit warmup discipline matching feature 016's `--gpu-warmup` precedent. Procedure: (1) run `--gpu-warmup` once at the start of the benchmark session to populate MIOpen / COMGR caches and warm the PPStructureV3 / OCR-only engine pools per feature 016 / 019 conventions; (2) run the legacy default (no opt-in) over the 5-doc subset twice and discard the first run (treat as additional warm-in); record the second run's `phase_timings.*` as the legacy baseline; (3) run the skip-fallback candidate (opt-in active) over the same subset twice and discard the first; record the second run as the candidate. The two-discarded-runs-then-record discipline establishes the host's run-to-run jitter band: the absolute difference between the two recorded `phase_timings.total` values per document under the same configuration is the jitter floor. Latency deltas smaller than this floor are reported in `quickstart.md` Appendix A but NOT counted as "harvest" per FR-015's measurement discipline.
+
+Cold-cache runs (e.g., after `~/.cache/miopen` clearance per feature 016 operator guide) are explicitly OUT of the FR-015 benchmark — cold-cache latency is dominated by `phase_timings.warmup` (feature 016), which the gate does not affect. If a future feature wants to benchmark cold-cache behavior, that is a new R-decision under that feature's research.md.
+
+**Rationale**: Warm-cache measurement is what production workloads see after the first document. Mixing cold and warm runs would mask the gate's per-document latency-harvest signal under feature 016's warmup-cost variance, which is unrelated to this feature. The two-discarded-then-recorded discipline is the lightest-weight repeatability gate (one extra run per configuration, four total benchmark runs over the 5-doc subset).
+
+**Alternatives considered**:
+- Single-run measurement (rejected: indistinguishable from host noise; no jitter band).
+- Cold-cache measurement (rejected: dominated by feature 016 warmup; obscures the gate's signal).
+- Hot-cache after N>1 warmups (rejected: scope creep; two runs is already enough to estimate jitter).
+- Statistical multi-run measurement with mean/stddev (rejected: scope creep for a 5-doc subset; the two-run discipline is sufficient for "is the harvest above the jitter floor").
 
 ---
 
