@@ -14,8 +14,8 @@ import json
 
 import pytest
 
-from ledgerlinc_ocr.pipeline import timing
-from ledgerlinc_ocr.pipeline.timing import (
+from dartwing_ocr.pipeline import timing
+from dartwing_ocr.pipeline.timing import (
     DocumentTimings,
     RunSummary,
     SCHEMA_VERSION,

@@ -89,7 +89,7 @@ have to invent a correlation that the v1.0.0 schema did not establish.
 - **Define `line_index` as the 1-based ordinal across the whole page**:
   rejected. Less portable for voters reading block-scoped excerpts.
 
-**Implementation impact**: `src/ledgerlinc_ocr/evidence_packet/offset_mapping.py`
+**Implementation impact**: `src/dartwing_ocr/evidence_packet/offset_mapping.py`
 owns the reverse-mapping. The `evidence_packet.schema.json` makes
 `line_index` `{"type": "integer", "minimum": 0}`.
 
@@ -127,7 +127,7 @@ touching the packet contract.
   `challenge_tags` vocabulary lists these but stage 1 corpus coverage
   doesn't require them; adding them here would inflate false-positive rate.
 
-**Implementation impact**: `src/ledgerlinc_ocr/evidence_packet/regex_hints.py`.
+**Implementation impact**: `src/dartwing_ocr/evidence_packet/regex_hints.py`.
 
 ---
 
@@ -137,7 +137,7 @@ touching the packet contract.
 **Decision**: Build an **offset index** alongside the reading-order join —
 not a post-hoc re-parse. The assembler's `offset_mapping.py` rebuilds
 `document_text` using the same algorithm as
-`src/ledgerlinc_ocr/preprocessing/document_text.py::join_document_text`
+`src/dartwing_ocr/preprocessing/document_text.py::join_document_text`
 (pages sorted by `page_number`, blocks within each page sorted by
 `reading_order`, joined with `"\n"` intra-page and `"\n\n"` inter-page),
 while simultaneously recording a sorted list of `(block_start_offset,
@@ -169,25 +169,25 @@ separator constants without updating this slice.
 - **Linear scan per hint**: rejected. Simpler but wastes time for
   documents with many matches; bisect is a trivial stdlib import.
 
-**Implementation impact**: `src/ledgerlinc_ocr/evidence_packet/offset_mapping.py`.
+**Implementation impact**: `src/dartwing_ocr/evidence_packet/offset_mapping.py`.
 
 ---
 
 ## Decision 5 — Logging configuration and CLI verbosity mapping
 
-**Decision**: The `ledgerlinc_ocr.evidence_packet` module uses `logging.getLogger(__name__)`
-(which resolves to the `ledgerlinc_ocr` logger via namespace hierarchy).
+**Decision**: The `dartwing_ocr.evidence_packet` module uses `logging.getLogger(__name__)`
+(which resolves to the `dartwing_ocr` logger via namespace hierarchy).
 The CLI at `cli.py`:
 
 - accepts `-v/--verbose` (may be stacked, `-vv`, etc., but only the first
   `-v` matters for persistence — persistence is a boolean trigger, not a
   dial);
-- when at least one `-v` is passed, calls `logging.getLogger("ledgerlinc_ocr").setLevel(logging.DEBUG)`;
+- when at least one `-v` is passed, calls `logging.getLogger("dartwing_ocr").setLevel(logging.DEBUG)`;
 - otherwise leaves the logger at its inherited level (typically `WARNING`).
 
 The assembler's persistence decision (`should_persist`) is evaluated **at
 invocation time** by checking
-`logging.getLogger("ledgerlinc_ocr").isEnabledFor(logging.DEBUG)`. Library
+`logging.getLogger("dartwing_ocr").isEnabledFor(logging.DEBUG)`. Library
 callers that configure the logger to `DEBUG` themselves (e.g. via
 `logging.basicConfig(level=logging.DEBUG)`) get identical behavior to the
 CLI's `-v` — which is the whole point of Q1's answer.
@@ -201,11 +201,11 @@ flag, no env var.
   `-v` is more idiomatic for CLIs and shorter to type. Both could coexist
   but only one is needed for SC-007 testability.
 - **Check `logging.DEBUG` against the **root** logger**: rejected. The
-  `ledgerlinc_ocr` namespace logger is the correct scope — testing
+  `dartwing_ocr` namespace logger is the correct scope — testing
   fixtures can toggle just our logger without affecting pytest's global
   log capture.
 
-**Implementation impact**: `src/ledgerlinc_ocr/evidence_packet/cli.py` and
+**Implementation impact**: `src/dartwing_ocr/evidence_packet/cli.py` and
 `assembler.py`.
 
 ---
@@ -237,7 +237,7 @@ reviewability. Q2 explicitly chose the reviewability path.
 - JSON Canonical Form (RFC 8785): rejected. Overkill; no canonicalization
   consumer exists downstream; reviewability suffers.
 
-**Implementation impact**: `src/ledgerlinc_ocr/evidence_packet/assembler.py`
+**Implementation impact**: `src/dartwing_ocr/evidence_packet/assembler.py`
 and its `sections/` helpers return ordered `dict` literals.
 
 ---
@@ -245,7 +245,7 @@ and its `sections/` helpers return ordered `dict` literals.
 ## Decision 7 — Reuse of 003's `write_atomic`
 
 **Decision**: The evidence-packet persistence path **imports and reuses**
-`ledgerlinc_ocr.preprocessing.artifact.write_atomic` rather than duplicating
+`dartwing_ocr.preprocessing.artifact.write_atomic` rather than duplicating
 it. The only packet-specific wrapping is around schema validation (different
 schema, different artifact filename).
 
@@ -257,13 +257,13 @@ convention.
 **Alternatives considered**:
 - Copy-paste `write_atomic` into `evidence_packet/serialization.py`:
   rejected. Two copies drift.
-- Extract `write_atomic` into a shared `ledgerlinc_ocr/io.py`: deferred.
+- Extract `write_atomic` into a shared `dartwing_ocr/io.py`: deferred.
   A larger refactor; we can do it if/when a third slice needs it. For now
   importing from the sibling module is the lowest-friction path and does
   not create a circular dependency (the evidence-packet module depends on
   the preprocessing module, not the other way round).
 
-**Implementation impact**: `src/ledgerlinc_ocr/evidence_packet/serialization.py`.
+**Implementation impact**: `src/dartwing_ocr/evidence_packet/serialization.py`.
 
 ---
 
@@ -297,7 +297,7 @@ small and testable in isolation. Both funnel through the same
 - Expose only `assemble_from_folder`: rejected. 005's voter would need to
   re-read the file it already has in memory.
 
-**Implementation impact**: `src/ledgerlinc_ocr/evidence_packet/__init__.py`
+**Implementation impact**: `src/dartwing_ocr/evidence_packet/__init__.py`
 and `assembler.py`.
 
 ---
@@ -325,7 +325,7 @@ narrow.
 - Reuse 003's error classes directly: rejected. Different semantic layer;
   shared exit-code discipline is enough.
 
-**Implementation impact**: `src/ledgerlinc_ocr/evidence_packet/errors.py`;
+**Implementation impact**: `src/dartwing_ocr/evidence_packet/errors.py`;
 CLI exit-code table in `contracts/cli-contract.md`.
 
 ---

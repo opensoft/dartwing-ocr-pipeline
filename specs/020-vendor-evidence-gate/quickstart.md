@@ -1,6 +1,10 @@
 # Quickstart: Vendor-Identity Evidence Gate
 
-End-to-end walkthrough for feature 020 — the deterministic vendor-identity evidence gate over `preprocess_output.json`. Six representative paths cover the FR-007 shape (b) skip-fallback behavioral surface, the FR-013 CPU/stub warn-and-proceed surface, and the FR-001 / FR-006 always-emit observability surface. Run from the worktree root.
+End-to-end walkthrough for feature 020 — the deterministic vendor-identity evidence gate over `preprocess_output.json`. Seven representative paths cover the FR-007 shape (b) skip-fallback behavioral surface, the FR-013 CPU/stub warn-and-proceed surface, and the FR-001 / FR-006 always-emit observability surface. Run from the worktree root.
+
+---
+
+> **Implementation status (stacked-PR delivery)**: PR #38 (MVP) implements **Paths 1 + 2 + 6 + 7** (the always-emit observability surface + the v1 re-derivation walkthrough + the warm-corpus pipeline mode). **Paths 3, 4, and 5** exercise the `--evidence-gate-skip-fallback` flag + `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK` env var, which land on stacked PR #40 (US4); running those commands against PR #38's tip will exit with `argparse: unknown argument --evidence-gate-skip-fallback`. The Appendix A FR-015 benchmark numbers and Appendix B FR-016 quality-gate numbers will be filled in by the US7 stacked PR.
 
 Prerequisites:
 - Devcontainer is built (`pip install -r requirements.txt` already ran on `postCreateCommand`), OR you have a host Python 3.12 venv with `pip install -e ".[dev]"`.
@@ -13,8 +17,8 @@ Prerequisites:
 
 **Command**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+python -m dartwing_ocr.preprocessing \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu
 ```
 
@@ -47,8 +51,8 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Verify**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+python -m dartwing_ocr.preprocessing \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     | jq 'select(.kind == "run_summary") | .schema_version, .evidence_gate_id, .evidence_gate_state_counts'
 ```
@@ -59,8 +63,8 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Command**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+python -m dartwing_ocr.preprocessing \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu
 ```
 
@@ -77,8 +81,8 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Command**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+python -m dartwing_ocr.preprocessing \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu \
     --preprocess-strategy ocr-only-v1 \
     --evidence-gate-skip-fallback
@@ -112,8 +116,8 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Command**: (same as Path 3 but with a fixture where the gate would be `borderline` AND feature 019 FR-005 trigger fires)
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_006_layout_table/source.pdf \
+python -m dartwing_ocr.preprocessing \
+    --document-folder tests/stage1_vendor_identity/inv_006_layout_table \
     --preprocess-profile ppstructurev3@gpu \
     --preprocess-strategy ocr-only-v1 \
     --evidence-gate-skip-fallback
@@ -149,8 +153,8 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Command**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+python -m dartwing_ocr.preprocessing \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     --evidence-gate-skip-fallback
 ```
@@ -164,8 +168,8 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Verify**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+python -m dartwing_ocr.preprocessing \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     --evidence-gate-skip-fallback 2>&1 \
     | grep -F "--evidence-gate-skip-fallback ignored:"
@@ -173,16 +177,16 @@ python -m ledgerlinc_ocr.preprocessing \
 
 Same result with env-var fallback:
 ```bash
-LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m dartwing_ocr.preprocessing \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu 2>&1 \
     | grep -F "--evidence-gate-skip-fallback ignored:"
 ```
 
 CLI wins when both are set (R-020.1):
 ```bash
-LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file ... \
+DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m dartwing_ocr.preprocessing \
+    --document-folder ... \
     --preprocess-profile ppstructurev3@gpu \
     # No --evidence-gate-skip-fallback flag, but env var is truthy
     # ⇒ opt-in is active (env-var fallback)
@@ -214,12 +218,12 @@ echo "$RUN_SUMMARY" | jq '.evidence_gate_documents[] | select(.document_id == "i
 
 ---
 
-## Path 7 — `python -m ledgerlinc_ocr.pipeline` warm-corpus mode
+## Path 7 — `python -m dartwing_ocr.pipeline` warm-corpus mode
 
-The pipeline CLI accepts the same `--evidence-gate-skip-fallback` flag and `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` env var as the preprocessing CLI (R-020.1). Behavior matrix is identical:
+The pipeline CLI accepts the same `--evidence-gate-skip-fallback` flag and `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK` env var as the preprocessing CLI (R-020.1). Behavior matrix is identical:
 
 ```bash
-python -m ledgerlinc_ocr.pipeline \
+python -m dartwing_ocr.pipeline \
     --documents-file <list> \
     --preprocess-profile ppstructurev3@gpu \
     --preprocess-strategy ocr-only-v1 \
@@ -234,10 +238,10 @@ The flag composes orthogonally with `--gpu-warmup`, `--module-set`, `--det-rec-v
 
 All seven of these MUST pass before merge per FR-024 / R-020.15:
 
-1. **Schema version bump**: `python -m ledgerlinc_ocr.preprocessing ... 2>&1 | jq -e 'select(.kind == "run_summary") | .schema_version == "0.1.7"'` → exit 0.
+1. **Schema version bump**: `python -m dartwing_ocr.preprocessing ... 2>&1 | jq -e 'select(.kind == "run_summary") | .schema_version == "0.1.7"'` → exit 0.
 2. **Four new fields always present**: stub-adapter run emits `evidence_gate_id`, `evidence_gate_state_counts`, `evidence_gate_documents`, `evidence_gate_suppressed_fallback_count` even when no documents are processed.
 3. **CPU warn-and-proceed**: `--evidence-gate-skip-fallback` on `ppstructurev3@cpu` emits the grep-able marker AND the run exits with the same status as the no-flag run.
-4. **Env-var precedence**: `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1` with no `--evidence-gate-skip-fallback` flag activates the opt-in; with `--no-evidence-gate-skip-fallback` (or its absence treated as off), CLI wins.
+4. **Env-var precedence**: `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=1` with no `--evidence-gate-skip-fallback` flag activates the opt-in; with `--no-evidence-gate-skip-fallback` (or its absence treated as off), CLI wins.
 5. **Signal re-derivation**: every per-document record's `decision` matches `v1_decide(record.signals)` exactly (SC-002 / SC-012).
 6. **Aggregate equals per-doc count**: `evidence_gate_state_counts[s]` equals the count of `evidence_gate_documents[i].decision == s` for each `s` in `{sufficient, borderline, insufficient}`.
 7. **Legacy byte-identity**: a run with NO `--evidence-gate-skip-fallback` flag produces a `preprocess_output.json` byte-identical to a pre-feature-020 run on the same fixture (SC-006 / SC-007).
@@ -267,13 +271,37 @@ Per-document `evidence_gate_documents` records, the aggregate `evidence_gate_sta
 
 Per R-020.15 / FR-026, the following GPU-marked tests / benchmarks MAY be deferred if workstation GPU hardware is unavailable at landing time:
 
-- [ ] `test_evidence_gate_skip_fallback.py @gpu` — verifies Path 3 scenario end-to-end.
-- [ ] `test_evidence_gate_skip_fallback_borderline.py @gpu` — verifies Path 4 scenario end-to-end.
-- [ ] `test_evidence_gate_benchmark.py @gpu` — produces Appendix A numbers.
-- [ ] `test_quality_gate_two_metric_evidence_gate.py @gpu` — produces the FR-016 / R-020.14 promotion-gate verdict.
+- [ ] `test_evidence_gate_skip_fallback.py @gpu` (US4 / T033) — verifies Path 3 scenario end-to-end (`sufficient` candidate → fallback suppressed, counter increments).
+- [ ] `test_evidence_gate_skip_fallback_borderline.py @gpu` (US4 / T034) — verifies Path 4 scenario end-to-end (`borderline` candidate → fallback runs, counter unchanged).
+- [ ] `test_evidence_gate_all_suppressed_lazy_construction.py::test_lazy_no_warmup @gpu` (US4 / T033a) — verifies the FR-007 lazy-construction clause: all-suppressed corpus + no `--gpu-warmup` ⇒ PPStructureV3 never constructed, `phase_timings.warmup` for PPStructureV3 == `0`.
+- [ ] `test_evidence_gate_all_suppressed_lazy_construction.py::test_forced_construction_with_warmup @gpu` (US4 / T033a) — verifies the FR-007 `--gpu-warmup` exception clause: all-suppressed + `--gpu-warmup` ⇒ PPStructureV3 IS constructed (operator-opt-in trade-off); suppression counter still equals doc count.
+- [ ] `test_evidence_gate_benchmark.py @gpu` (US7 / T053) — runs the FR-015 four-run benchmark discipline (warmup once, legacy×2 + candidate×2, discard run 1 each); produces Appendix A numbers; asserts per-key change pattern (only `per_page_inference` + `total` decrease on suppressed docs; others within jitter band).
+- [ ] `test_quality_gate_two_metric_evidence_gate.py @gpu` (US7 / T054) — produces the FR-016 / R-020.14 two-metric promotion-gate verdict (aggregate vendor-identity field score + per-document pass count, both ≥ legacy on the 5-doc subset).
 - [ ] FR-015 corpus benchmark run on workstation GPU.
 - [ ] FR-016 quality-gate evidence in `research.md` Appendix B.
 
 Each deferred item is captured as a checkbox in this Appendix and as a follow-up task in `tasks.md`. The deferral cannot be quietly skipped; closing each box requires the corresponding GPU run output to be attached to this feature's PR or follow-up issue.
 
-CPU-safe floor that MUST pass before merge: items 1–7 of "Smoke tests" above plus the eight CPU-safe unit tests listed in `plan.md` § Source Code (`test_evidence_gate_signals_unit.py`, `test_evidence_gate_decision_unit.py`, `test_evidence_gate_optin_unit.py`, `test_evidence_gate_y_threshold_unit.py`, `test_cpu_warn_and_proceed_evidence_gate.py`, `test_run_summary_schema_0_1_7.py`, `test_evidence_gate_corpus_run.py`, `test_legacy_byte_identity_evidence_gate.py` CPU variant).
+**CPU-safe variants of GPU-deferrable tests** (MUST pass before merge — these are NOT deferrable; they live in the merge-gating floor below):
+
+- `test_evidence_gate_skip_fallback_borderline_cpu.py` (US4 / T034a) — CPU-safe variant of T034 via the `decide_ocr_only_fallback_disposition` injection seam in `preprocessing/pipeline.py`; asserts MI-11 (gate evaluated twice — once on candidate for suppression decision, once on post-fallback output for recorded decision) without requiring GPU.
+- `test_evidence_gate_all_suppressed_lazy_construction.py::test_lazy_cpu_safe` (US4 / T033a CPU variant) — CPU-safe variant; asserts the construction-decision path in `preprocessing/pipeline.py` never calls the PPStructureV3 factory when all candidates are `sufficient` AND opt-in active.
+- `test_evidence_gate_recorded_over_final.py` (US4 / T035) — CPU-safe via injection; asserts MI-10 (recorded decision is over the FINAL output, not the candidate).
+
+## Surveillance follow-up (Clarifications Session 2026-05-16 Q3 Option D — permanent deferral)
+
+Per the Q3 clarification, **over-time regression surveillance for `evidence_gate_suppressed_fallback_count`** (recurring GPU benchmark / snapshot-diff PR gating / alerting) is **DEFERRED to a follow-up ops feature**, not feature 020 scope. T033's in-PR `>= 1` assertion is the safety net at landing; over-time drift detection belongs alongside `pipeline/corpus_run.py` infrastructure in a future feature.
+
+- [ ] Out-of-PR surveillance: recurring GPU benchmark / snapshot-diff / alerting for `evidence_gate_suppressed_fallback_count` regression — **DEFERRED to follow-up ops feature**; T033 is the in-PR safety net at landing.
+
+This entry persists in Appendix B even if all other GPU deferrals close — the surveillance question is a permanent follow-up, not a deferred verification.
+
+CPU-safe floor that MUST pass before merge of PR #38 (MVP):
+- items 1–7 of "Smoke tests" above
+- the CPU-safe unit tests under `tests/unit/preprocessing/test_evidence_gate_*.py` (signals, decision, malformed-input, NFKC, rederivability, regex-negatives, registry, strategy-uniformity, y-threshold, module-safety, A-fixes)
+- the pipeline-level coverage under `tests/pipeline_tests/test_evidence_gate_*.py` (runsummary-aggregation, field-order, pipeline-integration, callsite-regression)
+- the schema-bump test `tests/pipeline_tests/test_run_summary_schema_0_1_7.py`
+
+CPU-safe floor that MUST pass before merge of the stacked PRs:
+- **PR #40 (US4 — skip-fallback opt-in)**: `tests/unit/preprocessing/test_evidence_gate_optin_unit.py` (CLI/env-var resolution; landing on #40 not in PR #38) + `tests/pipeline_tests/test_cpu_warn_and_proceed_evidence_gate.py` (CPU warn-and-proceed marker; landing on #40 not in PR #38)
+- **PR #39 (US6 — schema-preservation regressions)**: `tests/pipeline_tests/test_legacy_byte_identity_evidence_gate.py` CPU variant (landing on #39 not in PR #38).

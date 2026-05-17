@@ -129,7 +129,7 @@ raise `ValueError`; only the trailing-segment slot is permissive.
 
 ### `RunSummary` (existing dataclass — additive change)
 
-Located in `src/ledgerlinc_ocr/pipeline/timing.py`. Three additive
+Located in `src/dartwing_ocr/pipeline/timing.py`. Three additive
 field-paths land in this feature:
 
 | Field path                                                | Type              | Presence                                  |
@@ -146,21 +146,21 @@ additive.
 
 ### `GpuPrerequisiteError` (in-memory exception type — analyze finding AA1, module location pinned per AA1')
 
-**Defined in**: `src/ledgerlinc_ocr/preprocessing/preflight.py`, alongside
+**Defined in**: `src/dartwing_ocr/preprocessing/preflight.py`, alongside
 `PreflightState`, `PreflightEvidence`, and `PreflightReadout`. Implemented
 as part of T002–T005 (the same Foundational tasks that define the
 classifier surface).
 
 **Imported by**:
-- `src/ledgerlinc_ocr/preprocessing/pipeline.py` (T021) — raises
+- `src/dartwing_ocr/preprocessing/pipeline.py` (T021) — raises
   `GpuPrerequisiteError` from the inline GPU gate when the cached
   `PreflightReadout.state` is anything other than
   `PPSTRUCTUREV3_INIT_SUCCEEDED`.
-- `src/ledgerlinc_ocr/preprocessing/cli.py` (T022) — catches
+- `src/dartwing_ocr/preprocessing/cli.py` (T022) — catches
   `GpuPrerequisiteError`, renders the FR-009 stderr message, and exits
   with the FR-001 exit code from Contracts §1.
-- `src/ledgerlinc_ocr/pipeline/runner.py` and
-  `src/ledgerlinc_ocr/pipeline/corpus_run.py` (T023, T024) — also
+- `src/dartwing_ocr/pipeline/runner.py` and
+  `src/dartwing_ocr/pipeline/corpus_run.py` (T023, T024) — also
   catch the same exception type when running the warm-corpus path.
 
 **Shape**:
@@ -190,7 +190,7 @@ runtime model integrates three concerns:
 2. **Research R-014.4** (cached in-process readout): the per-process
    result is stored in the module-level `_PREFLIGHT_READOUT:
    Optional[PreflightReadout] = None` variable in
-   `src/ledgerlinc_ocr/pipeline/corpus_run.py` (established by T023,
+   `src/dartwing_ocr/pipeline/corpus_run.py` (established by T023,
    read by T029).
 3. **`GpuPrerequisiteError`** (this section): the in-memory
    transport from the gate (T021, which raises) to the CLI error

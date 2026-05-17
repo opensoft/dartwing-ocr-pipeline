@@ -3,7 +3,7 @@
 **Feature Branch**: `003-pdf-preprocessing`
 **Created**: 2026-04-13
 **Status**: Draft
-**Input**: User description: "PDF Preprocessing — Create the stage 1 PDF preprocessing slice for the LedgerLinc OCR pipeline. Accept a single input PDF, rasterize each page into images suitable for OCR, perform deterministic page-level preprocessing and structure capture, and emit a schema-aligned `preprocess_output.json`."
+**Input**: User description: "PDF Preprocessing — Create the stage 1 PDF preprocessing slice for the Dartwing OCR pipeline. Accept a single input PDF, rasterize each page into images suitable for OCR, perform deterministic page-level preprocessing and structure capture, and emit a schema-aligned `preprocess_output.json`."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -13,7 +13,7 @@ A pipeline operator (or downstream extraction workstream) runs the stage 1 pipel
 
 **Why this priority**: Without a schema-valid `preprocess_output.json`, every downstream stage 1 workstream is blocked. This is the MVP slice that unblocks parallel work on extraction, routing, and evaluation. It is also the layer that gives stage 1 its evidence-first, schema-first foundation.
 
-**Independent Test**: Run preprocessing against a single easy-difficulty invoice PDF from `tests/stage1_vendor_identity/inv_XXX_easy/source.pdf`. Verify the command writes `preprocess_output.json` into that document's folder and that the validator (`python -m ledgerlinc_ocr.validator validate artifact preprocess_output`) accepts the artifact. No other stage 1 artifact is required for this test to pass.
+**Independent Test**: Run preprocessing against a single easy-difficulty invoice PDF from `tests/stage1_vendor_identity/inv_XXX_easy/source.pdf`. Verify the command writes `preprocess_output.json` into that document's folder and that the validator (`python -m dartwing_ocr.validator validate artifact preprocess_output`) accepts the artifact. No other stage 1 artifact is required for this test to pass.
 
 **Acceptance Scenarios**:
 
@@ -184,5 +184,5 @@ When a page contains tabular structure (e.g., a line-item grid on an invoice), p
 - All preprocessing work runs locally in the lightweight devcontainer (no cloud, no managed GPU requirement, no Ollama). Host Ollama is a later-slice dependency only — see FR-023 and `docs/stage1-vendor-identity/ollama-runtime.md`.
 - Per-page image files, if written at all, are treated as debug outputs and are not part of the contract; their presence or absence does not affect downstream correctness.
 - The evaluation harness, routing logic, extraction, and final payload assembly are owned by other slices and are not produced or modified by this work.
-- The repository's validator (`src/ledgerlinc_ocr/validator/`) is consumed by this slice but not modified. Any validator change (new checks, bug fixes, CLI additions) is a separate concern tracked under its own slice; this work may depend on the validator behaving per its current module-API contract but MUST NOT edit its code.
+- The repository's validator (`src/dartwing_ocr/validator/`) is consumed by this slice but not modified. Any validator change (new checks, bug fixes, CLI additions) is a separate concern tracked under its own slice; this work may depend on the validator behaving per its current module-API contract but MUST NOT edit its code.
 - The JSON examples shown in `docs/stage1-vendor-identity/schemas.md` are illustrative, not normative. When an example in `schemas.md` appears to conflict with the JSON Schema file at `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json`, the JSON Schema file wins. Only fields marked required in the schema are required in the artifact; fields that appear only in an example (e.g., illustrative extra keys) do not imply a requirement on this slice.

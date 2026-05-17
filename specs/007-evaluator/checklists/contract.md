@@ -16,7 +16,7 @@
 
 - [x] CHK005 Does the spec require `expected.json` to be schema-validated before evaluation begins? [Completeness, Spec §Edge Cases (Inputs missing or schema-invalid)]
 - [x] CHK006 Does the spec require `final_structured_payload.json` to be schema-validated before evaluation begins? [Completeness, Spec §Edge Cases]
-- [x] CHK007 Is the validator-reuse decision (evaluator imports `ledgerlinc_ocr.validator`; never re-implements) stated and traceable? [Traceability, research.md §15 / contracts/module-api.md §Stability guarantees]
+- [x] CHK007 Is the validator-reuse decision (evaluator imports `dartwing_ocr.validator`; never re-implements) stated and traceable? [Traceability, research.md §15 / contracts/module-api.md §Stability guarantees]
 - [x] CHK008 Is the "extra fields rejected by `additionalProperties:false`" behavior documented as a spec-level invariant rather than left implicit? [Clarity, Spec §Edge Cases]
 
 ## Output Schema Validation — Coverage

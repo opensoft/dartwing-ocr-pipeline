@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
-from ledgerlinc_ocr.preprocessing.cli import main as preprocess_main
+from dartwing_ocr.pipeline.exit_codes import ExitCode
+from dartwing_ocr.preprocessing.cli import main as preprocess_main
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +157,7 @@ def test_pipeline_cli_unknown_module_set_returns_exit_16(
 ) -> None:
     """Same fail-fast contract on the warm-corpus CLI's `run`
     subcommand."""
-    from ledgerlinc_ocr.pipeline.cli import main as pipeline_main
+    from dartwing_ocr.pipeline.cli import main as pipeline_main
 
     docs = tmp_path / "documents.txt"
     docs.write_text("dummy\n")  # content irrelevant — fail-fast happens before parsing

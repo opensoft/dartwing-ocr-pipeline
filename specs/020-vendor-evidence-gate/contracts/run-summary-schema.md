@@ -89,8 +89,8 @@ All four fields MUST be emitted on EVERY run of the new binary, including:
 - `ppstructurev3@gpu` runs (with or without the opt-in)
 - `ppstructurev3@cpu` runs (CPU profile)
 - Stub-adapter runs
-- Single-document runs via `python -m ledgerlinc_ocr.preprocessing`
-- Corpus runs via `python -m ledgerlinc_ocr.pipeline`
+- Single-document runs via `python -m dartwing_ocr.preprocessing`
+- Corpus runs via `python -m dartwing_ocr.pipeline`
 
 Absence of any of these four fields on a run of the new binary is itself a regression signal (SC-003 / MI-16 / MI-17 in `module-invariants.md`).
 
@@ -112,18 +112,20 @@ Each field is emitted regardless of whether the gate actually evaluated any docu
 
 ## Order of keys in `RunSummary.to_dict()`
 
-The emitted JSON key order is deterministic. After feature 020 lands:
+The emitted JSON key order is deterministic. The authoritative source is `pipeline/timing.py::RunSummary.to_dict()`; this section documents the order so a reader can verify by inspection. After feature 020 lands, the full ordered emission is:
 
 ```
-kind, schema_version, phase_timings, total_documents, total_pages, fail_fast,
-warn_lines, errors, exit_code,
+kind, schema_version, stack_preset, resolved_profiles, execution_slice, on_failure,
+documents_total, documents_succeeded, documents_failed,
+profile_initialization_seconds, per_document,
+preprocess_lane,
 module_set_id, det_rec_variant_id, ppstructure_modules_invoked,
 raster_profile_id, region_strategy_id, region_strategy_fallback_count,
 preprocess_strategy_id, ocr_only_fallback_count,
 evidence_gate_id, evidence_gate_state_counts, evidence_gate_documents, evidence_gate_suppressed_fallback_count
 ```
 
-(Order of feature 014–019 fields is illustrative; the exact prior order in `pipeline/timing.py::RunSummary.to_dict()` is the authoritative source and is not changed by this feature — only the four new fields are appended at the end.)
+The four new feature-020 fields are appended at the end; no pre-020 field is renamed, removed, or repositioned. Per-document records (inside `per_document`) and `phase_timings` continue to follow the feature-015 / feature-016 ordering rules established in those features' contracts.
 
 ---
 
@@ -157,8 +159,8 @@ The following features' surfaces are preserved byte-for-byte on a no-opt-in run:
 CPU-safe tests in `tests/pipeline_tests/`:
 
 1. `test_run_summary_schema_0_1_7.py` — asserts the bump from `"0.1.6"` to `"0.1.7"` and the presence of all four new fields on stub-adapter and CPU runs.
-2. `test_evidence_gate_corpus_run.py` — asserts that `evidence_gate_state_counts[s]` equals `count(evidence_gate_documents | .decision == s)` for each closed-vocabulary state.
-3. `test_legacy_byte_identity_evidence_gate.py` (CPU variant) — asserts feature 014–019 surface bytes are unchanged on a no-opt-in run.
+2. `test_evidence_gate_runsummary_aggregation.py` (synthetic RunSummary level) + `test_evidence_gate_pipeline_integration.py` (real on-disk wiring) — together assert that `evidence_gate_state_counts[s]` equals `count(evidence_gate_documents | .decision == s)` for each closed-vocabulary state.
+3. `test_legacy_byte_identity_evidence_gate.py` (CPU variant) — **lands on stacked PR #39 (US6)**, NOT on PR #38. Asserts feature 014–019 surface bytes are unchanged on a no-opt-in run. The byte-identity contract is enforced on PR #38 by `test_run_summary_schema_0_1_7.py::test_features_014_to_019_keys_byte_identical_to_baseline`, which value-parity-compares every pre-020 key against the captured `tests/fixtures/feature_020_baseline/run_summary_pre_020.json` baseline.
 
 GPU-marked tests (deferrable per R-020.15):
 

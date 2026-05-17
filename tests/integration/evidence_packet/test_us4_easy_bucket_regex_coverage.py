@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evidence_packet import assemble_from_preprocess
-from ledgerlinc_ocr.evidence_packet.regex_hints import (
+from dartwing_ocr.evidence_packet import assemble_from_preprocess
+from dartwing_ocr.evidence_packet.regex_hints import (
     EIN_RE,
     EMAIL_RE,
     URL_RE,

@@ -12,8 +12,8 @@ import sys
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.errors import UnknownPresetError
-from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
+from dartwing_ocr.preprocessing.errors import UnknownPresetError
+from dartwing_ocr.preprocessing.preprocess_strategies import (
     OCR_ONLY_MIN_CONFIDENCE_MEAN,
     OCR_ONLY_MIN_TOKEN_COUNT,
     PREPROCESS_STRATEGIES,
@@ -143,7 +143,7 @@ def test_module_load_is_paddle_import_safe(monkeypatch: pytest.MonkeyPatch) -> N
     # Reload the registry module — should still import cleanly
     import importlib
 
-    import ledgerlinc_ocr.preprocessing.preprocess_strategies as mod
+    import dartwing_ocr.preprocessing.preprocess_strategies as mod
 
     reloaded = importlib.reload(mod)
     assert set(reloaded.PREPROCESS_STRATEGIES.keys()) == {

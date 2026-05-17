@@ -29,7 +29,7 @@ def _run(
     argv: list[str], cwd: Path | None = None
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-m", "ledgerlinc_ocr.evaluator", *argv],
+        [sys.executable, "-m", "dartwing_ocr.evaluator", *argv],
         capture_output=True,
         text=True,
         cwd=cwd,

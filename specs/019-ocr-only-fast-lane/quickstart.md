@@ -14,7 +14,7 @@ The baseline path: a `ppstructurev3@gpu` run with no `--preprocess-strategy` fla
 # Single-doc, GPU lane (workstation .venv-paddle-rocm)
 rm -rf /tmp/ocr019-path1
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path1
-.venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+.venv-paddle-rocm/bin/python -m dartwing_ocr.preprocessing \
   --document-folder=/tmp/ocr019-path1 \
   --preprocess-profile=ppstructurev3@gpu \
   --source-file=source.pdf
@@ -40,7 +40,7 @@ The new candidate path. The CLI flag `--preprocess-strategy=ocr-only-v1` selects
 ```bash
 rm -rf /tmp/ocr019-path2
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path2
-.venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+.venv-paddle-rocm/bin/python -m dartwing_ocr.preprocessing \
   --document-folder=/tmp/ocr019-path2 \
   --preprocess-profile=ppstructurev3@gpu \
   --preprocess-strategy=ocr-only-v1 \
@@ -64,7 +64,7 @@ OCR-only composes orthogonally with `--region-strategy=header-first-v1`. The OCR
 ```bash
 rm -rf /tmp/ocr019-path3
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path3
-.venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+.venv-paddle-rocm/bin/python -m dartwing_ocr.preprocessing \
   --document-folder=/tmp/ocr019-path3 \
   --preprocess-profile=ppstructurev3@gpu \
   --preprocess-strategy=ocr-only-v1 \
@@ -85,7 +85,7 @@ Setting `--preprocess-strategy` on a non-GPU profile triggers the FR-013 warn-an
 ```bash
 rm -rf /tmp/ocr019-path4
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path4
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder=/tmp/ocr019-path4 \
   --preprocess-profile=ppstructurev3@cpu \
   --preprocess-strategy=ocr-only-v1 \
@@ -108,7 +108,7 @@ Setting `--preprocess-strategy` to an unknown value (typo or removed preset) fai
 ```bash
 rm -rf /tmp/ocr019-path5
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/ocr019-path5
-.venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+.venv-paddle-rocm/bin/python -m dartwing_ocr.preprocessing \
   --document-folder=/tmp/ocr019-path5 \
   --preprocess-profile=ppstructurev3@gpu \
   --preprocess-strategy=ocr-only-v99 \
@@ -129,7 +129,7 @@ A fixture chosen to trip the FR-005 combined trigger (token count below threshol
 ```bash
 rm -rf /tmp/ocr019-path6
 cp -R tests/stage1_vendor_identity/inv_017_missing_name /tmp/ocr019-path6
-.venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing \
+.venv-paddle-rocm/bin/python -m dartwing_ocr.preprocessing \
   --document-folder=/tmp/ocr019-path6 \
   --preprocess-profile=ppstructurev3@gpu \
   --preprocess-strategy=ocr-only-v1 \

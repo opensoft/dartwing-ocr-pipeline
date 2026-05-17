@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import numpy as np
 from PIL import Image
 
-from ledgerlinc_ocr.preprocessing import ocr
+from dartwing_ocr.preprocessing import ocr
 
 
 class _FakeEngine:

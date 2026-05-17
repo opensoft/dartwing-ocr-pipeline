@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evaluator import (
+from dartwing_ocr.evaluator import (
     ContractSetVersionMismatchError,
     DocumentIdMismatchError,
     ResultLabel,
@@ -41,7 +41,7 @@ def test_all_match_writes_schema_valid_output(tmp_path: Path) -> None:
     assert ev.document_pass_fail.vendor_identity_passed is True
     assert ev.document_pass_fail.review_routing_passed is True
     assert ev.document_pass_fail.overall_passed is True
-    assert ev.comparison_summary.field_accuracy == 1.0
+    assert ev.comparison_summary.field_accuracy == pytest.approx(1.0)
 
 
 def test_challenge_tags_propagate_verbatim(tmp_path: Path) -> None:
@@ -60,7 +60,7 @@ def test_challenge_tags_propagate_verbatim(tmp_path: Path) -> None:
 
 
 def test_field_results_ordered_by_scored_fields(tmp_path: Path) -> None:
-    from ledgerlinc_ocr.evaluator.scoring import SCORED_FIELDS
+    from dartwing_ocr.evaluator.scoring import SCORED_FIELDS
 
     folder = _copy_fixture(FIXTURES / "all_match", tmp_path)
     outcome = evaluate_document(folder)

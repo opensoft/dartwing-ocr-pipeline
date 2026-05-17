@@ -4,7 +4,7 @@
 
 This walkthrough exercises the four core paths the feature owns: cold-cache warmup, warm-cache warmup, CPU/stub warn-and-proceed, and warmup failure. Each path is independently runnable on the workstation; the cold-vs-warm comparison fills in SC-003's threshold (research R-016.3) and the actual workstation numbers land in **Appendix A** before merge.
 
-The walkthrough assumes you are inside the worktree at `/workspace/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline-worktrees/016-gpu-warmup-miopen-cache` and that feature 015's GPU lane is already working (`scripts/start-host-ollama-rocm-wsl.sh` runs cleanly; `.venv-paddle-rocm` exists; `paddlepaddle-dcu` imports without error).
+The walkthrough assumes you are inside the worktree at `/workspace/projects/dartwing/dartwing-ocr-pipeline-worktrees/016-gpu-warmup-miopen-cache` and that feature 015's GPU lane is already working (`scripts/start-host-ollama-rocm-wsl.sh` runs cleanly; `.venv-paddle-rocm` exists; `paddlepaddle-dcu` imports without error).
 
 ## 0. One-time environment
 
@@ -22,7 +22,7 @@ source .venv-paddle-rocm/bin/activate
 # export MIOPEN_LOG_LEVEL=2
 
 # Confirm Paddle GPU bind works (feature 014 preflight smoke-test).
-python -m ledgerlinc_ocr.preprocessing.preflight --device gpu:0
+python -m dartwing_ocr.preprocessing.preflight --device gpu:0
 # Expected: state=ppstructurev3_init_succeeded; exit code 0.
 ```
 
@@ -39,7 +39,7 @@ rm -rf "$HOME/.cache/miopen" "$HOME/.cache/comgr"
 rm -rf /tmp/inv_001_easy_cold
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_cold
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_cold \
   --preprocess-profile=ppstructurev3@gpu \
   --gpu-warmup \
@@ -49,7 +49,7 @@ python -m ledgerlinc_ocr.preprocessing \
 # Inspect run_summary.
 tail -1 /tmp/warmup_cold.stdout | jq '.per_document[0] | {phase_timings, per_page_inference}'
 # Warm-corpus equivalent:
-# python -m ledgerlinc_ocr.pipeline run ... | tail -1 | jq '.per_document[0] | {phase_timings, per_page_inference}'
+# python -m dartwing_ocr.pipeline run ... | tail -1 | jq '.per_document[0] | {phase_timings, per_page_inference}'
 ```
 
 Expected fragment of the first per-document run_summary entry:
@@ -83,7 +83,7 @@ Runs the same command in a fresh process WITHOUT clearing caches; warmup hits th
 rm -rf /tmp/inv_001_easy_warm
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_warm
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_warm \
   --preprocess-profile=ppstructurev3@gpu \
   --gpu-warmup \
@@ -104,7 +104,7 @@ sha256sum /tmp/inv_001_easy_warm/preprocess_output.json
 # Compare to a non-warmup run:
 rm -rf /tmp/inv_001_easy_no_warmup
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_no_warmup
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_no_warmup \
   --preprocess-profile=ppstructurev3@gpu \
   > /tmp/no-warmup.stdout \
@@ -124,7 +124,7 @@ rm -rf "$HOME/.cache/comgr"
 rm -rf /tmp/inv_001_easy_comgr_only
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_comgr_only
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_comgr_only \
   --preprocess-profile=ppstructurev3@gpu \
   --gpu-warmup \
@@ -143,7 +143,7 @@ Validates the FR-010 / SC-007 contract clarified per /speckit.clarify Q1.
 rm -rf /tmp/inv_001_easy_cpu_warmup
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_cpu_warmup
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_cpu_warmup \
   --preprocess-profile=ppstructurev3@cpu \
   --gpu-warmup \
@@ -154,7 +154,7 @@ python -m ledgerlinc_ocr.preprocessing \
 rm -rf /tmp/inv_001_easy_cpu_warmup_env
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_cpu_warmup_env
 
-LEDGERLINC_GPU_WARMUP=1 python -m ledgerlinc_ocr.preprocessing \
+DARTWING_GPU_WARMUP=1 python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_cpu_warmup_env \
   --preprocess-profile=ppstructurev3@cpu \
   > /tmp/cpu-warmup-envvar-check.stdout \

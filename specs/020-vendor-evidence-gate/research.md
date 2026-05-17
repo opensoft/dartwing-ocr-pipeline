@@ -6,7 +6,7 @@ This document records the decisions made in Phase 0 of `/speckit.plan` for featu
 
 ## R-020.1 — CLI flag name and env-var fallback for the skip-fallback opt-in
 
-**Decision**: A single boolean opt-in flag `--evidence-gate-skip-fallback` (off by default) on both `python -m ledgerlinc_ocr.preprocessing` and `python -m ledgerlinc_ocr.pipeline`, with env-var fallback `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`. Precedence: CLI wins when both are set; empty-string env = unset. Truthy values: `"1"`, `"true"`, `"yes"`, `"on"` (case-insensitive). Falsy values: `"0"`, `"false"`, `"no"`, `"off"`, `""`, unset. Any other value rejects with the same error path the existing `_PRESET_ENV_VAR` helpers use.
+**Decision**: A single boolean opt-in flag `--evidence-gate-skip-fallback` (off by default) on both `python -m dartwing_ocr.preprocessing` and `python -m dartwing_ocr.pipeline`, with env-var fallback `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK`. Precedence: CLI wins when both are set; empty-string env = unset. Truthy values: `"1"`, `"true"`, `"yes"`, `"on"` (case-insensitive). Falsy values: `"0"`, `"false"`, `"no"`, `"off"`, `""`, unset. Any other value rejects with the same error path the existing `_PRESET_ENV_VAR` helpers use.
 
 **Rationale**: Mirrors feature 016 `--gpu-warmup` / feature 017 `--module-set` / `--det-rec-variant` / feature 018 `--raster-profile` / `--region-strategy` / feature 019 `--preprocess-strategy` exactly. The CLI-wins-with-empty-string-env precedence keeps composition predictable when operators script the pipeline. Boolean opt-in (rather than a value-bearing preset axis) is correct here because the registry has size one at landing — there is no `--evidence-gate <id>` selection to make. The flag has exactly two states: opt-in active or not.
 
@@ -19,9 +19,11 @@ This document records the decisions made in Phase 0 of `/speckit.plan` for featu
 
 ## R-020.2 — `evidence_gate_id` closed vocabulary at landing
 
-**Decision**: One entry — `"v1"`. The codebase exposes a closed registry `EVIDENCE_GATES = {"v1": EvidenceGate(...)}` in `preprocessing/evidence_gate.py`. Future presets (`"v2"`, `"v3"`, ...) are added by code change with their own decision-table bodies and would land their own `--evidence-gate <id>` flag at that time. The active `evidence_gate_id` at landing time is the constant `EVIDENCE_GATE_ID_DEFAULT = EVIDENCE_GATE_ID_V1 = "v1"` exposed from `preprocessing/identifiers.py`.
+**Decision**: One entry — `"v1"`. The codebase exposes the gate preset as module-level constants in `preprocessing/evidence_gate.py` (`EVIDENCE_GATE_ID_V1`, `Y_THRESHOLD_FRACTION`, `DENSITY_THRESHOLD`, `CONFIDENCE_THRESHOLD`) plus a `decide_for_gate(gate_id, signals)` dispatch function that accepts only `"v1"` at landing and raises `KeyError` for any other id. Future presets (`"v2"`, `"v3"`, ...) are added by additive code change: a new `_v2_decide(signals)` function plus an additive branch in `decide_for_gate` / `evaluate_evidence_gate`, plus their own `--evidence-gate <id>` flag at that time. The active `evidence_gate_id` at landing is the constant `EVIDENCE_GATE_ID_DEFAULT = EVIDENCE_GATE_ID_V1 = "v1"` exposed from `preprocessing/identifiers.py`.
 
-**Rationale**: FR-005 requires the gate-rule body to be versioned and selectable via an `evidence_gate_id` preset. At landing time we ship exactly one preset; there is no selection mechanism to define yet. This matches feature 017's pattern of shipping `module_set_id ∈ {"original", "minimal-text-only"}` with a default that didn't change until promotion (R-017.3 / R-017.5). The registry shape is future-extensible (additive code change to add a new preset, additive `--evidence-gate <id>` flag added when there's a real selection to make).
+**B post-review note**: the original plan called for an `EvidenceGate` dataclass + `EVIDENCE_GATES = {"v1": EvidenceGate(...)}` registry. With registry size exactly one at landing, that dataclass + Callable indirection was scaffolding for a v2 that has no spec yet — collapsed to the flatter form above per the project constitution's "don't design for hypothetical future requirements" guidance. The R-020.2 extension contract (additive code change to land v2) is unchanged.
+
+**Rationale**: FR-005 requires the gate-rule body to be versioned and selectable via an `evidence_gate_id` preset. At landing time we ship exactly one preset; there is no selection mechanism to define yet. This matches feature 017's pattern of shipping `module_set_id ∈ {"original", "minimal-text-only"}` with a default that didn't change until promotion (R-017.3 / R-017.5). The dispatch shape is future-extensible (additive code change to add a new preset, additive `--evidence-gate <id>` flag added when there's a real selection to make).
 
 **Alternatives considered**:
 - Ship two presets at landing — a `"strict-v1"` and a `"lenient-v1"` (rejected: scope creep — Q4 already pins the page-1 header band, Q3 pins the run_summary surface; a second preset would require its own quality-gate evaluation per FR-016 with no additional value at landing).
@@ -36,13 +38,13 @@ This document records the decisions made in Phase 0 of `/speckit.plan` for featu
 
 | # | Signal | Type | Definition |
 |---|---|---|---|
-| 1 | `vendor_name_candidate_count` | `int` | Count of tokens in the page-1 header band that match the vendor-name-candidate heuristic: (a) at least two characters long AND (b) starts with an uppercase letter OR is title-case OR is all-caps AND (c) is not a pure number AND (d) is not in the small stop-word set `{"INVOICE", "BILL", "TAX", "DATE", "PAGE", "NUMBER", "TOTAL", "AMOUNT", "DUE", "PAYMENT", "FROM", "TO"}` (case-insensitive). Token boundaries are whitespace-separated within the recognized text strings emitted on each block/box. |
+| 1 | `vendor_name_candidate_count` | `int` | Count of tokens in the page-1 header band that match the vendor-name-candidate heuristic: (a) the alpha-only projection is at least two characters long AND (b) starts with an uppercase letter OR is title-case OR is all-caps AND (c) the raw token is not pure digits AND (d) the alpha-only upper-cased projection is not in the stop-word set. **Stop-word set** (case-insensitive comparison against the punctuation-stripped projection — see `data-model.md §8` for the source listing): invoice-header labels (`INVOICE`, `BILL`, `TAX`, `DATE`, `PAGE`, `NUMBER`, `TOTAL`, `AMOUNT`, `DUE`, `PAYMENT`, `FROM`, `TO`), tax-ID label tokens (`EIN`, `VAT`), and business-entity suffix tokens (`LLC`, `INC`, `INCORPORATED`, `LTD`, `LIMITED`, `GMBH`, `CORP`, `CORPORATION`, `CO`, `SA`, `SAS`) — the suffixes are excluded here to avoid double-counting evidence already captured by `business_suffix_present`. Token boundaries are whitespace-separated within the recognized text strings emitted on each block/box. |
 | 2 | `header_band_token_density` | `int` | Total count of non-whitespace tokens in the page-1 header band, where tokenization is whitespace-based on the recognized text strings emitted on each block/box. |
 | 3 | `ocr_detection_confidence_mean` | `float` (range `[0.0, 1.0]`, `0.0` when the band is empty) | Arithmetic mean of `confidence` values across all detection boxes whose y-coordinate falls in the page-1 header band. |
 | 4 | `business_suffix_present` | `bool` | `True` if any token in the page-1 header band matches the business-suffix regex (R-020.4) after case-folding. |
 | 5 | `tax_id_shaped_present` | `bool` | `True` if any token in the page-1 header band matches the EIN regex OR the VAT regex (R-020.4). |
 
-All five values are computed by `EvidenceGate.evaluate(preprocess_output_dict, *, y_threshold_fraction=0.25)` in a single deterministic pass over the file's `pages[0]` content. Tokenization is whitespace-based with NFKC Unicode normalization applied to the recognized text before tokenizing (consistent across platforms and locales). Empty band ⇒ `vendor_name_candidate_count=0`, `header_band_token_density=0`, `ocr_detection_confidence_mean=0.0`, `business_suffix_present=False`, `tax_id_shaped_present=False`.
+All five values are computed by `evaluate_evidence_gate(preprocess_output_dict, *, gate_id="v1")` (which in turn calls `compute_five_signals` with `y_threshold_fraction=0.25` per the v1 preset's pinned value) in a single deterministic pass over the file's `pages[0]` content. Tokenization is whitespace-based with NFKC Unicode normalization applied to the recognized text before tokenizing (consistent across platforms and locales). Empty band ⇒ `vendor_name_candidate_count=0`, `header_band_token_density=0`, `ocr_detection_confidence_mean=0.0`, `business_suffix_present=False`, `tax_id_shaped_present=False`.
 
 **Rationale**: This is the minimal set required by FR-001's floor plus the two clarify-pinned presence signals (Clarifications Q2). The three numeric signals give content-density and confidence inputs; the two boolean signals give high-precision structural-evidence inputs. The vendor-name-candidate heuristic is deliberately conservative (uppercase / title-case + stop-word exclusion) to avoid false positives on noise tokens. The confidence-mean is the same aggregation feature 019 uses for its FR-005 trigger (R-019.6), which keeps the math consistent across the two surfaces (one operator-facing gate decision, one preprocessing-time fallback trigger).
 
@@ -59,20 +61,29 @@ All five values are computed by `EvidenceGate.evaluate(preprocess_output_dict, *
 
 ```python
 BUSINESS_SUFFIX_RE = re.compile(
-    r"(?i)\b(LLC|Inc|Incorporated|Ltd|Limited|GmbH|S\.A\.|S\.A\.S\.|Corp|Corporation|Co\.)\b"
+    r"(?i)\b(LLC|Incorporated|Inc|Limited|Ltd|GmbH|S\.A\.S\.|S\.A\.|Corporation|Corp|Co\.)(?![\w-])"
 )
-TAX_ID_EIN_RE = re.compile(r"\b\d{2}-\d{7}\b")
-TAX_ID_VAT_RE = re.compile(r"\b[A-Z]{2}[A-Z0-9]{2,12}\b")
+TAX_ID_EIN_RE = re.compile(r"(?<![\w-])\d{2}-\d{7}(?![\w-])")
+TAX_ID_VAT_RE = re.compile(
+    r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"
+)
 ```
 
-`business_suffix_present` matches against `BUSINESS_SUFFIX_RE`. `tax_id_shaped_present` matches against `TAX_ID_EIN_RE` OR `TAX_ID_VAT_RE`. Matching is whole-token only (the `\b` boundary handles this); the `\.` escapes prevent dot-class wildcards. Patterns are case-insensitive only for the business-suffix list (legitimately variant cased in invoices — `inc.` / `Inc.` / `INC.`); tax-id patterns are case-sensitive because EIN is numeric and VAT is conventionally uppercase.
+`business_suffix_present` matches against `BUSINESS_SUFFIX_RE`. `tax_id_shaped_present` matches against `TAX_ID_EIN_RE` OR `TAX_ID_VAT_RE`. Matching is whole-token only; the `\.` escapes prevent dot-class wildcards. Patterns are case-insensitive only for the business-suffix list (legitimately variant cased in invoices — `inc.` / `Inc.` / `INC.`); tax-id patterns are case-sensitive because EIN is numeric and VAT is conventionally uppercase.
 
-**Rationale**: These patterns are deterministic, locally-evaluable, and capture the most common vendor-identity tokens without requiring NLP. The `S.A.` and `S.A.S.` patterns intentionally include French/Spanish entity types since the corpus may contain non-US invoices. VAT patterns are conservative — they match the EU canonical shape (`[A-Z]{2}` country prefix + alphanumeric body); they will produce some false positives on order numbers, but that's acceptable for a presence signal feeding a residual `borderline` decision.
+`BUSINESS_SUFFIX_RE` uses `\b...(?![\w-])` rather than `\b...\b` so suffixes ending in `.` (Co. / S.A. / S.A.S.) still match when they sit at end-of-string while rejecting hyphenated compounds like `Inc-related` / `Incorporated-by-reference` (the hyphen exclusion in the trailing lookahead — A1 / Phase 4 post-review). Longer alternatives (`Incorporated` / `Limited` / `S.A.S.` / `Corporation`) are listed before their shorter prefixes so the regex engine commits to the longer match first.
+
+`TAX_ID_EIN_RE` uses `(?<![\w-])` / `(?![\w-])` rather than `\b` boundaries so tokens like `12-3456789-extra` do NOT partial-match the EIN shape (Phase 6 post-review tightening). The `\b` form treats the `-` after the 7-digit run as a word/non-word transition and fires, producing a false 9-character match.
+
+`TAX_ID_VAT_RE` requires **at least one digit** in the alphanumeric run (the `(?=[A-Z0-9]{2,12}\b)` lookahead pins the overall length, then `[A-Z0-9]*\d[A-Z0-9]*` requires a digit somewhere). The prior pattern `\b[A-Z]{2}[A-Z0-9]{2,12}\b` matched common all-letter invoice header words (`INVOICE`, `PAYMENT`, `NUMBER`, `BALANCE`, `RECEIPT`, ...) and inflated `tax_id_shaped_present` on virtually every invoice — a correctness bug surfaced during review (B2).
+
+**Rationale**: These patterns are deterministic, locally-evaluable, and capture the most common vendor-identity tokens without requiring NLP. The `S.A.` and `S.A.S.` patterns intentionally include French/Spanish entity types since the corpus may contain non-US invoices. The VAT pattern is conservative — it matches the EU canonical shape (`[A-Z]{2}` country prefix + alphanumeric body containing at least one digit); it will produce some false positives on order numbers that begin with two letters and contain a digit, but that's acceptable for a presence signal feeding a residual `borderline` decision.
 
 **Alternatives considered**:
 - `(?i)` on the tax-id patterns (rejected: EIN is numeric, no case variation possible; VAT inflates false positives without case anchoring).
-- Use word-boundary lookarounds instead of `\b` (rejected: adds regex complexity without precision gain).
+- Use word-boundary lookarounds for `BUSINESS_SUFFIX_RE` start as well (rejected: `\b` at the start works correctly because suffix tokens start with a letter; only the end boundary needed the lookahead-style fix).
 - Add UK-specific NI numbers / SSN-shaped patterns (rejected: PII risk and not needed for vendor-identity; SSN-shaped patterns would actually FAIL the test corpus per the PII screening checklist in `labeling-guide.md`).
+- Drop the digit requirement in `TAX_ID_VAT_RE` and rely on a stop-word allow-list (rejected: the false-positive corpus is open-ended — `INVOICE`/`PAYMENT`/`NUMBER`/`BALANCE`/`SUBTOTAL`/`QUANTITY`/`DESCRIPTION` is incomplete and would drift with every new locale).
 
 ---
 
@@ -82,7 +93,7 @@ TAX_ID_VAT_RE = re.compile(r"\b[A-Z]{2}[A-Z0-9]{2,12}\b")
 - it belongs to `pages[0]` (zero-indexed page 1), AND
 - its bbox top y-coordinate (after normalization to fraction-of-page-height) is strictly less than `Y_THRESHOLD_FRACTION = 0.25` of `pages[0].height_pt`.
 
-The y-fraction comparison is `bbox_top_y / page_height < 0.25`. The default threshold `0.25` is a module-level constant `Y_THRESHOLD_FRACTION = 0.25`; the value is plan-time pinned but kept as a named constant so a future preset (`v2`) can adjust it via a new `EvidenceGate` entry. The coordinate origin convention follows `preprocess_output.json` schema: top-left origin, y increases downward, units `pt` (PDF points).
+The y-fraction comparison is `bbox_top_y / page_height < 0.25`. The default threshold `0.25` is a module-level constant `Y_THRESHOLD_FRACTION = 0.25`; the value is plan-time pinned but kept as a named constant so a future preset (`v2`) can adjust it via an additive `_v2_decide` branch that reads from a new module-level constant. The coordinate origin convention follows `preprocess_output.json` schema: top-left origin, y increases downward, units `pt` (PDF points).
 
 Multi-page documents: tokens on `pages[1..N]` are NOT considered by any of the five signals. If a document has only one page, the band is the top quarter of that page. If `pages[0]` is empty (zero blocks/boxes), the band is empty and all five signals reach their negative level (per R-020.3).
 
@@ -344,11 +355,11 @@ Cold-cache runs (e.g., after `~/.cache/miopen` clearance per feature 016 operato
 | `DENSITY_THRESHOLD` | `8` | R-020.6 | `preprocessing/evidence_gate.py` module level |
 | `CONFIDENCE_THRESHOLD` | `0.70` | R-020.6 | `preprocessing/evidence_gate.py` module level |
 | `BUSINESS_SUFFIX_RE` | per R-020.4 | R-020.4 | `preprocessing/evidence_gate.py` module level |
-| `TAX_ID_EIN_RE` | `r"\b\d{2}-\d{7}\b"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
-| `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}[A-Z0-9]{2,12}\b"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
+| `TAX_ID_EIN_RE` | `r"(?<![\w-])\d{2}-\d{7}(?![\w-])"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
+| `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
 | `EVIDENCE_GATE_ID_V1` | `"v1"` | R-020.2 | `preprocessing/identifiers.py` module level |
 | `EVIDENCE_GATE_ID_DEFAULT` | `EVIDENCE_GATE_ID_V1` | R-020.2 | `preprocessing/identifiers.py` module level |
-| `EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR` | `"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK"` | R-020.1 | `preprocessing/evidence_gate_optin.py` module level |
+| `EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR` | `"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK"` | R-020.1 | `preprocessing/evidence_gate_optin.py` module level |
 | `SCHEMA_VERSION` (RunSummary) | `"0.1.7"` (bumped from `"0.1.6"`) | R-020.9 | `pipeline/timing.py` |
 
 ## Appendix B — Quality-gate evidence (filled at landing)

@@ -15,7 +15,7 @@ Inside the devcontainer (or any Python 3.12 environment):
 pip install -e .
 ```
 
-This installs `ledgerlinc_ocr` with both the validator and the pipeline CLI.
+This installs `dartwing_ocr` with both the validator and the pipeline CLI.
 
 ## 2. Run one PDF (developer path)
 
@@ -27,7 +27,7 @@ mkdir -p /tmp/inv_001_easy
 cp tests/stage1_vendor_identity/inv_001_easy/source.pdf /tmp/inv_001_easy/
 
 # Run the pipeline
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder /tmp/inv_001_easy
 ```
 
@@ -50,7 +50,7 @@ ls /tmp/inv_001_easy/
 
 ```bash
 mkdir -p /tmp/my_output
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --input ~/invoices/acme-invoice.pdf \
     --output-dir /tmp/my_output \
     --document-id acme_001
@@ -64,7 +64,7 @@ When using `--input`, `--document-id` is required if the output folder name does
 CORPUS=tests/stage1_vendor_identity
 
 for folder in "$CORPUS"/inv_*; do
-    python -m ledgerlinc_ocr.pipeline run \
+    python -m dartwing_ocr.pipeline run \
         --document-folder "$folder" \
         --overwrite \
         2>/dev/null
@@ -78,7 +78,7 @@ Each invocation writes four artifacts into the document folder. The harness read
 On failure, the CLI prints a structured JSON line to stderr:
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder /tmp/nonexistent 2>&1 >/dev/null | jq .
 ```
 
@@ -97,7 +97,7 @@ The exit code tells you the failure category; the `stage` field tells you where 
 ## 6. Check exit codes programmatically
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --overwrite
 rc=$?
@@ -120,10 +120,10 @@ esac
 ```bash
 # Via environment variable (preferred for harness/CI)
 OLLAMA_BASE_URL=http://192.168.1.100:11434 \
-    python -m ledgerlinc_ocr.pipeline run --document-folder /tmp/inv_001_easy
+    python -m dartwing_ocr.pipeline run --document-folder /tmp/inv_001_easy
 
 # Via CLI flag (one-off override)
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder /tmp/inv_001_easy \
     --ollama-url http://192.168.1.100:11434
 ```
@@ -133,7 +133,7 @@ python -m ledgerlinc_ocr.pipeline run \
 After a pipeline run, use the existing validator to independently confirm schema compliance:
 
 ```bash
-python -m ledgerlinc_ocr.validator validate folder /tmp/inv_001_easy --json
+python -m dartwing_ocr.validator validate folder /tmp/inv_001_easy --json
 ```
 
 The pipeline CLI already performs post-hoc validation internally (exit code 30 on failure), but the validator is available as an independent check.

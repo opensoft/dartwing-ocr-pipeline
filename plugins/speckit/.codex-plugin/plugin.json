@@ -6,8 +6,8 @@
     "name": "Opensoft",
     "url": "https://github.com/opensoft"
   },
-  "homepage": "https://github.com/opensoft/ledgerlinc-model-ocr-pipeline",
-  "repository": "https://github.com/opensoft/ledgerlinc-model-ocr-pipeline",
+  "homepage": "https://github.com/opensoft/dartwing-ocr-pipeline",
+  "repository": "https://github.com/opensoft/dartwing-ocr-pipeline",
   "license": "MIT",
   "keywords": [
     "speckit",
@@ -28,7 +28,7 @@
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/opensoft/ledgerlinc-model-ocr-pipeline",
+    "websiteURL": "https://github.com/opensoft/dartwing-ocr-pipeline",
     "defaultPrompt": [
       "Run /speckit.specify to draft a new feature spec",
       "Run /speckit.plan to create an implementation plan",

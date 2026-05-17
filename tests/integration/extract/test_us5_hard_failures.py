@@ -10,7 +10,7 @@ import httpx
 import pytest
 import yaml
 
-from ledgerlinc_ocr.extract.cli import main as extract_main
+from dartwing_ocr.extract.cli import main as extract_main
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _FIX_ROOT = _REPO_ROOT / "tests" / "fixtures" / "extract"

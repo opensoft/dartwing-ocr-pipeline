@@ -49,7 +49,7 @@ The feature specification's Clarifications section already resolved the five use
   - Type, nullability, required-field, enum (including `decision`, `difficulty`, per-field result values, `challenge_tags` closed vocabulary, reserved tax-ID types, consensus mode).
   - Conditional-within-artifact rules via `if` / `then` / `else`, `dependentRequired`, `dependentSchemas`. Example: inside `routing_decision`, require `review_reason` to be non-null when `manual_review_required = true` (FR-017) — expressed as `if: {properties: {review_status: {properties: {manual_review_required: {const: true}}}}}, then: {properties: {review_status: {properties: {review_reason: {type: string}}}}}`.
   - Stable-identifier patterns for block/OCR-line IDs (FR-008) via `pattern` on strings.
-- **Tier 2 — Python-code rules (in `src/ledgerlinc_ocr/validator/cross_artifact.py`)**: rules that span multiple artifacts or require comparing file contents.
+- **Tier 2 — Python-code rules (in `src/dartwing_ocr/validator/cross_artifact.py`)**: rules that span multiple artifacts or require comparing file contents.
   - Company-name provenance triad across `expected`, `edge_extraction_output`, `routing_decision`, `final_structured_payload` (FR-035, SC-004).
   - `evaluation_run_summary.document_count` equals `len(documents)` (edge case #9).
   - Evidence-reference consistency: every `evidence` ID in `edge_extraction_output` must resolve to a block or OCR line ID in `preprocess_output` (FR-008 forward compatibility).
@@ -91,7 +91,7 @@ The feature specification's Clarifications section already resolved the five use
 
 ## R5. Validator CLI packaging and invocation
 
-**Decision**: Expose the validator as `python -m ledgerlinc_ocr.validator` with subcommands. No installed console script for stage 1 (can be added later via `pyproject.toml` without breaking anything).
+**Decision**: Expose the validator as `python -m dartwing_ocr.validator` with subcommands. No installed console script for stage 1 (can be added later via `pyproject.toml` without breaking anything).
 
 Subcommands:
 - `validate artifact <path> --contract <name> [--contract-set-version <ver>]`
@@ -151,7 +151,7 @@ SC-007 caps the effort at under one working day of focused effort and requires t
 
 ## R8. Python packaging for this slice
 
-**Decision**: Add a minimal `pyproject.toml` at repo root declaring the `ledgerlinc_ocr` package under `src/`, plus `jsonschema`, `pydantic`, and `pytest` as dependencies. Keep `requirements.txt` for backward compatibility with the existing prototype script (`step2_ocr_ensemble.py`), but the validator's install path is `pip install -e .` inside the devcontainer.
+**Decision**: Add a minimal `pyproject.toml` at repo root declaring the `dartwing_ocr` package under `src/`, plus `jsonschema`, `pydantic`, and `pytest` as dependencies. Keep `requirements.txt` for backward compatibility with the existing prototype script (`step2_ocr_ensemble.py`), but the validator's install path is `pip install -e .` inside the devcontainer.
 
 **Rationale**: The implementation plan calls for the repo to become a Python module, not just a loose script. Starting `pyproject.toml` now avoids a bigger restructure later. The validator has narrow dependencies and does not pull in PaddleOCR/PyTorch.
 

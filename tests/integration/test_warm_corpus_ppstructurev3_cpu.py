@@ -25,7 +25,7 @@ CORPUS_ROOT = REPO_ROOT / "tests" / "stage1_vendor_identity"
 @pytest.fixture(autouse=True)
 def opt_in_live_ppstructurev3():
     """Ensure the live ppstructurev3@cpu adapter is registered for this test."""
-    from ledgerlinc_ocr.pipeline import stages as stages_mod
+    from dartwing_ocr.pipeline import stages as stages_mod
 
     stages_mod.register_ppstructurev3_cpu()
     try:
@@ -66,7 +66,7 @@ def test_warm_corpus_ppstructurev3_cpu_init_once_sc009(
     capsys: pytest.CaptureFixture[str],
 ):
     """SC-009 + SC-010: PPStructureV3 init exactly once across N documents."""
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     docs_file, folders = warm_corpus_three_documents
     code = main([
@@ -120,8 +120,8 @@ def test_warm_corpus_validator_folder_passes_post_run(
     """C1: folder-contract validation passes after a warm-corpus run, so
     no unexpected files appeared beyond the four canonical artifacts.
     """
-    from ledgerlinc_ocr.pipeline.cli import main
-    from ledgerlinc_ocr.validator.folder import validate_folder
+    from dartwing_ocr.pipeline.cli import main
+    from dartwing_ocr.validator.folder import validate_folder
 
     docs_file, folders = warm_corpus_three_documents
     code = main([

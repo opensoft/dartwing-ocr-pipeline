@@ -1,7 +1,7 @@
 # Run-Summary Schema: OCR-Only Fast Lane For Vendor Identity
 
 **Feature**: 019-ocr-only-fast-lane
-**Applies to**: `kind: "run_summary"` JSON object emitted on stdout by `python -m ledgerlinc_ocr.preprocessing` and `python -m ledgerlinc_ocr.pipeline`
+**Applies to**: `kind: "run_summary"` JSON object emitted on stdout by `python -m dartwing_ocr.preprocessing` and `python -m dartwing_ocr.pipeline`
 **Decision source**: research.md R-019.14; spec FR-007, FR-008, FR-009, FR-010, FR-022; /speckit.clarify Session 2026-05-11.
 
 ## 1. Schema version

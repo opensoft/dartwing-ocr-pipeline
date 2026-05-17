@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.validator import ValidationOutcome, validate_artifact
-from ledgerlinc_ocr.validator.report import ArtifactName, ViolationCode
+from dartwing_ocr.validator import ValidationOutcome, validate_artifact
+from dartwing_ocr.validator.report import ArtifactName, ViolationCode
 
 PIPELINE_ARTIFACTS = [
     ArtifactName.PREPROCESS_OUTPUT,

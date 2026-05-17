@@ -9,7 +9,7 @@ default-value assertions live in ``test_run_summary_schema_0_1_7.py``.
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.pipeline.timing import RunSummary
+from dartwing_ocr.pipeline.timing import RunSummary
 
 
 def test_exact_four_field_order() -> None:

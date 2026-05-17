@@ -4,7 +4,7 @@
 **Date**: 2026-05-06
 
 This feature touches three CLI surfaces. Two already exist
-(`ledgerlinc-preprocess`, `ledgerlinc-pipeline`) and gain additive
+(`dartwing-preprocess`, `dartwing-pipeline`) and gain additive
 behavior. One is new: the preflight CLI.
 
 ---
@@ -14,7 +14,7 @@ behavior. One is new: the preflight CLI.
 ### Invocation
 
 ```bash
-python -m ledgerlinc_ocr.preprocessing.preflight [--no-init] [--quiet]
+python -m dartwing_ocr.preprocessing.preflight [--no-init] [--quiet]
 ```
 
 The package install (e.g. `pip install -e .`) is the only prerequisite
@@ -164,11 +164,11 @@ Two consecutive runs with the same environment MUST produce the same
 
 ---
 
-## 2. `ledgerlinc-preprocess` and `ledgerlinc-pipeline` (EXTENDED)
+## 2. `dartwing-preprocess` and `dartwing-pipeline` (EXTENDED)
 
 ### Profile vocabulary additions
 
-`src/ledgerlinc_ocr/pipeline/profiles.py::SUPPORTED_PROFILES` adds:
+`src/dartwing_ocr/pipeline/profiles.py::SUPPORTED_PROFILES` adds:
 
 ```python
 ("preprocess", "ppstructurev3", "gpu"),
@@ -186,10 +186,10 @@ introduced. Selecting the GPU profile in either single-document or
 warm-corpus mode is identical from the CLI's perspective:
 
 ```bash
-ledgerlinc-preprocess  --input <pdf> --client-id <id> \
+dartwing-preprocess  --input <pdf> --client-id <id> \
     --preprocess-profile ppstructurev3@gpu  ...
 
-ledgerlinc-pipeline --documents-file <file> \
+dartwing-pipeline --documents-file <file> \
     --preprocess-profile ppstructurev3@gpu  ...
 ```
 
@@ -197,7 +197,7 @@ ledgerlinc-pipeline --documents-file <file> \
 
 Before writing the first artifact for the first document with the GPU
 lane selected, the pipeline MUST call
-`ledgerlinc_ocr.preprocessing.preflight.classify(attempt_ppstructurev3_init=True)`
+`dartwing_ocr.preprocessing.preflight.classify(attempt_ppstructurev3_init=True)`
 exactly once per process and check `state ==
 PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED`. On any other state:
 
@@ -278,7 +278,7 @@ PPStructureV3 GPU construction cost on first use, recorded once on
 the first per-document entry where the singleton was constructed,
 and absent from every subsequent `per_document[1..N]` entry in the
 same run (analyze finding RR13 gloss). Each `python -m
-ledgerlinc_ocr.pipeline …` invocation is a **new Python process**
+dartwing_ocr.pipeline …` invocation is a **new Python process**
 with its own `_ENGINE` singleton; if a run aborts (FR-010 forced
 abort, signal, crash) and the operator re-runs after fixing the
 underlying issue, the new process measures and emits

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.failure_policy import (
+from dartwing_ocr.pipeline.failure_policy import (
     ACCEPTED_MODES,
     FailurePolicy,
     FailurePolicyError,
@@ -56,7 +56,7 @@ def test_argparse_does_not_block_case_insensitive_input():
     """Copilot review item 11: --on-failure must reach parse_on_failure
     regardless of casing/whitespace, so tolerant parsing applies.
     """
-    from ledgerlinc_ocr.pipeline.cli import _build_parser
+    from dartwing_ocr.pipeline.cli import _build_parser
 
     parser = _build_parser()
     # ``Continue`` (capitalized) is rejected by the old argparse choices

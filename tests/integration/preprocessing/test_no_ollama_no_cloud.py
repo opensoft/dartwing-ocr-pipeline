@@ -21,7 +21,7 @@ pytest.importorskip("pytest_socket")
 
 from pytest_socket import disable_socket, enable_socket  # noqa: E402
 
-from ledgerlinc_ocr.preprocessing import pipeline  # noqa: E402
+from dartwing_ocr.preprocessing import pipeline  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 FIXTURE_ROOT = HERE.parents[1] / "fixtures" / "preprocessing"

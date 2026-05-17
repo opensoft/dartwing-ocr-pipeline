@@ -1,73 +1,80 @@
 """Feature 020 / T016 / R-020.2 / MI-25 / MI-26: closed-vocabulary
 preset-registry tests.
 
+After H2 cleanup (post-review): the one-element ``EvidenceGate`` dataclass
++ ``EVIDENCE_GATES`` dict was collapsed. The remaining preset surface is:
+
+- a single module-level ``EVIDENCE_GATE_ID_V1`` constant + the matching
+  ``EVIDENCE_GATE_ID_DEFAULT`` identifier
+- thresholds at module level (``Y_THRESHOLD_FRACTION``,
+  ``DENSITY_THRESHOLD``, ``CONFIDENCE_THRESHOLD``)
+- ``decide_for_gate(gate_id, signals)`` as the named-dispatch hook
+  (R-020.2 future-additive extensibility) + ``evaluate_evidence_gate``
+  that rejects unknown ids
+
 Asserts:
 
-- ``EVIDENCE_GATES`` contains exactly one entry at landing: ``"v1"`` (MI-25).
-- ``EvidenceGate.decide`` returns only the three closed-vocabulary literals
-  ``"sufficient"`` / ``"borderline"`` / ``"insufficient"`` (MI-26).
-- Module-level constants ``EVIDENCE_GATE_ID_V1`` and
-  ``EVIDENCE_GATE_ID_DEFAULT`` are wired to the registry's only entry.
-- Re-importing the module produces the same registry contents
-  (deterministic at module load).
+- ``evaluate_evidence_gate`` accepts only ``"v1"`` (MI-25 closed-vocabulary
+  size 1).
+- ``decide_for_gate`` returns only the three closed-vocabulary literals
+  (MI-26).
+- ``decide_for_gate`` rejects unknown gate ids — no fallthrough.
+- Module-level constants match the documented landing values.
+- Re-importing the module is deterministic.
 """
 
 from __future__ import annotations
 
-import importlib
+from itertools import product
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     CONFIDENCE_THRESHOLD,
     DENSITY_THRESHOLD,
-    EVIDENCE_GATES,
-    EvidenceGate,
+    EVIDENCE_GATE_ID_V1,
     FiveSignalSet,
     Y_THRESHOLD_FRACTION,
+    decide_for_gate,
+    evaluate_evidence_gate,
 )
-from ledgerlinc_ocr.preprocessing.identifiers import (
+from dartwing_ocr.preprocessing.identifiers import (
     EVIDENCE_GATE_ID_DEFAULT,
-    EVIDENCE_GATE_ID_V1,
 )
 
 
-def test_registry_size_at_landing_is_one() -> None:
-    """At landing, the closed-vocabulary registry has exactly one entry."""
-    assert len(EVIDENCE_GATES) == 1
+def test_only_v1_gate_id_is_accepted() -> None:
+    """At landing, ``"v1"`` is the only valid evidence_gate_id (MI-25)."""
+    preprocess_output = {"pages": []}
+    result = evaluate_evidence_gate(preprocess_output, gate_id="v1")
+    assert result.evidence_gate_id == "v1"
 
 
-def test_registry_only_key_is_v1() -> None:
-    """The only valid `evidence_gate_id` at landing is `"v1"`."""
-    assert set(EVIDENCE_GATES.keys()) == {"v1"}
+def test_unknown_gate_id_rejected() -> None:
+    """Unknown gate ids raise — no silent fallthrough to v1 (R-020.2)."""
+    with pytest.raises(KeyError):
+        evaluate_evidence_gate({"pages": []}, gate_id="v2")
+    with pytest.raises(KeyError):
+        decide_for_gate("v2", FiveSignalSet(0, 0, 0.0, False, False))
 
 
-def test_v1_preset_is_evidence_gate_instance() -> None:
-    """Registry value is an ``EvidenceGate`` (frozen) instance."""
-    preset = EVIDENCE_GATES["v1"]
-    assert isinstance(preset, EvidenceGate)
-
-
-def test_v1_preset_id_matches_constant() -> None:
-    """``EVIDENCE_GATES['v1'].evidence_gate_id == "v1"`` consistency."""
-    assert EVIDENCE_GATES["v1"].evidence_gate_id == EVIDENCE_GATE_ID_V1
+def test_v1_id_constant_matches_default() -> None:
+    """``EVIDENCE_GATE_ID_V1`` is the default and equals ``"v1"``."""
     assert EVIDENCE_GATE_ID_V1 == "v1"
     assert EVIDENCE_GATE_ID_DEFAULT == EVIDENCE_GATE_ID_V1
 
 
-def test_v1_preset_thresholds_pinned() -> None:
-    """Module-level constants match the v1 preset's thresholds (R-020.5 / R-020.6)."""
-    preset = EVIDENCE_GATES["v1"]
-    assert preset.y_threshold_fraction == Y_THRESHOLD_FRACTION == 0.25
-    assert preset.density_threshold == DENSITY_THRESHOLD == 8
-    assert preset.confidence_threshold == CONFIDENCE_THRESHOLD == 0.70
+def test_threshold_constants_pinned() -> None:
+    """Module-level thresholds match the v1 preset's documented values
+    (R-020.5 / R-020.6)."""
+    assert Y_THRESHOLD_FRACTION == 0.25
+    assert DENSITY_THRESHOLD == 8
+    assert CONFIDENCE_THRESHOLD == 0.70
 
 
-def test_decide_returns_closed_vocabulary(
-) -> None:
-    """``EvidenceGate.decide`` returns only the three closed-vocabulary
+def test_decide_returns_closed_vocabulary() -> None:
+    """``decide_for_gate("v1", ...)`` returns only the three closed-vocabulary
     literals (MI-26). Exhaustive across the 32-row truth table."""
-    from itertools import product
     closed_vocab = {"sufficient", "borderline", "insufficient"}
     for has_name, has_density, has_confidence, has_suffix, has_tax_id in product(
         [True, False], repeat=5
@@ -79,28 +86,28 @@ def test_decide_returns_closed_vocabulary(
             business_suffix_present=has_suffix,
             tax_id_shaped_present=has_tax_id,
         )
-        decision = EVIDENCE_GATES["v1"].decide(signals)
+        decision = decide_for_gate("v1", signals)
         assert decision in closed_vocab, (
             f"v1 decide returned non-vocabulary value {decision!r} "
             f"on {signals!r}"
         )
 
 
-def test_registry_is_immutable_evidence_gate_instances_frozen() -> None:
-    """The ``EvidenceGate`` dataclass is frozen — mutating its fields raises
-    ``FrozenInstanceError`` (MI-8 / data-model.md §1)."""
-    from dataclasses import FrozenInstanceError
-    preset = EVIDENCE_GATES["v1"]
-    with pytest.raises(FrozenInstanceError):
-        preset.y_threshold_fraction = 0.5  # type: ignore[misc]
+def test_module_constants_are_deterministic() -> None:
+    """Module constants are deterministic at import time — no random
+    state, no env-var influence on the values.
 
-
-def test_module_reload_produces_same_registry() -> None:
-    """Re-importing ``evidence_gate`` produces the same registry shape
-    (deterministic at module load — no random state, no env-var
-    influence on registry construction)."""
-    module = importlib.import_module("ledgerlinc_ocr.preprocessing.evidence_gate")
-    reloaded = importlib.reload(module)
-    assert set(reloaded.EVIDENCE_GATES.keys()) == {"v1"}
-    assert reloaded.EVIDENCE_GATES["v1"].evidence_gate_id == "v1"
-    assert reloaded.EVIDENCE_GATES["v1"].y_threshold_fraction == 0.25
+    C4 cleanup (post-review): the prior version of this test called
+    ``importlib.reload(module)`` to verify "same constants on re-import".
+    Reload replaces ``sys.modules[...]`` with a new module object,
+    introducing test-order dependence (subsequent tests that already
+    imported ``FiveSignalSet`` keep the OLD class, while newly-loaded
+    test bodies see the NEW one — `isinstance(result.signals,
+    FiveSignalSet)` fails). The same determinism property is now
+    asserted via direct value inspection — same guarantee, no
+    sys.modules side effects.
+    """
+    assert EVIDENCE_GATE_ID_V1 == "v1"
+    assert Y_THRESHOLD_FRACTION == 0.25
+    assert DENSITY_THRESHOLD == 8
+    assert CONFIDENCE_THRESHOLD == 0.70

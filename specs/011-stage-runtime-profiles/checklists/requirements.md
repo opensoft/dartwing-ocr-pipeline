@@ -3,7 +3,7 @@
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-04-22
 **Updated**: 2026-05-04
-**Feature**: [spec.md](/home/brett/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline/specs/011-stage-runtime-profiles/spec.md)
+**Feature**: [spec.md](/home/brett/projects/dartwing/dartwing-ocr-pipeline/specs/011-stage-runtime-profiles/spec.md)
 
 ## Content Quality
 

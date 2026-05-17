@@ -11,8 +11,8 @@ assembles the artifact, and confirms the validator still passes.
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.preprocessing import artifact as artifact_mod
-from ledgerlinc_ocr.preprocessing import ingestion_sources as isrc_mod
+from dartwing_ocr.preprocessing import artifact as artifact_mod
+from dartwing_ocr.preprocessing import ingestion_sources as isrc_mod
 
 
 def _base_page(page_number: int = 1) -> dict:

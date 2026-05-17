@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import json
 
-from ledgerlinc_ocr.evidence_packet import assemble_from_folder
-from ledgerlinc_ocr.evidence_packet.schema import validate_packet
+from dartwing_ocr.evidence_packet import assemble_from_folder
+from dartwing_ocr.evidence_packet.schema import validate_packet
 
 
 def test_ac1_passthrough_is_faithful(folder_with_preprocess):

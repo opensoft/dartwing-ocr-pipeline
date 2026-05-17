@@ -80,6 +80,6 @@ reviewers, not by a runtime check or a CI lint — see spec FR-005 for the
 authoritative language ("PR-review gate, not a runtime check"). Adding a CI
 rule later would require a separate spec or amendment.
 
-- [x] CHK038 Is the rule-layer module list that triggers a required bump enumerated: `src/ledgerlinc_ocr/router/rules.py`, `src/ledgerlinc_ocr/router/checks.py`, `src/ledgerlinc_ocr/router/reasons.py`, `src/ledgerlinc_ocr/router/version.py`, and any canonical reason-string constants? [Completeness, Spec §FR-005]
+- [x] CHK038 Is the rule-layer module list that triggers a required bump enumerated: `src/dartwing_ocr/router/rules.py`, `src/dartwing_ocr/router/checks.py`, `src/dartwing_ocr/router/reasons.py`, `src/dartwing_ocr/router/version.py`, and any canonical reason-string constants? [Completeness, Spec §FR-005]
 - [x] CHK039 Is the reviewer's responsibility stated: any PR touching those modules without a corresponding `version.POLICY_VERSION` edit MUST be rejected at review as a quality-gate failure, not a style nit? [Clarity, Spec §FR-005 §SC-010]
 - [x] CHK040 Does the spec explicitly label SC-010 as a PR-review gate rather than a runtime check, so reviewers know the enforcement point? [Traceability, Spec §FR-005 §SC-010]

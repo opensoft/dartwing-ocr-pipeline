@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.pipeline import (
+from dartwing_ocr.preprocessing.pipeline import (
     decide_ocr_only_fallback_disposition,
 )
 
@@ -177,10 +177,9 @@ def test_non_ocr_only_strategy_yields_fallback() -> None:
         opt_in_active=True,
         candidate_pages=_build_sufficient_candidate_pages(),
     )
-    # Strategy != ocr-only-v1 means suppression's predicate returns
-    # False; trigger fires, so caller falls back. The gate IS evaluated
-    # (opt-in + trigger both True) but the predicate refuses suppression
-    # on the non-OCR-only strategy.
+    # Strategy != ocr-only-v1 short-circuits before gate evaluation; the
+    # disposition is `fallback` and the candidate decision is None
+    # because the gate was never evaluated.
     assert disposition == "fallback"
 
 
@@ -216,3 +215,24 @@ def test_mi11_gate_evaluated_on_candidate_and_caller_re_evaluates_on_final() -> 
     # caller level (MI-11 second half — covered by
     # `test_evidence_gate_recorded_over_final.py`).
     assert borderline_decision != sufficient_decision
+
+
+def test_seam_falls_back_when_gate_raises(monkeypatch: Any) -> None:
+    """If the gate evaluator raises, the seam must fail closed to ``"fallback"``
+    rather than crash mid-document or silently apply suppression."""
+    from dartwing_ocr.preprocessing import pipeline as _pipeline_mod
+
+    def _raising_evaluate_evidence_gate(_output: dict[str, Any]) -> Any:
+        raise ValueError("simulated gate failure")
+
+    monkeypatch.setattr(
+        _pipeline_mod, "evaluate_evidence_gate", _raising_evaluate_evidence_gate
+    )
+    disposition, candidate_decision = decide_ocr_only_fallback_disposition(
+        preprocess_strategy_id="ocr-only-v1",
+        fr_005_trigger_would_fire=True,
+        opt_in_active=True,
+        candidate_pages=_build_sufficient_candidate_pages(),
+    )
+    assert disposition == "fallback"
+    assert candidate_decision is None

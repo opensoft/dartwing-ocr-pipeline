@@ -1,4 +1,4 @@
-from ledgerlinc_ocr.preprocessing.document_text import (
+from dartwing_ocr.preprocessing.document_text import (
     INTER_PAGE_SEPARATOR,
     INTRA_PAGE_SEPARATOR,
     join_document_text,

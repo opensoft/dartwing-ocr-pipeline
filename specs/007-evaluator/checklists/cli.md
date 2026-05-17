@@ -7,7 +7,7 @@
 
 ## Subcommand Surface — Completeness
 
-- [x] CHK001 Does the spec pin the CLI invocation to `python -m ledgerlinc_ocr.evaluator` (not a bare script), matching the validator precedent? [Clarity, Spec §FR-022 / §Clarifications]
+- [x] CHK001 Does the spec pin the CLI invocation to `python -m dartwing_ocr.evaluator` (not a bare script), matching the validator precedent? [Clarity, Spec §FR-022 / §Clarifications]
 - [x] CHK002 Are the two subcommand shapes (`evaluate document <folder>`, `evaluate corpus <root>`) stated verbatim so fixtures and quickstart cannot diverge? [Clarity, Spec §FR-022]
 - [x] CHK003 Does the spec forbid additional top-level subcommands not in {`evaluate document`, `evaluate corpus`} for this feature? [Gap, Spec §FR-022]
 - [x] CHK004 Is the positional-argument style (`<folder>` / `<root>`) documented rather than leaving flags vs positionals ambiguous? [Clarity, contracts/module-api.md §CLI contract]
@@ -67,7 +67,7 @@
 ## Harness/Pipeline Boundary — Consistency
 
 - [x] CHK033 Does the spec forbid CLI paths from invoking extraction, models, or network? [Clarity, Spec §FR-025]
-- [x] CHK034 Is "evaluator does not import from `ledgerlinc_ocr.pipeline` or `.preprocessing`" stated as a boundary invariant? [Traceability / Consistency, contracts/module-api.md §Stability guarantees / Constitution §I]
+- [x] CHK034 Is "evaluator does not import from `dartwing_ocr.pipeline` or `.preprocessing`" stated as a boundary invariant? [Traceability / Consistency, contracts/module-api.md §Stability guarantees / Constitution §I]
 - [x] CHK035 Does the spec restrict CLI filesystem reach to the supplied folder/root (no writes elsewhere under any flag)? [Completeness, Spec §FR-025 / §US1 AC#7]
 
 ## Human-Readable Report Behavior — Clarity

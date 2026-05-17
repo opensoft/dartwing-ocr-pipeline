@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
-from ledgerlinc_ocr.pipeline.runner import RunResult, Runner
-from ledgerlinc_ocr.pipeline.timing import DocumentTimings, StageTiming
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.exit_codes import ExitCode
+from dartwing_ocr.pipeline.runner import RunResult, Runner
+from dartwing_ocr.pipeline.timing import DocumentTimings, StageTiming
 
 
 MINIMAL_PDF_BYTES = b"%PDF-1.4\n% minimal test pdf\n%%EOF\n"
@@ -56,7 +56,7 @@ def test_warm_corpus_aggregates_region_strategy_fallback_count(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Warm-corpus run_summary must count per-document fallback flags."""
-    from ledgerlinc_ocr.pipeline import corpus_run as corpus_run_mod
+    from dartwing_ocr.pipeline import corpus_run as corpus_run_mod
 
     monkeypatch.setattr(
         corpus_run_mod,

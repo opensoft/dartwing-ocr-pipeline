@@ -33,8 +33,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import cli as cli_mod
-from ledgerlinc_ocr.preprocessing.errors import EXIT_OK
+from dartwing_ocr.preprocessing import cli as cli_mod
+from dartwing_ocr.preprocessing.errors import EXIT_OK
 
 
 @pytest.fixture
@@ -89,7 +89,7 @@ def test_cpu_no_flags_baseline_exits_ok_with_cpu_defaults(
     """No-flag baseline: CPU defaults on run_summary; no `… ignored:`
     lines on stderr; exit code 0."""
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -110,7 +110,7 @@ def test_cpu_with_raster_profile_only_warns_once(
     """`--raster-profile=reduced-v1` on CPU → 1 stderr warn line; CPU
     defaults on run_summary; same exit code as baseline."""
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -132,7 +132,7 @@ def test_cpu_with_region_strategy_only_warns_once(
     """`--region-strategy=header-first-v1` on CPU → 1 stderr warn line;
     CPU defaults on run_summary; same exit code as baseline."""
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -154,7 +154,7 @@ def test_cpu_with_both_flags_warns_twice(
     """Both flags set on CPU → 2 stderr warn lines (one per ignored
     flag); CPU defaults on run_summary; same exit code as baseline."""
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -185,7 +185,7 @@ def test_cpu_run_summary_byte_identical_with_explicit_legacy_flags(
     the same fixture: both warn-and-proceed to CPU defaults per
     FR-014, so the three new top-level identifier fields MUST match."""
     mock_run_a = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run_a):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run_a):
         cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -194,7 +194,7 @@ def test_cpu_run_summary_byte_identical_with_explicit_legacy_flags(
     summary_a = _run_summary_from(captured_a.out)
 
     mock_run_b = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run_b):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run_b):
         cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -229,7 +229,7 @@ def test_cpu_with_preprocess_strategy_only_warns_once(
     CPU defaults on run_summary; same exit code as baseline (FR-013 /
     I-019.14)."""
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -252,7 +252,7 @@ def test_cpu_with_all_three_axes_warns_three_times(
     per ignored flag); same exit code as baseline; CPU defaults across
     all three axes on run_summary."""
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",

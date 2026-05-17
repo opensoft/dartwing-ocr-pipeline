@@ -49,7 +49,7 @@ behavior; nothing here tests the implementation.
 
 ## Logging & Persistence Determinism
 
-- [x] CHK068 Is the persistence trigger specified as a single predicate (`ledgerlinc_ocr` logger at `DEBUG`)? [Clarity, Spec §Clarifications Q1 §FR-015b]
+- [x] CHK068 Is the persistence trigger specified as a single predicate (`dartwing_ocr` logger at `DEBUG`)? [Clarity, Spec §Clarifications Q1 §FR-015b]
 - [x] CHK069 Is the rule "repeated DEBUG-level runs produce byte-identical `evidence_packet.json` on disk" stated, even though mtime may differ? [Clarity, Spec §CLI Contract §Determinism]
 - [x] CHK070 Is the rule "re-running overwrites the file with identical bytes" stated (vs. appending, vs. failing on exist)? [Clarity, Spec §Edge Cases]
 - [x] CHK071 Is there a rule against logging values that are themselves written into the packet (e.g. timing values leaking from logs into payload)? [Gap — implicit in FR-012; make explicit]

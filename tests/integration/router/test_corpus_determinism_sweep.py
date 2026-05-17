@@ -27,7 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 CORPUS_ROOT = REPO_ROOT / "tests" / "stage1_vendor_identity"
 
 PROCESSED_AT_LINE = re.compile(
-    rb'^  "processed_at": "[0-9T:Z\-]+",\n',
+    rb'^ {2}"processed_at": "[0-9T:Z-]+",\n',
     re.MULTILINE,
 )
 
@@ -66,7 +66,7 @@ def test_corpus_determinism(tmp_path: Path, corpus_folder: Path):
         if rd.exists():
             rd.unlink()
         result = subprocess.run(
-            [sys.executable, "-m", "ledgerlinc_ocr.router", "route",
+            [sys.executable, "-m", "dartwing_ocr.router", "route",
              str(staged)],
             capture_output=True,
             text=True,

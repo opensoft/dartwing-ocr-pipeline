@@ -13,9 +13,9 @@ At landing the registry contains exactly one entry:
 | `"v1"` | This document | Yes (the default and only entry at landing) |
 
 Future presets `"v2"`, `"v3"`, ... are added via additive code change in `preprocessing/evidence_gate.py`. Adding a new preset requires:
-1. A new `EvidenceGate` registry entry with its own decision-table body.
+1. A new module-level `_v2_decide(signals) -> GateDecision` function with the new decision-table body, plus an additive `elif gate_id == "v2": return _v2_decide(signals)` branch in `decide_for_gate` and the parallel branch in `evaluate_evidence_gate`. (Note: this is the flatter shape that landed post-review per B reconciliation; the original plan called for an `EvidenceGate` dataclass + `EVIDENCE_GATES` registry, collapsed because the registry had size exactly one at landing — see `data-model.md §1`.)
 2. A new `contracts/evidence-gate-rule.md` section documenting the new body.
-3. A new selection flag (`--evidence-gate <id>` + `LEDGERLINC_EVIDENCE_GATE` env var) at the CLI level (the registry has size two or more at that point, so selection is meaningful — see R-020.2).
+3. A new selection flag (`--evidence-gate <id>` + `DARTWING_EVIDENCE_GATE` env var) at the CLI level (the valid set has size two or more at that point, so selection is meaningful — see R-020.2).
 4. An entry in the FR-005 / FR-007 closed-vocabulary documentation.
 
 The closed-vocabulary semantics mean: an unknown `evidence_gate_id` value is a developer error, not a runtime preset-selection error. There is no `UnknownPresetError` extension because there is no CLI-time selection at landing (R-020.2).
@@ -139,10 +139,10 @@ If the re-derived decision does NOT match the recorded decision, this is a deter
 
 ## Re-derivability guarantee (FR-001 / FR-004 / SC-002 / SC-012)
 
-The `EvidenceGate.evaluate(input_dict)` function MUST be defined such that, for any `FiveSignalSet` `s` and any `EvidenceGateResult` `r` produced by the evaluation:
+The `evaluate_evidence_gate(input_dict)` function MUST be defined such that, for any `EvidenceGateResult` `r` produced by the evaluation:
 
 ```
-r.decision == v1_decide(r.signals)
+r.decision == decide_for_gate(r.evidence_gate_id, r.signals)
 ```
 
 This is enforced by `test_evidence_gate_decision_unit.py` over a parameterized table of synthetic `FiveSignalSet` inputs covering all 32 truth-table rows above.

@@ -23,8 +23,8 @@ from pathlib import Path
 def test_cli_returncode_1_on_unexpected_exception(
     tmp_path: Path, monkeypatch, stage_fixture, capsys
 ):
-    from ledgerlinc_ocr.router import cli as cli_mod
-    from ledgerlinc_ocr.router.cli import main as cli_main
+    from dartwing_ocr.router import cli as cli_mod
+    from dartwing_ocr.router.cli import main as cli_main
 
     folder = stage_fixture(tmp_path, "clean_explicit_name_full_identity.json")
 

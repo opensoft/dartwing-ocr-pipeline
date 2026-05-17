@@ -7,7 +7,7 @@ This document resolves the implementation-level decisions the spec explicitly de
 
 ## R-016.1: Activation mechanism
 
-**Decision**: Add a `--gpu-warmup` boolean CLI flag to the existing `python -m ledgerlinc_ocr.preprocessing` entry point and to `python -m ledgerlinc_ocr.pipeline` (corpus mode). The same opt-in is also accepted via the env var `LEDGERLINC_GPU_WARMUP=1` (any of `1`, `true`, `yes` — case-insensitive — counts as set; everything else, including unset, counts as unset). When both surfaces are present, the CLI flag wins. The opt-in is **off by default** (FR-002) and **orthogonal** to `--preprocess-profile` (Assumptions): a CPU/stub run silently no-ops the env-var case but emits a one-line stderr warning either way per FR-010 (per /speckit.clarify Q1: warn-and-proceed).
+**Decision**: Add a `--gpu-warmup` boolean CLI flag to the existing `python -m dartwing_ocr.preprocessing` entry point and to `python -m dartwing_ocr.pipeline` (corpus mode). The same opt-in is also accepted via the env var `DARTWING_GPU_WARMUP=1` (any of `1`, `true`, `yes` — case-insensitive — counts as set; everything else, including unset, counts as unset). When both surfaces are present, the CLI flag wins. The opt-in is **off by default** (FR-002) and **orthogonal** to `--preprocess-profile` (Assumptions): a CPU/stub run silently no-ops the env-var case but emits a one-line stderr warning either way per FR-010 (per /speckit.clarify Q1: warn-and-proceed).
 
 **Rationale**:
 - A CLI flag matches feature 014's `--preprocess-profile` precedent on the same entry points; operators discover it in `--help` next to the profile selector and the existing logging / preflight knobs.
@@ -110,18 +110,18 @@ The actually-observed-on-this-workstation warnings, split per FR-016 (per /speck
 
 ## R-016.7: Warmup module location (`preprocessing/warmup.py`)
 
-**Decision**: The warmup logic lives in a new module `src/ledgerlinc_ocr/preprocessing/warmup.py`. The module exposes:
+**Decision**: The warmup logic lives in a new module `src/dartwing_ocr/preprocessing/warmup.py`. The module exposes:
 
 ```python
 def run_warmup(engine: Any, *, fixture_path: Path | None = None) -> WarmupResult: ...
 ```
 
-…where `WarmupResult` is a frozen dataclass `{seconds: float, fixture_sha256: str}` (the sha256 is for diagnostics in quickstart.md and for the cold-vs-warm regression test, not for the run_summary). The module is imported only on the GPU code path (the import line lives inside the `if device == "gpu" and warmup_opt_in:` branch in `preprocessing/pipeline.py` and `pipeline/corpus_run.py`) so a host without Paddle/ROCm can `import ledgerlinc_ocr.preprocessing` without indirectly pulling MIOpen-specific code (FR-011).
+…where `WarmupResult` is a frozen dataclass `{seconds: float, fixture_sha256: str}` (the sha256 is for diagnostics in quickstart.md and for the cold-vs-warm regression test, not for the run_summary). The module is imported only on the GPU code path (the import line lives inside the `if device == "gpu" and warmup_opt_in:` branch in `preprocessing/pipeline.py` and `pipeline/corpus_run.py`) so a host without Paddle/ROCm can `import dartwing_ocr.preprocessing` without indirectly pulling MIOpen-specific code (FR-011).
 
 **Rationale**:
 - A new module keeps warmup mechanics out of `ocr.py` (which is already large and busy with V3 inference plumbing) and out of `preflight.py` (which is preflight, not runtime).
 - The narrow public API (`run_warmup` + `WarmupResult` + `WarmupError`) is easy to mock in `test_warmup_unit.py` (CPU-safe) and easy to stub for the CPU/stub no-op tests.
-- Lazy import on the GPU branch means `from ledgerlinc_ocr.preprocessing import warmup` never fires on CPU/stub paths, satisfying FR-011's "MUST NOT import GPU-only modules" rule.
+- Lazy import on the GPU branch means `from dartwing_ocr.preprocessing import warmup` never fires on CPU/stub paths, satisfying FR-011's "MUST NOT import GPU-only modules" rule.
 
 **Alternatives considered**:
 - **Put `run_warmup` in `ocr.py`** as a sibling of `_get_engine`. Rejected: bloats `ocr.py` further and entangles warmup with V3 inference helpers that have nothing to do with warmup.

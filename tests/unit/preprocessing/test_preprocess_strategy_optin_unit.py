@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
+from dartwing_ocr.preprocessing.preprocess_strategy_optin import (
     PREPROCESS_STRATEGY_ENV_VAR,
     derive_run_summary_preprocess_strategy_id,
     is_gpu_lane,
@@ -16,7 +16,7 @@ from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
 
 
 def test_env_var_name() -> None:
-    assert PREPROCESS_STRATEGY_ENV_VAR == "LEDGERLINC_PREPROCESS_STRATEGY"
+    assert PREPROCESS_STRATEGY_ENV_VAR == "DARTWING_PREPROCESS_STRATEGY"
 
 
 def test_cli_wins_when_env_unset() -> None:
@@ -28,7 +28,7 @@ def test_env_fallback_when_cli_none() -> None:
     """Env-var value used when CLI flag is None (R-019.1)."""
     assert (
         resolve_preprocess_strategy_value(
-            None, env={"LEDGERLINC_PREPROCESS_STRATEGY": "ocr-only-v1"}
+            None, env={"DARTWING_PREPROCESS_STRATEGY": "ocr-only-v1"}
         )
         == "ocr-only-v1"
     )
@@ -39,7 +39,7 @@ def test_cli_wins_over_env() -> None:
     assert (
         resolve_preprocess_strategy_value(
             "ppstructurev3",
-            env={"LEDGERLINC_PREPROCESS_STRATEGY": "ocr-only-v1"},
+            env={"DARTWING_PREPROCESS_STRATEGY": "ocr-only-v1"},
         )
         == "ppstructurev3"
     )
@@ -49,7 +49,7 @@ def test_empty_string_env_treated_as_unset() -> None:
     """Empty-string env value counts as unset (matches feature 016/017/018)."""
     assert (
         resolve_preprocess_strategy_value(
-            None, env={"LEDGERLINC_PREPROCESS_STRATEGY": ""}
+            None, env={"DARTWING_PREPROCESS_STRATEGY": ""}
         )
         is None
     )
@@ -64,7 +64,7 @@ def test_env_value_passed_verbatim() -> None:
     """Env-var value handled verbatim — no .strip(), no lower() (R-019.1)."""
     assert (
         resolve_preprocess_strategy_value(
-            None, env={"LEDGERLINC_PREPROCESS_STRATEGY": "  ocr-only-v1  "}
+            None, env={"DARTWING_PREPROCESS_STRATEGY": "  ocr-only-v1  "}
         )
         == "  ocr-only-v1  "
     )

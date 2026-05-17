@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evidence_packet import assemble_from_preprocess
+from dartwing_ocr.evidence_packet import assemble_from_preprocess
 
 _FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "evidence_packet"
 _FIXTURE_NAMES = sorted(p.name for p in _FIXTURE_DIR.iterdir() if p.suffix == ".json")
@@ -46,7 +46,7 @@ def _walk(node):
         yield "value", node
 
 
-def _walk_schema_properties(node):
+def _walk_schema_properties(node):  # NOSONAR S3776 — recursive schema walker — flat structure with type-dispatch branches.
     if isinstance(node, dict):
         props = node.get("properties")
         if isinstance(props, dict):

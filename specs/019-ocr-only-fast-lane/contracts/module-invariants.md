@@ -8,7 +8,7 @@ These invariants govern the new modules (`preprocessing/preprocess_strategies.py
 
 ## I-019.1 — Closed-vocabulary enforcement
 
-Only the four values in `R-019.2` (`"ppstructurev3"`, `"ocr-only-v1"`, `"cpu-default"`, `"stub-default"`) are valid for emitted `preprocess_strategy_id` values. On the user-facing CLI/env surface, only `"ppstructurev3"` and `"ocr-only-v1"` are accepted operator inputs; passing any other value via `--preprocess-strategy` or `LEDGERLINC_PREPROCESS_STRATEGY` MUST raise `UnknownPresetError(preset_axis="preprocess_strategy", ...)` → exit code 16. The registry `PREPROCESS_STRATEGIES` is frozen at module-load time; runtime mutation is forbidden.
+Only the four values in `R-019.2` (`"ppstructurev3"`, `"ocr-only-v1"`, `"cpu-default"`, `"stub-default"`) are valid for emitted `preprocess_strategy_id` values. On the user-facing CLI/env surface, only `"ppstructurev3"` and `"ocr-only-v1"` are accepted operator inputs; passing any other value via `--preprocess-strategy` or `DARTWING_PREPROCESS_STRATEGY` MUST raise `UnknownPresetError(preset_axis="preprocess_strategy", ...)` → exit code 16. The registry `PREPROCESS_STRATEGIES` is frozen at module-load time; runtime mutation is forbidden.
 
 Adding a future preset (e.g., `ocr-only-v2` with tuned thresholds) is a code change plus a new `preprocess_strategy_id` value — not a runtime knob and not a config-file override.
 

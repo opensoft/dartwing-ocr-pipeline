@@ -6,8 +6,8 @@ import json
 import re
 from pathlib import Path
 
-from ledgerlinc_ocr.validator import load_contract_set
-from ledgerlinc_ocr.validator.report import ViolationCode
+from dartwing_ocr.validator import load_contract_set
+from dartwing_ocr.validator.report import ViolationCode
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _DATASET_LAYOUT_PATH = (

@@ -82,7 +82,7 @@ requirements themselves, not the implementation.
 - [x] CHK041 Does the spec require that every assembled packet validate against `evidence_packet.schema.json` before being returned (not just before being persisted)? [Completeness, Spec §FR-015a §Clarifications Q3]
 - [x] CHK042 Is the input-side obligation — validate `preprocess_output.json` against its schema before assembling — stated? [Completeness, Spec §FR-003 §FR-017]
 - [x] CHK043 Is the "no partial / schema-invalid packet on disk" rule stated (persistence only happens after output validation passes)? [Clarity, Spec §FR-015a §FR-015b]
-- [x] CHK044 Is the validator tooling identified (`python -m ledgerlinc_ocr.validator validate artifact --schema .../evidence_packet.schema.json ...`)? [Traceability, Spec §Quickstart]
+- [x] CHK044 Is the validator tooling identified (`python -m dartwing_ocr.validator validate artifact --schema .../evidence_packet.schema.json ...`)? [Traceability, Spec §Quickstart]
 
 ## Notes
 

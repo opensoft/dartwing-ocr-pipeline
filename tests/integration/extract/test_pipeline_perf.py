@@ -11,7 +11,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from ledgerlinc_ocr.extract.cli import main as extract_main
+from dartwing_ocr.extract.cli import main as extract_main
 
 
 def test_full_pipeline_minus_model_under_2s(us1_happy_folder: Path) -> None:

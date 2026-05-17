@@ -60,7 +60,7 @@ def test_t019_warm_corpus_constructs_engine_once_across_two_docs(
 
     result = subprocess.run(
         [
-            sys.executable, "-m", "ledgerlinc_ocr.pipeline",
+            sys.executable, "-m", "dartwing_ocr.pipeline",
             "--documents-file", str(docs_file),
             "--preprocess-profile", "ppstructurev3@gpu",
             "--start-at", "preprocess",

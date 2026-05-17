@@ -17,9 +17,9 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.assembler import Invocation, run
-from ledgerlinc_ocr.assembler import quality as quality_module
-from ledgerlinc_ocr.assembler.errors import OutputSchemaInvalidError
+from dartwing_ocr.assembler import Invocation, run
+from dartwing_ocr.assembler import quality as quality_module
+from dartwing_ocr.assembler.errors import OutputSchemaInvalidError
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "fixtures" / "assembler"
 
@@ -60,16 +60,16 @@ def test_output_schema_invariant_cli_exit_code_and_kind(tmp_path: Path) -> None:
     """CLI-level end-to-end: same monkey-patch, asserted via subprocess.
 
     We inject the monkey-patch via a small bootstrap script so the patch
-    survives across the `python -m ledgerlinc_ocr.assembler` invocation.
+    survives across the `python -m dartwing_ocr.assembler` invocation.
     """
     folder = _stage(tmp_path, "happy_grounded")
 
     bootstrap = tmp_path / "bootstrap_break_output.py"
     bootstrap.write_text(
         "import sys\n"
-        "from ledgerlinc_ocr.assembler import quality as q\n"
+        "from dartwing_ocr.assembler import quality as q\n"
         "q.compute_overall_vendor_confidence = lambda extractor, secondary_ids: 2.0\n"
-        "from ledgerlinc_ocr.assembler import cli\n"
+        "from dartwing_ocr.assembler import cli\n"
         "sys.exit(cli.main())\n",
         encoding="utf-8",
     )

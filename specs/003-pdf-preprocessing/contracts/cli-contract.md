@@ -1,4 +1,4 @@
-# CLI Contract: `ledgerlinc_ocr.preprocessing`
+# CLI Contract: `dartwing_ocr.preprocessing`
 
 This file documents the external interface this slice exposes. The **artifact
 shape** (`preprocess_output.json`) is not redefined here — it is the frozen
@@ -10,7 +10,7 @@ I/O behavior.
 ## Invocation
 
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder <PATH> \
     [--source-file <NAME>] \
     [--write-page-images] \
@@ -76,7 +76,7 @@ twice against the same fixture and diffs the outputs.
 
 Before writing, the assembled artifact is validated against
 `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` using
-the in-repo validator (`ledgerlinc_ocr.validator`). A validation failure
+the in-repo validator (`dartwing_ocr.validator`). A validation failure
 produces exit code `3` and no artifact — this is intentionally loud because
 a schema-invalid artifact means our code is out of sync with the frozen
 contract and must be fixed (never hidden).

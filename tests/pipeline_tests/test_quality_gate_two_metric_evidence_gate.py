@@ -45,7 +45,7 @@ Inputs (over the same fixed 5-doc subset as T053 — see
 ``test_evidence_gate_benchmark.py`` for the subset lookup procedure):
 
 - Legacy run: omit ``--evidence-gate-skip-fallback`` entirely AND
-  ensure ``LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`` is unset (or set
+  ensure ``DARTWING_EVIDENCE_GATE_SKIP_FALLBACK`` is unset (or set
   to ``""`` / ``"0"`` / any falsy value per R-020.1). The CLI uses
   ``argparse store_true`` for the flag, so there is NO
   ``--no-evidence-gate-skip-fallback`` counterpart — absence of the

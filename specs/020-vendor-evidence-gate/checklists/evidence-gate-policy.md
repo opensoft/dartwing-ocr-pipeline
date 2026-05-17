@@ -13,8 +13,8 @@ the **requirements**, not the implementation.
 
 ## Closed-Vocabulary Preset Registry
 
-- [x] CHK001 Is the registry size at landing pinned (exactly one entry, `"v1"`) so a reviewer knows what to expect in `EVIDENCE_GATES`? [Clarity, R-020.2 / evidence-gate-rule.md §Closed-vocabulary preset registry]
-- [x] CHK002 Is the rule "adding a new preset requires (1) a new `EvidenceGate` registry entry, (2) a new `contracts/evidence-gate-rule.md` section, (3) a new selection flag, (4) an entry in the FR-005/FR-007 closed-vocabulary documentation" stated so a partial addition is forbidden? [Completeness, evidence-gate-rule.md §Closed-vocabulary preset registry]
+- [x] CHK001 Is the closed-vocabulary size at landing pinned (exactly one valid `gate_id`: `"v1"`) so a reviewer knows what to expect from `decide_for_gate` / `evaluate_evidence_gate`? [Clarity, R-020.2 / evidence-gate-rule.md §Closed-vocabulary preset registry] *(B post-review: the original dataclass + `EVIDENCE_GATES` dict was collapsed to module constants + `decide_for_gate(gate_id, signals)` dispatch — same closed vocabulary, flatter shape.)*
+- [x] CHK002 Is the rule "adding a new preset requires (1) a new `_v2_decide` function + additive branch in `decide_for_gate` / `evaluate_evidence_gate`, (2) a new `contracts/evidence-gate-rule.md` section, (3) a new selection flag, (4) an entry in the FR-005/FR-007 closed-vocabulary documentation" stated so a partial addition is forbidden? [Completeness, evidence-gate-rule.md §Closed-vocabulary preset registry]
 - [x] CHK003 Is the rule "an unknown `evidence_gate_id` value is a developer error, not a runtime preset-selection error" stated so the absence of an `UnknownPresetError` extension is explained? [Clarity, evidence-gate-rule.md §Closed-vocabulary preset registry]
 - [x] CHK004 Is `EVIDENCE_GATE_ID_DEFAULT = EVIDENCE_GATE_ID_V1 = "v1"` pinned as the active-at-landing identifier, with the lineage to feature 017's `module_set_id` versioning called out? [Consistency, R-020.2]
 - [x] CHK005 Is the `evidence_gate_id` value constrained to a human-readable string (not an opaque numeric hash) and the rationale documented? [Clarity, R-020.2 / Spec §FR-010]
@@ -31,10 +31,10 @@ the **requirements**, not the implementation.
 
 ## Regex Patterns (R-020.4)
 
-- [x] CHK013 Is the `BUSINESS_SUFFIX_RE` source pinned literally (`r"(?i)\b(LLC|Inc|Incorporated|Ltd|Limited|GmbH|S\.A\.|S\.A\.S\.|Corp|Corporation|Co\.)\b"`) with each entity-suffix term enumerated? [Completeness, R-020.4 / data-model.md §6]
+- [x] CHK013 Is the `BUSINESS_SUFFIX_RE` source pinned literally (`r"(?i)\b(LLC|Incorporated|Inc|Limited|Ltd|GmbH|S\.A\.S\.|S\.A\.|Corporation|Corp|Co\.)(?![\w-])"`) with each entity-suffix term enumerated? [Completeness, R-020.4 / data-model.md §6] *(A1 post-review: trailing `(?![\w-])` replaces `\b` so `.`-suffixed forms match at end-of-string AND hyphenated compounds like `Inc-related` are rejected; longer alternatives listed first.)*
 - [x] CHK014 Is the inclusion of non-US suffixes (`GmbH`, `S.A.`, `S.A.S.`) justified explicitly (corpus may contain non-US invoices)? [Clarity, R-020.4]
-- [x] CHK015 Is the `TAX_ID_EIN_RE` source pinned (`r"\b\d{2}-\d{7}\b"`) with the EIN shape (XX-XXXXXXX) documented? [Completeness, R-020.4 / data-model.md §6]
-- [x] CHK016 Is the `TAX_ID_VAT_RE` source pinned (`r"\b[A-Z]{2}[A-Z0-9]{2,12}\b"`) with the EU canonical shape (country prefix + alphanumeric body) documented and the known false-positive rate on order numbers acknowledged? [Completeness, R-020.4]
+- [x] CHK015 Is the `TAX_ID_EIN_RE` source pinned (`r"(?<![\w-])\d{2}-\d{7}(?![\w-])"`) with the EIN shape (XX-XXXXXXX) documented? [Completeness, R-020.4 / data-model.md §6] *(Phase 6 post-review: the `(?<![\w-])` / `(?![\w-])` lookarounds replace the prior `\b` boundaries so tokens like `12-3456789-extra` do NOT partial-match the EIN shape.)*
+- [x] CHK016 Is the `TAX_ID_VAT_RE` source pinned (`r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"`) with the EU canonical shape (country prefix + alphanumeric body containing at least one digit) documented and the known false-positive rate acknowledged? [Completeness, R-020.4] *(B2 post-review: the digit-required form rejects common all-letter invoice header words like `INVOICE` / `PAYMENT` / `NUMBER` / `BALANCE` that the prior `[A-Z]{2}[A-Z0-9]{2,12}` shape falsely matched.)*
 - [x] CHK017 Is the case-sensitivity decision per pattern justified (business-suffix case-insensitive due to invoice variation; tax-id case-sensitive)? [Clarity, R-020.4]
 - [x] CHK018 Is the rationale for rejecting UK NI / SSN patterns documented (PII risk + labeling-guide.md screening checklist), so this exclusion is not silently relaxed? [Clarity, R-020.4 §Alternatives considered]
 

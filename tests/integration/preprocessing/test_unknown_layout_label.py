@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from ledgerlinc_ocr.preprocessing import ocr
+from dartwing_ocr.preprocessing import ocr
 
 
 def _fake_layout_det_res_with_unmapped_label() -> SimpleNamespace:

@@ -17,8 +17,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.validator import ArtifactName, validate_artifact
-from ledgerlinc_ocr.validator.report import ViolationCode
+from dartwing_ocr.validator import ArtifactName, validate_artifact
+from dartwing_ocr.validator.report import ViolationCode
 
 _HERE = Path(__file__).resolve().parent
 _FWD = _HERE / "fixtures" / "forward_compat"
@@ -81,6 +81,6 @@ def test_folder_layout_shape_unchanged(
     """The folder contract at 1.0.0 still accepts the good folder unchanged —
     proving that ensemble-readiness (reserved `votes/` and
     `consensus_output.json`) does not require a folder contract change."""
-    from ledgerlinc_ocr.validator import validate_folder
+    from dartwing_ocr.validator import validate_folder
     outcome = validate_folder(good_fixtures_root / "folders" / "inv_001_easy")
     assert outcome.passed

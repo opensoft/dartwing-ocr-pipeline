@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ledgerlinc_ocr.preprocessing import ocr, pipeline
+from dartwing_ocr.preprocessing import ocr, pipeline
 
 
 def _fake_text_blocks_no_lines(image, page_number, width, height):

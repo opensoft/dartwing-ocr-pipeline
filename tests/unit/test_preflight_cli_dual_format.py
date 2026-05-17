@@ -19,8 +19,8 @@ from unittest.mock import patch
 import pytest
 
 # VT-003 / T035: skip if preflight is unavailable.
-preflight = pytest.importorskip("ledgerlinc_ocr.preprocessing.preflight")
-preflight_cli = pytest.importorskip("ledgerlinc_ocr.preprocessing.preflight_cli")
+preflight = pytest.importorskip("dartwing_ocr.preprocessing.preflight")
+preflight_cli = pytest.importorskip("dartwing_ocr.preprocessing.preflight_cli")
 PreflightState = preflight.PreflightState
 
 
@@ -135,7 +135,7 @@ def test_exit_code_mapping_per_fr001_state(state, expected_exit, monkeypatch) ->
     """VT1 explicit exit-code enumeration. Drive each FR-001 state via a
     mocked classify(...) and assert the CLI's exit code matches the
     Contracts §1 table verbatim."""
-    from ledgerlinc_ocr.preprocessing.preflight import (
+    from dartwing_ocr.preprocessing.preflight import (
         PreflightEvidence,
         PreflightReadout,
     )
@@ -155,7 +155,7 @@ def test_exit_code_mapping_per_fr001_state(state, expected_exit, monkeypatch) ->
     fake_readout = PreflightReadout(
         state=state, evidence=fake_evidence, recommendation="test"
     )
-    with patch("ledgerlinc_ocr.preprocessing.preflight_cli.classify", return_value=fake_readout):
+    with patch("dartwing_ocr.preprocessing.preflight_cli.classify", return_value=fake_readout):
         rc, _, _ = _run_cli(monkeypatch, ["--quiet"])
     assert rc == expected_exit
 
@@ -163,7 +163,7 @@ def test_exit_code_mapping_per_fr001_state(state, expected_exit, monkeypatch) ->
 def test_internal_classifier_crash_exits_2(monkeypatch) -> None:
     """Per Contracts §1.Exit codes: an unhandled internal classifier
     error returns exit code 2, with the stderr error format."""
-    with patch("ledgerlinc_ocr.preprocessing.preflight_cli.classify", side_effect=RuntimeError("boom")):
+    with patch("dartwing_ocr.preprocessing.preflight_cli.classify", side_effect=RuntimeError("boom")):
         rc, _, err = _run_cli(monkeypatch, ["--quiet"])
     assert rc == 2
     assert "preflight: internal error" in err

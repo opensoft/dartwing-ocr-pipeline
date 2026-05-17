@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import artifact as artifact_mod
-from ledgerlinc_ocr.preprocessing.errors import ArtifactInvalidError
+from dartwing_ocr.preprocessing import artifact as artifact_mod
+from dartwing_ocr.preprocessing.errors import ArtifactInvalidError
 
 
 def _minimal_valid_artifact() -> dict:

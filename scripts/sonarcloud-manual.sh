@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-SECRETS_FILE="${SONARQUBE_ENV_FILE:-$HOME/.config/ledgerlinc/secrets/sonar.env}"
+SECRETS_FILE="${SONARQUBE_ENV_FILE:-$HOME/.config/dartwing/secrets/sonar.env}"
 if [[ -f "$SECRETS_FILE" ]]; then
     set -a
     # shellcheck disable=SC1090
@@ -45,7 +45,7 @@ if [[ "${SONAR_SKIP_TESTS:-0}" != "1" ]]; then
     IFS=' ' read -r -a pytest_targets <<< "${SONAR_PYTEST_TARGETS:-tests/contract_tests tests/pipeline_tests tests/unit tests/integration tests/evaluator_tests}"
     "$PYTHON_BIN" -m pytest \
         "${pytest_targets[@]}" \
-        --cov=src/ledgerlinc_ocr \
+        --cov=src/dartwing_ocr \
         --cov-config=.coveragerc \
         --cov-report=term-missing \
         --cov-report=xml:coverage.xml

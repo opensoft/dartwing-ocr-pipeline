@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.evaluator.compare import FieldResult
-from ledgerlinc_ocr.evaluator.scoring import (
+import pytest
+
+from dartwing_ocr.evaluator.compare import FieldResult
+from dartwing_ocr.evaluator.scoring import (
     FIELD_WEIGHTS,
     SCORED_FIELDS,
     ResultLabel,
@@ -59,12 +61,12 @@ def _make_results(mapping: dict[str, ResultLabel]) -> tuple[FieldResult, ...]:
 
 def test_all_match_document_score_is_one() -> None:
     results = _make_results({f: ResultLabel.MATCH for f in SCORED_FIELDS})
-    assert compute_document_score(results) == 1.0
+    assert compute_document_score(results) == pytest.approx(1.0)
 
 
 def test_all_not_applicable_returns_zero() -> None:
     results = _make_results({})
-    assert compute_document_score(results) == 0.0
+    assert compute_document_score(results) == pytest.approx(0.0)
 
 
 def test_hand_computed_mixed_labels() -> None:
@@ -118,6 +120,7 @@ def test_comparison_summary_excludes_not_applicable() -> None:
     assert summary.mismatched_field_count == 1
     assert summary.missing_prediction_count == 1
     assert summary.unexpected_prediction_count == 1
-    # partial = applicable - tallied = 5 - 4 = 1
-    # field_accuracy = (1 + 0.5 * 1) / 5 = 0.3
-    assert summary.field_accuracy == 0.3
+    # Of the five applicable fields, four are tallied (one match, one mismatch, one missing,
+    # one unexpected) and one is a partial. Field accuracy weighs the match at one and the
+    # partial at one half, dividing by the five applicable fields — yielding 0.3.
+    assert summary.field_accuracy == pytest.approx(0.3)

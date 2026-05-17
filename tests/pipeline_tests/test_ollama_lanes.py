@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.ollama_lanes import (
+from dartwing_ocr.pipeline.ollama_lanes import (
     CPU_DEFAULT_URL,
     CPU_ENV_VAR,
     GPU_DEFAULT_URL,

@@ -12,7 +12,7 @@ checkout_mode: worktree
 base_branch: main
 
 # Parent directory for linked worktrees. Relative paths resolve from the repo root.
-worktree_root: ../ledgerlinc-model-ocr-pipeline-worktrees
+worktree_root: ../dartwing-ocr-pipeline-worktrees
 
 # Commit message used by `git commit` during repository initialization
 init_commit_message: "[Spec Kit] Initial commit"

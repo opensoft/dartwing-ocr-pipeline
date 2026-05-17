@@ -1,14 +1,14 @@
 # Validator CLI Contract
 
 **Feature**: `001-freeze-schemas-folder-contracts`
-**Surface**: `python -m ledgerlinc_ocr.validator`
+**Surface**: `python -m dartwing_ocr.validator`
 
 This document pins the externally observable behavior of the validator CLI. Callers — humans, the harness, CI, regression gates — depend on this contract; it is frozen at contract-set `1.0.0` and changed only via the amendment path.
 
 ## Invocation
 
 ```text
-python -m ledgerlinc_ocr.validator <subcommand> [options]
+python -m dartwing_ocr.validator <subcommand> [options]
 ```
 
 ## Subcommands

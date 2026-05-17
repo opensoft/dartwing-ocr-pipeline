@@ -6,9 +6,9 @@ from typing import Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import CLIInvocation, RunResult, Runner
-from ledgerlinc_ocr.pipeline.exit_codes import ExitCode
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import CLIInvocation, RunResult, Runner
+from dartwing_ocr.pipeline.exit_codes import ExitCode
 
 
 class _CapturingRunner(Runner):

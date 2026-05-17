@@ -24,9 +24,9 @@ def test_t013_single_doc_constructs_ppstructurev3_exactly_once(
     """SC-001 / CF7: a single-doc GPU run constructs PPStructureV3 exactly
     once across the entire process (preflight construction is reused at
     runtime via `_adopt_engine`)."""
-    from ledgerlinc_ocr.preprocessing import cli as preprocessing_cli
-    from ledgerlinc_ocr.preprocessing import ocr as ocr_mod
-    from ledgerlinc_ocr.preprocessing import preflight as preflight_mod
+    from dartwing_ocr.preprocessing import cli as preprocessing_cli
+    from dartwing_ocr.preprocessing import ocr as ocr_mod
+    from dartwing_ocr.preprocessing import preflight as preflight_mod
 
     # Locate fixture and stage into tmp_path so we don't mutate corpus state.
     repo_root = Path(__file__).resolve().parents[2]

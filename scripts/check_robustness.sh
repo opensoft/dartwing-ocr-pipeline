@@ -35,7 +35,7 @@ for d in "${dirs[@]}"; do
 
     rm -f "$d/preprocess_output.json"
     set +e
-    "$PY" -m ledgerlinc_ocr.preprocessing --document-folder "$d" >/dev/null 2>&1
+    "$PY" -m dartwing_ocr.preprocessing --document-folder "$d" >/dev/null 2>&1
     rc=$?
     set -e
 

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 
-from ledgerlinc_ocr.validator.report import (
+from dartwing_ocr.validator.report import (
     REPORT_VERSION,
     Severity,
     ValidationOutcome,

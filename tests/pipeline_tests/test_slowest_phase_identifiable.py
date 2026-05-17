@@ -11,7 +11,7 @@ actually slowest (that depends on hardware).
 """
 from __future__ import annotations
 
-from ledgerlinc_ocr.pipeline.timing import (
+from dartwing_ocr.pipeline.timing import (
     DocumentTimings,
     StageTiming,
     build_per_document_success,

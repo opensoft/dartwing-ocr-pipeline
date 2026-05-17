@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ledgerlinc_ocr.validator import validate_corpus
+from dartwing_ocr.validator import validate_corpus
 
 
 def test_corpus_aggregates_sub_reports(good_fixtures_root: Path) -> None:

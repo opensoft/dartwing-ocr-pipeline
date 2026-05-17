@@ -21,7 +21,7 @@ import pytest
 # Feature 014 (VT-003 / T035): skip the whole module if preflight.py
 # is unavailable (the collection-time defensive path requires zero
 # ERROR entries).
-preflight = pytest.importorskip("ledgerlinc_ocr.preprocessing.preflight")
+preflight = pytest.importorskip("dartwing_ocr.preprocessing.preflight")
 PreflightEvidence = preflight.PreflightEvidence
 PreflightReadout = preflight.PreflightReadout
 PreflightState = preflight.PreflightState
@@ -161,6 +161,10 @@ def test_state_f_ppstructurev3_init_succeeded(monkeypatch) -> None:
 
     class _OkPPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` so
+            # classify() can reach the successful-init code path without
+            # actually constructing PaddleOCR.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_OkPPStructure))

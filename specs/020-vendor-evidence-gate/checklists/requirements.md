@@ -31,12 +31,11 @@
 
 ## Notes
 
-- One [NEEDS CLARIFICATION] marker remains on **FR-007 (US4)**: the choice of behavioral shape — (a) observability-only, (b) skip-fallback for OCR-only `sufficient` runs, or (c) routing-input with deterministic `sufficient` short-circuit. This is a load-bearing scope decision and must be resolved at `/speckit.clarify` before `/speckit.plan`.
+- **FR-007 (US4) behavioral shape** was resolved at `/speckit.clarify` Session 2026-05-14 Q1: shape (b) — skip-fallback for OCR-only `sufficient` runs (gated off-by-default on the GPU lane behind an opt-in CLI flag + env-var fallback per FR-012 / FR-013). No `[NEEDS CLARIFICATION]` markers remain.
 - The spec deliberately accommodates any of the three FR-007 resolutions without rewriting FR-001–FR-006 or FR-008–FR-028.
-- Several implementation-shape decisions are deferred to `/speckit.plan` with reasonable defaults documented in Assumptions:
-  - The exact FR-001 signal list (landing-time minimum: vendor-name-candidate, header-band token density, aggregate OCR-detection confidence; optional additions: telephone/email/postal/business-suffix/tax-id patterns).
-  - The FR-005 gate-rule decision table and its threshold values for `v1`.
-  - The exact shape of the FR-006 per-document gate-decision record on `run_summary` (aggregate counters vs. per-document table).
-  - The exact CLI-flag-with-env-var-fallback name for any FR-007 GPU-only behavioral switch.
-  - The benchmark subset ID (same as features 018/019, resolved at plan).
-- Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`.
+- Implementation-shape decisions deferred to `/speckit.plan` were resolved as follows (see `research.md`):
+  - **FR-001 signal list** (R-020.3): five signals — vendor-name-candidate, header-band token-density, OCR-detection aggregate confidence, business-suffix-presence, tax-id-shaped-token-presence. Telephone/email/postal-address-shaped tokens are explicitly deferred to a follow-on feature.
+  - **FR-005 gate-rule decision table** (R-020.6): v1 explicit decision table — `sufficient` iff `has_name AND has_density AND has_confidence AND (has_suffix OR has_tax_id)`; `insufficient` iff all five at negative level; `borderline` residual. Thresholds: `DENSITY_THRESHOLD = 8`, `CONFIDENCE_THRESHOLD = 0.70`.
+  - **FR-006 per-document record shape** (R-020.10): single `run_summary` line carrying aggregate `evidence_gate_state_counts` + per-document `evidence_gate_documents` array (Clarifications Session 2026-05-16 Q3 shape (a)).
+  - **FR-007 CLI flag + env-var name** (R-020.1): `--evidence-gate-skip-fallback` + `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK`.
+  - **Benchmark subset ID** (R-020.13): same 5-doc subset used by features 017/018/019.

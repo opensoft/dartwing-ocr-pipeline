@@ -7,7 +7,7 @@ from typing import Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.cli import main
 
 
 def test_preexisting_artifact_without_overwrite(

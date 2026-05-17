@@ -2,7 +2,7 @@
 
 Covers the `_persist_confidence` / `_persist_confidence_value` helpers that
 preserve in-range engine values without silently clamping invalid ones. Pairs
-with the T051 audit of `src/ledgerlinc_ocr/preprocessing/ocr.py`.
+with the T051 audit of `src/dartwing_ocr/preprocessing/ocr.py`.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.ocr import (
+from dartwing_ocr.preprocessing.ocr import (
     _extract_lines,
     _persist_confidence,
     _persist_confidence_value,

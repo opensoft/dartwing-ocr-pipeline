@@ -12,7 +12,7 @@ timing.
 Run every command from the feature worktree root:
 
 ```bash
-cd /workspace/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline-worktrees/014-paddle-gpu-preprocessing
+cd /workspace/projects/dartwing/dartwing-ocr-pipeline-worktrees/014-paddle-gpu-preprocessing
 ```
 
 ---
@@ -49,7 +49,7 @@ GPU lane will fail-fast — that is the intended diagnostic.
 ## 1. Run the preflight (P1)
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.preprocessing.preflight
+.venv/bin/python -m dartwing_ocr.preprocessing.preflight
 ```
 
 Expected output for each FR-001 state (excerpts):
@@ -113,7 +113,7 @@ Exit code: `13`.
 ### Network-restricted shell (no first-run weights)
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.preprocessing.preflight --no-init
+.venv/bin/python -m dartwing_ocr.preprocessing.preflight --no-init
 ```
 
 Will report up through `gpu_exposed_paddle_cant_bind` cleanly without
@@ -128,7 +128,7 @@ attempting `PPStructureV3(...)`. The JSON payload's
 Once preflight returns `ppstructurev3_init_succeeded`:
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.pipeline run \
+.venv/bin/python -m dartwing_ocr.pipeline run \
     --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
     --document-id inv_001_easy \
     --output-dir tests/stage1_vendor_identity/inv_001_easy \
@@ -162,7 +162,7 @@ write:
 ```bash
 .venv/bin/pip uninstall -y paddlepaddle
 .venv/bin/pip install paddlepaddle==<cpu-pinned>
-.venv/bin/python -m ledgerlinc_ocr.pipeline run \
+.venv/bin/python -m dartwing_ocr.pipeline run \
     --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
     --document-id inv_001_easy \
     --output-dir tests/stage1_vendor_identity/inv_001_easy \
@@ -183,13 +183,13 @@ Reuse a small corpus run to capture both lanes:
 
 ```bash
 # CPU run (default)
-.venv/bin/python -m ledgerlinc_ocr.pipeline run \
+.venv/bin/python -m dartwing_ocr.pipeline run \
     --documents-file tests/stage1_vendor_identity/_documents.txt \
     --start-at preprocess --stop-after preprocess \
     > /tmp/run_summary_cpu.jsonl
 
 # GPU run
-.venv/bin/python -m ledgerlinc_ocr.pipeline run \
+.venv/bin/python -m dartwing_ocr.pipeline run \
     --documents-file tests/stage1_vendor_identity/_documents.txt \
     --preprocess-profile ppstructurev3@gpu \
     --start-at preprocess --stop-after preprocess \
@@ -236,7 +236,7 @@ input and confirm byte-stability:
 
 ```bash
 rm -f tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json
-.venv/bin/python -m ledgerlinc_ocr.pipeline run \
+.venv/bin/python -m dartwing_ocr.pipeline run \
     --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
     --document-id inv_001_easy \
     --output-dir tests/stage1_vendor_identity/inv_001_easy \
@@ -244,7 +244,7 @@ rm -f tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json
 sha256sum tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json | tee /tmp/sha_run1
 
 rm -f tests/stage1_vendor_identity/inv_001_easy/preprocess_output.json
-.venv/bin/python -m ledgerlinc_ocr.pipeline run \
+.venv/bin/python -m dartwing_ocr.pipeline run \
     --input tests/stage1_vendor_identity/inv_001_easy/source.pdf \
     --document-id inv_001_easy \
     --output-dir tests/stage1_vendor_identity/inv_001_easy \
@@ -272,7 +272,7 @@ contains two tests with strictly disjoint runtime behavior:
   PPStructureV3 CPU pipeline twice on
   `tests/stage1_vendor_identity/inv_001_easy/source.pdf` and asserts
   byte-stability via SHA-256. This test is **opt-in**: it skips
-  unless the environment variable `LEDGERLINC_LIVE_REGRESSION=1` is
+  unless the environment variable `DARTWING_LIVE_REGRESSION=1` is
   set, because constructing PPStructureV3 on a real PDF has been
   observed to OOM-kill the test process in the bench environment.
   Default CI (`.venv/bin/pytest` with no env vars or flags) skips it
@@ -281,7 +281,7 @@ contains two tests with strictly disjoint runtime behavior:
 To run the live byte-stability test deliberately:
 
 ```bash
-LEDGERLINC_LIVE_REGRESSION=1 .venv/bin/pytest \
+DARTWING_LIVE_REGRESSION=1 .venv/bin/pytest \
     tests/pipeline_tests/test_pipeline_version_cpu_byte_stable.py -q
 ```
 

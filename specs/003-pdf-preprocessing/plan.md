@@ -35,7 +35,7 @@ changing the contract.
 **Storage**: Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network.
 **Testing**: `pytest` under `tests/contract_tests/` (existing harness) + new `tests/unit/preprocessing/` and `tests/integration/preprocessing/`. Integration tests run against fixture PDFs checked into the repo under `tests/fixtures/preprocessing/`.
 **Target Platform**: Linux (devcontainer, native WSL Ubuntu 24.04). CPU only. No GPU, no cloud.
-**Project Type**: Single Python package — extends the existing `src/ledgerlinc_ocr/` package with a new `preprocessing/` module. Adds a new CLI entry point alongside the existing validator CLI.
+**Project Type**: Single Python package — extends the existing `src/dartwing_ocr/` package with a new `preprocessing/` module. Adds a new CLI entry point alongside the existing validator CLI.
 **Performance Goals**: None as a release gate (per constitution: "no latency target as a release gate"). Soft target: single-page easy invoice < 30s on CPU in devcontainer; 3-page document < 90s. Determinism is the hard requirement, not latency.
 **Constraints**:
 - Byte-identical `preprocess_output.json` across reruns (FR-012, SC-002).
@@ -52,7 +52,7 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 
 | Principle | Gate | Status |
 |-----------|------|--------|
-| I. One Repo, Clear Runtime Boundaries | Preprocessing belongs to the pipeline layer; must not embed extraction, routing, or harness concerns; must not bundle model runtime. | **PASS** — `src/ledgerlinc_ocr/preprocessing/` is pipeline code only. Writes `preprocess_output.json` only (FR-017, FR-022). No model runtime embedded; PaddleOCR is a pipeline dependency, not a served model. Host Ollama untouched. |
+| I. One Repo, Clear Runtime Boundaries | Preprocessing belongs to the pipeline layer; must not embed extraction, routing, or harness concerns; must not bundle model runtime. | **PASS** — `src/dartwing_ocr/preprocessing/` is pipeline code only. Writes `preprocess_output.json` only (FR-017, FR-022). No model runtime embedded; PaddleOCR is a pipeline dependency, not a served model. Host Ollama untouched. |
 | II. Evidence-First, Schema-First Design | Artifact MUST validate against the frozen `preprocess_output` contract; prompts/code adapt to the schema, not the reverse. | **PASS** — FR-019 mandates schema validation before persist. No schema amendment needed; `contract_set_version = "1.0.0"` is consumed as-is. |
 | III. Deterministic Control Over Model Output | Quality signals, rotation normalization, block/line ordering, warnings are deterministic code — no model judgment. | **PASS** — FR-013 pins quality thresholds to rule-based metrics (avg confidence, low-confidence %, skew angle). Reading order comes from PP-Structure, not a language model. |
 | IV. Provenance and Review Safety | Preserve explicit-vs-inferred provenance. | **N/A for this slice** — preprocessing does not produce `company_name` fields. FR-021 forbids business-field extraction here. Provenance is a downstream slice's responsibility. |
@@ -69,7 +69,7 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 1. Pipeline vs. harness boundary preserved — this slice is pipeline-only; harness changes are out of scope.
 2. Output contracts unchanged — this slice consumes the frozen `preprocess_output` schema; no schema edits required. `docs/stage1-vendor-identity/schemas.md` already matches.
 3. Runtime behavior — this slice does not change the Ollama runtime story; `ollama-runtime.md` requires no update.
-4. Verifiable through concrete local execution — CLI `python -m ledgerlinc_ocr.preprocessing` against a fixture PDF.
+4. Verifiable through concrete local execution — CLI `python -m dartwing_ocr.preprocessing` against a fixture PDF.
 5. Runtime/container changes — none (existing `pipeline-dev` devcontainer is sufficient; a new Python package is not a container change).
 6. Evaluation comparison preserved — this slice does not modify evaluation; harness still compares `final_structured_payload.json` to `expected.json`.
 
@@ -95,12 +95,12 @@ specs/003-pdf-preprocessing/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── __init__.py                         # existing
 ├── validator/                          # existing — contract validator
 └── preprocessing/                      # NEW — this slice
     ├── __init__.py
-    ├── __main__.py                     # `python -m ledgerlinc_ocr.preprocessing`
+    ├── __main__.py                     # `python -m dartwing_ocr.preprocessing`
     ├── cli.py                          # argparse entry point
     ├── pipeline.py                     # orchestrates rasterize → OCR → layout → assemble → validate → write
     ├── rasterize.py                    # pypdfium2: PDF bytes → per-page PNG/ndarray at 300 DPI
@@ -148,10 +148,10 @@ tests/
 ```
 
 **Structure Decision**: Single-project Python package. The new slice lives under
-`src/ledgerlinc_ocr/preprocessing/` to sit alongside the existing `validator/`
+`src/dartwing_ocr/preprocessing/` to sit alongside the existing `validator/`
 package, preserving the "pipeline code owns preprocessing" boundary from the
 constitution. The CLI is exposed both as a module (`python -m
-ledgerlinc_ocr.preprocessing`) and as a future console script (added in `pyproject.toml`
+dartwing_ocr.preprocessing`) and as a future console script (added in `pyproject.toml`
 in Phase 2 tasks). Tests split into `unit/` (pure functions, no PaddleOCR) and
 `integration/` (real PDF → real PaddleOCR → real schema validation).
 
