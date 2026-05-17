@@ -8,7 +8,7 @@ This document records the design decisions made at `/speckit.plan` time. The two
 
 ## R-019.1 — Activation surface (CLI flag + env-var fallback)
 
-- **Decision**: `--preprocess-strategy <id>` on both `python -m ledgerlinc_ocr.preprocessing` and `python -m ledgerlinc_ocr.pipeline` with env-var fallback `LEDGERLINC_PREPROCESS_STRATEGY`. CLI wins when both are set; env-var literal value handled verbatim (no `.strip()`, no case normalization); empty-string env-value counts as unset.
+- **Decision**: `--preprocess-strategy <id>` on both `python -m dartwing_ocr.preprocessing` and `python -m dartwing_ocr.pipeline` with env-var fallback `DARTWING_PREPROCESS_STRATEGY`. CLI wins when both are set; env-var literal value handled verbatim (no `.strip()`, no case normalization); empty-string env-value counts as unset.
 - **Rationale**: Mirrors feature 014's `--preprocess-profile`, feature 016's `--gpu-warmup`, feature 017's `--module-set` / `--det-rec-variant`, and feature 018's `--raster-profile` / `--region-strategy` precedent exactly. The CLI / env-var resolution module (`preprocess_strategy_optin.py`) is a 1:1 sibling of `region_strategy_optin.py` so single-source-of-truth for precedence is preserved and reviewers can grep-compare the four opt-in modules for asymmetry.
 - **Alternatives considered**:
   - A YAML config file declaring the strategy — rejected because all prior preset axes use the CLI-flag-with-env-var pattern and asymmetry would surprise operators.

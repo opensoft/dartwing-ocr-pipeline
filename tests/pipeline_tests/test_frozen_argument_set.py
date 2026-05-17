@@ -10,7 +10,7 @@ Contract: specs/011-stage-runtime-profiles/contracts/cli-contract.md.
 """
 from __future__ import annotations
 
-from ledgerlinc_ocr.pipeline.cli import _build_parser
+from dartwing_ocr.pipeline.cli import _build_parser
 
 # Frozen 002 surface -- preserved verbatim by FR-002.
 _FROZEN_002 = {

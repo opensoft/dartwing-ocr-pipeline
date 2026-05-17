@@ -2,13 +2,13 @@
 
 ## Decision 1: Invoke Pipeline As A Subprocess
 
-**Decision**: The evaluator will invoke `python -m ledgerlinc_ocr.pipeline run` with `subprocess.run` rather than importing pipeline modules.
+**Decision**: The evaluator will invoke `python -m dartwing_ocr.pipeline run` with `subprocess.run` rather than importing pipeline modules.
 
 **Rationale**: The existing evaluator contract and import-barrier test enforce harness/pipeline separation. A subprocess call keeps the boundary explicit while still exercising the public pipeline controller exactly as an operator would.
 
 **Alternatives considered**:
 
-- Import `ledgerlinc_ocr.pipeline.cli.main` in process: rejected because it violates the current evaluator import barrier and weakens runtime separation.
+- Import `dartwing_ocr.pipeline.cli.main` in process: rejected because it violates the current evaluator import barrier and weakens runtime separation.
 - Duplicate stage orchestration in the harness: rejected because the pipeline owns stage execution and profile lifecycle.
 
 ## Decision 2: Default Harness Pipeline Runs Use All-Stub Profiles

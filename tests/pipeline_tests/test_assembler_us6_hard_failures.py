@@ -22,7 +22,7 @@ def _stage(tmp_path: Path, name: str) -> Path:
 
 def _run_cli(folder: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "ledgerlinc_ocr.assembler",
+        [sys.executable, "-m", "dartwing_ocr.assembler",
          "--document-folder", str(folder)],
         capture_output=True, text=True,
     )

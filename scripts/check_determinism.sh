@@ -37,10 +37,10 @@ for d in "${dirs[@]}"; do
     tmp1="$(mktemp)"
     trap 'rm -f "$tmp1"' RETURN
 
-    "$PY" -m ledgerlinc_ocr.preprocessing --document-folder "$d" >/dev/null
+    "$PY" -m dartwing_ocr.preprocessing --document-folder "$d" >/dev/null
     cp "$d/preprocess_output.json" "$tmp1"
 
-    "$PY" -m ledgerlinc_ocr.preprocessing --document-folder "$d" >/dev/null
+    "$PY" -m dartwing_ocr.preprocessing --document-folder "$d" >/dev/null
     if ! diff -q "$tmp1" "$d/preprocess_output.json" >/dev/null; then
         echo "DIFF: $d"
         failures=$((failures + 1))

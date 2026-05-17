@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.cli import main
 
 
 def _last_stderr_line(capsys: pytest.CaptureFixture[str]) -> dict:

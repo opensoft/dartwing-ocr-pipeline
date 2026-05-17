@@ -9,7 +9,7 @@ Evidence for the nine Success Criteria (SC-001 … SC-009) in `spec.md`. Each se
 **Command**:
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity
+.venv/bin/python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity
 ```
 
 **Result**: exit code `0`, 0 FAIL reports, 0 hard errors across 41 sub-reports (20 folder + 20 expected + 1 corpus). Only soft warnings emitted: 10 × `FOLDER_NOTES_MISSING_SOFT` on `easy`/`medium` folders (acceptable per spec).

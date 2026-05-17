@@ -34,9 +34,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import cli as cli_mod
-from ledgerlinc_ocr.preprocessing.errors import EXIT_OK
-from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
+from dartwing_ocr.preprocessing import cli as cli_mod
+from dartwing_ocr.preprocessing.errors import EXIT_OK
+from dartwing_ocr.preprocessing.evidence_gate_optin import (
     EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR,
 )
 
@@ -117,7 +117,7 @@ def test_cpu_no_flag_baseline_exits_ok_and_emits_default_fields(
     (FR-014 — the gate runs on CPU)."""
     monkeypatch.delenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, raising=False)
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
                 "--document-folder",
@@ -162,7 +162,7 @@ def test_cpu_with_flag_warns_exactly_once_and_keeps_default_fields(
     suppression happens on CPU."""
     monkeypatch.delenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, raising=False)
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
                 "--document-folder",
@@ -218,7 +218,7 @@ def test_cpu_with_flag_exit_code_matches_no_flag_baseline(
     monkeypatch.delenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, raising=False)
 
     mock_a = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_a):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_a):
         exit_no_flag = cli_mod.main(
             [
                 "--document-folder",
@@ -230,7 +230,7 @@ def test_cpu_with_flag_exit_code_matches_no_flag_baseline(
     capsys.readouterr()  # drain
 
     mock_b = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_b):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_b):
         exit_with_flag = cli_mod.main(
             [
                 "--document-folder",
@@ -250,7 +250,7 @@ def test_cpu_with_flag_exit_code_matches_no_flag_baseline(
 
 # ---------------------------------------------------------------------------
 # T043 — env-var fallback path
-# (LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 on CPU also triggers warn)
+# (DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=1 on CPU also triggers warn)
 # ---------------------------------------------------------------------------
 
 
@@ -259,13 +259,13 @@ def test_cpu_with_env_var_only_warns_exactly_once(
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """``LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1`` on CPU (no CLI flag)
+    """``DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=1`` on CPU (no CLI flag)
     → exactly ONE stderr line with the MI-22 marker. The env-var path
     MUST trigger the same warn-and-proceed as the CLI flag (R-020.1
     precedence: CLI absent → env-var truthy → True)."""
     monkeypatch.setenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, "1")
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
                 "--document-folder",
@@ -312,7 +312,7 @@ def test_cpu_with_cli_flag_and_truthy_env_warns_exactly_once(
     """
     monkeypatch.setenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, "yes")
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
                 "--document-folder",
@@ -337,14 +337,14 @@ def test_cpu_with_empty_string_env_does_not_warn(
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """R-020.1 empty-string-env-treated-as-unset: ``LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=""``
+    """R-020.1 empty-string-env-treated-as-unset: ``DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=""``
     on CPU (no CLI flag) MUST behave like the env-var is unset — ZERO
     warn lines. This pins the resolver's
     ``if raw == "": return False`` early-return branch at the CLI
     integration level (T031 covers it at the function level)."""
     monkeypatch.setenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, "")
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
                 "--document-folder",
@@ -368,15 +368,15 @@ def test_cpu_with_empty_string_env_does_not_warn(
 # tasks.md T043 says "invokes the CLI with --evidence-gate-skip-fallback
 # on ppstructurev3@cpu AND stub-adapter profiles". The
 # `ppstructurev3@cpu` path is covered above; the stub-adapter path is
-# NOT reachable through `python -m ledgerlinc_ocr.preprocessing` — that
+# NOT reachable through `python -m dartwing_ocr.preprocessing` — that
 # CLI rejects `--preprocess-profile stub` with `"unsupported lane None
 # for preprocessing"`. Stub adapter is selected via the pipeline CLI's
-# `--stack-preset` path (`python -m ledgerlinc_ocr.pipeline`), which
+# `--stack-preset` path (`python -m dartwing_ocr.pipeline`), which
 # routes through `corpus_run.py`'s warm-corpus loop rather than the
 # single-doc preprocess CLI.
 #
 # The pipeline-CLI warn-and-proceed path lives at
-# `src/ledgerlinc_ocr/pipeline/cli.py:744-765` and inherits the same
+# `src/dartwing_ocr/pipeline/cli.py:744-765` and inherits the same
 # `resolve_evidence_gate_skip_fallback` + `_is_gpu_lane_017` predicate
 # as the preprocessing CLI — `is_gpu_lane("stub") is False` is already
 # pinned in `tests/unit/preprocessing/test_warmup_envvar_truthiness.py`

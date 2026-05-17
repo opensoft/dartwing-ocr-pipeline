@@ -23,12 +23,12 @@ description: "Task list for 003-pdf-preprocessing"
 
 **Purpose**: Project layout and dependency wiring so every later phase starts from a consistent base.
 
-- [x] T001 Create module skeleton `src/ledgerlinc_ocr/preprocessing/` with empty `__init__.py`, `__main__.py`, `cli.py`, `pipeline.py`, `rasterize.py`, `ocr.py`, `identifiers.py`, `quality.py`, `document_text.py`, `ingestion_sources.py`, `artifact.py`, `errors.py`, `version.py`
+- [x] T001 Create module skeleton `src/dartwing_ocr/preprocessing/` with empty `__init__.py`, `__main__.py`, `cli.py`, `pipeline.py`, `rasterize.py`, `ocr.py`, `identifiers.py`, `quality.py`, `document_text.py`, `ingestion_sources.py`, `artifact.py`, `errors.py`, `version.py`
 - [x] T002 Add runtime dependencies to `pyproject.toml` under `[project].dependencies`: `pypdfium2>=4.30,<5`, `paddleocr>=2.8,<3`, `paddlepaddle>=3.0,<4`, `Pillow>=10.4,<11`, `numpy>=1.26,<3`
 - [x] T003 [P] Reinstall editable package with new deps: `.venv/bin/pip install -e ".[dev]"` (verifies PaddleOCR CPU wheel resolves on Python 3.12)
 - [x] T004 [P] Create test tree: `tests/unit/preprocessing/__init__.py`, `tests/integration/preprocessing/__init__.py`, `tests/fixtures/preprocessing/.gitkeep`
 - [x] T005 [P] Register new test paths in `pyproject.toml` under `[tool.pytest.ini_options].testpaths` (add `tests/unit` and `tests/integration` alongside existing `tests/contract_tests`)
-- [x] T006 Wire console script entry in `pyproject.toml` under `[project.scripts]`: `ledgerlinc-preprocess = "ledgerlinc_ocr.preprocessing.cli:main"`
+- [x] T006 Wire console script entry in `pyproject.toml` under `[project.scripts]`: `dartwing-preprocess = "dartwing_ocr.preprocessing.cli:main"`
 
 ---
 
@@ -38,11 +38,11 @@ description: "Task list for 003-pdf-preprocessing"
 
 **⚠️ CRITICAL**: No user story work begins until Phase 2 is green.
 
-- [x] T007 [P] Implement typed errors in `src/ledgerlinc_ocr/preprocessing/errors.py`: `MalformedPdfError`, `EncryptedPdfError`, `NonPdfInputError`, `ZeroPagePdfError`, `PageFailure`, `LayoutFailure`, `OcrFailure`, `RasterizationFailure`
-- [x] T008 [P] Implement page-scoped ID minter in `src/ledgerlinc_ocr/preprocessing/identifiers.py`: functions `mint_block_id(page_number, n)`, `mint_line_id(page_number, n)`, `assign_reading_order(blocks)` (blocks sorted by top-y, left-x, then detection index; renumbered 1..N). Honor FR-009a — IDs on page X depend only on page X's success.
-- [x] T009 [P] Implement `src/ledgerlinc_ocr/preprocessing/ingestion_sources.py`: function `build_status(paddle_per_page_outcomes)` returning the three-key dict per FR-015 + FR-015a (`paddleocr_vl.status = "success"` if ≥1 page produced non-empty `blocks` or `raw_ocr_lines`, else `"failure"`; `falcon_ocr` and `falcon_perception` always `enabled: false`, `status: "not_implemented"`)
-- [x] T010 [P] Implement `src/ledgerlinc_ocr/preprocessing/document_text.py`: function `build_document_text(pages)` that joins `blocks[].text` in `reading_order` ascending per page using `"\n"`, then joins pages in `page_number` ascending using `"\n\n"` (FR-010). Separators are module-level constants.
-- [x] T011 [P] Implement `src/ledgerlinc_ocr/preprocessing/version.py`: `DPI = 300` constant and `build_pipeline_version()` returning `stage1-preprocess-{semver}+paddleocr{pkg_ver}.{weights_hash7}.dpi{dpi}` per research.md Decision 8. Weights hash computed once at process startup from PaddleOCR-resolved weight file paths.
+- [x] T007 [P] Implement typed errors in `src/dartwing_ocr/preprocessing/errors.py`: `MalformedPdfError`, `EncryptedPdfError`, `NonPdfInputError`, `ZeroPagePdfError`, `PageFailure`, `LayoutFailure`, `OcrFailure`, `RasterizationFailure`
+- [x] T008 [P] Implement page-scoped ID minter in `src/dartwing_ocr/preprocessing/identifiers.py`: functions `mint_block_id(page_number, n)`, `mint_line_id(page_number, n)`, `assign_reading_order(blocks)` (blocks sorted by top-y, left-x, then detection index; renumbered 1..N). Honor FR-009a — IDs on page X depend only on page X's success.
+- [x] T009 [P] Implement `src/dartwing_ocr/preprocessing/ingestion_sources.py`: function `build_status(paddle_per_page_outcomes)` returning the three-key dict per FR-015 + FR-015a (`paddleocr_vl.status = "success"` if ≥1 page produced non-empty `blocks` or `raw_ocr_lines`, else `"failure"`; `falcon_ocr` and `falcon_perception` always `enabled: false`, `status: "not_implemented"`)
+- [x] T010 [P] Implement `src/dartwing_ocr/preprocessing/document_text.py`: function `build_document_text(pages)` that joins `blocks[].text` in `reading_order` ascending per page using `"\n"`, then joins pages in `page_number` ascending using `"\n\n"` (FR-010). Separators are module-level constants.
+- [x] T011 [P] Implement `src/dartwing_ocr/preprocessing/version.py`: `DPI = 300` constant and `build_pipeline_version()` returning `stage1-preprocess-{semver}+paddleocr{pkg_ver}.{weights_hash7}.dpi{dpi}` per research.md Decision 8. Weights hash computed once at process startup from PaddleOCR-resolved weight file paths.
 - [x] T012 [P] Unit test `tests/unit/preprocessing/test_identifiers.py`: verifies `^p\d+_b\d+$` / `^p\d+_l\d+$` patterns, per-page counters reset, and that a simulated failure on page 2 does not renumber page 3 IDs (FR-009a + US1 AC#2 clause).
 - [x] T013 [P] Unit test `tests/unit/preprocessing/test_document_text.py`: verifies `"\n"` intra-page separator, `"\n\n"` inter-page separator, `reading_order`-ascending ordering, and empty-page handling (empty string joined around `"\n\n"`).
 - [x] T014 [P] Unit test `tests/unit/preprocessing/test_ingestion_sources.py`: verifies ≥1-page-success → `"success"`, all-fail → `"failure"`, Falcon keys always `not_implemented`, and rejects unknown source keys.
@@ -56,7 +56,7 @@ description: "Task list for 003-pdf-preprocessing"
 
 **Goal**: Running preprocessing against a single-page invoice PDF writes a `preprocess_output.json` that validates against the frozen v1.0.0 contract and contains fully populated pages, blocks, raw OCR lines, quality signals, ingestion-source status, and a reading-order-joined `document_text`. No downstream artifacts.
 
-**Independent Test**: Run `python -m ledgerlinc_ocr.preprocessing --document-folder tests/fixtures/preprocessing/us1_single_page/` against a single-page fixture. Exit code `0`, artifact written, `python -m ledgerlinc_ocr.validator validate artifact preprocess_output <path>` passes, `page_count == 1`, `ingestion_sources.paddleocr_vl.status == "success"`, `warnings == []`.
+**Independent Test**: Run `python -m dartwing_ocr.preprocessing --document-folder tests/fixtures/preprocessing/us1_single_page/` against a single-page fixture. Exit code `0`, artifact written, `python -m dartwing_ocr.validator validate artifact preprocess_output <path>` passes, `page_count == 1`, `ingestion_sources.paddleocr_vl.status == "success"`, `warnings == []`.
 
 ### Tests for User Story 1
 
@@ -70,13 +70,13 @@ description: "Task list for 003-pdf-preprocessing"
 
 ### Implementation for User Story 1
 
-- [x] T021 [P] [US1] Implement `src/ledgerlinc_ocr/preprocessing/rasterize.py`: `rasterize_pdf(pdf_path) -> list[PageRaster]` using `pypdfium2` at `DPI=300`. Each `PageRaster` carries `page_number`, `width`, `height` (post-rotation per FR-005), `rotation_detected` snapped to `{0, 90, 180, 270}`, `image: PIL.Image`. Surface `EncryptedPdfError` / `MalformedPdfError` from the opener layer.
-- [x] T022 [P] [US1] Implement `src/ledgerlinc_ocr/preprocessing/ocr.py`: `run_paddle(page_raster) -> (blocks, raw_ocr_lines, tables_raw)`. Configure `use_gpu=False`, `use_mp=False`, `cpu_threads=1`, `use_angle_cls=True`, `paddle.seed(0)`. Map PP-Structure labels to the closed `block_type` vocabulary per `data-model.md`; append a warning via caller for fallbacks. Sort outputs deterministically by `(bbox[1], bbox[0], detection_index)`.
-- [x] T023 [P] [US1] Implement `src/ledgerlinc_ocr/preprocessing/quality.py`: `compute_quality(all_lines, all_pages) -> QualitySignals` using the provisional thresholds from research.md Decision 6 (good/fair/poor on avg confidence + low-confidence ratio; `skew_detected` at ≥2.0°; `noise_level` on low-confidence ratio). Pure function, deterministic constants.
-- [x] T024 [US1] Implement `src/ledgerlinc_ocr/preprocessing/artifact.py`: `assemble(invocation, pages, tables, quality, ingestion_sources, warnings) -> dict`, then `validate_and_write(artifact_dict, out_path)` that runs the in-repo validator against `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` and performs atomic write via `preprocess_output.json.tmp-{pid}` → rename (FR-019). Raise on schema-invalid assembly; do NOT persist partials.
+- [x] T021 [P] [US1] Implement `src/dartwing_ocr/preprocessing/rasterize.py`: `rasterize_pdf(pdf_path) -> list[PageRaster]` using `pypdfium2` at `DPI=300`. Each `PageRaster` carries `page_number`, `width`, `height` (post-rotation per FR-005), `rotation_detected` snapped to `{0, 90, 180, 270}`, `image: PIL.Image`. Surface `EncryptedPdfError` / `MalformedPdfError` from the opener layer.
+- [x] T022 [P] [US1] Implement `src/dartwing_ocr/preprocessing/ocr.py`: `run_paddle(page_raster) -> (blocks, raw_ocr_lines, tables_raw)`. Configure `use_gpu=False`, `use_mp=False`, `cpu_threads=1`, `use_angle_cls=True`, `paddle.seed(0)`. Map PP-Structure labels to the closed `block_type` vocabulary per `data-model.md`; append a warning via caller for fallbacks. Sort outputs deterministically by `(bbox[1], bbox[0], detection_index)`.
+- [x] T023 [P] [US1] Implement `src/dartwing_ocr/preprocessing/quality.py`: `compute_quality(all_lines, all_pages) -> QualitySignals` using the provisional thresholds from research.md Decision 6 (good/fair/poor on avg confidence + low-confidence ratio; `skew_detected` at ≥2.0°; `noise_level` on low-confidence ratio). Pure function, deterministic constants.
+- [x] T024 [US1] Implement `src/dartwing_ocr/preprocessing/artifact.py`: `assemble(invocation, pages, tables, quality, ingestion_sources, warnings) -> dict`, then `validate_and_write(artifact_dict, out_path)` that runs the in-repo validator against `contracts/stage1_vendor_identity/v1.0.0/preprocess_output.schema.json` and performs atomic write via `preprocess_output.json.tmp-{pid}` → rename (FR-019). Raise on schema-invalid assembly; do NOT persist partials.
 - [x] T025 [US1] Unit test `tests/unit/preprocessing/test_artifact.py`: verifies atomic-write sequence (temp file exists during write, gone after success; partial-file not visible on simulated crash via monkeypatched `os.rename`), and that a deliberately-malformed dict raises without writing anything.
-- [x] T026 [US1] Implement `src/ledgerlinc_ocr/preprocessing/pipeline.py`: `Pipeline.run(invocation) -> Path` that orchestrates: input validation → per-page rasterize → per-page OCR → per-page identifier minting via `identifiers.py` → quality compute → ingestion-source aggregation → `document_text` build → artifact assemble + validate + atomic write. Returns the written path.
-- [x] T027 [US1] Implement `src/ledgerlinc_ocr/preprocessing/cli.py` and `src/ledgerlinc_ocr/preprocessing/__main__.py`: argparse with `--document-folder` (required), `--source-file` (default `source.pdf`), `--write-page-images` (flag), `--pipeline-version` (override). Exit codes per `contracts/cli-contract.md`: `0` success, `2` malformed input, `3` schema-validation internal error, `1` unexpected. Emit single stdout JSON line on success `{"status": "ok", ...}`.
+- [x] T026 [US1] Implement `src/dartwing_ocr/preprocessing/pipeline.py`: `Pipeline.run(invocation) -> Path` that orchestrates: input validation → per-page rasterize → per-page OCR → per-page identifier minting via `identifiers.py` → quality compute → ingestion-source aggregation → `document_text` build → artifact assemble + validate + atomic write. Returns the written path.
+- [x] T027 [US1] Implement `src/dartwing_ocr/preprocessing/cli.py` and `src/dartwing_ocr/preprocessing/__main__.py`: argparse with `--document-folder` (required), `--source-file` (default `source.pdf`), `--write-page-images` (flag), `--pipeline-version` (override). Exit codes per `contracts/cli-contract.md`: `0` success, `2` malformed input, `3` schema-validation internal error, `1` unexpected. Emit single stdout JSON line on success `{"status": "ok", ...}`.
 - [x] T028 [US1] Wire optional debug `page_*.png` output in `pipeline.py` when `--write-page-images` is set; confirm debug files are never read by the contract path (FR-007).
 
 **Checkpoint**: US1 complete — MVP slice functional. Run quickstart.md Step 1–3 against the `us1_single_page` fixture and confirm all four AC tests green.
@@ -100,8 +100,8 @@ description: "Task list for 003-pdf-preprocessing"
 
 ### Implementation for User Story 2
 
-- [x] T035 [US2] Extend `src/ledgerlinc_ocr/preprocessing/pipeline.py` with a per-page loop that constructs pages independently, maintains page-scoped identifier counters (FR-009a), and passes each page's rasterized `width`/`height`/`rotation_detected` through unchanged to the assembler.
-- [x] T036 [US2] Extend `src/ledgerlinc_ocr/preprocessing/rasterize.py` to emit the rotation warning string exactly as `"page {page_number}: rotation {orig}° normalized to {snapped}°"` when snapping from non-`{0,90,180,270}` raw angles (FR-006). Warning passed back to pipeline for inclusion in `warnings[]`.
+- [x] T035 [US2] Extend `src/dartwing_ocr/preprocessing/pipeline.py` with a per-page loop that constructs pages independently, maintains page-scoped identifier counters (FR-009a), and passes each page's rasterized `width`/`height`/`rotation_detected` through unchanged to the assembler.
+- [x] T036 [US2] Extend `src/dartwing_ocr/preprocessing/rasterize.py` to emit the rotation warning string exactly as `"page {page_number}: rotation {orig}° normalized to {snapped}°"` when snapping from non-`{0,90,180,270}` raw angles (FR-006). Warning passed back to pipeline for inclusion in `warnings[]`.
 
 **Checkpoint**: US2 complete — multi-page PDFs produce deterministic schema-valid artifacts. US1 fixtures still pass (regression check).
 
@@ -129,9 +129,9 @@ description: "Task list for 003-pdf-preprocessing"
 
 ### Implementation for User Story 3
 
-- [x] T048 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/rasterize.py`: detect encryption (pypdfium2 permission/password error) → raise `EncryptedPdfError`; detect truncated/unreadable bytes → `MalformedPdfError`; detect `page_count == 0` → `ZeroPagePdfError`; implement FR-005a PDF-metadata fallback (`round(point_dim × 300 / 72)`, rotation `0`) when rasterization of a single page fails while the document itself is readable.
-- [x] T049 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/pipeline.py`: wrap each page in per-step try/except boundaries. On `RasterizationFailure`: emit page record with fallback dims and empty arrays + warning. On `OcrFailure` with successful layout: keep `blocks` (with empty `text`), empty `raw_ocr_lines`, warning. On `LayoutFailure` with successful OCR: keep `raw_ocr_lines`, empty `blocks`, warning. Document-level errors (`MalformedPdfError`, `EncryptedPdfError`, `ZeroPagePdfError`, `NonPdfInputError`) propagate → CLI exit `2`, no artifact write.
-- [x] T050 [P] [US3] Extend `src/ledgerlinc_ocr/preprocessing/cli.py`: magic-byte check on the input file before opening (reject non-PDF with `NonPdfInputError`); map exception classes to exit codes per `contracts/cli-contract.md` (malformed → `2`, validator reject → `3`).
+- [x] T048 [P] [US3] Extend `src/dartwing_ocr/preprocessing/rasterize.py`: detect encryption (pypdfium2 permission/password error) → raise `EncryptedPdfError`; detect truncated/unreadable bytes → `MalformedPdfError`; detect `page_count == 0` → `ZeroPagePdfError`; implement FR-005a PDF-metadata fallback (`round(point_dim × 300 / 72)`, rotation `0`) when rasterization of a single page fails while the document itself is readable.
+- [x] T049 [P] [US3] Extend `src/dartwing_ocr/preprocessing/pipeline.py`: wrap each page in per-step try/except boundaries. On `RasterizationFailure`: emit page record with fallback dims and empty arrays + warning. On `OcrFailure` with successful layout: keep `blocks` (with empty `text`), empty `raw_ocr_lines`, warning. On `LayoutFailure` with successful OCR: keep `raw_ocr_lines`, empty `blocks`, warning. Document-level errors (`MalformedPdfError`, `EncryptedPdfError`, `ZeroPagePdfError`, `NonPdfInputError`) propagate → CLI exit `2`, no artifact write.
+- [x] T050 [P] [US3] Extend `src/dartwing_ocr/preprocessing/cli.py`: magic-byte check on the input file before opening (reject non-PDF with `NonPdfInputError`); map exception classes to exit codes per `contracts/cli-contract.md` (malformed → `2`, validator reject → `3`).
 - [x] T051 [US3] Extend `tests/unit/preprocessing/test_artifact.py` (created in T025) with an induced-crash test: simulate a crash mid-write via monkeypatched `os.rename` raising, and assert the original `preprocess_output.json` (if any) is untouched and no `.tmp-*` file shadows it on subsequent runs.
 
 **Checkpoint**: US3 complete — corpus's hard and missing_name documents can be run without halting the pipeline; malformed inputs fail loud. US1 and US2 fixtures still pass.
@@ -154,8 +154,8 @@ description: "Task list for 003-pdf-preprocessing"
 
 ### Implementation for User Story 4
 
-- [x] T057 [US4] Extend `src/ledgerlinc_ocr/preprocessing/ocr.py` to request PP-Structure's table recognition output (structure + cell grid) and return normalized `(rows, columns, cells)` alongside the table block's bbox.
-- [x] T058 [US4] Extend `src/ledgerlinc_ocr/preprocessing/artifact.py` to assemble `tables[*]` entries with the exact key set pinned in FR-011a (`page_number`, `block_id`, `bbox`, `rows`, `columns`, optional `cells`). Include a guard that strips any unexpected keys before validation.
+- [x] T057 [US4] Extend `src/dartwing_ocr/preprocessing/ocr.py` to request PP-Structure's table recognition output (structure + cell grid) and return normalized `(rows, columns, cells)` alongside the table block's bbox.
+- [x] T058 [US4] Extend `src/dartwing_ocr/preprocessing/artifact.py` to assemble `tables[*]` entries with the exact key set pinned in FR-011a (`page_number`, `block_id`, `bbox`, `rows`, `columns`, optional `cells`). Include a guard that strips any unexpected keys before validation.
 
 **Checkpoint**: US4 complete — table structural capture works without crossing into line-item parsing. US1–US3 regressions clean.
 
@@ -165,14 +165,14 @@ description: "Task list for 003-pdf-preprocessing"
 
 **Purpose**: Corpus calibration, documentation alignment, and final SC validation before handoff.
 
-- [x] T059 Run corpus-calibration pass for quality thresholds against `tests/stage1_vendor_identity/inv_*/` and update `src/ledgerlinc_ocr/preprocessing/quality.py` constants if the provisional values in research.md Decision 6 misfire. Record final thresholds inline and bump `{semver}` in `version.py`. — Completed 2026-05-06 via GitHub issue #1 calibration against the populated 20-document PPStructureV3 corpus artifacts. Result: 20/20 `scan_quality=good`, 20/20 `noise_level=low`; lowest average line confidence 0.8970 and highest low-confidence ratio 0.0737, both from `inv_011_hard`. Threshold constants stayed unchanged, so no preprocessing semver bump was needed.
+- [x] T059 Run corpus-calibration pass for quality thresholds against `tests/stage1_vendor_identity/inv_*/` and update `src/dartwing_ocr/preprocessing/quality.py` constants if the provisional values in research.md Decision 6 misfire. Record final thresholds inline and bump `{semver}` in `version.py`. — Completed 2026-05-06 via GitHub issue #1 calibration against the populated 20-document PPStructureV3 corpus artifacts. Result: 20/20 `scan_quality=good`, 20/20 `noise_level=low`; lowest average line confidence 0.8970 and highest low-confidence ratio 0.0737, both from `inv_011_hard`. Threshold constants stayed unchanged, so no preprocessing semver bump was needed.
 - [x] T060 [P] Run SC-002 determinism sweep: invoke preprocessing twice over the full 20-document corpus, diff all `preprocess_output.json` pairs, assert 100% byte-identity. Script at `scripts/check_determinism.sh` (create if absent). — Script authored; exits 0 with "corpus deferred" today; ready when corpus lands.
-- [x] T061 [P] Run SC-001 schema sweep: run preprocessing over the full corpus, validate every output with `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity/`, assert zero schema errors. — `scripts/check_schema_sweep.sh` authored; deferred-corpus short-circuit.
+- [x] T061 [P] Run SC-001 schema sweep: run preprocessing over the full corpus, validate every output with `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity/`, assert zero schema errors. — `scripts/check_schema_sweep.sh` authored; deferred-corpus short-circuit.
 - [x] T062 [P] Run SC-004 robustness sweep: report exit codes + artifact-written status per document across the 20-doc corpus; expect ≥ 90% success. — `scripts/check_robustness.sh` authored; deferred-corpus short-circuit.
-- [x] T063 [P] Run `quickstart.md` end-to-end inside the devcontainer against one `tests/stage1_vendor_identity/inv_XXX_easy/` document; verify SC-008 (no cloud, no GPU, one command, exit 0, validator passes). — Executed against the US1 synthetic fixture in lieu of the absent corpus; `ledgerlinc-preprocess` exit 0 and `validator validate artifact --contract preprocess_output` PASS.
+- [x] T063 [P] Run `quickstart.md` end-to-end inside the devcontainer against one `tests/stage1_vendor_identity/inv_XXX_easy/` document; verify SC-008 (no cloud, no GPU, one command, exit 0, validator passes). — Executed against the US1 synthetic fixture in lieu of the absent corpus; `dartwing-preprocess` exit 0 and `validator validate artifact --contract preprocess_output` PASS.
 - [x] T064 [P] Update top-level `CLAUDE.md` under "Key References" to include `specs/003-pdf-preprocessing/plan.md`, `research.md`, and the four checklists.
 - [x] T065 [P] Run all four checklists in `specs/003-pdf-preprocessing/checklists/` as a final review gate; any unticked release-gate items must be closed or explicitly deferred with a reason. — All 5 checklists (contract, determinism, failure-handling, requirements, scope) fully ticked; zero open items.
-- [x] T066 Verify `pip install -e .` exposes the `ledgerlinc-preprocess` console script and that a fresh shell can invoke it without `python -m`.
+- [x] T066 Verify `pip install -e .` exposes the `dartwing-preprocess` console script and that a fresh shell can invoke it without `python -m`.
 - [x] T067 [P] [US1] Unit test `tests/unit/preprocessing/test_rasterize.py`: verifies `rasterize_pdf` at 300 DPI produces post-rotation `width`/`height` per FR-005, snaps out-of-vocabulary rotations to `{0,90,180,270}` per FR-006, applies the FR-005a metadata fallback (`round(point_dim × 300 / 72)`, rotation `0`) when a single page's rasterization fails, and raises `EncryptedPdfError` / `MalformedPdfError` / `ZeroPagePdfError` at the correct boundaries. Depends on T021 + T048.
 - [x] T068 [P] Unit test `tests/unit/preprocessing/test_null_discipline.py`: asserts FR-020 invariants — missing OCR text is `""` not `null` (exercised via a simulated OCR-fail-layout-succeed page where `blocks[].text == ""` and `raw_ocr_lines == []`), and a recursive walk of the assembled artifact dict finds `null` only in schema-permitted slots. Depends on T024.
 - [x] T069 [P] SC-003 verification script `scripts/check_line_id_stability.py` — Script authored; exits 0 with "deferred — corpus absent" today; ready when the 5 easy-corpus docs land.: run preprocessing twice over the 5 `inv_*_easy/` corpus docs, extract every `line_id` on the page containing the vendor name, assert 100% identity across the two runs. Fails the polish gate if any easy-corpus line_id differs between runs. Depends on T060.
@@ -230,14 +230,14 @@ Task: "T019 Integration test tests/integration/preprocessing/test_us1_ingestion_
 Task: "T020 Integration test tests/integration/preprocessing/test_us1_quality_and_text.py"
 
 # Then kick off the three leaf modules in parallel:
-Task: "T021 Implement src/ledgerlinc_ocr/preprocessing/rasterize.py"
-Task: "T022 Implement src/ledgerlinc_ocr/preprocessing/ocr.py"
-Task: "T023 Implement src/ledgerlinc_ocr/preprocessing/quality.py"
+Task: "T021 Implement src/dartwing_ocr/preprocessing/rasterize.py"
+Task: "T022 Implement src/dartwing_ocr/preprocessing/ocr.py"
+Task: "T023 Implement src/dartwing_ocr/preprocessing/quality.py"
 
 # Once leaves land, serialize through the integrator tasks:
-Task: "T024 Implement src/ledgerlinc_ocr/preprocessing/artifact.py"
-Task: "T026 Implement src/ledgerlinc_ocr/preprocessing/pipeline.py"
-Task: "T027 Implement src/ledgerlinc_ocr/preprocessing/cli.py"
+Task: "T024 Implement src/dartwing_ocr/preprocessing/artifact.py"
+Task: "T026 Implement src/dartwing_ocr/preprocessing/pipeline.py"
+Task: "T027 Implement src/dartwing_ocr/preprocessing/cli.py"
 ```
 
 ---
@@ -248,7 +248,7 @@ Task: "T027 Implement src/ledgerlinc_ocr/preprocessing/cli.py"
 
 1. Complete Phase 1 (Setup) and Phase 2 (Foundational).
 2. Complete Phase 3 (US1) — schema-valid artifact for single-page PDF.
-3. **STOP and VALIDATE** — US1 tests green, quickstart.md walk-through works, `python -m ledgerlinc_ocr.validator validate artifact preprocess_output <path>` passes.
+3. **STOP and VALIDATE** — US1 tests green, quickstart.md walk-through works, `python -m dartwing_ocr.validator validate artifact preprocess_output <path>` passes.
 4. Ship MVP to unblock downstream extraction/routing slices.
 
 ### Incremental Delivery
@@ -276,4 +276,4 @@ With multiple contributors after Phase 2:
 - Each user story is independently testable via its own fixture under `tests/fixtures/preprocessing/us{N}_*/`.
 - Commit after each task or logical group.
 - Respect the determinism contract at every boundary — any change that could shift byte output must bump `pipeline_version` per FR-018 and research.md Decision 8.
-- Do not edit `contracts/stage1_vendor_identity/v1.0.0/*` or `src/ledgerlinc_ocr/validator/` in any task; those are consumed, not modified (per Assumptions in spec.md).
+- Do not edit `contracts/stage1_vendor_identity/v1.0.0/*` or `src/dartwing_ocr/validator/` in any task; those are consumed, not modified (per Assumptions in spec.md).

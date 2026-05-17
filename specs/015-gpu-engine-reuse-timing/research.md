@@ -4,7 +4,7 @@ This document resolves every NEEDS CLARIFICATION implied by the spec and Technic
 
 ## R-015.1 — Engine reuse strategy: persist preflight-constructed engine into runtime singleton
 
-**Decision**: When `classify(attempt_ppstructurev3_init=True)` succeeds, persist the constructed `PPStructureV3` instance into `ledgerlinc_ocr.preprocessing.ocr._ENGINE` (and set `_ENGINE_DEVICE` to `"gpu:0"`) instead of `del`-ing it. The runtime helper `ocr._get_engine(device="gpu:0")` returns the persisted instance on its first call rather than constructing a fresh one. The single-device-per-process guard (CF4 from feature 014) remains enforced via the same `_ENGINE_DEVICE` check.
+**Decision**: When `classify(attempt_ppstructurev3_init=True)` succeeds, persist the constructed `PPStructureV3` instance into `dartwing_ocr.preprocessing.ocr._ENGINE` (and set `_ENGINE_DEVICE` to `"gpu:0"`) instead of `del`-ing it. The runtime helper `ocr._get_engine(device="gpu:0")` returns the persisted instance on its first call rather than constructing a fresh one. The single-device-per-process guard (CF4 from feature 014) remains enforced via the same `_ENGINE_DEVICE` check.
 
 **Rationale**:
 - FR-002 explicitly allows the option "preflight and runtime share one process-scoped engine." Persisting the preflight engine collapses the duplicate ~50 s init that today fires twice per process.

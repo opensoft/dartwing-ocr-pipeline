@@ -13,8 +13,8 @@ This document is the successor to the frozen `002-cli-contract` v1.0.0. It prese
 
 ```bash
 # Contract-stable forms (harness targets either)
-python -m ledgerlinc_ocr.pipeline run [INPUT_SELECTOR] [STAGE_FLAGS] [OPTIONS]
-ledgerlinc-pipeline run [INPUT_SELECTOR] [STAGE_FLAGS] [OPTIONS]
+python -m dartwing_ocr.pipeline run [INPUT_SELECTOR] [STAGE_FLAGS] [OPTIONS]
+dartwing-pipeline run [INPUT_SELECTOR] [STAGE_FLAGS] [OPTIONS]
 ```
 
 Without a subcommand, the CLI prints help and exits with code `10` (`USAGE_ERROR`). The top-level command and `run` subcommand name are unchanged from `002`.

@@ -26,7 +26,7 @@ def test_cpu_profile_module_set_known_value_emits_warn_line(
     FR-013 warn-and-proceed stderr line (literal `--module-set ignored:`
     substring) and returns the same exit status as a no-flag CPU run
     (the engine never receives the flag's effect)."""
-    from ledgerlinc_ocr.preprocessing.cli import main as preprocess_main
+    from dartwing_ocr.preprocessing.cli import main as preprocess_main
 
     def _run(folder_name: str, *extra_args: str) -> int:
         folder = tmp_path / folder_name
@@ -61,7 +61,7 @@ def test_cpu_profile_det_rec_variant_known_value_emits_warn_line(
 ) -> None:
     """`--det-rec-variant=ppocrv5-mobile` on `ppstructurev3@cpu` emits
     the parallel `--det-rec-variant ignored:` warn line."""
-    from ledgerlinc_ocr.preprocessing.cli import main as preprocess_main
+    from dartwing_ocr.preprocessing.cli import main as preprocess_main
 
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
@@ -88,7 +88,7 @@ def test_both_flags_set_on_cpu_emit_two_warn_lines(
 ) -> None:
     """Setting both flags on CPU emits exactly two warn lines (one
     per ignored flag) per FR-013 / contracts/cli-contract.md §3."""
-    from ledgerlinc_ocr.preprocessing.cli import main as preprocess_main
+    from dartwing_ocr.preprocessing.cli import main as preprocess_main
 
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
@@ -118,7 +118,7 @@ def test_default_cpu_profile_no_flags_emits_no_warn_line(
 ) -> None:
     """A default CPU run with no preset flags emits no `ignored:` line
     on stderr (no flags to warn about)."""
-    from ledgerlinc_ocr.preprocessing.cli import main as preprocess_main
+    from dartwing_ocr.preprocessing.cli import main as preprocess_main
 
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
@@ -142,7 +142,7 @@ def test_unknown_module_set_on_cpu_does_not_emit_warn_line(
     """Per Plan §I-11: when both apply (CPU profile + unknown value),
     fail-fast wins. The unknown-value path emits the `unknown module_set:`
     line but NOT the `--module-set ignored:` warn-and-proceed line."""
-    from ledgerlinc_ocr.preprocessing.cli import main as preprocess_main
+    from dartwing_ocr.preprocessing.cli import main as preprocess_main
 
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()

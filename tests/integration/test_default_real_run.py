@@ -36,7 +36,7 @@ def _ollama_reachable() -> bool:
 
 @pytest.fixture
 def opt_in_all_live_adapters():
-    from ledgerlinc_ocr.pipeline import stages as stages_mod
+    from dartwing_ocr.pipeline import stages as stages_mod
 
     stages_mod.register_ppstructurev3_cpu()
     stages_mod.register_ollama_gpu()
@@ -65,7 +65,7 @@ def test_default_real_profile_run_end_to_end(
     opt_in_all_live_adapters,
 ):
     """Acceptance Scenario 1: no flags -> all four real artifacts."""
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     code = main([
         "run",

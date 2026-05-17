@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evidence_packet import schema as schema_mod
-from ledgerlinc_ocr.evidence_packet.errors import PacketInvalid, PreprocessInputInvalid
+from dartwing_ocr.evidence_packet import schema as schema_mod
+from dartwing_ocr.evidence_packet.errors import PacketInvalid, PreprocessInputInvalid
 
 _FIXTURES = (
     Path(__file__).resolve().parents[2]

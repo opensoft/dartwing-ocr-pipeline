@@ -25,7 +25,7 @@ MINIMAL_PDF_BYTES = (
 
 def _run(argv: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-m", "ledgerlinc_ocr.evaluator", *argv],
+        [sys.executable, "-m", "dartwing_ocr.evaluator", *argv],
         capture_output=True,
         text=True,
     )

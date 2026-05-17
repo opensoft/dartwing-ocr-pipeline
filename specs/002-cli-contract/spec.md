@@ -3,7 +3,7 @@
 **Feature Branch**: `002-cli-contract`
 **Created**: 2026-04-13
 **Status**: Draft
-**Input**: User description: "CLI Contract — Create the stage 1 one-document CLI contract for the LedgerLinc OCR pipeline. Define the command-line entry point that processes a single invoice PDF from source file to stage 1 artifact outputs, accepts one `source.pdf`, validates the required inputs, resolves document and output paths deterministically, and defines exactly where the pipeline writes the four stage 1 artifacts: `preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, and `final_structured_payload.json`. Freeze the CLI contract and one-document execution shape so later work on preprocessing, evidence packet assembly, extraction, routing, and evaluation can plug into it without changing the command surface. Stage-1-only, PDF-only, CLI-first, not a service. Callable by the external harness without code changes."
+**Input**: User description: "CLI Contract — Create the stage 1 one-document CLI contract for the Dartwing OCR pipeline. Define the command-line entry point that processes a single invoice PDF from source file to stage 1 artifact outputs, accepts one `source.pdf`, validates the required inputs, resolves document and output paths deterministically, and defines exactly where the pipeline writes the four stage 1 artifacts: `preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, and `final_structured_payload.json`. Freeze the CLI contract and one-document execution shape so later work on preprocessing, evidence packet assembly, extraction, routing, and evaluation can plug into it without changing the command surface. Stage-1-only, PDF-only, CLI-first, not a service. Callable by the external harness without code changes."
 
 ## Context
 
@@ -204,7 +204,7 @@ Later stage 1 work will add a second and third voter (ensemble mode), richer Tri
 
 ## Assumptions
 
-- The CLI entry point lives in the pipeline package alongside the validator that already exists at `src/ledgerlinc_ocr/validator/`. The exact module path and executable name are implementation choices deferred to `/speckit.plan`; this spec treats the command as "the stage 1 pipeline CLI" in the abstract.
+- The CLI entry point lives in the pipeline package alongside the validator that already exists at `src/dartwing_ocr/validator/`. The exact module path and executable name are implementation choices deferred to `/speckit.plan`; this spec treats the command as "the stage 1 pipeline CLI" in the abstract.
 - The default behavior when the destination folder contains reserved artifact filenames is to refuse and require `--overwrite`. This is chosen over "silently overwrite" because reproducibility is a constitutional concern and the harness can always pass the flag explicitly when re-running a document.
 - On processing failure, the CLI leaves any artifacts it had already written in place on disk for debugging. Rolling back or deleting partial outputs would hide diagnosable state; the structured stderr record lists exactly which artifacts were written, so a harness that wants rollback semantics can implement them without CLI help.
 - `document_id` derivation from the destination folder name follows the corpus convention `inv_<NNN>_<difficulty>` → `inv_<NNN>` (for example, `inv_001_easy` → `inv_001`). When the folder name does not match that pattern, the CLI refuses to guess and requires `--document-id`. This keeps the stamped `document_id` stable against folder-rename patterns labelers are expected to use.

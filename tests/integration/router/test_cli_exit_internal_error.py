@@ -20,8 +20,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ledgerlinc_ocr.validator import ValidationOutcome
-from ledgerlinc_ocr.validator.report import (
+from dartwing_ocr.validator import ValidationOutcome
+from dartwing_ocr.validator.report import (
     Severity,
     ValidationOutcomeCounts,
     Violation,
@@ -50,8 +50,8 @@ def _failed_outcome() -> ValidationOutcome:
 def test_cli_returncode_3_on_assembled_schema_failure(
     tmp_path: Path, monkeypatch, stage_fixture, capsys
 ):
-    from ledgerlinc_ocr.router import artifact as artifact_mod
-    from ledgerlinc_ocr.router.cli import main as cli_main
+    from dartwing_ocr.router import artifact as artifact_mod
+    from dartwing_ocr.router.cli import main as cli_main
 
     folder = stage_fixture(tmp_path, "clean_explicit_name_full_identity.json")
 

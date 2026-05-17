@@ -22,7 +22,7 @@ services:
   ollama:
     image: ollama/ollama:rocm
     profiles: ["ollama"]
-    container_name: ledgerlinc-ollama
+    container_name: dartwing-ollama
     restart: unless-stopped
     cap_add:
       - SYS_PTRACE

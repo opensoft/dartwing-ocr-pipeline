@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.assembler import Invocation, run
+from dartwing_ocr.assembler import Invocation, run
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "fixtures" / "assembler"
 

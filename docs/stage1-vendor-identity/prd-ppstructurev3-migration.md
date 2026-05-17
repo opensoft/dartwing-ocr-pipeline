@@ -4,7 +4,7 @@
 
 This PRD defines the product requirements for migrating the stage 1 PDF preprocessing layer from PaddleOCR 2.10 (PPStructure + PP-OCRv4) to PaddleOCR 3.5 (PPStructureV3 + PP-OCRv5).
 
-It is specifically about the trijunction-ingestion layer in `src/ledgerlinc_ocr/preprocessing/`. It does not change the extraction, consensus, routing, or evaluator layers — those layers consume `preprocess_output.json` and are unaffected as long as the artifact contract stays intact.
+It is specifically about the trijunction-ingestion layer in `src/dartwing_ocr/preprocessing/`. It does not change the extraction, consensus, routing, or evaluator layers — those layers consume `preprocess_output.json` and are unaffected as long as the artifact contract stays intact.
 
 This PRD owns the **full-structure** preprocessing profile. A separate
 follow-up feature may add a lightweight `edge-ocr` profile, but that profile
@@ -18,7 +18,7 @@ The default PPStructure layout detector bundled with PaddleOCR 2.10 for `lang='e
 The failure is silent:
 
 - `PPStructure.__call__` returns `[]` without raising.
-- `run_layout()` in `src/ledgerlinc_ocr/preprocessing/ocr.py` only appends a warning in the `except` branch, so an empty result produces no warning.
+- `run_layout()` in `src/dartwing_ocr/preprocessing/ocr.py` only appends a warning in the `except` branch, so an empty result produces no warning.
 - `ingestion_sources.paddleocr_vl.status` reports `"success"`.
 - The resulting `preprocess_output.json` looks schema-valid to downstream consumers even though the layout evidence is missing.
 
@@ -47,14 +47,14 @@ Primary users:
 
 Stakeholders:
 
-- LedgerLinc OCR/model pipeline engineering
+- Dartwing OCR/model pipeline engineering
 - Devcontainer / infra owners — disk footprint and download budget change
 
 ## Scope
 
 Included:
 
-- Replace `PPStructure` + `PaddleOCR` usage in `src/ledgerlinc_ocr/preprocessing/ocr.py` with `PPStructureV3`.
+- Replace `PPStructure` + `PaddleOCR` usage in `src/dartwing_ocr/preprocessing/ocr.py` with `PPStructureV3`.
 - Retire the separate `run_ocr_lines()` call in favor of V3's built-in OCR pass (`overall_ocr_res.rec_texts`), since V3 already runs PP-OCRv5 during structure inference — running PP-OCRv4 separately on the same image is wasteful and produces two different text recognitions to reconcile.
 - Apply `enable_mkldnn=False` to V3 construction as a workaround for the paddle 3.3.1 PIR/oneDNN `ConvertPirAttribute2RuntimeAttribute` bug on `PP-DocBlockLayout`. Document the workaround so it can be removed once upstream ships a fix.
 - Extend `PPSTRUCTURE_LABEL_TO_BLOCK_TYPE` with V3 label names (`paragraph_title`, `doc_title`, and any additional V3 classes that appear in practice). Unknown labels continue to fall back to `text` with a warning, as today.
@@ -95,7 +95,7 @@ Functional:
 1. On `inv_001_easy/source.pdf`, `preprocess_output.json` has `pages[0].blocks` with `len >= 3` and `document_text` non-empty and containing at least one of the expected vendor-identity tokens (e.g. `"DESERT DIECUTTING"`).
 2. Across the full stage 1 corpus (`tests/stage1_vendor_identity/inv_001..inv_020`), zero pages produce the silent `lines>0, blocks==0` condition. Any page that does hits the defensive warning and downgraded `ingestion_sources` status.
 3. The regenerated baselines round-trip: running preprocessing twice on the same PDF produces byte-identical `preprocess_output.json`.
-4. `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` passes.
+4. `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` passes.
 5. Existing pipeline and contract tests pass. Preprocessing integration tests either pass unchanged or are updated with clear justification (OCR text shifts under PP-OCRv5).
 
 Non-functional:

@@ -7,19 +7,19 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evaluator import evaluate_corpus
-from ledgerlinc_ocr.evaluator.compare import FieldResult
-from ledgerlinc_ocr.evaluator.corpus import (
+from dartwing_ocr.evaluator import evaluate_corpus
+from dartwing_ocr.evaluator.compare import FieldResult
+from dartwing_ocr.evaluator.corpus import (
     ConsensusMetrics,
     DifficultyStats,
     DocumentListEntry,
     OverallMetrics,
     RunSummary,
 )
-from ledgerlinc_ocr.evaluator.document import DocumentEvaluation
-from ledgerlinc_ocr.evaluator.gates import DocumentPassFail
-from ledgerlinc_ocr.evaluator.report import render_run_summary, summarize_failure
-from ledgerlinc_ocr.evaluator.scoring import (
+from dartwing_ocr.evaluator.document import DocumentEvaluation
+from dartwing_ocr.evaluator.gates import DocumentPassFail
+from dartwing_ocr.evaluator.report import render_run_summary, summarize_failure
+from dartwing_ocr.evaluator.scoring import (
     CONTRACT_SET_VERSION,
     ComparisonSummary,
     ResultLabel,
@@ -144,7 +144,7 @@ def test_md_file_matches_stdout(tmp_path: Path, capsys: pytest.CaptureFixture) -
     root = _copy(FIXTURES / "corpus_20", tmp_path)
 
     # Run the CLI corpus handler end-to-end (writes MD + prints to stdout).
-    from ledgerlinc_ocr.evaluator.cli import main
+    from dartwing_ocr.evaluator.cli import main
 
     exit_code = main(["evaluate", "corpus", str(root)])
     assert exit_code == 0
@@ -234,7 +234,7 @@ def test_score_below_threshold_fallback(tmp_path: Path) -> None:
             "hard": DifficultyStats(0, 0.0, 0.0),
             "missing_name": DifficultyStats(0, 0.0, 0.0),
         },
-        by_field={name: 1.0 for name in SCORED_FIELDS},
+        by_field=dict.fromkeys(SCORED_FIELDS, 1.0),
         documents=(
             DocumentListEntry(
                 document_id="inv_999_easy",

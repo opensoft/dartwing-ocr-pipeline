@@ -13,7 +13,7 @@ since ``statistics.mean`` over a fixed input list is deterministic.
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     FiveSignalSet,
     compute_five_signals,
     evaluate_evidence_gate,
@@ -49,9 +49,15 @@ def test_vendor_name_count_title_case() -> None:
 
 
 def test_vendor_name_count_all_caps() -> None:
-    """ALL-CAPS multi-char tokens count as vendor-name candidates."""
+    """ALL-CAPS multi-char tokens count as vendor-name candidates.
+
+    A5 expansion: business-entity suffix tokens (CORP, LLC, INC, ...)
+    are now in the stop-word list because they are NOT vendor names —
+    they are appended to vendor names. Fixture text uses two
+    name-shaped tokens so the test still covers the ALL-CAPS case.
+    """
     doc = _doc_with_blocks(
-        [{"text": "ACME CORP", "confidence": 0.9, "bbox": [0, 0, 100, 100]}]
+        [{"text": "ACME WIDGET", "confidence": 0.9, "bbox": [0, 0, 100, 100]}]
     )
     result = compute_five_signals(doc)
     assert result.vendor_name_candidate_count == 2
@@ -231,7 +237,9 @@ def test_tax_id_EIN_shape() -> None:
 
 
 def test_tax_id_VAT_shape() -> None:
-    """EU VAT pattern: ``[A-Z]{2}[A-Z0-9]{2,12}``."""
+    """EU VAT pattern: 2-letter country prefix + 2..12 alphanumerics
+    with **at least one digit** (B2 / Phase 6 post-review tightening
+    — see `data-model.md §6` for the literal regex)."""
     doc = _doc_with_blocks(
         [{"text": "VAT GB123456789", "confidence": 0.9, "bbox": [0, 0, 100, 100]}]
     )

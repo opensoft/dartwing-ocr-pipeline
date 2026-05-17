@@ -58,7 +58,7 @@ requirements clarity around scope, not the implementation.
 
 - [x] CHK186 Are deferred decisions labeled as deferred with a pointer to the slice / decision that resolves them (e.g. company-name inference → layout-aware heuristics slice)? [Traceability, Spec §FR-008 §Clarifications Q2]
 - [x] CHK187 Is the rule "no `--persist-packet` flag, no persistence env var" stated so a future contributor does not sneak one in? [Consistency, Spec §Clarifications Q1 §FR-020]
-- [x] CHK188 Is any future CLI verb addition (e.g. `ledgerlinc-evidence-packet --validate`) explicitly an amendment to the CLI contract, not part of 004? [Clarity, Spec §CLI Contract Forward-Compat]
+- [x] CHK188 Is any future CLI verb addition (e.g. `dartwing-evidence-packet --validate`) explicitly an amendment to the CLI contract, not part of 004? [Clarity, Spec §CLI Contract Forward-Compat]
 
 ## Constitution Alignment
 

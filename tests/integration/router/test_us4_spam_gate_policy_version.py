@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ledgerlinc_ocr.router.version import POLICY_VERSION
+from dartwing_ocr.router.version import POLICY_VERSION
 
 
 def test_policy_version_recorded_on_spam_gate_output(

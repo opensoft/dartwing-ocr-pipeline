@@ -32,7 +32,7 @@ def _staged_folder(tmp_path, us3_fixtures, name):
 def test_ac4_engine_predict_crash_produces_empty_valid_artifact(
     tmp_path, us3_fixtures, monkeypatch,
 ):
-    from ledgerlinc_ocr.preprocessing import ocr, pipeline
+    from dartwing_ocr.preprocessing import ocr, pipeline
 
     folder = _staged_folder(tmp_path, us3_fixtures, "inv_030")
 

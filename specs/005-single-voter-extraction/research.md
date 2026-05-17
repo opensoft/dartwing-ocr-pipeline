@@ -80,9 +80,9 @@ model's `value` is retained; only `confidence` is clipped. Applies to every
 a pydantic model (`VoterConfig`) at load time. Resolved from a fixed search path:
 
 1. `--voter-config <path>` CLI flag (explicit path override, wins if set).
-2. Otherwise, `--voter <name>` resolves to `src/ledgerlinc_ocr/extract/voters/configs/<name>.yaml`
+2. Otherwise, `--voter <name>` resolves to `src/dartwing_ocr/extract/voters/configs/<name>.yaml`
    (ships with the package; `gemma-edge` is the default).
-3. An optional user override dir (`$LEDGERLINC_VOTER_CONFIG_DIR/<name>.yaml`) takes precedence over
+3. An optional user override dir (`$DARTWING_VOTER_CONFIG_DIR/<name>.yaml`) takes precedence over
    the packaged default when set. This allows operators to pin alternate Gemma tags without a
    package rebuild.
 
@@ -91,7 +91,7 @@ a pydantic model (`VoterConfig`) at load time. Resolved from a fixed search path
   JSON's lack of multi-line strings and comments would force either a sibling `.prompt.md` file or
   painful escaping.
 - `PyYAML` is already common in Python tooling; `safe_load` avoids arbitrary-object deserialization.
-- Shipping `gemma-edge.yaml` in-package makes `python -m ledgerlinc_ocr.extract --folder ... --voter
+- Shipping `gemma-edge.yaml` in-package makes `python -m dartwing_ocr.extract --folder ... --voter
   gemma-edge` work out of the box. The env-var override path lets ops pin versions without code
   churn (US4).
 - Pydantic validation catches typos at load time (e.g., `voter_role: primry_extractor`) with a
@@ -241,13 +241,13 @@ input-packet blank document, etc.).
 ## R-009: pipeline_version composition
 
 **Decision**: `pipeline_version = f"{package_version}+{short_sha}"` where:
-- `package_version` comes from `importlib.metadata.version("ledgerlinc-ocr")`.
+- `package_version` comes from `importlib.metadata.version("dartwing-ocr")`.
 - `short_sha` is `git rev-parse --short HEAD` run at build time AND cached into
-  `src/ledgerlinc_ocr/_build_sha.py` (a file written by a build step; falls back to `"unknown"` if
+  `src/dartwing_ocr/_build_sha.py` (a file written by a build step; falls back to `"unknown"` if
   the module is missing). The `version.py` module in `extract/` returns this composed string.
 
 **Rationale**:
-- Matches the convention already established by `src/ledgerlinc_ocr/preprocessing/version.py`.
+- Matches the convention already established by `src/dartwing_ocr/preprocessing/version.py`.
 - `importlib.metadata` is installed-package-aware, so edit-install dev loops get the right number.
 - The cached SHA avoids a subprocess at run time on every extraction; missing-git environments
   degrade gracefully.
@@ -276,7 +276,7 @@ already scopes the determinism claim accordingly.
 
 ## R-011: Exit-code table
 
-**Decision**: Mirror the existing `src/ledgerlinc_ocr/pipeline/exit_codes.py` convention.
+**Decision**: Mirror the existing `src/dartwing_ocr/pipeline/exit_codes.py` convention.
 Specifically:
 
 | Code | Meaning |

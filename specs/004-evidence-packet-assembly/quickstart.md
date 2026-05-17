@@ -11,23 +11,23 @@ slice end-to-end and inspect the generated packet.
    `tests/stage1_vendor_identity/inv_001_easy/`. If you don't have one yet:
 
    ```bash
-   ledgerlinc-preprocess tests/stage1_vendor_identity/inv_001_easy
+   dartwing-preprocess tests/stage1_vendor_identity/inv_001_easy
    ```
 
-2. The `ledgerlinc-ocr` package is installed in editable mode inside the
+2. The `dartwing-ocr` package is installed in editable mode inside the
    devcontainer:
 
    ```bash
    python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
    ```
 
-   The new `ledgerlinc-evidence-packet` console script is wired by this slice's
+   The new `dartwing-evidence-packet` console script is wired by this slice's
    `pyproject.toml` entry and becomes available on `PATH` after install.
 
 ## Default run (in-memory, no on-disk changes)
 
 ```bash
-ledgerlinc-evidence-packet tests/stage1_vendor_identity/inv_001_easy
+dartwing-evidence-packet tests/stage1_vendor_identity/inv_001_easy
 ```
 
 Expected:
@@ -39,7 +39,7 @@ Expected:
 ## Debug run (persists `evidence_packet.json`)
 
 ```bash
-ledgerlinc-evidence-packet -v tests/stage1_vendor_identity/inv_001_easy
+dartwing-evidence-packet -v tests/stage1_vendor_identity/inv_001_easy
 ```
 
 Expected:
@@ -52,7 +52,7 @@ Expected:
 Re-run the same command. Diff the two on-disk results:
 
 ```bash
-diff <(cat evidence_packet.json) <(ledgerlinc-evidence-packet -v ... && cat evidence_packet.json)
+diff <(cat evidence_packet.json) <(dartwing-evidence-packet -v ... && cat evidence_packet.json)
 ```
 
 Output: empty — the files are byte-identical (SC-002).
@@ -61,7 +61,7 @@ Output: empty — the files are byte-identical (SC-002).
 
 ```python
 from pathlib import Path
-from ledgerlinc_ocr.evidence_packet import assemble_from_folder
+from dartwing_ocr.evidence_packet import assemble_from_folder
 
 packet = assemble_from_folder(Path("tests/stage1_vendor_identity/inv_001_easy"))
 
@@ -84,7 +84,7 @@ If you already have the `preprocess_output` loaded (e.g. from 005's voter):
 
 ```python
 import json
-from ledgerlinc_ocr.evidence_packet import assemble_from_preprocess
+from dartwing_ocr.evidence_packet import assemble_from_preprocess
 
 with open("preprocess_output.json") as f:
     preprocess_output = json.load(f)
@@ -95,7 +95,7 @@ packet = assemble_from_preprocess(preprocess_output)   # no disk I/O
 ## Inspecting the Trijunction slots
 
 ```bash
-ledgerlinc-evidence-packet -v tests/stage1_vendor_identity/inv_001_easy
+dartwing-evidence-packet -v tests/stage1_vendor_identity/inv_001_easy
 jq '.ingestion_sources' tests/stage1_vendor_identity/inv_001_easy/evidence_packet.json
 ```
 
@@ -124,12 +124,12 @@ Once `contracts/stage1_vendor_identity/v1.1.0/` is in place:
 
 ```bash
 # Validate the persisted packet against its schema
-python -m ledgerlinc_ocr.validator validate artifact \
+python -m dartwing_ocr.validator validate artifact \
   --schema contracts/stage1_vendor_identity/v1.1.0/evidence_packet.schema.json \
   tests/stage1_vendor_identity/inv_001_easy/evidence_packet.json
 
 # Validate the folder against the amended folder contract
-python -m ledgerlinc_ocr.validator validate folder \
+python -m dartwing_ocr.validator validate folder \
   tests/stage1_vendor_identity/inv_001_easy
 ```
 

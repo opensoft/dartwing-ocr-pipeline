@@ -189,7 +189,7 @@ Deterministic, reading-order preserving (research.md Decision 4).
    at each step produce empty arrays + a warning (Decision 7).
 3. **Artifact assembly**: build the dict with all required keys in schema
    order.
-4. **Contract validation**: call the existing `ledgerlinc_ocr.validator`
+4. **Contract validation**: call the existing `dartwing_ocr.validator`
    against `preprocess_output.schema.json`. If it rejects, this is an internal
    bug — raise, non-zero exit (code 3), no artifact written (FR-019).
 5. **Atomic write**: write to `preprocess_output.json.tmp`, `fsync`, `rename`

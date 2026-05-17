@@ -502,9 +502,6 @@ def build_invoice(case: InvoiceCase, logo_path: Path, out_path: Path) -> None:
     small = ParagraphStyle(
         "small", parent=styles["Normal"], fontName="Helvetica", fontSize=9, leading=11
     )
-    smallb = ParagraphStyle(
-        "smallb", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=9, leading=11
-    )
     body = ParagraphStyle(
         "body", parent=styles["Normal"], fontName="Helvetica", fontSize=10, leading=12
     )

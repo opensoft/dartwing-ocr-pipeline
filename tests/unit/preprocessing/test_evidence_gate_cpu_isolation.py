@@ -50,18 +50,18 @@ from typing import Iterable
 # surface that imports one of these breaks FR-014.
 _GPU_TAINTED_MODULE_NEEDLES: tuple[str, ...] = (
     # Project-internal module-name needles. The full package prefix
-    # `ledgerlinc_ocr.preprocessing.` is REQUIRED — every internal
-    # import in `src/ledgerlinc_ocr/preprocessing/*.py` uses the fully-
+    # `dartwing_ocr.preprocessing.` is REQUIRED — every internal
+    # import in `src/dartwing_ocr/preprocessing/*.py` uses the fully-
     # qualified form, so substring-matching the bare `preprocessing.X`
     # never fires on a regression. The prefix-qualified form is the
     # canonical regression vector and the only form the test scan can
     # catch.
-    "ledgerlinc_ocr.preprocessing.ocr",
-    "ledgerlinc_ocr.preprocessing.ocr_only",
-    "ledgerlinc_ocr.preprocessing.warmup",
-    "ledgerlinc_ocr.preprocessing.preflight",
-    "ledgerlinc_ocr.preprocessing.pipeline",
-    "ledgerlinc_ocr.preprocessing.rasterize",
+    "dartwing_ocr.preprocessing.ocr",
+    "dartwing_ocr.preprocessing.ocr_only",
+    "dartwing_ocr.preprocessing.warmup",
+    "dartwing_ocr.preprocessing.preflight",
+    "dartwing_ocr.preprocessing.pipeline",
+    "dartwing_ocr.preprocessing.rasterize",
     # Third-party GPU/ML stack — anything from these is forbidden in a
     # CPU-only helper module.
     "paddleocr",
@@ -107,7 +107,7 @@ def test_evidence_gate_has_no_gpu_tainted_imports() -> None:
     """Static source scan of ``preprocessing/evidence_gate.py``: NO line
     may import any module from the GPU-tainted list at module level
     (FR-014 / MI-4 / MI-5)."""
-    src = _module_source("ledgerlinc_ocr.preprocessing.evidence_gate")
+    src = _module_source("dartwing_ocr.preprocessing.evidence_gate")
     # Strip docstrings/comments-with-needles by line-prefix filtering.
     # Imports are at the top of the file, never inside docstrings —
     # but for defensive robustness, only inspect non-comment lines.
@@ -134,7 +134,7 @@ def test_evidence_gate_optin_has_no_gpu_tainted_imports() -> None:
     """Static source scan of ``preprocessing/evidence_gate_optin.py``:
     NO line may import any module from the GPU-tainted list at module
     level (FR-014 / MI-4 / MI-5)."""
-    src = _module_source("ledgerlinc_ocr.preprocessing.evidence_gate_optin")
+    src = _module_source("dartwing_ocr.preprocessing.evidence_gate_optin")
     code_lines = [
         line
         for line in src.splitlines()
@@ -163,8 +163,8 @@ def test_evidence_gate_and_optin_import_cleanly() -> None:
     test ``test_evidence_gate_module_safety_unit.py`` already covers
     the gate body; this widens coverage to the opt-in helper which
     landed in US4.)"""
-    import ledgerlinc_ocr.preprocessing.evidence_gate as gate
-    import ledgerlinc_ocr.preprocessing.evidence_gate_optin as gate_optin
+    import dartwing_ocr.preprocessing.evidence_gate as gate
+    import dartwing_ocr.preprocessing.evidence_gate_optin as gate_optin
 
     assert gate is not None
     assert gate_optin is not None
@@ -186,13 +186,17 @@ def test_evidence_gate_and_optin_import_cleanly() -> None:
 
 _ALLOWED_IMPORT_PREFIXES: tuple[str, ...] = (
     "re",
+    "json",
+    "logging",
+    "math",
+    "pathlib",
     "statistics",
     "unicodedata",
     "dataclasses",
     "typing",
     "os",
     "collections.abc",
-    "ledgerlinc_ocr.preprocessing.identifiers",
+    "dartwing_ocr.preprocessing.identifiers",
 )
 
 
@@ -244,12 +248,12 @@ def _assert_imports_in_allowed_set(module_name: str) -> None:
 def test_evidence_gate_top_level_imports_are_stdlib_only() -> None:
     """Top-level imports of evidence_gate.py are all in the CPU-safe
     allow-list (stdlib + ``preprocessing.identifiers``)."""
-    _assert_imports_in_allowed_set("ledgerlinc_ocr.preprocessing.evidence_gate")
+    _assert_imports_in_allowed_set("dartwing_ocr.preprocessing.evidence_gate")
 
 
 def test_evidence_gate_optin_top_level_imports_are_stdlib_only() -> None:
     """Top-level imports of evidence_gate_optin.py are all in the
     CPU-safe allow-list (stdlib only)."""
     _assert_imports_in_allowed_set(
-        "ledgerlinc_ocr.preprocessing.evidence_gate_optin"
+        "dartwing_ocr.preprocessing.evidence_gate_optin"
     )

@@ -1,7 +1,7 @@
 # CLI Contract: OCR-Only Fast Lane For Vendor Identity
 
 **Feature**: 019-ocr-only-fast-lane
-**Applies to**: `python -m ledgerlinc_ocr.preprocessing` and `python -m ledgerlinc_ocr.pipeline`
+**Applies to**: `python -m dartwing_ocr.preprocessing` and `python -m dartwing_ocr.pipeline`
 **Decision source**: research.md R-019.1, R-019.12; spec FR-001, FR-004, FR-013, FR-014.
 
 ## 1. Flag surface
@@ -10,7 +10,7 @@ This feature adds one new CLI flag and one new env-var fallback, mirroring featu
 
 | Flag | Env-var fallback | Argument type | Default (no flag, no env var) |
 |---|---|---|---|
-| `--preprocess-strategy <id>` | `LEDGERLINC_PREPROCESS_STRATEGY` | `str` (one of the user-selectable values) | Lane-dependent default (see §2) |
+| `--preprocess-strategy <id>` | `DARTWING_PREPROCESS_STRATEGY` | `str` (one of the user-selectable values) | Lane-dependent default (see §2) |
 
 **Precedence** (R-019.1): CLI flag wins when both are set. Env-var literal value is passed verbatim — no `.strip()`, no case normalization. Empty-string env-value counts as unset (matches feature 016 / 017 / 018).
 

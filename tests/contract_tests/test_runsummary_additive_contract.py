@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 
-from ledgerlinc_ocr.pipeline.timing import (
+from dartwing_ocr.pipeline.timing import (
     RunSummary,
     SCHEMA_VERSION,
     build_per_document_failure,

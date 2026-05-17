@@ -147,7 +147,7 @@ Once that works for one document, scale it to the full 20-document set.
 Suggested code structure:
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
   schemas/
   preprocess/
   evidence/

@@ -9,10 +9,10 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.extract.artifact import assemble_and_write
-from ledgerlinc_ocr.extract.config import load_voter_config
-from ledgerlinc_ocr.extract.errors import ArtifactAssemblyError, FolderWriteError
-from ledgerlinc_ocr.extract.reconcile import reconcile
+from dartwing_ocr.extract.artifact import assemble_and_write
+from dartwing_ocr.extract.config import load_voter_config
+from dartwing_ocr.extract.errors import ArtifactAssemblyError, FolderWriteError
+from dartwing_ocr.extract.reconcile import reconcile
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _US1 = _REPO_ROOT / "tests" / "fixtures" / "extract" / "us1_happy"

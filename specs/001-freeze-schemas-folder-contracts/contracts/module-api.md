@@ -1,13 +1,13 @@
 # Validator Python Module API Contract
 
 **Feature**: `001-freeze-schemas-folder-contracts`
-**Import root**: `ledgerlinc_ocr.validator`
+**Import root**: `dartwing_ocr.validator`
 
 Stage 1 harness code, pipeline smoke tests, and Python-level callers import the validator as a library. The CLI (`validator-cli.md`) is a thin wrapper over these entry points. This document freezes the public Python surface at contract-set version `1.0.0`.
 
 ## Public entry points
 
-All names below are importable from `ledgerlinc_ocr.validator` (re-exported via `__init__.py`). Nothing under `_*` or inside submodules other than the names listed here is part of the public contract.
+All names below are importable from `dartwing_ocr.validator` (re-exported via `__init__.py`). Nothing under `_*` or inside submodules other than the names listed here is part of the public contract.
 
 ### `load_contract_set(version: str | None = None) -> ContractSet`
 

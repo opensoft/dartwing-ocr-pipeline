@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evaluator import evaluate_document
-from ledgerlinc_ocr.evaluator.scoring import ResultLabel
+from dartwing_ocr.evaluator import evaluate_document
+from dartwing_ocr.evaluator.scoring import ResultLabel
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

@@ -3,7 +3,7 @@
 **Feature**: `001-freeze-schemas-folder-contracts`
 **Audience**: Pipeline developers, harness/evaluator developers, and human labelers who will use the contract set.
 
-This quickstart shows what you can do once the feature has shipped. All paths are relative to the repo root (`/workspace/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline`).
+This quickstart shows what you can do once the feature has shipped. All paths are relative to the repo root (`/workspace/projects/dartwing/dartwing-ocr-pipeline`).
 
 ---
 
@@ -15,12 +15,12 @@ Inside the devcontainer (or any Python 3.12 environment):
 pip install -e .
 ```
 
-This installs `ledgerlinc_ocr` with the `jsonschema`, `pydantic`, and `pytest` dependencies declared in `pyproject.toml`. No GPU, no Ollama, no PaddleOCR required for this slice.
+This installs `dartwing_ocr` with the `jsonschema`, `pydantic`, and `pytest` dependencies declared in `pyproject.toml`. No GPU, no Ollama, no PaddleOCR required for this slice.
 
 ## 2. Inspect the contract set
 
 ```bash
-python -m ledgerlinc_ocr.validator show contract-set --text
+python -m dartwing_ocr.validator show contract-set --text
 ```
 
 Expected: a summary of contract-set `1.0.0`: the seven artifact contracts, their schema file paths, the closed `challenge_tags` vocabulary, and the list of active cross-artifact rules.
@@ -30,7 +30,7 @@ Expected: a summary of contract-set `1.0.0`: the seven artifact contracts, their
 **As a pipeline developer:** drop a sample `edge_extraction_output.json` onto disk and validate it.
 
 ```bash
-python -m ledgerlinc_ocr.validator validate artifact \
+python -m dartwing_ocr.validator validate artifact \
     /tmp/my_edge_extraction.json \
     --contract edge_extraction_output
 ```
@@ -41,7 +41,7 @@ python -m ledgerlinc_ocr.validator validate artifact \
 To consume the structured report in tooling, pass `--json`:
 
 ```bash
-python -m ledgerlinc_ocr.validator validate artifact \
+python -m dartwing_ocr.validator validate artifact \
     /tmp/my_edge_extraction.json \
     --contract edge_extraction_output \
     --json > /tmp/report.json
@@ -59,7 +59,7 @@ cp ~/inbox/some-invoice.pdf tests/stage1_vendor_identity/inv_003_hard/source.pdf
 $EDITOR tests/stage1_vendor_identity/inv_003_hard/expected.json   # shape via schemas.md + expected.schema.json
 $EDITOR tests/stage1_vendor_identity/inv_003_hard/notes.md         # required for hard / missing_name
 
-python -m ledgerlinc_ocr.validator validate folder \
+python -m dartwing_ocr.validator validate folder \
     tests/stage1_vendor_identity/inv_003_hard
 ```
 
@@ -83,7 +83,7 @@ The `expected` contract has `additionalProperties: false` everywhere — predict
 Once some documents are labeled:
 
 ```bash
-python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity --json \
+python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity --json \
   | jq '{passed, counts, failing_folders: [.sub_reports[] | select(.passed==false) | .target_summary]}'
 ```
 
@@ -101,7 +101,7 @@ When you need to change a contract (add a field, a tag, a decision value):
 2. Update the relevant document in `docs/stage1-vendor-identity/`.
 3. Create `contracts/stage1_vendor_identity/v<new-version>/` (copy the previous version as the starting point).
 4. Update the affected schema file(s) and `contract_set.json`.
-5. If a Tier 2 rule changes, update `src/ledgerlinc_ocr/validator/cross_artifact.py` and the fixtures in `tests/contract_tests/fixtures/`.
+5. If a Tier 2 rule changes, update `src/dartwing_ocr/validator/cross_artifact.py` and the fixtures in `tests/contract_tests/fixtures/`.
 6. Add a new entry to `AMENDMENTS.md`.
 7. Run `pytest tests/contract_tests/` — all existing fixtures must still validate under the prior version; new fixtures must validate under the new version.
 

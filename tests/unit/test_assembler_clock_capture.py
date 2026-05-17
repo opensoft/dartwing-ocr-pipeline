@@ -22,8 +22,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.assembler import Invocation, run
-from ledgerlinc_ocr.assembler.errors import InternalError
+from dartwing_ocr.assembler import Invocation, run
+from dartwing_ocr.assembler.errors import InternalError
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "fixtures" / "assembler"
 
@@ -75,7 +75,7 @@ def test_clock_is_captured_before_invariants(tmp_path: Path):
         calls[0] += 1
         return datetime(2026, 4, 22, 12, 0, 0, tzinfo=timezone.utc)
 
-    from ledgerlinc_ocr.assembler.errors import ContractDriftError
+    from dartwing_ocr.assembler.errors import ContractDriftError
     with pytest.raises(ContractDriftError):
         run(Invocation(document_folder=folder, now_utc=clock))
 

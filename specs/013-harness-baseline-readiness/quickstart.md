@@ -7,7 +7,7 @@ Run from the 013 worktree with `PYTHONPATH=src`.
 ```bash
 tmpdir="$(mktemp -d)"
 cp -a tests/stage1_vendor_identity/inv_001_easy "$tmpdir/"
-PYTHONPATH=src python -m ledgerlinc_ocr.evaluator document \
+PYTHONPATH=src python -m dartwing_ocr.evaluator document \
   "$tmpdir/inv_001_easy" \
   --run-pipeline \
   --pipeline-overwrite
@@ -26,7 +26,7 @@ tmpdir="$(mktemp -d)"
 mkdir -p "$tmpdir/corpus"
 cp -a tests/stage1_vendor_identity/inv_001_easy "$tmpdir/corpus/"
 cp -a tests/stage1_vendor_identity/inv_002_easy "$tmpdir/corpus/"
-PYTHONPATH=src python -m ledgerlinc_ocr.evaluator corpus \
+PYTHONPATH=src python -m dartwing_ocr.evaluator corpus \
   "$tmpdir/corpus" \
   --run-pipeline \
   --pipeline-overwrite
@@ -43,7 +43,7 @@ Expected:
 ```bash
 tmpdir="$(mktemp -d)"
 cp -a tests/stage1_vendor_identity/inv_001_easy "$tmpdir/"
-PYTHONPATH=src python -m ledgerlinc_ocr.evaluator document \
+PYTHONPATH=src python -m dartwing_ocr.evaluator document \
   "$tmpdir/inv_001_easy" \
   --run-pipeline \
   --pipeline-overwrite \

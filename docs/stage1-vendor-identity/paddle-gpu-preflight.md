@@ -2,7 +2,7 @@
 
 This document is the operator-facing reference for the workstation Paddle
 GPU preprocessing lane (`ppstructurev3@gpu`). It explains the six FR-001
-preflight states surfaced by `python -m ledgerlinc_ocr.preprocessing.preflight`,
+preflight states surfaced by `python -m dartwing_ocr.preprocessing.preflight`,
 the supported native Linux ROCm install path, the unsupported runtime
 shapes, the CI default behavior, and the verified offline-operation knobs
 for network-restricted shells. The CPU lane (`ppstructurev3@cpu`) remains
@@ -27,7 +27,7 @@ python3 -m venv .venv
 Then run the preflight:
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.preprocessing.preflight
+.venv/bin/python -m dartwing_ocr.preprocessing.preflight
 ```
 
 Two flags are available:
@@ -200,7 +200,7 @@ Workstation install:
    .venv-paddle-rocm/bin/pip install \
      https://github.com/opensoft/model-paddle/releases/download/<release-tag>/paddlepaddle_dcu-<version>-cp312-cp312-linux_x86_64.whl
    # … or install a locally-built wheel from model-paddle's wheelhouse:
-   # .venv-paddle-rocm/bin/pip install ~/.cache/ledgerlinc/paddle-rocm/wheelhouse/paddlepaddle_dcu-*.whl
+   # .venv-paddle-rocm/bin/pip install ~/.cache/dartwing/paddle-rocm/wheelhouse/paddlepaddle_dcu-*.whl
    ```
 
 3. **Verify the wheel binds.** Run `model-paddle`'s pipeline-agnostic
@@ -210,7 +210,7 @@ Workstation install:
    PPStructureV3 itself initializes:
 
    ```bash
-   PYTHONPATH=src .venv-paddle-rocm/bin/python -m ledgerlinc_ocr.preprocessing.preflight
+   PYTHONPATH=src .venv-paddle-rocm/bin/python -m dartwing_ocr.preprocessing.preflight
    ```
 
 This install path is **not** added to `requirements.txt` and **not**
@@ -254,13 +254,13 @@ path.
 ### Raw Conda
 
 A `paddlepaddle-gpu` install pulled into a Conda environment outside the
-LedgerLinc venv is unsupported. The preflight readout will report
-whichever interpreter `python -m ledgerlinc_ocr.preprocessing.preflight`
+Dartwing venv is unsupported. The preflight readout will report
+whichever interpreter `python -m dartwing_ocr.preprocessing.preflight`
 runs under (`evidence.interpreter_path`); if it is the Conda interpreter
 rather than `.venv/bin/python`, the readout will likely show
-`paddle_not_installed` (LedgerLinc is not installed there) or
+`paddle_not_installed` (Dartwing is not installed there) or
 `paddle_cpu_only` (Conda's `paddlepaddle` channel typically ships a CPU
-build). Activate the LedgerLinc venv and run the supported install path
+build). Activate the Dartwing venv and run the supported install path
 above instead.
 
 ## CI Default Behavior
@@ -305,7 +305,7 @@ operate without that network hop:
    <https://www.paddleocr.ai/main/en/FAQ.html>, this variable points
    PaddleX at an alternative model source (mirror or local source).
    Set it before running preflight or the pipeline; it is consumed by
-   PaddleX's model resolver, not by LedgerLinc directly.
+   PaddleX's model resolver, not by Dartwing directly.
 
 2. **PaddleX `model_dir` parameter on each PPStructureV3 sub-module**.
    Per the official PaddleX PP-StructureV3 tutorial at

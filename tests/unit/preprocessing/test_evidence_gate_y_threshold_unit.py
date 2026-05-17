@@ -11,7 +11,7 @@ Asserts:
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     Y_THRESHOLD_FRACTION,
     compute_five_signals,
 )
@@ -133,6 +133,62 @@ def test_dimension_invariant_fraction_works_on_us_letter() -> None:
             {"text": "InsideToken", "confidence": 0.9, "bbox": [0, 150, 100, 200]},
         ],
         page_height=792,
+    )
+    s = compute_five_signals(doc)
+    assert s.header_band_token_density == 1
+
+
+# --- L1: bbox top-left + threshold-boundary defensive tests -----------------
+
+
+def test_bbox_top_left_origin_y1_is_top_y() -> None:
+    """L1: producer contract is top-left origin with ``bbox == [x1, y1,
+    x2, y2]`` where ``y1 <= y2`` and ``y1`` is the "top" of the block.
+    Two blocks at the same y2=900 but different y1=100/y1=400 must
+    classify differently — the smaller-y block is in-band, the
+    larger-y block is out-of-band.
+
+    Phase 4 hardening (post-review): the prior fixture used `y1=400,
+    y2=300` which violates the `y1 <= y2` producer contract; an
+    implementation that rejects malformed bboxes would still pass by
+    accident. Fixture now uses valid `y1 < y2` bboxes throughout.
+    """
+    doc = _doc(
+        [
+            # y1=100 → ratio 0.10 < 0.25 → in-band
+            {"text": "TopBlock", "confidence": 0.9, "bbox": [0, 100, 100, 200]},
+            # y1=400 → ratio 0.40 > 0.25 → out-of-band
+            {"text": "BottomBlock", "confidence": 0.9, "bbox": [0, 400, 100, 900]},
+        ],
+        page_height=1000,
+    )
+    s = compute_five_signals(doc)
+    assert s.header_band_token_density == 1
+
+
+def test_exact_threshold_y_is_out_of_band_strict_less_than() -> None:
+    """L1: the comparison is strict ``<`` — ``y_top == threshold_y``
+    (250 on a 1000-height page) MUST be classified as out-of-band, not
+    in-band. Pinning this prevents a future ``<=`` slip-up."""
+    doc = _doc(
+        [
+            # y_top exactly == 250 (page_height 1000 * 0.25 = 250.0)
+            {"text": "ExactBoundary", "confidence": 0.9, "bbox": [0, 250, 100, 251]},
+        ],
+        page_height=1000,
+    )
+    s = compute_five_signals(doc)
+    assert s.header_band_token_density == 0
+
+
+def test_below_threshold_by_one_unit_is_in_band() -> None:
+    """L1: the just-below-threshold boundary case — ``y_top = 249`` on a
+    1000-height page is strictly less than the 250.0 threshold."""
+    doc = _doc(
+        [
+            {"text": "JustInside", "confidence": 0.9, "bbox": [0, 249, 100, 300]},
+        ],
+        page_height=1000,
     )
     s = compute_five_signals(doc)
     assert s.header_band_token_density == 1

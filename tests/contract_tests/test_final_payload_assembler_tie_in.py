@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ledgerlinc_ocr.assembler import Invocation, run
-from ledgerlinc_ocr.validator.artifact import validate_artifact
-from ledgerlinc_ocr.validator.report import ArtifactName
+from dartwing_ocr.assembler import Invocation, run
+from dartwing_ocr.validator.artifact import validate_artifact
+from dartwing_ocr.validator.report import ArtifactName
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "fixtures" / "assembler"
 

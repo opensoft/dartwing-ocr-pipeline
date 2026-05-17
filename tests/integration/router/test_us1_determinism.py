@@ -18,7 +18,7 @@ from pathlib import Path
 
 
 PROCESSED_AT_LINE = re.compile(
-    rb'^  "processed_at": "[0-9T:Z\-]+",\n',
+    rb'^ {2}"processed_at": "[0-9T:Z-]+",\n',
     re.MULTILINE,
 )
 

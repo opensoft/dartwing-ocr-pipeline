@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 
 
-timing = pytest.importorskip("ledgerlinc_ocr.pipeline.timing")
+timing = pytest.importorskip("dartwing_ocr.pipeline.timing")
 
 
 # Expected FR-013 phase keys (single source of truth = spec.md §FR-013).

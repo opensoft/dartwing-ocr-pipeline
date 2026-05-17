@@ -5,7 +5,7 @@ import itertools
 
 import pytest
 
-from ledgerlinc_ocr.evidence_packet.sections.trijunction import build_ingestion_sources
+from dartwing_ocr.evidence_packet.sections.trijunction import build_ingestion_sources
 
 _STATUSES = ["success", "failure", "not_implemented"]
 _ENABLED = [True, False]

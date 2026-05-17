@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ledgerlinc_ocr.preprocessing import pipeline
-from ledgerlinc_ocr.preprocessing.region_strategies import resolve_region_strategy
+from dartwing_ocr.preprocessing import pipeline
+from dartwing_ocr.preprocessing.region_strategies import resolve_region_strategy
 
 
 class _FakePage:

@@ -26,7 +26,7 @@ MINIMAL_PDF_BYTES = (
 
 
 def _stage_preprocessed_corpus(tmp_path: Path, n: int = 1) -> tuple[Path, list[Path]]:
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     docs_file = tmp_path / "corpus.txt"
     folders: list[Path] = []
@@ -62,7 +62,7 @@ def test_cloud_workstation_run_summary_records_preset_and_resolved_profiles(
     """A successful cloud-workstation slice that EXCLUDES extract still
     records stack_preset and resolved_profiles.extract verbatim.
     """
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     docs_file, _ = _stage_preprocessed_corpus(tmp_path, n=1)
     code = main([

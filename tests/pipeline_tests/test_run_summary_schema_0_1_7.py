@@ -22,8 +22,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ledgerlinc_ocr.pipeline.timing import RunSummary, SCHEMA_VERSION
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.pipeline.timing import RunSummary, SCHEMA_VERSION
+from dartwing_ocr.preprocessing.evidence_gate import (
     EvidenceGateResult,
     FiveSignalSet,
     build_evidence_gate_document_record,
@@ -125,32 +125,43 @@ def test_four_new_fields_in_documented_order() -> None:
 def test_features_014_to_019_keys_byte_identical_to_baseline() -> None:
     """MI-19 / FR-011 / FR-022 / SC-009: every key emitted on the
     pre-feature-020 baseline (features 014–019) MUST still be emitted
-    on a 0.1.7 summary with the SAME type. Schema version is the only
-    expected difference; the four new fields are additive (not in
-    baseline)."""
+    on a 0.1.7 summary with the SAME type AND the SAME default value.
+    Schema version is the only expected difference; the four new
+    fields are additive (not in baseline).
+
+    C3 strengthening (post-review): the prior version only checked
+    presence + type, so a regression that changed a default value
+    from ``[]`` to ``[{"x": 1}]`` would pass. The fixture was
+    generated from ``_minimal_summary()`` inputs, so each emission
+    field should equal its baseline value exactly.
+    """
     if not BASELINE_FIXTURE.exists():
-        # T003 should have produced this fixture before this test ran;
-        # if missing, the test is genuinely meaningful (we can't verify
-        # carry-forward without a baseline) — fail loudly.
         raise AssertionError(
             f"baseline fixture not captured: {BASELINE_FIXTURE} — "
             f"run T003 first"
         )
     baseline = json.loads(BASELINE_FIXTURE.read_text())
     d = _minimal_summary().to_dict()
-    # Every baseline key (except schema_version which we expect to differ)
-    # must still be present in the 0.1.7 emission.
-    for key in baseline:
+    for key, baseline_value in baseline.items():
         if key == "schema_version":
             continue
+        # Presence (FR-011).
         assert key in d, (
             f"feature 020 dropped pre-020 key {key!r} from run_summary — "
             f"FR-011 violation"
         )
+        current_value = d[key]
         # Type carry-forward (FR-022).
-        assert type(d[key]) is type(baseline[key]), (
+        assert type(current_value) is type(baseline_value), (
             f"feature 020 retyped key {key!r}: was "
-            f"{type(baseline[key]).__name__}, now {type(d[key]).__name__}"
+            f"{type(baseline_value).__name__}, now {type(current_value).__name__}"
+        )
+        # C3: default-value parity. ``_minimal_summary()`` inputs match
+        # the fixture's inputs, so each emitted field must equal its
+        # baseline value byte-for-byte.
+        assert current_value == baseline_value, (
+            f"feature 020 changed the default of key {key!r}: "
+            f"baseline={baseline_value!r}, now={current_value!r}"
         )
 
 
@@ -241,17 +252,30 @@ def test_state_counts_dict_can_be_mutated_safely_per_instance() -> None:
 
 def test_state_counts_emitted_as_exact_three_keys_even_if_internal_sparse(
 ) -> None:
-    """Defense in depth at the serializer boundary: even if a caller
-    accidentally builds a sparse state_counts dict, ``to_dict()`` MUST
-    emit all three keys with the missing ones at zero (MI-17 defense
-    in depth)."""
+    """Defense in depth at the serializer boundary: regardless of the
+    in-process accumulator state, ``to_dict()`` MUST emit all three
+    keys (NOT a sparse object).
+
+    Phase 6 strengthening: state_counts is now DERIVED from the
+    canonicalized ``evidence_gate_documents`` list, not from the
+    caller's accumulator dict. This makes MI-18 a hard invariant at
+    the wire format. The test asserts the all-three-keys shape on an
+    empty corpus (no documents → all zero counters)."""
     rs = _minimal_summary()
-    # Corrupt the dict to sparse form intentionally.
+    # Corrupt the accumulator to sparse form intentionally. Phase 6
+    # serializer ignores the accumulator and derives from documents
+    # instead — so this corruption is irrelevant to the wire format.
     rs.evidence_gate_state_counts.clear()
     rs.evidence_gate_state_counts["sufficient"] = 3
     d = rs.to_dict()
+    # Empty documents list → all-zero state counts (regardless of
+    # corrupt accumulator).
     assert d["evidence_gate_state_counts"] == {
-        "sufficient": 3,
+        "sufficient": 0,
         "borderline": 0,
         "insufficient": 0,
+    }
+    # All three keys present (defense against sparse object on wire).
+    assert set(d["evidence_gate_state_counts"].keys()) == {
+        "sufficient", "borderline", "insufficient",
     }

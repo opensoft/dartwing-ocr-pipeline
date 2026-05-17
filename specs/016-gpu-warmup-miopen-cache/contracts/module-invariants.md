@@ -53,7 +53,7 @@ When `engine.predict(...)` (or the fixture loader, or the clock anomaly check) r
 
 `preprocessing.warmup` MUST NOT be imported on the CPU or stub code path. The import line lives inside the `if device.startswith("gpu") and warmup_opt_in:` branch in both wiring sites. A host without `paddleocr` / `paddlepaddle-dcu` / ROCm MUST be able to:
 
-- Run `python -m ledgerlinc_ocr.preprocessing --preprocess-profile=ppstructurev3@cpu --gpu-warmup ...` and exit cleanly (warn-and-proceed; cli-contract.md § 3 row 5).
+- Run `python -m dartwing_ocr.preprocessing --preprocess-profile=ppstructurev3@cpu --gpu-warmup ...` and exit cleanly (warn-and-proceed; cli-contract.md § 3 row 5).
 - Run the default test suite (`pytest -m "not gpu"`) without a single `import paddle` or `import miopen` happening.
 
 **Asserted by**: `tests/unit/preprocessing/test_warmup_cpu_no_op.py` (CPU-safe; FR-010 / FR-011 / SC-006 / SC-007). The strong-form import-attempt check in `test_cpu_warmup_optin_emits_stderr_warning_and_no_warmup_pass` patches `builtins.__import__` to detect any attempt to load `preprocessing.warmup` regardless of whether the module is already cached in `sys.modules` (Copilot PR #24 round 5).
@@ -62,7 +62,7 @@ When `engine.predict(...)` (or the fixture loader, or the clock anomaly check) r
 
 The four env vars from data-model.md § "Default env-var configuration" are set ONLY inside the GPU branch of `run_warmup`. They MUST NOT be applied:
 
-- on CPU/stub paths (even when `LEDGERLINC_GPU_WARMUP=1` is set globally — those paths warn-and-proceed without setting env vars per FR-010);
+- on CPU/stub paths (even when `DARTWING_GPU_WARMUP=1` is set globally — those paths warn-and-proceed without setting env vars per FR-010);
 - before `run_warmup` is invoked (so the rest of the process starts with whatever the operator set);
 - after `run_warmup` returns, *unsetting* anything (operator-set values persist; defaults persist for the rest of the process).
 
@@ -70,7 +70,7 @@ The four env vars from data-model.md § "Default env-var configuration" are set 
 
 ## I-8. Determinism of warmup input
 
-`run_warmup`'s default fixture path resolves to `tests/stage1_vendor_identity/inv_001_easy/source.pdf` (R-016.2), or to the path given in the `LEDGERLINC_WARMUP_FIXTURE_PATH` env var when set (operator-side override for installed-distribution use, per Copilot PR #24 round 4). The fixture is rasterized through `preprocessing.rasterize.rasterize_page(...)` at the same DPI the active preprocess profile uses (300 DPI for `ppstructurev3@gpu`). The PIL image bytes are sha256'd; the digest is stored in `WarmupResult.fixture_sha256` for diagnostics. If the digest changes between two runs that supposedly used the same fixture, that's an integrity bug — `tests/unit/preprocessing/test_warmup_unit.py::test_fixture_digest_stable_across_invocations` pins the digest.
+`run_warmup`'s default fixture path resolves to `tests/stage1_vendor_identity/inv_001_easy/source.pdf` (R-016.2), or to the path given in the `DARTWING_WARMUP_FIXTURE_PATH` env var when set (operator-side override for installed-distribution use, per Copilot PR #24 round 4). The fixture is rasterized through `preprocessing.rasterize.rasterize_page(...)` at the same DPI the active preprocess profile uses (300 DPI for `ppstructurev3@gpu`). The PIL image bytes are sha256'd; the digest is stored in `WarmupResult.fixture_sha256` for diagnostics. If the digest changes between two runs that supposedly used the same fixture, that's an integrity bug — `tests/unit/preprocessing/test_warmup_unit.py::test_fixture_digest_stable_across_invocations` pins the digest.
 
 ## I-9. Schema_version codebase-level bump
 
@@ -78,7 +78,7 @@ The `SCHEMA_VERSION` literal in `pipeline/timing.py` MUST be `"0.1.3"` for every
 
 ## I-10. Byte-identical `preprocess_output.json`
 
-Two runs of `python -m ledgerlinc_ocr.preprocessing --preprocess-profile=ppstructurev3@gpu <doc>`, one with `--gpu-warmup` and one without, MUST produce a byte-identical `preprocess_output.json`. Verified by sha256 equality. This is the strongest contract this feature owes to the corpus baselines (FR-018 / SC-008). Asserted by `tests/pipeline_tests/test_warmup_engine_reuse.py @gpu` (deferred per FR-014 — see issue #23).
+Two runs of `python -m dartwing_ocr.preprocessing --preprocess-profile=ppstructurev3@gpu <doc>`, one with `--gpu-warmup` and one without, MUST produce a byte-identical `preprocess_output.json`. Verified by sha256 equality. This is the strongest contract this feature owes to the corpus baselines (FR-018 / SC-008). Asserted by `tests/pipeline_tests/test_warmup_engine_reuse.py @gpu` (deferred per FR-014 — see issue #23).
 
 ## I-11. Joint presence of first-doc one-time GPU phases
 

@@ -1,6 +1,6 @@
 import pytest
 
-from ledgerlinc_ocr.preprocessing.ingestion_sources import build_ingestion_sources
+from dartwing_ocr.preprocessing.ingestion_sources import build_ingestion_sources
 
 
 def test_all_pages_succeeded_status_success():

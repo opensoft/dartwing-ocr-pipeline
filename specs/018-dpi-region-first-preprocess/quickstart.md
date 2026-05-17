@@ -4,7 +4,7 @@
 
 This walkthrough exercises the seven core paths the feature owns: (0) one-time environment + identifier-surface smoke-test on CPU; (1) legacy GPU run (no flags), (2) reduced-DPI GPU run (`--raster-profile=reduced-v1`), (3) region-first GPU run (`--region-strategy=header-first-v1`), (4) combined GPU run (`--raster-profile=reduced-v1 --region-strategy=header-first-v1`), (5) CPU warn-and-proceed (flags set on `ppstructurev3@cpu`), (6) unknown-preset fail-fast on either axis, and (7) FR-007 fallback path verification on a fixture chosen to force the trigger. Each path is independently runnable on the workstation; the FR-005 four-corner benchmark numbers fill in **Appendix A** and the FR-016 quality-gate evidence fills in `research.md` Appendix B before merge.
 
-The walkthrough assumes you are inside the worktree at `/workspace/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline-worktrees/018-dpi-region-first-preprocess` and that feature 015's GPU lane is already working (`scripts/start-host-ollama-rocm-wsl.sh` runs cleanly; `.venv-paddle-rocm` exists; `paddlepaddle-dcu` imports without error). Feature 016's `--gpu-warmup` and feature 017's `--module-set` / `--det-rec-variant` flags are orthogonal to this feature's flags and may be combined freely.
+The walkthrough assumes you are inside the worktree at `/workspace/projects/dartwing/dartwing-ocr-pipeline-worktrees/018-dpi-region-first-preprocess` and that feature 015's GPU lane is already working (`scripts/start-host-ollama-rocm-wsl.sh` runs cleanly; `.venv-paddle-rocm` exists; `paddlepaddle-dcu` imports without error). Feature 016's `--gpu-warmup` and feature 017's `--module-set` / `--det-rec-variant` flags are orthogonal to this feature's flags and may be combined freely.
 
 ## 0. One-time environment
 
@@ -13,14 +13,14 @@ The walkthrough assumes you are inside the worktree at `/workspace/projects/ledg
 source .venv-paddle-rocm/bin/activate
 
 # Confirm Paddle GPU bind works (feature 014 preflight smoke-test).
-python -m ledgerlinc_ocr.preprocessing.preflight
+python -m dartwing_ocr.preprocessing.preflight
 # Expected: state=ppstructurev3_init_succeeded; exit code 0.
 
 # Confirm the new identifier surface lands on every run_summary (CPU-safe; no GPU required).
 rm -rf /tmp/inv_001_easy_cpu_no_flag
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_cpu_no_flag
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_cpu_no_flag \
   --preprocess-profile=ppstructurev3@cpu \
   > /tmp/cpu_no_flag.stdout
@@ -43,7 +43,7 @@ Runs `ppstructurev3@gpu` with no preset flags; both new identifiers default to `
 rm -rf /tmp/inv_001_easy_legacy
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_legacy
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_legacy \
   --preprocess-profile=ppstructurev3@gpu \
   > /tmp/legacy.stdout \
@@ -69,7 +69,7 @@ Same fixture, with `--raster-profile=reduced-v1` to drop rasterization DPI from 
 rm -rf /tmp/inv_001_easy_reduced_dpi
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_reduced_dpi
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_reduced_dpi \
   --preprocess-profile=ppstructurev3@gpu \
   --raster-profile=reduced-v1 \
@@ -87,7 +87,7 @@ tail -1 /tmp/reduced_dpi.stdout | jq '{raster_profile_id, region_strategy_id, re
 # }
 
 # Schema validation: preprocess_output.json must still validate against the v1.2.0 schema
-python -m ledgerlinc_ocr.validator validate artifact \
+python -m dartwing_ocr.validator validate artifact \
   --artifact-kind preprocess_output \
   /tmp/inv_001_easy_reduced_dpi/preprocess_output.json
 # Expected: VALID (per FR-002 / I-018.7).
@@ -102,7 +102,7 @@ Runs `ppstructurev3@gpu` with `--region-strategy=header-first-v1`. On a multi-pa
 rm -rf /tmp/inv_002_easy_region_first
 cp -R tests/stage1_vendor_identity/inv_002_easy /tmp/inv_002_easy_region_first
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_002_easy_region_first \
   --preprocess-profile=ppstructurev3@gpu \
   --region-strategy=header-first-v1 \
@@ -128,7 +128,7 @@ jq '.pages | map({page_number, blocks_count: (.blocks | length), lines_count: (.
 # ]
 
 # Schema validation
-python -m ledgerlinc_ocr.validator validate artifact \
+python -m dartwing_ocr.validator validate artifact \
   --artifact-kind preprocess_output \
   /tmp/inv_002_easy_region_first/preprocess_output.json
 # Expected: VALID (per Clarifications Q2 / I-018.6).
@@ -140,7 +140,7 @@ python -m ledgerlinc_ocr.validator validate artifact \
 rm -rf /tmp/inv_002_easy_combined
 cp -R tests/stage1_vendor_identity/inv_002_easy /tmp/inv_002_easy_combined
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_002_easy_combined \
   --preprocess-profile=ppstructurev3@gpu \
   --raster-profile=reduced-v1 \
@@ -166,7 +166,7 @@ Set either flag (or both) on `ppstructurev3@cpu` and verify warn-and-proceed: st
 rm -rf /tmp/inv_001_easy_cpu_warn
 cp -R tests/stage1_vendor_identity/inv_001_easy /tmp/inv_001_easy_cpu_warn
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_001_easy_cpu_warn \
   --preprocess-profile=ppstructurev3@cpu \
   --raster-profile=reduced-v1 \
@@ -196,7 +196,7 @@ Selecting an unknown identifier value on either new axis exits with code 16 and 
 
 ```bash
 # Unknown raster_profile
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder tests/stage1_vendor_identity/inv_001_easy \
   --preprocess-profile=ppstructurev3@gpu \
   --raster-profile=reduced-v99 \
@@ -208,7 +208,7 @@ cat /tmp/unk_raster.stderr
 # Expected: error: unknown raster_profile: 'reduced-v99' — valid values are: legacy, reduced-v1, cpu-default, stub-default
 
 # Unknown region_strategy
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder tests/stage1_vendor_identity/inv_001_easy \
   --preprocess-profile=ppstructurev3@gpu \
   --region-strategy=header-first-v99 \
@@ -232,7 +232,7 @@ To exercise the FR-007 fallback path, you need a fixture where page 1's top 30% 
 rm -rf /tmp/inv_fallback_smoke
 cp -R tests/stage1_vendor_identity/inv_NNN_fallback_smoke /tmp/inv_fallback_smoke
 
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
   --document-folder /tmp/inv_fallback_smoke \
   --preprocess-profile=ppstructurev3@gpu \
   --region-strategy=header-first-v1 \
@@ -273,7 +273,7 @@ for doc in $SUBSET; do
   cp -R tests/stage1_vendor_identity/$doc /tmp/$doc
 
   # Preprocess (this feature)
-  python -m ledgerlinc_ocr.preprocessing \
+  python -m dartwing_ocr.preprocessing \
     --document-folder /tmp/$doc \
     --preprocess-profile=ppstructurev3@gpu \
     --raster-profile=reduced-v1 \
@@ -281,14 +281,14 @@ for doc in $SUBSET; do
     > /tmp/$doc/preprocess.stdout
 
   # Evidence packet → extract → route → assemble (existing stages)
-  python -m ledgerlinc_ocr.evidence_packet --document-folder /tmp/$doc
-  python -m ledgerlinc_ocr.extract        --document-folder /tmp/$doc
-  python -m ledgerlinc_ocr.router route   --document-folder /tmp/$doc
-  python -m ledgerlinc_ocr.assembler      --document-folder /tmp/$doc
+  python -m dartwing_ocr.evidence_packet --document-folder /tmp/$doc
+  python -m dartwing_ocr.extract        --document-folder /tmp/$doc
+  python -m dartwing_ocr.router route   --document-folder /tmp/$doc
+  python -m dartwing_ocr.assembler      --document-folder /tmp/$doc
 done
 
 # Evaluate the corpus subset
-python -m ledgerlinc_ocr.evaluator validate corpus /tmp
+python -m dartwing_ocr.evaluator validate corpus /tmp
 # Expected: every artifact validates against its existing schema; an evaluation_run_summary.json is produced.
 ```
 

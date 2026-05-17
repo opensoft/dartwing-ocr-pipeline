@@ -23,7 +23,7 @@ _REPORT_SCHEMA = json.loads(
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-m", "ledgerlinc_ocr.validator", *args],
+        [sys.executable, "-m", "dartwing_ocr.validator", *args],
         cwd=_REPO_ROOT,
         capture_output=True,
         text=True,

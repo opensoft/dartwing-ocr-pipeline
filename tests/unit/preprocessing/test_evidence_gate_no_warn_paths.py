@@ -42,13 +42,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import cli as cli_mod
-from ledgerlinc_ocr.preprocessing.errors import EXIT_OK
-from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
+from dartwing_ocr.preprocessing import cli as cli_mod
+from dartwing_ocr.preprocessing.errors import EXIT_OK
+from dartwing_ocr.preprocessing.evidence_gate_optin import (
     EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR,
     resolve_evidence_gate_skip_fallback,
 )
-from ledgerlinc_ocr.preprocessing.warmup_optin import is_gpu_lane
+from dartwing_ocr.preprocessing.warmup_optin import is_gpu_lane
 
 GREP_MARKER = "--evidence-gate-skip-fallback ignored:"
 
@@ -99,7 +99,7 @@ def test_no_warn_when_optin_unset_no_cli_no_env(
     lines carrying the MI-22 grep marker."""
     monkeypatch.delenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, raising=False)
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
                 "--document-folder",
@@ -123,7 +123,7 @@ def test_no_warn_when_optin_unset_falsy_env_only(
     in the truthy vocabulary is False")."""
     monkeypatch.setenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, "0")
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
                 "--document-folder",
@@ -212,7 +212,7 @@ def test_warn_does_not_depend_on_per_document_fr_005_state() -> None:
     """
     import inspect
 
-    from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
+    from dartwing_ocr.preprocessing.evidence_gate_optin import (
         evidence_gate_skip_fallback_warn_message,
         resolve_evidence_gate_skip_fallback,
     )

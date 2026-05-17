@@ -27,7 +27,7 @@ import itertools
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import should_suppress_fallback
+from dartwing_ocr.preprocessing.evidence_gate import should_suppress_fallback
 
 
 # Closed input domains for the four arguments.

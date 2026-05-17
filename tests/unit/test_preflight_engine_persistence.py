@@ -23,8 +23,8 @@ from typing import Optional
 import pytest
 
 
-preflight = pytest.importorskip("ledgerlinc_ocr.preprocessing.preflight")
-ocr = pytest.importorskip("ledgerlinc_ocr.preprocessing.ocr")
+preflight = pytest.importorskip("dartwing_ocr.preprocessing.preflight")
+ocr = pytest.importorskip("dartwing_ocr.preprocessing.ocr")
 PreflightState = preflight.PreflightState
 classify = preflight.classify
 ensure_gpu_ready = preflight.ensure_gpu_ready
@@ -210,11 +210,16 @@ def test_ensure_gpu_ready_rejects_mismatched_presets_after_first_call(monkeypatc
 
     class _PPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` to mock
+            # out PaddleOCR's `PPStructureV3` constructor. The tests only
+            # need the init path to be reachable; the body discards args
+            # without raising.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
 
-    presets = pytest.importorskip("ledgerlinc_ocr.preprocessing.presets")
+    presets = pytest.importorskip("dartwing_ocr.preprocessing.presets")
     legacy = presets.MODULE_SET_PRESETS["legacy"]
     reduced = presets.MODULE_SET_PRESETS["reduced-v1"]
 
@@ -234,11 +239,16 @@ def test_ensure_gpu_ready_accepts_matching_presets_on_subsequent_call(monkeypatc
 
     class _PPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` to mock
+            # out PaddleOCR's `PPStructureV3` constructor. The tests only
+            # need the init path to be reachable; the body discards args
+            # without raising.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
 
-    presets = pytest.importorskip("ledgerlinc_ocr.preprocessing.presets")
+    presets = pytest.importorskip("dartwing_ocr.preprocessing.presets")
     legacy = presets.MODULE_SET_PRESETS["legacy"]
 
     readout1 = ensure_gpu_ready(module_set=legacy)
@@ -286,6 +296,11 @@ def test_classify_seeds_preset_key_so_subsequent_ensure_gpu_ready_does_not_raise
 
     class _PPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` to mock
+            # out PaddleOCR's `PPStructureV3` constructor. The tests only
+            # need the init path to be reachable; the body discards args
+            # without raising.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
@@ -306,11 +321,16 @@ def test_ensure_gpu_ready_treats_none_and_legacy_preset_as_equivalent(monkeypatc
 
     class _PPStructure:
         def __init__(self, *args, **kwargs):
+            # Intentionally empty — CPU-safe stub injected via
+            # `monkeypatch.setitem(sys.modules, "paddleocr", ...)` to mock
+            # out PaddleOCR's `PPStructureV3` constructor. The tests only
+            # need the init path to be reachable; the body discards args
+            # without raising.
             pass
 
     monkeypatch.setitem(sys.modules, "paddleocr", SimpleNamespace(PPStructureV3=_PPStructure))
 
-    presets = pytest.importorskip("ledgerlinc_ocr.preprocessing.presets")
+    presets = pytest.importorskip("dartwing_ocr.preprocessing.presets")
     legacy = presets.MODULE_SET_PRESETS["legacy"]
 
     readout1 = ensure_gpu_ready()

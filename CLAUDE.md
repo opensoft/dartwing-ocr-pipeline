@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-Step 2 of the LedgerLinc AP Clerk Agent: an OCR + field-extraction + structuring pipeline for invoice PDFs. The repo currently holds one prototype script (`step2_ocr_ensemble.py`) plus the full design docs, schemas, and PRDs for the real stage 1 implementation that has not been written yet. Most non-trivial work starts by reading `docs/stage1-vendor-identity/`, `.specify/memory/constitution.md`, and the active OpenSpec/Speckit artifacts, then translating those contracts into code.
+Step 2 of the Dartwing AP Clerk Agent: an OCR + field-extraction + structuring pipeline for invoice PDFs. The repo currently holds one prototype script (`step2_ocr_ensemble.py`) plus the full design docs, schemas, and PRDs for the real stage 1 implementation that has not been written yet. Most non-trivial work starts by reading `docs/stage1-vendor-identity/`, `.specify/memory/constitution.md`, and the active OpenSpec/Speckit artifacts, then translating those contracts into code.
 
 ## Commands
 
@@ -43,7 +43,7 @@ There is no test suite, linter, or build system configured yet.
 
 Speckit worktree helper:
 ```bash
-source /home/brett/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline/.specify/shell/ct.zsh
+source /home/brett/projects/dartwing/dartwing-ocr-pipeline/.specify/shell/ct.zsh
 ```
 - After `/speckit.specify`, run `/ct` for the jump target or `/ctp` for full worktree details
 - Run `ct` to actually change the shell into that worktree
@@ -66,7 +66,7 @@ Before running `/speckit.specify`, verify from the same shell/container with `gi
 
 Do not pre-create Codex-prefixed branches for Speckit features. The normal Codex `codex/` branch prefix applies to ad hoc Codex work, but Speckit features must let the `/speckit.specify` `before_specify` hook create the feature branch/worktree using the canonical `NNN-feature-name` form. After specify creates that worktree, run follow-on Speckit commands (`/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`) from the generated worktree, not from `main` and not from an unrelated older worktree selected by `cta`.
 
-Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec` is on `PATH`. Do not add OpenSpec to the lightweight LedgerLinc project container; that container remains focused on the pipeline runtime and local validation path.
+Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec` is on `PATH`. Do not add OpenSpec to the lightweight Dartwing project container; that container remains focused on the pipeline runtime and local validation path.
 
 Skip OpenSpec for small implementation-only fixes where an existing `specs/NNN-*` artifact already defines the behavior and no product or architecture decision is being made.
 
@@ -119,7 +119,7 @@ From the constitution (`.specify/memory/constitution.md`):
 The stage 1 artifact shapes and the per-document folder contract are now enforced in code, not only documented. The current contract set is `contract_set_version = "1.2.0"`; earlier `v1.0.0` and `v1.1.0` snapshots remain frozen for compatibility and amendment history.
 
 - **Machine-readable contracts**: `contracts/stage1_vendor_identity/v1.2.0/` — one JSON Schema per artifact plus the folder contract and `contract_set.json` metadata. Updated only through `contracts/stage1_vendor_identity/AMENDMENTS.md`.
-- **Validator**: `src/ledgerlinc_ocr/validator/` — CLI at `python -m ledgerlinc_ocr.validator` (subcommands: `validate artifact`, `validate folder`, `validate corpus`, `show contract-set`). Importable Python API; see `specs/001-freeze-schemas-folder-contracts/contracts/module-api.md` for stability guarantees.
+- **Validator**: `src/dartwing_ocr/validator/` — CLI at `python -m dartwing_ocr.validator` (subcommands: `validate artifact`, `validate folder`, `validate corpus`, `show contract-set`). Importable Python API; see `specs/001-freeze-schemas-folder-contracts/contracts/module-api.md` for stability guarantees.
 - **Install**: `python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"`. Test suite: `.venv/bin/pytest tests/contract_tests/`.
 
 ## Key References
@@ -146,19 +146,20 @@ The stage 1 artifact shapes and the per-document folder contract are now enforce
 - `specs/005-single-voter-extraction/spec.md` — stage 1 single-voter extractor requirements, user stories, success criteria
 - `specs/005-single-voter-extraction/plan.md` — stage 1 extractor architecture, module layout, milestones
 - `specs/005-single-voter-extraction/research.md` — stage 1 extractor decisions (R-001 httpx/no-retry, R-002 timeout, R-003 ungrounded-confidence cap, R-007 JSON repair, R-008 status truth table, R-009 pipeline_version, R-011 exit-code table, R-012 blank-packet failure path, R-013 reconcile determinism)
-- `specs/005-single-voter-extraction/contracts/cli-contract.md` — `ledgerlinc-extract` CLI surface + exit codes
+- `specs/005-single-voter-extraction/contracts/cli-contract.md` — `dartwing-extract` CLI surface + exit codes
 - `specs/005-single-voter-extraction/contracts/voter-config.md` — voter config schema, extension-key escape hatch, stub-voter contract
 - `specs/005-single-voter-extraction/quickstart.md` — end-to-end extractor walk-through and hard-failure smoke tests
 - `specs/008-routing/spec.md` — deterministic routing slice requirements (edge_accept vs. edge_review_required; priority-ordered forcing rules)
-- `specs/008-routing/plan.md` — routing technical plan; module layout under `src/ledgerlinc_ocr/router/`
+- `specs/008-routing/plan.md` — routing technical plan; module layout under `src/dartwing_ocr/router/`
 - `specs/008-routing/research.md` — routing decisions (exact-vs-major version check, score formulas, status mapping, atomic write, reason vocabulary, `policy_version` lifecycle)
 - `specs/008-routing/data-model.md` — routing input/output entity model
-- `specs/008-routing/contracts/cli-contract.md` — `python -m ledgerlinc_ocr.router route` CLI surface and exit-code taxonomy (0/1/2/3)
+- `specs/008-routing/contracts/cli-contract.md` — `python -m dartwing_ocr.router route` CLI surface and exit-code taxonomy (0/1/2/3)
 - `specs/008-routing/quickstart.md` — end-to-end routing walk-through for devcontainer
 - `specs/008-routing/checklists/contract.md`, `determinism.md`, `failure-handling.md`, `requirements.md`, `routing-policy.md` — release-gate checklists for the routing slice
 - `specs/009-final-payload/spec.md` — final-payload assembler slice requirements, user stories, and hard-fail invariants (FR-003 through FR-025)
 - `specs/009-final-payload/plan.md` — assembler technical plan, invariant check order, FINAL_KEY_ORDER, error kinds
 - `specs/009-final-payload/research.md` — assembler decisions (pipeline_version format, secondary enum ordering, `overall_vendor_confidence` formula pinning, processed_at format, JSON serialization)
+<<<<<<< HEAD
 - `specs/009-final-payload/quickstart.md` — end-to-end walkthrough for running `python -m ledgerlinc_ocr.assembler`
 - `specs/020-vendor-evidence-gate/spec.md` — vendor-identity evidence gate requirements (28 FR / 12 SC / 7 US), two Clarifications sessions (2026-05-14 + 2026-05-16) resolving 7 questions
 - `specs/020-vendor-evidence-gate/plan.md` — gate architecture, source-code touch list (2 new + 7 touched modules), constitutional check
@@ -167,6 +168,9 @@ The stage 1 artifact shapes and the per-document folder contract are now enforce
 - `specs/020-vendor-evidence-gate/quickstart.md` — seven operator-facing paths (CPU default, GPU default, GPU OCR-only `sufficient` skip, GPU OCR-only `borderline` fallback, CPU warn-and-proceed, run_summary re-derivation, warm-corpus pipeline mode) + seven CPU-safe smoke tests
 - `specs/020-vendor-evidence-gate/contracts/cli-contract.md`, `module-invariants.md`, `run-summary-schema.md`, `evidence-gate-rule.md` — CLI flag + env-var contract, 27 module invariants (MI-1 through MI-27), `run_summary` schema bump (4 additive fields), v1 decision table (32-row truth table)
 - `specs/020-vendor-evidence-gate/checklists/contract.md`, `determinism.md`, `evidence-gate-policy.md`, `failure-handling.md`, `performance.md`, `requirements.md`, `scope.md`, `security.md` — 8 deep release-gate checklists (409 items total, all closed) covering schema preservation, deterministic control, gate policy, failure handling, performance measurability, requirements quality, scope boundaries, security/PII discipline
+=======
+- `specs/009-final-payload/quickstart.md` — end-to-end walkthrough for running `python -m dartwing_ocr.assembler`
+>>>>>>> origin/main
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 - `openspec/README.md` — OpenSpec/Speckit split and handoff policy
 
@@ -185,13 +189,13 @@ The stage 1 artifact shapes and the per-document folder contract are now enforce
 - Filesystem only. 20 `source.pdf` + 20 `expected.json` + ≥10 `notes.md` under `tests/stage1_vendor_identity/`. One new Markdown doc at `docs/stage1-vendor-identity/labeling-guide.md`. No database, no network. (006-corpus-labeling)
 - Python 3.12 (matches devcontainer base and existing `pyproject.toml`). + `jsonschema>=4.22,<5` (Draft 2020-12, already declared), `pydantic>=2.7,<3` (already declared; typed result models to match the validator style). Python stdlib only for everything else: `argparse`, `json`, `pathlib`, `dataclasses`, `re`, `hashlib`, `datetime`, `uuid`. (007-evaluator)
 - Filesystem only. Reads `expected.json` and `final_structured_payload.json` inside per-document folders under `tests/stage1_vendor_identity/inv_XXX_<difficulty>/` (or a user-supplied corpus root). Writes `evaluation_document.json` into the same folder and `evaluation_run_summary.json` + `evaluation_run_summary.md` at the corpus root. (007-evaluator)
-- Python 3.12 (matches devcontainer; matches 001/002/003 slices); reuses `ledgerlinc_ocr.validator` for dual-schema validation; no new third-party dependency. (008-routing)
+- Python 3.12 (matches devcontainer; matches 001/002/003 slices); reuses `dartwing_ocr.validator` for dual-schema validation; no new third-party dependency. (008-routing)
 - Filesystem only. Reads `<per-document-folder>/edge_extraction_output.json`, writes `routing_decision.json` atomically into the same folder. No network, no model calls. (008-routing)
-- Python 3.12 (matches devcontainer base image and existing `ledgerlinc-ocr` package) + `jsonschema >= 4.22` (already installed; used for schema validation via the existing `ledgerlinc_ocr.validator.artifact` loader), `pydantic >= 2.7` (already installed; used for typed internal result objects), Python stdlib (`argparse`, `json`, `pathlib`, `datetime`, `dataclasses`). No new runtime dependencies. (009-final-payload)
+- Python 3.12 (matches devcontainer base image and existing `dartwing-ocr` package) + `jsonschema >= 4.22` (already installed; used for schema validation via the existing `dartwing_ocr.validator.artifact` loader), `pydantic >= 2.7` (already installed; used for typed internal result objects), Python stdlib (`argparse`, `json`, `pathlib`, `datetime`, `dataclasses`). No new runtime dependencies. (009-final-payload)
 - Filesystem only. Reads `<per-doc-folder>/edge_extraction_output.json` and `<per-doc-folder>/routing_decision.json`. Writes `<per-doc-folder>/final_structured_payload.json`. Trace block references `source.pdf` and `preprocess_output.json` by relative path but does not read them. (009-final-payload)
 - Python 3.12 (devcontainer base image, matches 001/002/003/004/005/006/007) (010-pp-structurev3-preprocessing)
 - Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`, writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. No DB, no network at steady state; first-run warm-up downloads ~500 MB of weights from `paddlepaddle.bj.bcebos.com` / `paddlex` hosters. (010-pp-structurev3-preprocessing)
-- Python 3.12 (matches `.devcontainer/Dockerfile` base image and existing `ledgerlinc-ocr` package pinned in `pyproject.toml`) + no new third-party dependencies; reuses declared `jsonschema`, `pydantic`, `httpx`, `PyYAML`, and Python stdlib. (011-stage-runtime-profiles)
+- Python 3.12 (matches `.devcontainer/Dockerfile` base image and existing `dartwing-ocr` package pinned in `pyproject.toml`) + no new third-party dependencies; reuses declared `jsonschema`, `pydantic`, `httpx`, `PyYAML`, and Python stdlib. (011-stage-runtime-profiles)
 - Filesystem only. Reads `--documents-file` plus per-document prerequisite artifacts, writes selected canonical artifacts into each per-document folder, and emits one final stdout `kind: "run_summary"` line. No database, no new persisted artifact, no remote cloud calls. (011-stage-runtime-profiles)
 - Python 3.12 (matches `.devcontainer/Dockerfile` and existing `pyproject.toml` `requires-python = ">=3.12"`). + existing — `paddleocr>=3.5,<4`, `paddlex[ocr]>=3.5,<4`, `paddlepaddle>=3.0,<4` (CPU baseline; the optional GPU wheel `paddlepaddle-gpu` is an out-of-tree workstation install — see research R-014.7), `pypdfium2>=4.30,<5`, `Pillow>=10.4,<11`, `numpy>=1.26,<3`, `jsonschema>=4.22,<5`, `pydantic>=2.7,<3`. No new pinned dependency added by this feature; the GPU wheel is documented as an additive optional install path per FR-024. (014-paddle-gpu-preprocessing)
 - Filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf`; writes `preprocess_output.json` (and optional debug `page_*.png`) into the same folder. Preflight writes nothing to disk per FR-004. No DB. (014-paddle-gpu-preprocessing)
@@ -206,9 +210,13 @@ The stage 1 artifact shapes and the per-document folder contract are now enforce
 - Python 3.12 (matches `.devcontainer/Dockerfile` base image and `pyproject.toml requires-python = ">=3.12"`). + existing only — `paddleocr>=3.5,<4` (the `PaddleOCR` class is exposed alongside `PPStructureV3` in the same package; OCR-only runs use the former — R-019.10), `paddlepaddle-dcu` (workstation-only optional install, already proven in features 014–018), `pypdfium2>=4.30,<5`, `Pillow>=10.4,<11`, `numpy>=1.26,<3`, `jsonschema>=4.22,<5`, `pydantic>=2.7,<3`. **No new pinned dependency.** ROCm/MIOpen/COMGR are workstation system dependencies, not Python packages. The OCR-only path reuses feature 017's `det_rec_variant_id` text-detection / text-recognition variants (per FR-027 — no new model, no new download host). (019-ocr-only-fast-lane)
 - filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/source.pdf` (unchanged). Writes `preprocess_output.json` into the same per-document folder unchanged in shape (FR-003 / FR-020). The two new `run_summary` fields live exclusively in the existing `kind: "run_summary"` stdout line per feature 014/015/016/017/018 lineage; **no new persisted artifact** (FR-021 / Out of Scope). The FR-015 benchmark numbers and FR-016 quality-gate evidence land in this feature's `quickstart.md` Appendix A (benchmark numbers) and `research.md` Appendix B (quality-gate evidence) at landing time; both are Markdown documents under `specs/019-ocr-only-fast-lane/`, not under `contracts/` and not under `tests/stage1_vendor_identity/`. (019-ocr-only-fast-lane)
 - Python 3.12 (matches `.devcontainer/Dockerfile` base image and `pyproject.toml requires-python = ">=3.12"`). + existing only — `paddleocr>=3.5,<4`, `paddlepaddle-dcu` (workstation-only optional install, already proven in features 014–019), `pypdfium2>=4.30,<5`, `Pillow>=10.4,<11`, `numpy>=1.26,<3`, `jsonschema>=4.22,<5`, `pydantic>=2.7,<3`. **No new pinned dependency.** Signal-set computation uses Python stdlib + `re` only (R-020.4 regex patterns) over `preprocess_output.json` content; no Paddle / no model / no GPU call from the gate itself. (020-vendor-evidence-gate)
-- filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/preprocess_output.json` (per-document). Writes `preprocess_output.json` into the same per-document folder unchanged in shape (FR-020). The four new `run_summary` fields live exclusively in the existing single `kind: "run_summary"` stdout line per feature 014/015/016/017/018/019 lineage and per Clarifications Q3 — single line, aggregate counters AND per-document table together; **no new persisted artifact** (FR-021 / Out of Scope / SC-007). The FR-015 benchmark numbers and FR-016 quality-gate evidence land in this feature's `quickstart.md` Appendix A (benchmark numbers) and `research.md` Appendix B (quality-gate evidence) at landing time; both are Markdown documents under `specs/020-vendor-evidence-gate/`, not under `contracts/` and not under `tests/stage1_vendor_identity/`. (020-vendor-evidence-gate)
+- filesystem only. Reads `tests/stage1_vendor_identity/inv_XXX_<difficulty>/preprocess_output.json` (per-document). Writes `preprocess_output.json` into the same per-document folder unchanged in shape (FR-020). The four new `run_summary` fields live exclusively in the existing single `kind: "run_summary"` stdout line per feature 014/015/016/017/018/019 lineage and per Clarifications Q3 — single line, aggregate counters AND per-document table together; **no new persisted artifact** (FR-021 / Out of Scope / SC-007). The FR-015 benchmark numbers and FR-016 quality-gate evidence are documented in `quickstart.md` Appendix A and `research.md` Appendix B respectively; both are Markdown under `specs/020-vendor-evidence-gate/`. **Stacked-PR delivery note**: PR #38 (the MVP slice) lands the observability surface only — the benchmark numbers and quality-gate evidence are filled in by the US7 stacked PR per the banners on `quickstart.md` and `spec.md`. (020-vendor-evidence-gate)
 
 ## Recent Changes
+<<<<<<< HEAD
 - 020-vendor-evidence-gate (MVP slice): Deterministic vendor-identity evidence gate landed under `src/ledgerlinc_ocr/preprocessing/evidence_gate.py` — five FR-001 signals (vendor-name-candidate, header-band token-density, OCR-detection aggregate-confidence, business-suffix-presence, tax-id-shaped-token-presence) computed over the page-1 header band of `preprocess_output.json`, mapped via the v1 explicit decision table to one of `sufficient` / `borderline` / `insufficient`. CPU-safe pure-Python module (stdlib + `re` only; no Paddle import). `RunSummary.SCHEMA_VERSION` patches 0.1.6 → 0.1.7 for four additive top-level fields (`evidence_gate_id`, `evidence_gate_state_counts`, `evidence_gate_documents`, `evidence_gate_suppressed_fallback_count`); always-emit on every profile. Skip-fallback behavior (US4), CPU-isolation guards (US5), schema-preservation regression tests (US6), and promotion quality gate (US7) follow as separate stacked PRs. See `specs/020-vendor-evidence-gate/quickstart.md` Path 1.
 - 005-single-voter-extraction: Stage 1 single-voter edge extractor landed under `src/ledgerlinc_ocr/extract/`. CLI: `ledgerlinc-extract`. Host-Ollama HTTP (httpx, no retries) + pluggable `VoterAdapter` Protocol + deterministic 8-step reconciliation → schema-valid `edge_extraction_output.json`. See `specs/005-single-voter-extraction/quickstart.md`.
+=======
+- 005-single-voter-extraction: Stage 1 single-voter edge extractor landed under `src/dartwing_ocr/extract/`. CLI: `dartwing-extract`. Host-Ollama HTTP (httpx, no retries) + pluggable `VoterAdapter` Protocol + deterministic 8-step reconciliation → schema-valid `edge_extraction_output.json`. See `specs/005-single-voter-extraction/quickstart.md`.
+>>>>>>> origin/main
 - 001-freeze-schemas-folder-contracts: Added Python 3.12 (matches `.devcontainer/Dockerfile` base image) + `jsonschema >= 4.22` (Draft 2020-12 validator); `pydantic >= 2.7` for the structured-report model and typed CLI results; Python stdlib (`argparse`, `json`, `pathlib`, `dataclasses`). No PyTorch, no PaddleOCR, no network dependencies for this slice.

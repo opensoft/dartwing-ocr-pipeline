@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from ledgerlinc_ocr.evaluator.pipeline_invocation import (
+from dartwing_ocr.evaluator.pipeline_invocation import (
     PipelinePreparationRequest,
     build_pipeline_command,
     format_corpus_preparation_report,
@@ -30,7 +30,7 @@ def test_build_document_command_uses_stub_profiles_by_default(tmp_path: Path) ->
     assert command[:4] == (
         sys.executable,
         "-m",
-        "ledgerlinc_ocr.pipeline",
+        "dartwing_ocr.pipeline",
         "run",
     )
     assert "--document-folder" in command
@@ -148,7 +148,7 @@ def test_run_corpus_preparation_parses_successes_and_failures(monkeypatch) -> No
         )
 
     monkeypatch.setattr(
-        "ledgerlinc_ocr.evaluator.pipeline_invocation.subprocess.run",
+        "dartwing_ocr.evaluator.pipeline_invocation.subprocess.run",
         fake_run,
     )
     request = PipelinePreparationRequest(
@@ -200,7 +200,7 @@ def test_document_preparation_surfaces_structured_missing_dependency(
         )
 
     monkeypatch.setattr(
-        "ledgerlinc_ocr.evaluator.pipeline_invocation.subprocess.run",
+        "dartwing_ocr.evaluator.pipeline_invocation.subprocess.run",
         fake_run,
     )
     request = PipelinePreparationRequest(

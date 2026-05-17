@@ -32,13 +32,13 @@ Each item is keyed `R-014.x`. The format is: **Decision**, **Rationale**,
 ## R-014.1: Preflight CLI placement
 
 **Decision**: Expose preflight as a Python module CLI:
-`python -m ledgerlinc_ocr.preprocessing.preflight`. Implement the
-classifier in `src/ledgerlinc_ocr/preprocessing/preflight.py` and the CLI
-front-door in `src/ledgerlinc_ocr/preprocessing/preflight_cli.py`
+`python -m dartwing_ocr.preprocessing.preflight`. Implement the
+classifier in `src/dartwing_ocr/preprocessing/preflight.py` and the CLI
+front-door in `src/dartwing_ocr/preprocessing/preflight_cli.py`
 (imported and re-exported as the module's `__main__` entry). Do **not**
 add a new `[project.scripts]` entry to `pyproject.toml`; reuse the
 `python -m …` invocation pattern already used by
-`python -m ledgerlinc_ocr.validator`.
+`python -m dartwing_ocr.validator`.
 
 **Rationale**:
 
@@ -50,18 +50,18 @@ add a new `[project.scripts]` entry to `pyproject.toml`; reuse the
   module and the CLI in a sibling module is the simplest separation of
   concerns and matches the validator pattern (`validator/__main__.py`,
   `validator/cli.py`).
-- Adding a `ledgerlinc-preflight` console script would inflate the
+- Adding a `dartwing-preflight` console script would inflate the
   feature's surface area (entry-point change, packaging churn) for a
   diagnostic tool that primarily lives in `docs/…/paddle-gpu-preflight.md`.
 
 **Alternatives considered**:
 
-- New top-level console script `ledgerlinc-preflight` — rejected. Couples
+- New top-level console script `dartwing-preflight` — rejected. Couples
   the diagnostic to the package's public CLI surface and breaks the
   validator-style precedent.
-- Subcommand of `ledgerlinc-preprocess` (e.g. `ledgerlinc-preprocess
+- Subcommand of `dartwing-preprocess` (e.g. `dartwing-preprocess
   preflight`) — rejected. Conflates preflight with the preprocessing
-  pipeline, and `ledgerlinc-preprocess` today takes a positional input
+  pipeline, and `dartwing-preprocess` today takes a positional input
   PDF, not subcommands. Refactoring its CLI is out of scope.
 - Standalone `scripts/check_paddle_gpu.sh` — rejected. The spec
   Assumptions section explicitly prefers in-tree placement over a loose
@@ -73,7 +73,7 @@ add a new `[project.scripts]` entry to `pyproject.toml`; reuse the
 
 **Decision**: Append the lane/device as a trailing dot-separated segment
 to the existing `pipeline_version` string built by
-`src/ledgerlinc_ocr/preprocessing/version.py::build_pipeline_version`.
+`src/dartwing_ocr/preprocessing/version.py::build_pipeline_version`.
 The segment grammar is:
 
 - CPU lane: `.cpu`
@@ -116,7 +116,7 @@ The lane segment is the **last** segment so existing parsers that read
   rejected. Inconsistent with the existing `.`-separated grammar.
 - Use the raw profile string `.ppstructurev3@gpu` — rejected. The `@`
   is reserved by the profile vocabulary in
-  `src/ledgerlinc_ocr/pipeline/profiles.py`; mixing it into
+  `src/dartwing_ocr/pipeline/profiles.py`; mixing it into
   `pipeline_version` would muddle the parser surface.
 
 **Normative regex** (consumer-facing): the post-feature `pipeline_version`
@@ -184,7 +184,7 @@ above.
 **Decision**: The classifier module exposes:
 
 ```python
-# src/ledgerlinc_ocr/preprocessing/preflight.py
+# src/dartwing_ocr/preprocessing/preflight.py
 
 from enum import Enum
 from dataclasses import dataclass
@@ -263,7 +263,7 @@ Two convenience functions on `PreflightReadout`:
 
 **Decision**: When the resolved preprocess profile is
 `ppstructurev3@gpu`, the warm-corpus runner in
-`src/ledgerlinc_ocr/pipeline/corpus_run.py` MUST abort on the first
+`src/dartwing_ocr/pipeline/corpus_run.py` MUST abort on the first
 per-document GPU failure regardless of the user-supplied
 `--on-failure` value. The existing `--on-failure=continue` default in
 warm-corpus mode is overridden, not removed.
@@ -287,7 +287,7 @@ and write no artifacts; this is the existing FR-009 behavior and is
 not gated on `--on-failure` either way.
 
 **Cold single-document mode** (analyze finding AA2'): single-doc
-mode (`ledgerlinc-preprocess --document-folder …` invoked on one
+mode (`dartwing-preprocess --document-folder …` invoked on one
 document at a time, no warm-corpus runner) has no `--on-failure`
 flag to honor or override. In this mode, the abort-on-first-GPU-failure
 override does not apply because there is no multi-document run to
@@ -296,7 +296,7 @@ abort. The semantics are simpler:
 - The inline preflight gate runs once on entry to `_get_engine` /
   `preprocessing/pipeline.py::run` (T021). On any non-success FR-001
   state, the gate raises `GpuPrerequisiteError` (defined in
-  `src/ledgerlinc_ocr/preprocessing/preflight.py`), which propagates
+  `src/dartwing_ocr/preprocessing/preflight.py`), which propagates
   to `preprocessing/cli.py` (T022).
 - T022's exception handler renders the FR-009 stderr message
   (`error: --preprocess-profile=ppstructurev3@gpu: <state>; <recommendation>`)
@@ -361,7 +361,7 @@ abort. The semantics are simpler:
    "evidence":{…},"recommendation":"…"}`. JSON is compact (no
    indentation), separators `(",", ":")`, `ensure_ascii=False` —
    matching the existing `RunSummary.as_json_line()` style in
-   `src/ledgerlinc_ocr/pipeline/timing.py`.
+   `src/dartwing_ocr/pipeline/timing.py`.
 
 Stdout MUST end with the JSON line. Stderr is reserved for unrecoverable
 classifier errors (e.g. Python crash before classification completes);
@@ -411,7 +411,7 @@ errors return `1`. Codes `10-14` are reserved for FR-001 fail states.
 ## R-014.6: `run_summary` extension fields for GPU timing
 
 **Decision**: Extend the existing `RunSummary` dataclass in
-`src/ledgerlinc_ocr/pipeline/timing.py` with two additive fields:
+`src/dartwing_ocr/pipeline/timing.py` with two additive fields:
 
 1. `profile_initialization_seconds: dict[Stage, float]` already exists.
    No structural change. The GPU-lane preprocessing entry simply gets
@@ -650,7 +650,7 @@ def pytest_configure(config):
 ```
 
 Add a session-scoped fixture that calls
-`ledgerlinc_ocr.preprocessing.preflight.classify(
+`dartwing_ocr.preprocessing.preflight.classify(
 attempt_ppstructurev3_init=True)` once per test session and caches the
 result. A `pytest_collection_modifyitems` hook walks collected items;
 for any item carrying the `gpu` marker, it adds
@@ -685,7 +685,7 @@ selector entirely (the unmarked CI path stays default).
   recommendation string to the skip log.
 - Hard-code GPU detection in conftest — rejected. Defeats the shared
   classifier rationale.
-- Use an env var like `LEDGERLINC_GPU=1` to opt in — rejected. The
+- Use an env var like `DARTWING_GPU=1` to opt in — rejected. The
   classifier already produces the same boolean answer with more
   diagnostic detail; adding a manual gate would duplicate it.
 
@@ -838,7 +838,7 @@ The new doc covers:
 
 | ID       | Decision                                                                              |
 |----------|---------------------------------------------------------------------------------------|
-| R-014.1  | Preflight CLI is `python -m ledgerlinc_ocr.preprocessing.preflight`; library + CLI sibling modules |
+| R-014.1  | Preflight CLI is `python -m dartwing_ocr.preprocessing.preflight`; library + CLI sibling modules |
 | R-014.2  | `pipeline_version` gains a trailing `.cpu` or `.gpu<N>` segment                       |
 | R-014.3  | Shared classifier exposes `PreflightState` enum, `PreflightEvidence`, `PreflightReadout` dataclasses, `classify(...)` function |
 | R-014.4  | Warm-corpus runner forces abort on first GPU per-doc failure regardless of `--on-failure`; logs `gpu_lane_forced_abort: true` |

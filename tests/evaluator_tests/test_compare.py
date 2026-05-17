@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.evaluator.compare import FieldResult, compare_field
-from ledgerlinc_ocr.evaluator.scoring import ResultLabel
+from dartwing_ocr.evaluator.compare import FieldResult, compare_field
+from dartwing_ocr.evaluator.scoring import ResultLabel
 
 
 def test_null_both_sides_is_not_applicable() -> None:

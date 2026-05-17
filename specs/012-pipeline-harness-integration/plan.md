@@ -1,6 +1,6 @@
 # Implementation Plan: Pipeline Harness Integration
 
-**Branch**: `012-pipeline-harness-integration` | **Date**: 2026-05-05 | **Spec**: [spec.md](spec.md)  
+**Branch**: `012-pipeline-harness-integration` | **Date**: 2026-05-05 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/012-pipeline-harness-integration/spec.md`
 
 ## Summary
@@ -11,14 +11,14 @@ The implementation will use the pipeline CLI as a subprocess rather than importi
 
 ## Technical Context
 
-**Language/Version**: Python 3.12  
-**Primary Dependencies**: Python stdlib (`argparse`, `json`, `pathlib`, `subprocess`, `sys`, `tempfile`, `dataclasses`); existing `pydantic`/`jsonschema` evaluator dependencies remain unchanged  
-**Storage**: Filesystem-only JSON artifacts in per-document folders and corpus roots  
-**Testing**: `pytest` through the existing evaluator and integration test suites  
-**Target Platform**: Local Linux/WSL/devcontainer development environments that can run the repository CLI modules  
-**Project Type**: Python CLI/library package  
-**Performance Goals**: Stub-safe harness pipeline tests avoid live OCR/model startup; corpus preparation uses one warm pipeline invocation through `--documents-file` instead of spawning one pipeline process per document  
-**Constraints**: No artifact schema changes; no new required benchmark artifact; evaluator package must not import `ledgerlinc_ocr.pipeline` or `ledgerlinc_ocr.preprocessing`; default automated path must not require network, GPU, Ollama, PaddleOCR, or model weights  
+**Language/Version**: Python 3.12
+**Primary Dependencies**: Python stdlib (`argparse`, `json`, `pathlib`, `subprocess`, `sys`, `tempfile`, `dataclasses`); existing `pydantic`/`jsonschema` evaluator dependencies remain unchanged
+**Storage**: Filesystem-only JSON artifacts in per-document folders and corpus roots
+**Testing**: `pytest` through the existing evaluator and integration test suites
+**Target Platform**: Local Linux/WSL/devcontainer development environments that can run the repository CLI modules
+**Project Type**: Python CLI/library package
+**Performance Goals**: Stub-safe harness pipeline tests avoid live OCR/model startup; corpus preparation uses one warm pipeline invocation through `--documents-file` instead of spawning one pipeline process per document
+**Constraints**: No artifact schema changes; no new required benchmark artifact; evaluator package must not import `dartwing_ocr.pipeline` or `dartwing_ocr.preprocessing`; default automated path must not require network, GPU, Ollama, PaddleOCR, or model weights
 **Scale/Scope**: Stage 1 vendor-identity corpus, currently 20 per-document invoice folders with `source.pdf` and `expected.json`
 
 ## Constitution Check
@@ -51,7 +51,7 @@ specs/012-pipeline-harness-integration/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/evaluator/
+src/dartwing_ocr/evaluator/
 ├── cli.py
 ├── corpus.py
 └── pipeline_invocation.py

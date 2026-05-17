@@ -9,12 +9,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from ledgerlinc_ocr.extract.config import VoterConfig, load_voter_config
-from ledgerlinc_ocr.extract.errors import VoterConfigInvalid
+from dartwing_ocr.extract.config import VoterConfig, load_voter_config
+from dartwing_ocr.extract.errors import VoterConfigInvalid
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _GEMMA_CONFIG = (
-    _REPO_ROOT / "src" / "ledgerlinc_ocr" / "extract" / "voters" / "configs" / "gemma-edge.yaml"
+    _REPO_ROOT / "src" / "dartwing_ocr" / "extract" / "voters" / "configs" / "gemma-edge.yaml"
 )
 
 
@@ -135,8 +135,8 @@ def test_ac5_voter_role_enum_coverage(tmp_path: Path) -> None:
     assert config.voter_role == "secondary_extractor"
 
     # Runtime-level: pipeline raises VoterConfigInvalid.
-    from ledgerlinc_ocr.extract import pipeline as pipeline_mod
-    from ledgerlinc_ocr.extract.voters.stub import StubVoter
+    from dartwing_ocr.extract import pipeline as pipeline_mod
+    from dartwing_ocr.extract.voters.stub import StubVoter
 
     voter = StubVoter(extensions={"x_fixture_path": "voter_response_clean.json"}, config_dir=dest)
 

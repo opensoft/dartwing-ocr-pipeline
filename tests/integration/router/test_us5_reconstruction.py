@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.router import reasons as R
+from dartwing_ocr.router import reasons as R
 
 FORCING_REASONS = set(R.FORCING_PRIORITY)
 CONTRACT_VIOLATION_REASON = (

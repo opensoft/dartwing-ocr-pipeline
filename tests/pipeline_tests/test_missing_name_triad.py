@@ -5,16 +5,16 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES, Runner
-from ledgerlinc_ocr.pipeline.stages import (
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES, Runner
+from dartwing_ocr.pipeline.stages import (
     default_extraction,
     default_final_payload,
     default_preprocess,
     default_routing,
 )
-from ledgerlinc_ocr.validator.artifact import validate_artifact
-from ledgerlinc_ocr.validator.report import ArtifactName
+from dartwing_ocr.validator.artifact import validate_artifact
+from dartwing_ocr.validator.report import ArtifactName
 
 
 def _inferred_extraction(

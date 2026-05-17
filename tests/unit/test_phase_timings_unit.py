@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 
 
-timing = pytest.importorskip("ledgerlinc_ocr.pipeline.timing")
+timing = pytest.importorskip("dartwing_ocr.pipeline.timing")
 StageTiming = timing.StageTiming
 build_per_document_success = timing.build_per_document_success
 
