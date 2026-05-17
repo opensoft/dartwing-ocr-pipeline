@@ -36,9 +36,8 @@ functions and do not invoke any GPU code path.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -53,38 +52,6 @@ from dartwing_ocr.preprocessing.warmup_optin import is_gpu_lane
 GREP_MARKER = "--evidence-gate-skip-fallback ignored:"
 
 
-@pytest.fixture
-def tmp_inv_folder(tmp_path: Path) -> Path:
-    import shutil
-
-    folder = tmp_path / "inv_001_easy"
-    folder.mkdir()
-    repo_root = Path(__file__).resolve().parents[3]
-    source = (
-        repo_root
-        / "tests"
-        / "stage1_vendor_identity"
-        / "inv_001_easy"
-        / "source.pdf"
-    )
-    shutil.copy(source, folder / "source.pdf")
-    return folder
-
-
-def _mock_pipeline_run_returning_minimal_artifact(folder: Path) -> MagicMock:
-    artifact_path = folder / "preprocess_output.json"
-    artifact_path.write_text(
-        json.dumps(
-            {
-                "document_id": folder.name,
-                "warnings": [],
-                "pages": [],
-            }
-        )
-    )
-    return MagicMock(return_value=artifact_path)
-
-
 # ---------------------------------------------------------------------------
 # Path (a): opt-in unset on CPU → no warn.
 # ---------------------------------------------------------------------------
@@ -92,13 +59,14 @@ def _mock_pipeline_run_returning_minimal_artifact(folder: Path) -> MagicMock:
 
 def test_no_warn_when_optin_unset_no_cli_no_env(
     tmp_inv_folder: Path,
+    mock_pipeline_run_minimal_artifact,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Path (a): no flag, no env, default CPU profile → zero stderr
     lines carrying the MI-22 grep marker."""
     monkeypatch.delenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, raising=False)
-    mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    mock_run = mock_pipeline_run_minimal_artifact(tmp_inv_folder)
     with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
@@ -115,6 +83,7 @@ def test_no_warn_when_optin_unset_no_cli_no_env(
 
 def test_no_warn_when_optin_unset_falsy_env_only(
     tmp_inv_folder: Path,
+    mock_pipeline_run_minimal_artifact,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -122,7 +91,7 @@ def test_no_warn_when_optin_unset_falsy_env_only(
     warn. Verifies the env-var precedence rule R-020.1 ("anything not
     in the truthy vocabulary is False")."""
     monkeypatch.setenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, "0")
-    mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    mock_run = mock_pipeline_run_minimal_artifact(tmp_inv_folder)
     with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [

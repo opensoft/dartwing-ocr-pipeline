@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -39,50 +39,6 @@ from dartwing_ocr.preprocessing.errors import EXIT_OK
 from dartwing_ocr.preprocessing.evidence_gate_optin import (
     EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR,
 )
-
-
-@pytest.fixture
-def tmp_inv_folder(tmp_path: Path) -> Path:
-    """Provide a writable folder with a copied real ``source.pdf`` so the
-    CLI's input-validation passes without modifying the committed corpus
-    baseline (FR-019 / SC-007). Mirrors test_cpu_warn_and_proceed.py."""
-    import shutil
-
-    folder = tmp_path / "inv_001_easy"
-    folder.mkdir()
-    repo_root = Path(__file__).resolve().parents[3]
-    source = (
-        repo_root
-        / "tests"
-        / "stage1_vendor_identity"
-        / "inv_001_easy"
-        / "source.pdf"
-    )
-    shutil.copy(source, folder / "source.pdf")
-    return folder
-
-
-def _mock_pipeline_run_returning_minimal_artifact(folder: Path) -> MagicMock:
-    """Mock ``preprocessing.pipeline.run`` so cli.main can complete without
-    actually running PaddleOCR. The artifact is the minimal shape required
-    for the CLI's post-run JSON read + run_summary emission to succeed.
-    The evidence gate later evaluates this artifact (the ``pages: []``
-    empty-page case maps to the negative-level signals; the gate decision
-    is ``insufficient`` — that's expected and asserted in the body)."""
-    artifact_path = folder / "preprocess_output.json"
-    artifact_path.write_text(
-        json.dumps(
-            {
-                "document_id": folder.name,
-                "warnings": [],
-                # Minimal pages list so the gate's loader sees a dict it
-                # can recognize; an empty pages list is the
-                # "insufficient" boundary case per spec §Edge Cases.
-                "pages": [],
-            }
-        )
-    )
-    return MagicMock(return_value=artifact_path)
 
 
 def _run_summary_from(captured_stdout: str) -> dict:
@@ -108,6 +64,7 @@ def _run_summary_from(captured_stdout: str) -> dict:
 
 def test_cpu_no_flag_baseline_exits_ok_and_emits_default_fields(
     tmp_inv_folder: Path,
+    mock_pipeline_run_minimal_artifact,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -116,7 +73,7 @@ def test_cpu_no_flag_baseline_exits_ok_and_emits_default_fields(
     exit code 0; the four feature-020 fields ship with default values
     (FR-014 — the gate runs on CPU)."""
     monkeypatch.delenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, raising=False)
-    mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    mock_run = mock_pipeline_run_minimal_artifact(tmp_inv_folder)
     with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
@@ -152,6 +109,7 @@ def test_cpu_no_flag_baseline_exits_ok_and_emits_default_fields(
 
 def test_cpu_with_flag_warns_exactly_once_and_keeps_default_fields(
     tmp_inv_folder: Path,
+    mock_pipeline_run_minimal_artifact,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -161,7 +119,7 @@ def test_cpu_with_flag_warns_exactly_once_and_keeps_default_fields(
     with defaults (FR-014); suppressed counter still 0 because no
     suppression happens on CPU."""
     monkeypatch.delenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, raising=False)
-    mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    mock_run = mock_pipeline_run_minimal_artifact(tmp_inv_folder)
     with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
@@ -210,6 +168,7 @@ def test_cpu_with_flag_warns_exactly_once_and_keeps_default_fields(
 
 def test_cpu_with_flag_exit_code_matches_no_flag_baseline(
     tmp_inv_folder: Path,
+    mock_pipeline_run_minimal_artifact,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -217,7 +176,7 @@ def test_cpu_with_flag_exit_code_matches_no_flag_baseline(
     code without the flag on the same fixture."""
     monkeypatch.delenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, raising=False)
 
-    mock_a = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    mock_a = mock_pipeline_run_minimal_artifact(tmp_inv_folder)
     with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_a):
         exit_no_flag = cli_mod.main(
             [
@@ -229,7 +188,7 @@ def test_cpu_with_flag_exit_code_matches_no_flag_baseline(
         )
     capsys.readouterr()  # drain
 
-    mock_b = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    mock_b = mock_pipeline_run_minimal_artifact(tmp_inv_folder)
     with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_b):
         exit_with_flag = cli_mod.main(
             [
@@ -256,6 +215,7 @@ def test_cpu_with_flag_exit_code_matches_no_flag_baseline(
 
 def test_cpu_with_env_var_only_warns_exactly_once(
     tmp_inv_folder: Path,
+    mock_pipeline_run_minimal_artifact,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -264,7 +224,7 @@ def test_cpu_with_env_var_only_warns_exactly_once(
     MUST trigger the same warn-and-proceed as the CLI flag (R-020.1
     precedence: CLI absent → env-var truthy → True)."""
     monkeypatch.setenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, "1")
-    mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    mock_run = mock_pipeline_run_minimal_artifact(tmp_inv_folder)
     with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
@@ -292,6 +252,7 @@ def test_cpu_with_env_var_only_warns_exactly_once(
 
 def test_cpu_with_cli_flag_and_truthy_env_warns_exactly_once(
     tmp_inv_folder: Path,
+    mock_pipeline_run_minimal_artifact,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -311,7 +272,7 @@ def test_cpu_with_cli_flag_and_truthy_env_warns_exactly_once(
     → single warn emission, not duplicated.
     """
     monkeypatch.setenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, "yes")
-    mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    mock_run = mock_pipeline_run_minimal_artifact(tmp_inv_folder)
     with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
@@ -334,6 +295,7 @@ def test_cpu_with_cli_flag_and_truthy_env_warns_exactly_once(
 
 def test_cpu_with_empty_string_env_does_not_warn(
     tmp_inv_folder: Path,
+    mock_pipeline_run_minimal_artifact,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -343,7 +305,7 @@ def test_cpu_with_empty_string_env_does_not_warn(
     ``if raw == "": return False`` early-return branch at the CLI
     integration level (T031 covers it at the function level)."""
     monkeypatch.setenv(EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR, "")
-    mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
+    mock_run = mock_pipeline_run_minimal_artifact(tmp_inv_folder)
     with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main(
             [
