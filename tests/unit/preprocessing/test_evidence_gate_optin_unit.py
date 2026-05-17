@@ -167,7 +167,18 @@ def test_mi_20_default_off_invariant() -> None:
     quality-gate evidence (FR-016 / R-020.14) supports promotion. Until
     then, ``resolve_evidence_gate_skip_fallback(cli_value=None,
     env=<empty>)`` MUST return ``False`` so legacy behavior is preserved
-    byte-identically across all six profiles (SC-006 / SC-007).
+    byte-identically (SC-006 / SC-007).
+
+    The resolver is profile-blind (no profile argument), so off-once is
+    off-everywhere by construction — one assertion suffices to pin MI-20
+    across the entire profile matrix.
+
+    The duplication with ``test_cli_none_unset_env_returns_false`` (line
+    61) is INTENTIONAL — that test pins the resolver's mechanical
+    behavior; this test names the MI-20 invariant explicitly so the
+    promotion-flip site (T057) is locatable by name in the test suite.
+    Do not remove as a "duplicate" without updating T057's promotion
+    procedure to point at the new pin.
 
     Flipping the default at T057 means replacing this assertion's
     expected value with ``True`` AND adding a regression test under

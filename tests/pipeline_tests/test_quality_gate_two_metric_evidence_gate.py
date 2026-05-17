@@ -4,17 +4,21 @@ quality-gate verdict producing Appendix B numbers.
 Marked ``@pytest.mark.gpu`` and **deferrable per R-020.15** — GPU workstation
 hardware is required to produce the legacy- and candidate-run
 ``evaluation_run_summary.json`` files this test compares. On a CPU-only
-host (the default suite filter ``-m "not gpu"`` deselects this file) the
-test is collected but never executes. When the deferred GPU run is
-performed in a follow-up, the ``@pytest.mark.skip`` decorator can be
-removed and the body will read both summaries and assert the FR-016
-two-metric promotion gate.
+host (the default suite filter ``-m "not gpu"`` deselects this file via
+the conftest gpu-marker gate) the test is collected but never executes.
+On a GPU host the current body raises ``pytest.fail`` so the deferred-
+implementation state surfaces loudly the moment GPU verification is
+attempted; the follow-up replaces the body with the real two-metric
+comparison.
 
-Two-metric promotion gate (FR-016 / R-020.14 / SC-008):
+Two-metric promotion gate (FR-016 / R-020.14 / SC-008) — field names
+match ``contracts/stage1_vendor_identity/v1.2.0/evaluation_run_summary.schema.json``:
 
-- ``candidate aggregate_vendor_identity_field_score >= legacy
-  aggregate_vendor_identity_field_score``
-- ``candidate per_document_pass_count >= legacy per_document_pass_count``
+- ``candidate overall_metrics.vendor_identity_pass_rate >= legacy
+  overall_metrics.vendor_identity_pass_rate``
+- ``candidate sum(documents[].overall_passed) >= legacy
+  sum(documents[].overall_passed)`` (the per-document pass count is
+  derived by summing the per-doc boolean flags)
 
 If EITHER metric regresses, this test **fails** (does NOT skip) so a
 failing promotion candidate is visibly rejected; T057's default-flip is
@@ -40,38 +44,41 @@ import pytest
 pytestmark = pytest.mark.gpu
 
 
-@pytest.mark.skip(
-    reason=(
-        "GPU two-metric quality-gate verdict; deferrable per R-020.15. "
-        "Requires the workstation GPU + the legacy- and candidate-run "
-        "`evaluation_run_summary.json` artifacts produced by the FR-015 "
-        "benchmark in T053. Run manually via "
-        "`pytest -m gpu tests/pipeline_tests/test_quality_gate_two_metric_evidence_gate.py` "
-        "on the workstation; on pass, T057 may flip the default; on "
-        "fail, the default stays off and the failure is recorded in "
-        "`research.md` Appendix B."
-    )
-)
 def test_quality_gate_two_metric_evidence_gate_gpu(tmp_path: Path) -> None:
     """GPU two-metric verdict: compare legacy and candidate
     ``evaluation_run_summary.json`` files; assert candidate >= legacy
-    on BOTH the per-corpus aggregate vendor-identity field score AND
-    the per-document pass count.
+    on BOTH the per-corpus aggregate vendor-identity score AND the
+    per-document pass count.
 
-    The assertion shape (executed when the GPU deferral is closed):
+    The assertion shape (executed when the GPU deferral is closed),
+    using the actual field names from
+    ``contracts/stage1_vendor_identity/v1.2.0/evaluation_run_summary.schema.json``:
 
     .. code-block:: python
 
-        legacy = json.loads(legacy_run_dir / "evaluation_run_summary.json")
-        candidate = json.loads(candidate_run_dir / "evaluation_run_summary.json")
+        legacy = json.loads(
+            (legacy_run_dir / "evaluation_run_summary.json").read_text()
+        )
+        candidate = json.loads(
+            (candidate_run_dir / "evaluation_run_summary.json").read_text()
+        )
 
-        legacy_score = float(legacy["aggregate_vendor_identity_field_score"])
-        candidate_score = float(candidate["aggregate_vendor_identity_field_score"])
-        legacy_pass = int(legacy["per_document_pass_count"])
-        candidate_pass = int(candidate["per_document_pass_count"])
+        # FR-016 Metric (1): per-corpus aggregate vendor-identity score.
+        # The evaluator emits a vendor-identity pass-rate under
+        # `overall_metrics.vendor_identity_pass_rate` (0.0-1.0 float).
+        legacy_score = float(legacy["overall_metrics"]["vendor_identity_pass_rate"])
+        candidate_score = float(
+            candidate["overall_metrics"]["vendor_identity_pass_rate"]
+        )
+
+        # FR-016 Metric (2): per-document pass count. The evaluator
+        # emits per-document `overall_passed` flags in `documents[]`;
+        # the count is derived by summing the booleans.
+        legacy_pass = sum(1 for d in legacy["documents"] if d["overall_passed"])
+        candidate_pass = sum(1 for d in candidate["documents"] if d["overall_passed"])
 
         assert candidate_score >= legacy_score, (
-            f"FR-016 / R-020.14 regression: candidate aggregate field score "
+            f"FR-016 / R-020.14 regression: candidate vendor-identity score "
             f"{candidate_score:.4f} < legacy {legacy_score:.4f}"
         )
         assert candidate_pass >= legacy_pass, (
@@ -80,16 +87,18 @@ def test_quality_gate_two_metric_evidence_gate_gpu(tmp_path: Path) -> None:
         )
 
     Failure (NOT skip) on regression is intentional per SC-008.
+
+    On a CPU host this body is unreachable thanks to the module-level
+    `pytestmark = pytest.mark.gpu` (see `tests/conftest.py`). On a GPU
+    host the `pytest.fail` below catches the deferred-implementation
+    state — the deferred GPU run replaces this body with the real
+    comparison loop and updates `research.md` Appendix B with the
+    recorded verdict.
     """
-    # Body intentionally fails when run on GPU without an updated
-    # implementation that produces both run-summary inputs. At PR
-    # landing time on a CPU host this is unreachable thanks to the
-    # module-level `pytestmark = pytest.mark.gpu` + `@pytest.mark.skip`
-    # above. The deferred GPU run replaces this body with the real
-    # comparison loop, removes the skip decorator, and updates
-    # research.md Appendix B with the verdict.
+    _ = tmp_path
     pytest.fail(
-        "GPU quality-gate verdict deferred per R-020.15; remove "
-        "@pytest.mark.skip and wire the two-metric comparison when the "
-        "workstation GPU is available."
+        "GPU quality-gate verdict deferred per R-020.15; wire the "
+        "two-metric comparison (vendor_identity_pass_rate + "
+        "per-document overall_passed sum) when the workstation GPU is "
+        "available."
     )

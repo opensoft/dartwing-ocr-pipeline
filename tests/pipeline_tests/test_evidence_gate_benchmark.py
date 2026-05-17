@@ -3,10 +3,11 @@ benchmark over the fixed 5-doc subset producing Appendix A numbers.
 
 Marked ``@pytest.mark.gpu`` and **deferrable per R-020.15** — GPU workstation
 hardware is required to actually run the benchmark. On a CPU-only host (the
-default suite filter ``-m "not gpu"`` deselects this file) the test is
-collected but never executes. When the deferred GPU run is performed in a
-follow-up, the ``@pytest.mark.skip`` decorator can be removed and the body
-will exercise the full four-run discipline below.
+default suite filter ``-m "not gpu"`` deselects this file via the conftest
+gpu-marker gate) the test is collected but never executes. On a GPU host
+the current body raises ``pytest.fail`` so the deferred-implementation
+state surfaces loudly the moment GPU verification is attempted; the
+follow-up replaces the body with the full four-run discipline below.
 
 Four-run benchmark discipline (R-020.16):
 
@@ -86,20 +87,6 @@ _DEFAULT_5_DOC_SUBSET: tuple[str, ...] = (
 )
 
 
-@pytest.mark.skip(
-    reason=(
-        "GPU four-run benchmark; deferrable per R-020.15. Requires the "
-        "workstation GPU (`paddlepaddle-dcu`) plus the fixed 5-doc subset "
-        "with a `sufficient`-eligible header band. Run manually via "
-        "`pytest -m gpu tests/pipeline_tests/test_evidence_gate_benchmark.py` "
-        "on the workstation; outputs are recorded in "
-        "`specs/020-vendor-evidence-gate/quickstart.md` Appendix A "
-        "(numbers) and `research.md` Appendix B (quality-gate verdict). "
-        "CPU-safe coverage of the suppression mechanics lives in "
-        "`test_evidence_gate_skip_fallback_borderline_cpu.py` and "
-        "`test_evidence_gate_recorded_over_final.py`."
-    )
-)
 def test_evidence_gate_benchmark_four_run_per_key_deltas_gpu(
     tmp_path: Path,
 ) -> None:
@@ -122,15 +109,18 @@ def test_evidence_gate_benchmark_four_run_per_key_deltas_gpu(
       keys including ``per_page_inference`` and ``total`` must stay
       within their respective jitter bands.
     """
-    # Body intentionally fails when run on GPU without an updated
-    # implementation that drives the four-run benchmark loop. At PR
-    # landing time on a CPU host this is unreachable thanks to the
-    # module-level `pytestmark = pytest.mark.gpu` + `@pytest.mark.skip`
-    # above. The deferred GPU run replaces this body with the real
-    # benchmark loop, removes the skip decorator, and updates Appendix
-    # A / B with the recorded numbers.
-    _ = _GPU_PHASE_KEYS, _ALLOWED_DECREASE_KEYS, _DEFAULT_5_DOC_SUBSET
+    # Body intentionally fails when run on a GPU host so the deferred
+    # benchmark work surfaces loudly the moment GPU verification is
+    # actually attempted. On a CPU host the module-level `pytestmark =
+    # pytest.mark.gpu` causes conftest to skip this test entirely
+    # (search `tests/conftest.py` for the gpu-marker gate). The deferred
+    # GPU run replaces this body with the real four-run benchmark loop
+    # and updates `specs/020-vendor-evidence-gate/quickstart.md`
+    # Appendix A + `research.md` Appendix B with the recorded numbers.
+    _ = tmp_path, _GPU_PHASE_KEYS, _ALLOWED_DECREASE_KEYS, _DEFAULT_5_DOC_SUBSET
     pytest.fail(
-        "GPU benchmark deferred per R-020.15; remove @pytest.mark.skip "
-        "and wire the four-run loop when the workstation GPU is available."
+        "GPU benchmark deferred per R-020.15; wire the four-run loop "
+        "(warmup × 1, legacy × 2, candidate × 2; per-key change "
+        "assertion per FR-015 / Clarifications Q1 Option A) when the "
+        "workstation GPU is available."
     )
