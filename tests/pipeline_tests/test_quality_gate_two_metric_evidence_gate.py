@@ -3,13 +3,17 @@ quality-gate verdict producing Appendix B numbers.
 
 Marked ``@pytest.mark.gpu`` and **deferrable per R-020.15** — GPU workstation
 hardware is required to produce the legacy- and candidate-run
-``evaluation_run_summary.json`` files this test compares. On a CPU-only
-host (the default suite filter ``-m "not gpu"`` deselects this file via
-the conftest gpu-marker gate) the test is collected but never executes.
-On a GPU host the current body raises ``pytest.fail`` so the deferred-
-implementation state surfaces loudly the moment GPU verification is
-attempted; the follow-up replaces the body with the real two-metric
-comparison.
+``evaluation_run_summary.json`` files this test compares. The default
+CI invocation uses pytest's ``-m "not gpu"`` expression, which
+deselects every test bearing the ``gpu`` marker; this test is
+collected but never executes there. Separately, ``tests/conftest.py``
+contributes a runtime skip that fires when a GPU IS available but
+PaddleOCR's GPU readiness preflight fails (so a flaky-GPU host still
+ends in a clean skip rather than a hard error). On a GPU host where
+the preflight passes, the current body raises ``pytest.fail`` so the
+deferred-implementation state surfaces loudly the moment GPU
+verification is attempted; the follow-up replaces the body with the
+real two-metric comparison.
 
 Two-metric promotion gate (FR-016 / R-020.14 / SC-008) — field names
 match ``contracts/stage1_vendor_identity/v1.2.0/evaluation_run_summary.schema.json``:

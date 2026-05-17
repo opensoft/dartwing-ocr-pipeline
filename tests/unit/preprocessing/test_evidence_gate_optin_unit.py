@@ -173,12 +173,13 @@ def test_mi_20_default_off_invariant() -> None:
     off-everywhere by construction — one assertion suffices to pin MI-20
     across the entire profile matrix.
 
-    The duplication with ``test_cli_none_unset_env_returns_false`` (line
-    61) is INTENTIONAL — that test pins the resolver's mechanical
-    behavior; this test names the MI-20 invariant explicitly so the
-    promotion-flip site (T057) is locatable by name in the test suite.
-    Do not remove as a "duplicate" without updating T057's promotion
-    procedure to point at the new pin.
+    The duplication with ``test_cli_none_unset_env_returns_false`` in
+    this same file is INTENTIONAL — that test pins the resolver's
+    mechanical behavior; this test names the MI-20 invariant explicitly
+    so the promotion-flip site (T057) is locatable by test NAME (not
+    line number, which drifts) in the test suite. Do not remove as a
+    "duplicate" without updating T057's promotion procedure to point at
+    the new pin.
 
     Flipping the default at T057 means replacing this assertion's
     expected value with ``True`` AND adding a regression test under

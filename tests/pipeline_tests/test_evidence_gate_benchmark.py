@@ -2,12 +2,17 @@
 benchmark over the fixed 5-doc subset producing Appendix A numbers.
 
 Marked ``@pytest.mark.gpu`` and **deferrable per R-020.15** — GPU workstation
-hardware is required to actually run the benchmark. On a CPU-only host (the
-default suite filter ``-m "not gpu"`` deselects this file via the conftest
-gpu-marker gate) the test is collected but never executes. On a GPU host
-the current body raises ``pytest.fail`` so the deferred-implementation
-state surfaces loudly the moment GPU verification is attempted; the
-follow-up replaces the body with the full four-run discipline below.
+hardware is required to actually run the benchmark. The default CI
+invocation uses pytest's ``-m "not gpu"`` expression, which deselects
+every test bearing the ``gpu`` marker; this test is collected but
+never executes there. Separately, ``tests/conftest.py`` contributes a
+runtime skip that fires when a GPU IS available but PaddleOCR's GPU
+readiness preflight fails (so a flaky-GPU host still ends in a clean
+skip rather than a hard error). On a GPU host where the preflight
+passes, the current body raises ``pytest.fail`` so the deferred-
+implementation state surfaces loudly the moment GPU verification is
+attempted; the follow-up replaces the body with the full four-run
+discipline below.
 
 Four-run benchmark discipline (R-020.16):
 
