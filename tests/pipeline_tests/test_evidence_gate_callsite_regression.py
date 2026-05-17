@@ -85,7 +85,7 @@ def test_run_warm_corpus_calls_evaluate_and_record_in_success_branch() -> None:
     that moves the call outside that branch (or removes it entirely)
     breaks MI-18 / the FR-006 always-emit contract on successful runs.
     """
-    from ledgerlinc_ocr.pipeline.corpus_run import run_warm_corpus
+    from dartwing_ocr.pipeline.corpus_run import run_warm_corpus
 
     source = inspect.getsource(run_warm_corpus)
     tree = ast.parse(source)
@@ -125,7 +125,7 @@ def test_single_doc_cli_calls_evaluate_and_record_in_success_branch() -> None:
     plus call — a false positive that would let the real emission
     path silently drop the call.
     """
-    from ledgerlinc_ocr.preprocessing import cli as preproc_cli
+    from dartwing_ocr.preprocessing import cli as preproc_cli
 
     fn = getattr(preproc_cli, "_emit_single_doc_run_summary", None)
     assert fn is not None, (

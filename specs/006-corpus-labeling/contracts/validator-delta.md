@@ -11,7 +11,7 @@ This is the sole contract change introduced by this feature. It is a **module-AP
 
 ## What changes
 
-One new value is added to `ViolationCode` in `src/ledgerlinc_ocr/validator/report.py`:
+One new value is added to `ViolationCode` in `src/dartwing_ocr/validator/report.py`:
 
 ```python
 class ViolationCode:
@@ -24,7 +24,7 @@ class ViolationCode:
     FOLDER_SOURCE_PDF_UNREADABLE = "FOLDER_SOURCE_PDF_UNREADABLE"   # NEW
 ```
 
-And `validate_folder()` in `src/ledgerlinc_ocr/validator/folder.py` gains one additional check: after the unconditional-files loop, for each present `source.pdf`, the file is opened with `pypdf.PdfReader(path, strict=False)` and `len(reader.pages)` is evaluated inside a try/except. Any exception → `Severity.ERROR` emission with the new code.
+And `validate_folder()` in `src/dartwing_ocr/validator/folder.py` gains one additional check: after the unconditional-files loop, for each present `source.pdf`, the file is opened with `pypdf.PdfReader(path, strict=False)` and `len(reader.pages)` is evaluated inside a try/except. Any exception → `Severity.ERROR` emission with the new code.
 
 ---
 

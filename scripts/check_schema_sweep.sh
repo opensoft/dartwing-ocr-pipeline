@@ -3,7 +3,7 @@
 #
 # Runs preprocessing over every corpus document, then validates every
 # emitted preprocess_output.json against the frozen v1.0.0 contract via
-# `python -m ledgerlinc_ocr.validator validate corpus ...`. Asserts zero
+# `python -m dartwing_ocr.validator validate corpus ...`. Asserts zero
 # schema errors.
 #
 # Deferred gate: the 20-document corpus does not yet exist in this
@@ -28,7 +28,7 @@ fi
 
 for d in "${dirs[@]}"; do
     [[ -d "$d" && -f "$d/source.pdf" ]] || continue
-    "$PY" -m ledgerlinc_ocr.preprocessing --document-folder "$d" >/dev/null
+    "$PY" -m dartwing_ocr.preprocessing --document-folder "$d" >/dev/null
 done
 
-exec "$PY" -m ledgerlinc_ocr.validator validate corpus "$CORPUS"
+exec "$PY" -m dartwing_ocr.validator validate corpus "$CORPUS"

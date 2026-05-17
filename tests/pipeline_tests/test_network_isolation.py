@@ -8,7 +8,7 @@ from typing import Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.cli import main
 
 
 def _loopback(host: str) -> bool:

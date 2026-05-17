@@ -1,7 +1,7 @@
 # Run-Summary Schema: DPI Reduction And Region-First Vendor Identity Preprocess
 
 **Feature**: 018-dpi-region-first-preprocess
-**Applies to**: `kind: "run_summary"` JSON object emitted on stdout by `python -m ledgerlinc_ocr.preprocessing` and `python -m ledgerlinc_ocr.pipeline`
+**Applies to**: `kind: "run_summary"` JSON object emitted on stdout by `python -m dartwing_ocr.preprocessing` and `python -m dartwing_ocr.pipeline`
 **Decision source**: research.md R-018.8, R-018.14; spec FR-008, FR-009, FR-010, FR-011, FR-022; /speckit.clarify Q4.
 
 ## 1. Schema version

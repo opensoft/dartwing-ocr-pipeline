@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.assembler import errors as E
+from dartwing_ocr.assembler import errors as E
 
 # The 8 documented kinds (per data-model.md / spec FR-003…FR-025).
 DOCUMENTED_KINDS = {

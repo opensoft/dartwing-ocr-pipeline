@@ -18,7 +18,7 @@ inference. No changes to the four existing persisted artifacts.
 The assembler is a pure function over one `preprocess_output.json`. Default
 behavior is in-memory: the caller receives the validated packet, nothing is
 written to disk, and the four existing artifact files in the folder remain
-byte-identical. When the `ledgerlinc_ocr` Python logger's effective level is
+byte-identical. When the `dartwing_ocr` Python logger's effective level is
 `DEBUG` or lower at invocation time (or equivalently, the CLI is invoked with
 `-v/--verbose`), the assembler also persists the packet as `evidence_packet.json`
 into the same folder — governed by a new `evidence_packet.schema.json` and a
@@ -39,7 +39,7 @@ regardless of which model they wrap).
 **Primary Dependencies**:
 - Existing, already in `pyproject.toml`: `jsonschema>=4.22,<5`, `pydantic>=2.7,<3`, Python stdlib (`json`, `re`, `logging`, `argparse`, `pathlib`, `os`).
 - **No new runtime dependencies.** Assembly is pure Python over JSON — no PaddleOCR, no pypdfium2, no network, no GPU, no Ollama.
-- Reuses 003's serializer convention (see `src/ledgerlinc_ocr/preprocessing/artifact.py::write_atomic` — `json.dump(..., ensure_ascii=False, indent=2, sort_keys=False)`, atomic rename via `.tmp-<pid>` + `os.replace`).
+- Reuses 003's serializer convention (see `src/dartwing_ocr/preprocessing/artifact.py::write_atomic` — `json.dump(..., ensure_ascii=False, indent=2, sort_keys=False)`, atomic rename via `.tmp-<pid>` + `os.replace`).
 - Reuses 003's schema-validation pattern (`Draft202012Validator`, errors sorted by path).
 
 **Storage**: Filesystem only. Reads one `preprocess_output.json` per invocation from `tests/stage1_vendor_identity/inv_XXX_<difficulty>/`. At default logger level, writes nothing. At `DEBUG` (or lower), writes exactly one `evidence_packet.json` into the same folder. No DB. No network. No model weights.
@@ -51,7 +51,7 @@ regardless of which model they wrap).
 
 **Target Platform**: Linux (devcontainer, native WSL Ubuntu 24.04). CPU only. No GPU, no cloud.
 
-**Project Type**: Single Python package — extends the existing `src/ledgerlinc_ocr/` package with a new `evidence_packet/` module, sitting alongside `preprocessing/`, `validator/`, and `pipeline/`. Adds one new console script (`ledgerlinc-evidence-packet`) to `[project.scripts]` in `pyproject.toml`.
+**Project Type**: Single Python package — extends the existing `src/dartwing_ocr/` package with a new `evidence_packet/` module, sitting alongside `preprocessing/`, `validator/`, and `pipeline/`. Adds one new console script (`dartwing-evidence-packet`) to `[project.scripts]` in `pyproject.toml`.
 
 **Performance Goals**: Soft only. SC-001: assembly completes in well under one second on the devcontainer reference profile for any 20-document-corpus input. No release gate on latency (constitution §"Stage 1 Scope Constraints"). Determinism, not speed, is the hard requirement.
 
@@ -73,11 +73,11 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 
 | Principle | Gate | Status |
 |-----------|------|--------|
-| I. One Repo, Clear Runtime Boundaries | Evidence-packet assembly belongs to the pipeline layer; must not collapse preprocessing, extraction, routing, or harness concerns; must not bundle model runtime. | **PASS** — `src/ledgerlinc_ocr/evidence_packet/` is pipeline code only. Reads 003's artifact, writes at most one new artifact. No model runtime embedded. Harness still owns the corpus and evaluation. Host Ollama untouched. |
+| I. One Repo, Clear Runtime Boundaries | Evidence-packet assembly belongs to the pipeline layer; must not collapse preprocessing, extraction, routing, or harness concerns; must not bundle model runtime. | **PASS** — `src/dartwing_ocr/evidence_packet/` is pipeline code only. Reads 003's artifact, writes at most one new artifact. No model runtime embedded. Harness still owns the corpus and evaluation. Host Ollama untouched. |
 | II. Evidence-First, Schema-First Design | The packet IS the shared evidence-first boundary between preprocessing and voters. A new `evidence_packet.schema.json` governs the shape; all outputs (in-memory and persisted) validate against it; the `folder.schema.json` amendment legalizes the file as optional. | **PASS** — FR-015a mandates always-validate; FR-015c files a `1.1.0` amendment via `AMENDMENTS.md`; the packet carries `contract_set_version`. |
 | III. Deterministic Control Over Model Output | Assembly is pure deterministic code: regex hints are deterministic; reverse-mapping from `document_text` offsets to `(page_index, block_index, line_index)` is deterministic; key ordering is insertion-based; no model output informs the packet. | **PASS** — FR-011, FR-012, FR-014 enforced by the design. Consensus / routing remain downstream concerns and are explicitly excluded (FR-010). |
 | IV. Provenance and Review Safety | Candidate signals are stamped `unverified` so downstream voters know to confirm; the packet does not produce or imply `company_name.present` / `inferred` values. | **PASS** — FR-008 clarified Q2 keeps company-name and address slots empty/`null` in stage 1. Provenance remains a downstream slice's responsibility. Each regex hint carries explicit source refs (FR-008 clarified Q5) so downstream voters can point at evidence. |
-| V. Benchmarkable and Reproducible Delivery | One-document execution; per-document folder layout preserved; deterministic output enables cross-run comparison. | **PASS** — CLI `ledgerlinc-evidence-packet <folder>` processes one document. Persisted file (if any) lives in the same per-document folder as the four existing artifacts. SC-002 demands ten identical reruns. |
+| V. Benchmarkable and Reproducible Delivery | One-document execution; per-document folder layout preserved; deterministic output enables cross-run comparison. | **PASS** — CLI `dartwing-evidence-packet <folder>` processes one document. Persisted file (if any) lives in the same per-document folder as the four existing artifacts. SC-002 demands ten identical reruns. |
 
 **Stage 1 Scope Constraints** (constitution §"Stage 1 Scope Constraints"):
 - PDF input only ✓ (indirect — consumes `preprocess_output.json` which itself constrains `source_type: "pdf"`).
@@ -90,7 +90,7 @@ Evaluated against `.specify/memory/constitution.md` v1.0.0:
 1. Pipeline vs. harness boundary — this slice is pipeline-only; harness is untouched.
 2. Output contracts — **this slice does add a new contract** (`evidence_packet.schema.json`) and amend `folder.schema.json`. The amendment follows the `AMENDMENTS.md` checklist and bumps the contract set to `1.1.0` (MINOR, additive).
 3. Runtime behavior — no change to the Ollama runtime story; `ollama-runtime.md` requires no update.
-4. Verifiable through concrete local execution — CLI `ledgerlinc-evidence-packet <folder>` and `python -m ledgerlinc_ocr.evidence_packet <folder>`.
+4. Verifiable through concrete local execution — CLI `dartwing-evidence-packet <folder>` and `python -m dartwing_ocr.evidence_packet <folder>`.
 5. Runtime/container changes — none.
 6. Evaluation comparison preserved — the harness still compares `final_structured_payload.json` to `expected.json`; the packet sits upstream of extraction.
 
@@ -131,14 +131,14 @@ contracts/stage1_vendor_identity/
     ├── evaluation_document.schema.json
     └── evaluation_run_summary.schema.json
 
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── __init__.py                         # existing
 ├── preprocessing/                      # existing
 ├── pipeline/                           # existing
 ├── validator/                          # existing — contract_set_version-aware; uses v1.0.0 today, v1.1.0 after amendment lands
 └── evidence_packet/                    # NEW — this slice
     ├── __init__.py                     # public API: assemble_from_folder, assemble_from_preprocess, PacketAssemblyError
-    ├── __main__.py                     # `python -m ledgerlinc_ocr.evidence_packet`
+    ├── __main__.py                     # `python -m dartwing_ocr.evidence_packet`
     ├── cli.py                          # argparse entry point; -v/--verbose → logging.DEBUG
     ├── assembler.py                    # orchestrates: load → validate-input → build sections → validate-output → [maybe-persist]
     ├── sections/
@@ -195,13 +195,13 @@ tests/
 ```
 
 **Structure Decision**: Single-project Python package. The new slice lives at
-`src/ledgerlinc_ocr/evidence_packet/`, sibling to `preprocessing/`, `validator/`,
+`src/dartwing_ocr/evidence_packet/`, sibling to `preprocessing/`, `validator/`,
 and `pipeline/`. This preserves the "pipeline code owns preprocessing and
 extraction orchestration" boundary from the constitution while keeping the
 packet-assembly concern cleanly separable so 005 (single-voter extraction)
 can import it without touching preprocessing internals. The CLI is exposed
-both as a module (`python -m ledgerlinc_ocr.evidence_packet`) and as a console
-script (`ledgerlinc-evidence-packet`) — matching 003's `ledgerlinc-preprocess`
+both as a module (`python -m dartwing_ocr.evidence_packet`) and as a console
+script (`dartwing-evidence-packet`) — matching 003's `dartwing-preprocess`
 pattern. The new contract version `v1.1.0` is copied verbatim from `v1.0.0`
 and the `evidence_packet.schema.json` plus `folder.schema.json` delta applied
 inside the new directory (per `AMENDMENTS.md` step 3).

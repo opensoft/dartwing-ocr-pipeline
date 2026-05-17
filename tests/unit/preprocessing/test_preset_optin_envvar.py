@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.preset_optin import (
+from dartwing_ocr.preprocessing.preset_optin import (
     DET_REC_VARIANT_ENV_VAR,
     MODULE_SET_ENV_VAR,
     resolve_det_rec_variant_value,

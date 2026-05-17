@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LedgerLinc Step 2: OCR + Field Extraction + Structuring Pipeline
+Dartwing Step 2: OCR + Field Extraction + Structuring Pipeline
 Supports single PDF, single image, or folder of images.
 """
 
@@ -44,8 +44,10 @@ def run_paddle_ocr(images):
         })
     return results
 
-def create_structured_output(paddle_results, doc_id: str, client_id: str = "test"):
-    # Stub for VLM ensemble - replace with real Qwen3-VL call later
+def create_structured_output(_paddle_results, doc_id: str, client_id: str = "test"):
+    # Stub for VLM ensemble - replace with real Qwen3-VL call later.
+    # The underscore-prefixed `_paddle_results` is wired through the call
+    # site at L90 for future expansion but ignored by this scaffold.
     structured = {
         "doc_id": doc_id,
         "client_id": client_id,
@@ -73,7 +75,7 @@ def create_structured_output(paddle_results, doc_id: str, client_id: str = "test
     return structured
 
 def main():
-    parser = argparse.ArgumentParser(description="LedgerLinc Step 2 OCR Pipeline")
+    parser = argparse.ArgumentParser(description="Dartwing Step 2 OCR Pipeline")
     parser.add_argument("--input", required=True, help="Path to image, PDF, or folder of images")
     parser.add_argument("--client_id", default="test", help="Client ID")
     args = parser.parse_args()

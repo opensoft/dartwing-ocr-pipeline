@@ -36,7 +36,7 @@ def test_t014_single_doc_emits_run_summary_with_phase_timings(tmp_path: Path) ->
     # Drive via subprocess so we observe the exact stdout the operator sees.
     result = subprocess.run(
         [
-            sys.executable, "-m", "ledgerlinc_ocr.preprocessing",
+            sys.executable, "-m", "dartwing_ocr.preprocessing",
             "--document-folder", str(work_folder),
             "--preprocess-profile", "ppstructurev3@gpu",
         ],

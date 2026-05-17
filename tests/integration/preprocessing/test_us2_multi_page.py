@@ -66,8 +66,8 @@ def test_ac3_per_page_dimensions_independent(us2_three_page_artifact):
 
 def test_ac3_rotation_warning_format(tmp_path, monkeypatch):
     """FR-006: warning string format is pinned."""
-    from ledgerlinc_ocr.preprocessing import ocr, pipeline, rasterize
-    from ledgerlinc_ocr.preprocessing.rasterize import PageRaster
+    from dartwing_ocr.preprocessing import ocr, pipeline, rasterize
+    from dartwing_ocr.preprocessing.rasterize import PageRaster
     from PIL import Image
 
     folder = tmp_path / "inv_099"
@@ -110,7 +110,7 @@ def test_ac5_streaming_rasterize_lifecycle():
     """
     import inspect
 
-    from ledgerlinc_ocr.preprocessing import rasterize
+    from dartwing_ocr.preprocessing import rasterize
 
     assert inspect.isgeneratorfunction(rasterize.rasterize_pdf), (
         "rasterize_pdf must be a generator function (FR-005a streaming lifecycle); "

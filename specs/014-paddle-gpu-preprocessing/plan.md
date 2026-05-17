@@ -1,7 +1,7 @@
 # Implementation Plan: Workstation Paddle GPU Preprocessing Validation
 
 **Branch**: `014-paddle-gpu-preprocessing` | **Date**: 2026-05-06 | **Spec**: [`spec.md`](./spec.md)
-**Input**: Feature specification from `/workspace/projects/ledgerlinc/ledgerlinc-model-ocr-pipeline-worktrees/014-paddle-gpu-preprocessing/specs/014-paddle-gpu-preprocessing/spec.md`
+**Input**: Feature specification from `/workspace/projects/dartwing/dartwing-ocr-pipeline-worktrees/014-paddle-gpu-preprocessing/specs/014-paddle-gpu-preprocessing/spec.md`
 
 ## Summary
 
@@ -9,7 +9,7 @@ Add a disciplined GPU validation path for stage 1 preprocessing without
 disturbing the CPU default. Deliver three slices in priority order:
 
 1. **P1 — GPU readiness preflight.** A single discoverable command
-   (`python -m ledgerlinc_ocr.preprocessing.preflight`) that classifies the
+   (`python -m dartwing_ocr.preprocessing.preflight`) that classifies the
    environment into one of the six FR-001 states and emits a dual readout:
    human-readable text on stdout followed by exactly one trailing JSON line
    (`kind: "preflight_readout"`) carrying the FR-002 evidence. The same
@@ -82,14 +82,14 @@ specs/014-paddle-gpu-preprocessing/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── preprocessing/
 │   ├── cli.py                        # extended — accept ppstructurev3@gpu via --preprocess-profile resolution
 │   ├── ocr.py                        # extended — _get_engine() takes a lane and selects device="cpu" | "gpu:0"
 │   ├── pipeline.py                   # extended — invokes shared preflight classifier when lane=="gpu"
 │   ├── version.py                    # extended — build_pipeline_version() takes a `lane`/`device` segment (e.g. ".cpu" | ".gpu0")
 │   ├── preflight.py                  # NEW — shared classifier + dataclasses for FR-001 states; pure library
-│   ├── preflight_cli.py              # NEW — `python -m ledgerlinc_ocr.preprocessing.preflight` CLI; emits dual readout
+│   ├── preflight_cli.py              # NEW — `python -m dartwing_ocr.preprocessing.preflight` CLI; emits dual readout
 │   └── …                             # unchanged: rasterize.py, document_text.py, etc.
 └── pipeline/
     ├── profiles.py                   # extended — add ("preprocess", "ppstructurev3", "gpu") to SUPPORTED_PROFILES
@@ -129,7 +129,7 @@ Research items in `research.md`, all keyed `R-014.x`. Each resolves either
 a NEEDS CLARIFICATION from Technical Context above or a non-trivial
 implementation decision flagged by the spec.
 
-- **R-014.1** Preflight CLI placement — `python -m ledgerlinc_ocr.preprocessing.preflight` vs. a top-level entrypoint vs. a subcommand of `ledgerlinc-preprocess`. Decision recorded with reasoning grounded in FR-006 ("single documented command") and the existing module CLI pattern (`python -m ledgerlinc_ocr.validator`).
+- **R-014.1** Preflight CLI placement — `python -m dartwing_ocr.preprocessing.preflight` vs. a top-level entrypoint vs. a subcommand of `dartwing-preprocess`. Decision recorded with reasoning grounded in FR-006 ("single documented command") and the existing module CLI pattern (`python -m dartwing_ocr.validator`).
 - **R-014.2** `pipeline_version` lane segment grammar — what string segment encodes profile + device for SC-005. Locks the format (e.g. trailing `.cpu` / `.gpu0`) so downstream consumers can parse it deterministically without breaking SC-006 byte-stability for the CPU lane.
 - **R-014.3** Shared classifier API surface — function signature, returned dataclass, FR-001 state enum, and the boundary between "I observed this" and "I recommend that". Defines what both the CLI and the pipeline gate import.
 - **R-014.4** Reconciling Q3 abort-on-first-GPU-failure with the existing feature-011 `--on-failure` flag default of `continue` in warm-corpus mode. Decides whether GPU lane forces fail-fast unconditionally, or whether `--on-failure=continue` is rejected at parse time when preprocess is `ppstructurev3@gpu`.
@@ -158,9 +158,9 @@ Prerequisites: `research.md` complete.
    - `GpuPrerequisiteError` (in-memory exception type, not persisted) — raised by `preprocessing/pipeline.py` (tasks.md T021) when the GPU gate detects a non-success FR-001 state; carries `state: PreflightState` and `recommendation: str`. Caught by `preprocessing/cli.py` (tasks.md T022) and rendered as the FR-009 stderr message.
 
 2. **Interface contracts → `contracts/cli-contract.md`**:
-   - `python -m ledgerlinc_ocr.preprocessing.preflight` — exit codes, stdout shape (text section + trailing JSON line), stderr usage, exit-code-to-state table, no-disk-write guarantee.
-   - `ledgerlinc-preprocess … --preprocess-profile ppstructurev3@gpu` — `pipeline/cli.py` already exposes `--preprocess-profile` from feature 011 for warm-corpus mode; the single-doc `preprocessing/cli.py` does NOT yet expose the flag (verified post-analyze finding F16) and tasks.md T022 adds it as part of this feature. Contract additions are: (a) the new value `ppstructurev3@gpu` is accepted by both CLI surfaces, (b) the value is rejected with a named missing-prerequisite error before any artifact write when preflight does not pass, (c) the produced `preprocess_output.json` carries the lane segment in `pipeline_version`.
-   - `ledgerlinc-pipeline …` (warm-corpus / single-doc) — additive: when preprocess profile is the GPU lane, the harness aborts on first GPU inference failure regardless of `--on-failure`, and the `run_summary` JSON line carries the additive timing fields from R-014.6.
+   - `python -m dartwing_ocr.preprocessing.preflight` — exit codes, stdout shape (text section + trailing JSON line), stderr usage, exit-code-to-state table, no-disk-write guarantee.
+   - `dartwing-preprocess … --preprocess-profile ppstructurev3@gpu` — `pipeline/cli.py` already exposes `--preprocess-profile` from feature 011 for warm-corpus mode; the single-doc `preprocessing/cli.py` does NOT yet expose the flag (verified post-analyze finding F16) and tasks.md T022 adds it as part of this feature. Contract additions are: (a) the new value `ppstructurev3@gpu` is accepted by both CLI surfaces, (b) the value is rejected with a named missing-prerequisite error before any artifact write when preflight does not pass, (c) the produced `preprocess_output.json` carries the lane segment in `pipeline_version`.
+   - `dartwing-pipeline …` (warm-corpus / single-doc) — additive: when preprocess profile is the GPU lane, the harness aborts on first GPU inference failure regardless of `--on-failure`, and the `run_summary` JSON line carries the additive timing fields from R-014.6.
 
 3. **`quickstart.md`** — a developer walkthrough:
    - Install/verify the GPU wheel (workstation-only, additive).
@@ -258,7 +258,7 @@ feature extends additively contains: `kind: "run_summary"`,
 `profile_initialization_seconds`, `per_document[]` (with
 `document_id`, `folder`, `status`, `failed_stage`, `exit_code`,
 `message`, `stages`). The implementation reference is
-`src/ledgerlinc_ocr/pipeline/timing.py`. Adding the additive fields
+`src/dartwing_ocr/pipeline/timing.py`. Adding the additive fields
 named in research R-014.6 must not modify any of the keys above; the
 contract test in §Contract Test Coverage point 4 enforces this.
 

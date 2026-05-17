@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.ocr_only import (
+from dartwing_ocr.preprocessing.ocr_only import (
     EligibilityVerdict,
     OcrOnlyLine,
     check_eligibility,

@@ -1,7 +1,7 @@
 """Feature 020 / T008 / FR-014 / MI-4 / MI-5: module-load safety.
 
-Asserts that ``ledgerlinc_ocr.preprocessing.evidence_gate`` and
-``ledgerlinc_ocr.preprocessing.evidence_gate_optin`` (when it lands in
+Asserts that ``dartwing_ocr.preprocessing.evidence_gate`` and
+``dartwing_ocr.preprocessing.evidence_gate_optin`` (when it lands in
 US4) import cleanly on a host with no Paddle / paddleocr / paddlepaddle
 installed. This is the structural closure that makes feature 020 CPU-safe
 at module-load time (Plan §Constitution Check row III).
@@ -23,7 +23,7 @@ def test_evidence_gate_module_loads_without_paddle() -> None:
     weaker invariant that re-importing ``evidence_gate`` in isolation
     succeeds without touching Paddle attributes."""
     # The import itself must succeed.
-    module = importlib.import_module("ledgerlinc_ocr.preprocessing.evidence_gate")
+    module = importlib.import_module("dartwing_ocr.preprocessing.evidence_gate")
     assert module is not None
     # The module's __file__ must point at the expected location.
     assert module.__file__ is not None
@@ -64,11 +64,11 @@ def test_evidence_gate_dependencies_are_stdlib_only() -> None:
     )
     # Scan evidence_gate.py + every intra-project module it imports
     # at module load. At landing the only intra-project import is
-    # `ledgerlinc_ocr.preprocessing.identifiers`. If a future edit
+    # `dartwing_ocr.preprocessing.identifiers`. If a future edit
     # adds another, list it here.
     modules_to_scan = (
-        "ledgerlinc_ocr.preprocessing.evidence_gate",
-        "ledgerlinc_ocr.preprocessing.identifiers",
+        "dartwing_ocr.preprocessing.evidence_gate",
+        "dartwing_ocr.preprocessing.identifiers",
     )
     for mod_name in modules_to_scan:
         module = importlib.import_module(mod_name)
@@ -100,7 +100,7 @@ def test_evidence_gate_module_load_does_not_import_network_libs() -> None:
     the regular test session.
     """
     module = importlib.import_module(
-        "ledgerlinc_ocr.preprocessing.evidence_gate"
+        "dartwing_ocr.preprocessing.evidence_gate"
     )
     source_path = module.__file__
     assert source_path is not None

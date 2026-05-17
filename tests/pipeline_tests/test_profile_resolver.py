@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.profiles import (
+from dartwing_ocr.pipeline.profiles import (
     DEFAULT_PROFILES,
     STACK_PRESETS,
     SUPPORTED_PROFILES,

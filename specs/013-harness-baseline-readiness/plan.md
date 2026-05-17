@@ -23,7 +23,7 @@ Make the merged evaluator-to-pipeline harness path usable against committed stag
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **I. One Repo, Clear Runtime Boundaries**: PASS. The evaluator continues to invoke `ledgerlinc_ocr.pipeline` through the public CLI subprocess path. The pipeline owns preparation and stage failures; the harness owns evaluation/reporting.
+- **I. One Repo, Clear Runtime Boundaries**: PASS. The evaluator continues to invoke `dartwing_ocr.pipeline` through the public CLI subprocess path. The pipeline owns preparation and stage failures; the harness owns evaluation/reporting.
 - **II. Evidence-First, Schema-First Design**: PASS. No artifact shape or schema version changes are planned.
 - **III. Deterministic Control Over Model Output**: PASS. The feature does not move routing, confidence, or review policy into model output.
 - **IV. Provenance and Review Safety**: PASS. Vendor identity provenance semantics are untouched.
@@ -53,7 +53,7 @@ specs/013-harness-baseline-readiness/
 ### Source Code (repository root)
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── evaluator/
 │   └── pipeline_invocation.py       # harness subprocess boundary and preparation error formatting
 ├── pipeline/

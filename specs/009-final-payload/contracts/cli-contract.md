@@ -1,4 +1,4 @@
-# Contract: `python -m ledgerlinc_ocr.assembler` CLI
+# Contract: `python -m dartwing_ocr.assembler` CLI
 
 This document pins the command-line surface of the assembler. Shell scripts and orchestrators
 depending on this CLI can rely on the stability guarantees below.
@@ -6,14 +6,14 @@ depending on this CLI can rely on the stability guarantees below.
 ## Invocation
 
 ```bash
-python -m ledgerlinc_ocr.assembler --document-folder <path> [--pipeline-version <str>]
+python -m dartwing_ocr.assembler --document-folder <path> [--pipeline-version <str>]
 ```
 
-Installed-entry-point equivalent (added alongside `ledgerlinc-preprocess` and
-`ledgerlinc-pipeline` in `pyproject.toml`):
+Installed-entry-point equivalent (added alongside `dartwing-preprocess` and
+`dartwing-pipeline` in `pyproject.toml`):
 
 ```bash
-ledgerlinc-assemble --document-folder <path> [--pipeline-version <str>]
+dartwing-assemble --document-folder <path> [--pipeline-version <str>]
 ```
 
 ## Flags
@@ -27,7 +27,7 @@ ledgerlinc-assemble --document-folder <path> [--pipeline-version <str>]
 **Stability**:
 - `--document-folder` is pinned. Any rename is a contract break (bumps the CLI's own semver).
 - New optional flags may be added without a bump. New required flags require a bump.
-- No positional arguments. The CLI is flag-only to match `ledgerlinc-preprocess`.
+- No positional arguments. The CLI is flag-only to match `dartwing-preprocess`.
 
 ## Exit codes
 

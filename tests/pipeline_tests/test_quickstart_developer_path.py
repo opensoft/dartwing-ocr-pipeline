@@ -7,8 +7,8 @@ from typing import Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES
 
 
 def test_quickstart_section_2_document_folder(

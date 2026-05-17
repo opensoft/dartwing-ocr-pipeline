@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.router.artifact import assemble_and_write
-from ledgerlinc_ocr.router.errors import ContractAssertionError, MissingInputError
+from dartwing_ocr.router.artifact import assemble_and_write
+from dartwing_ocr.router.errors import ContractAssertionError, MissingInputError
 
 
 def _valid_artifact(document_id="inv_001_easy"):
@@ -61,7 +61,7 @@ def test_written_file_trailing_newline_and_indent(tmp_path: Path):
 
 
 def test_written_file_is_schema_valid(tmp_path: Path):
-    from ledgerlinc_ocr.validator import validate_artifact
+    from dartwing_ocr.validator import validate_artifact
 
     path = assemble_and_write(tmp_path, _valid_artifact())
     outcome = validate_artifact(path, "routing_decision", version="1.0.0")

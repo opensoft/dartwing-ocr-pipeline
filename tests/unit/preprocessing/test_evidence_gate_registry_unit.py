@@ -29,7 +29,7 @@ from itertools import product
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     CONFIDENCE_THRESHOLD,
     DENSITY_THRESHOLD,
     EVIDENCE_GATE_ID_V1,
@@ -38,7 +38,7 @@ from ledgerlinc_ocr.preprocessing.evidence_gate import (
     decide_for_gate,
     evaluate_evidence_gate,
 )
-from ledgerlinc_ocr.preprocessing.identifiers import (
+from dartwing_ocr.preprocessing.identifiers import (
     EVIDENCE_GATE_ID_DEFAULT,
 )
 

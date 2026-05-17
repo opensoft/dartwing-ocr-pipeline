@@ -9,7 +9,7 @@
 
 ### Session 2026-04-20
 
-- Q: How does the assembler decide to persist `evidence_packet.json` — Python logger level, dedicated CLI flag, both, or env var? → A: Python logger level only. Persist iff the `ledgerlinc_ocr` (or equivalent) Python logger's effective level is `DEBUG` or lower. CLI `-v/--verbose` sets that logger level; no separate persistence flag.
+- Q: How does the assembler decide to persist `evidence_packet.json` — Python logger level, dedicated CLI flag, both, or env var? → A: Python logger level only. Persist iff the `dartwing_ocr` (or equivalent) Python logger's effective level is `DEBUG` or lower. CLI `-v/--verbose` sets that logger level; no separate persistence flag.
 - Q: What JSON canonical form makes packet output byte-identical across runs? → A: Reuse 003's existing `write_atomic` convention: `json.dump(packet, f, ensure_ascii=False, indent=2, sort_keys=False)`, atomic rename, no trailing newline. Key order = assembler's deterministic insertion order.
 - Q: Is the packet validated against `evidence_packet.schema.json` when returned in-memory (default path), or only when persisted? → A: Always validate. The assembler validates the packet against `evidence_packet.schema.json` before returning it, regardless of logging level; validation failure raises and no file is written.
 - Q: How are duplicate/ordered regex hints represented in `candidate_vendor_signals`? → A: Emit matches in document order (offset ascending), one entry per occurrence with its own source line/offset reference. No deduplication, no sorting. Downstream voters dedupe if they need to.
@@ -129,7 +129,7 @@ A pipeline operator running stage 1 against a corpus document expects evidence p
 **Persistence and folder contract:**
 
 - **FR-015a**: Default persistence is **in-memory only** — the assembler returns the packet to the caller and writes nothing to disk. The in-memory packet MUST be validated against `evidence_packet.schema.json` before being returned to the caller; validation failure raises and no file is written. Validation is unconditional on logging level.
-- **FR-015b**: When the `ledgerlinc_ocr` (or equivalent) Python logger's effective level is `DEBUG` or lower at invocation time, the assembler MUST also persist the packet as `evidence_packet.json` into the same per-document folder it read from. The persisted file MUST validate against a new `evidence_packet.schema.json` to be added under `contracts/stage1_vendor_identity/v1.1.0/` (the MINOR-bump directory created by this slice's amendment; see FR-015c). There is no dedicated `--persist-packet` flag and no environment-variable trigger; CLI verbosity flags work by configuring the logger.
+- **FR-015b**: When the `dartwing_ocr` (or equivalent) Python logger's effective level is `DEBUG` or lower at invocation time, the assembler MUST also persist the packet as `evidence_packet.json` into the same per-document folder it read from. The persisted file MUST validate against a new `evidence_packet.schema.json` to be added under `contracts/stage1_vendor_identity/v1.1.0/` (the MINOR-bump directory created by this slice's amendment; see FR-015c). There is no dedicated `--persist-packet` flag and no environment-variable trigger; CLI verbosity flags work by configuring the logger.
 - **FR-015c**: This slice MUST file an amendment via `contracts/stage1_vendor_identity/AMENDMENTS.md` adding `evidence_packet.json` to `folder.schema.json` as an **optional** generated file (so the folder validator accepts its presence at debug-logging level and its absence at default level). The contract-set version is bumped accordingly per the amendment policy.
 - **FR-016**: System MUST NOT modify, re-write, or invalidate the four existing per-document artifacts (`preprocess_output.json`, `edge_extraction_output.json`, `routing_decision.json`, `final_structured_payload.json`).
 
@@ -141,7 +141,7 @@ A pipeline operator running stage 1 against a corpus document expects evidence p
 **API surface:**
 
 - **FR-019**: System MUST expose an importable Python function (assemble-from-folder and/or assemble-from-loaded-artifact) so the next-slice voter code and the eventual extraction CLI can reuse the same assembly path. The exact function signature is an implementation concern.
-- **FR-020**: System MUST ship a new console script `ledgerlinc-evidence-packet <folder>` (mirroring 003's `ledgerlinc-preprocess`), wired through `[project.scripts]` in `pyproject.toml`. The CLI MUST accept a verbosity flag (e.g. `-v/--verbose`) whose sole effect relevant to persistence is to set the `ledgerlinc_ocr` (or equivalent) Python logger level to `DEBUG`, thereby satisfying the trigger condition in FR-015b. No separate `--persist-packet` flag is added.
+- **FR-020**: System MUST ship a new console script `dartwing-evidence-packet <folder>` (mirroring 003's `dartwing-preprocess`), wired through `[project.scripts]` in `pyproject.toml`. The CLI MUST accept a verbosity flag (e.g. `-v/--verbose`) whose sole effect relevant to persistence is to set the `dartwing_ocr` (or equivalent) Python logger level to `DEBUG`, thereby satisfying the trigger condition in FR-015b. No separate `--persist-packet` flag is added.
 
 ### Key Entities
 
@@ -171,7 +171,7 @@ A pipeline operator running stage 1 against a corpus document expects evidence p
 - Host Ollama and PyTorch are not required for this slice; assembly is deterministic Python over JSON, in line with the schemas/CLI/preprocessing slices already shipped.
 - "Trijunction-ready" means **shape-ready**, not behavior-ready: stage 1 only wires PaddleOCR, but the packet exposes named slots for Falcon OCR and Falcon Perception so a future slice can populate them without breaking consumers.
 - The packet is always assembled from one preprocess output at a time; multi-document or batch assembly is out of scope.
-- "Logging set" in FR-015b is specifically the `ledgerlinc_ocr` Python logger's effective level being `DEBUG` or lower. Library callers configure the logger directly; the CLI's `-v/--verbose` flag is just a shortcut that sets that logger level. No dedicated persistence flag, no persistence env var.
+- "Logging set" in FR-015b is specifically the `dartwing_ocr` Python logger's effective level being `DEBUG` or lower. Library callers configure the logger directly; the CLI's `-v/--verbose` flag is just a shortcut that sets that logger level. No dedicated persistence flag, no persistence env var.
 
 ## Dependencies
 
@@ -210,7 +210,7 @@ These three decisions were posed during /speckit.specify and answered before thi
 
 ### Q3 — CLI surface: new console script *(scope/UX)*
 
-**Decision**: Ship a new console script `ledgerlinc-evidence-packet <folder>` mirroring 003's `ledgerlinc-preprocess`. Wired via `[project.scripts]` in `pyproject.toml`.
+**Decision**: Ship a new console script `dartwing-evidence-packet <folder>` mirroring 003's `dartwing-preprocess`. Wired via `[project.scripts]` in `pyproject.toml`.
 
 **Rationale**: Consistency with the established 003 CLI pattern, easy to script and test in isolation, and gives harness operators a clean "run just this stage" affordance.
 

@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.validator.cross_artifact import (
+from dartwing_ocr.validator.cross_artifact import (
     check_evidence_references,
     check_provenance_triad,
 )
-from ledgerlinc_ocr.validator.report import ArtifactName, ViolationCode
+from dartwing_ocr.validator.report import ArtifactName, ViolationCode
 
 
 def _load(root: Path, stem: str) -> dict:

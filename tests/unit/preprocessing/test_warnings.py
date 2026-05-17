@@ -2,7 +2,7 @@
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.warnings import (
+from dartwing_ocr.preprocessing.warnings import (
     STATUS_DOWNGRADING,
     WARNING_CATEGORIES,
     build_warning,

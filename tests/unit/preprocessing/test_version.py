@@ -1,6 +1,6 @@
 import re
 
-from ledgerlinc_ocr.preprocessing.version import (
+from dartwing_ocr.preprocessing.version import (
     CONTRACT_SET_VERSION,
     DPI,
     SEMVER,

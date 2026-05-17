@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     VENDOR_NAME_STOP_WORDS,
     FiveSignalSet,
     _count_vendor_name_candidates,
@@ -221,7 +221,7 @@ def test_dotted_and_dotless_french_spanish_suffixes_filtered(token: str) -> None
 def test_evidence_gate_result_rejects_invalid_decision() -> None:
     """Phase 3 #6: EvidenceGateResult.__post_init__ rejects a decision
     string outside the closed three-state vocabulary."""
-    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+    from dartwing_ocr.preprocessing.evidence_gate import (
         EvidenceGateResult,
         FiveSignalSet,
     )
@@ -235,7 +235,7 @@ def test_evidence_gate_result_rejects_invalid_decision() -> None:
 def test_evidence_gate_result_rejects_unknown_gate_id() -> None:
     """Phase 3 #6: EvidenceGateResult.__post_init__ rejects an
     evidence_gate_id outside the closed vocabulary."""
-    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+    from dartwing_ocr.preprocessing.evidence_gate import (
         EvidenceGateResult,
         FiveSignalSet,
     )
@@ -252,7 +252,7 @@ def test_evidence_gate_result_rejects_mismatched_decision_signals() -> None:
     construct an EvidenceGateResult where the decision contradicts
     what the gate's decision function would produce from the signals.
     """
-    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+    from dartwing_ocr.preprocessing.evidence_gate import (
         EvidenceGateResult,
         FiveSignalSet,
     )
@@ -271,7 +271,7 @@ def test_canonicalization_drops_extra_keys_from_records() -> None:
     """Phase 3 #7: RunSummary.to_dict() canonicalizes
     evidence_gate_documents records, dropping extra keys (incl.
     potential PII leaks). Defense-in-depth for FR-003."""
-    from ledgerlinc_ocr.pipeline.timing import RunSummary
+    from dartwing_ocr.pipeline.timing import RunSummary
 
     rs = RunSummary(
         stack_preset="cpu", resolved_profiles={}, execution_slice={},
@@ -318,7 +318,7 @@ def test_canonicalization_clamps_unknown_decision_to_insufficient() -> None:
     """Phase 3 #7: a caller-supplied record with an out-of-vocabulary
     decision gets clamped to ``insufficient`` at the serializer
     boundary (last-line-of-defense for the closed vocabulary)."""
-    from ledgerlinc_ocr.pipeline.timing import RunSummary
+    from dartwing_ocr.pipeline.timing import RunSummary
 
     rs = RunSummary(
         stack_preset="cpu", resolved_profiles={}, execution_slice={},
@@ -417,7 +417,7 @@ def test_empty_text_blocks_excluded_from_confidence_mean() -> None:
     string contribute zero tokens; they must also contribute zero
     weight to the confidence mean. Otherwise a doc with only-whitespace
     blocks at high confidence falsely passes the 0.70 threshold."""
-    from ledgerlinc_ocr.preprocessing.evidence_gate import _mean_band_confidence
+    from dartwing_ocr.preprocessing.evidence_gate import _mean_band_confidence
 
     blocks = [
         # Empty text — must be ignored.
@@ -434,7 +434,7 @@ def test_serializer_safe_int_rejects_garbage() -> None:
     """Phase 4 #4: ``_safe_int`` in timing.py rejects garbage
     (non-numeric strings, booleans, None, negative, NaN-via-float)
     at the run_summary serializer boundary."""
-    from ledgerlinc_ocr.pipeline.timing import _safe_int
+    from dartwing_ocr.pipeline.timing import _safe_int
 
     assert _safe_int(5) == 5
     assert _safe_int(0) == 0
@@ -450,7 +450,7 @@ def test_serializer_safe_int_rejects_garbage() -> None:
 def test_serializer_safe_float_rejects_non_finite() -> None:
     """Phase 4 #4: ``_safe_float`` in timing.py clamps NaN/inf/inf
     strings to the safe default; clamps out-of-range to [0.0, 1.0]."""
-    from ledgerlinc_ocr.pipeline.timing import _safe_float
+    from dartwing_ocr.pipeline.timing import _safe_float
 
     assert _safe_float(0.5) == 0.5
     assert _safe_float(0.0) == 0.0
@@ -471,7 +471,7 @@ def test_canonicalization_rejects_nan_inf_strings_in_signals() -> None:
     """Phase 4 #4 end-to-end: a per-doc record carrying NaN/inf strings
     in the signals dict gets coerced to safe defaults at the
     serializer boundary, NOT emitted as non-finite JSON."""
-    from ledgerlinc_ocr.pipeline.timing import RunSummary
+    from dartwing_ocr.pipeline.timing import RunSummary
 
     rs = RunSummary(
         stack_preset="cpu", resolved_profiles={}, execution_slice={},
@@ -506,7 +506,7 @@ def test_safe_int_handles_float_infinity() -> None:
     """Phase 5: ``_safe_int`` no longer raises ``OverflowError`` when
     asked to coerce ``float('inf')`` / ``float('-inf')`` — both fall
     back to the safe default."""
-    from ledgerlinc_ocr.pipeline.timing import _safe_int
+    from dartwing_ocr.pipeline.timing import _safe_int
 
     assert _safe_int(float("inf")) == 0
     assert _safe_int(float("-inf")) == 0
@@ -517,7 +517,7 @@ def test_safe_bool_rejects_non_bool_inputs() -> None:
     """Phase 5: ``_safe_bool`` accepts only actual booleans; any other
     type (string, int, float, list, dict, None) → default. This
     closes the ``bool("false") == True`` hole."""
-    from ledgerlinc_ocr.pipeline.timing import _safe_bool
+    from dartwing_ocr.pipeline.timing import _safe_bool
 
     assert _safe_bool(True) is True
     assert _safe_bool(False) is False
@@ -535,7 +535,7 @@ def test_canonicalization_uses_safe_bool_for_signal_booleans() -> None:
     signal slots gets coerced to ``False`` at the serializer boundary,
     not ``True`` (which raw ``bool(...)`` would produce for non-empty
     strings)."""
-    from ledgerlinc_ocr.pipeline.timing import RunSummary
+    from dartwing_ocr.pipeline.timing import RunSummary
 
     rs = RunSummary(
         stack_preset="cpu", resolved_profiles={}, execution_slice={},
@@ -569,7 +569,7 @@ def test_state_counts_serializer_uses_safe_int() -> None:
     garbage is therefore ignored — state_counts always reflects the
     canonical per-doc records (an even stronger guarantee than the
     Phase 5 ``_safe_int`` coercion of accumulator values)."""
-    from ledgerlinc_ocr.pipeline.timing import RunSummary
+    from dartwing_ocr.pipeline.timing import RunSummary
 
     rs = RunSummary(
         stack_preset="cpu", resolved_profiles={}, execution_slice={},
@@ -676,7 +676,7 @@ def test_page_height_bool_rejected() -> None:
 def test_confidence_bool_rejected() -> None:
     """Phase 6: `confidence = true` would coerce to 1.0 via float() and
     inflate the mean. JSON booleans are not valid confidence values."""
-    from ledgerlinc_ocr.preprocessing.evidence_gate import _mean_band_confidence
+    from dartwing_ocr.preprocessing.evidence_gate import _mean_band_confidence
 
     blocks = [
         {"text": "Bool", "confidence": True, "bbox": [0, 0, 10, 10]},
@@ -715,7 +715,7 @@ def test_ein_regex_rejects_trailing_junk(token: str) -> None:
     """Phase 6: ``TAX_ID_EIN_RE`` now uses ``(?<![\\w-])`` / ``(?![\\w-])``
     instead of ``\\b`` so tokens with trailing/leading word chars or
     hyphens don't partial-match the EIN shape."""
-    from ledgerlinc_ocr.preprocessing.evidence_gate import TAX_ID_EIN_RE
+    from dartwing_ocr.preprocessing.evidence_gate import TAX_ID_EIN_RE
 
     assert not TAX_ID_EIN_RE.search(token), (
         f"{token!r} falsely matched TAX_ID_EIN_RE — trailing-junk regression"
@@ -725,7 +725,7 @@ def test_ein_regex_rejects_trailing_junk(token: str) -> None:
 def test_ein_regex_still_matches_canonical() -> None:
     """Phase 6: canonical EIN forms still match (regression doesn't
     over-correct)."""
-    from ledgerlinc_ocr.preprocessing.evidence_gate import TAX_ID_EIN_RE
+    from dartwing_ocr.preprocessing.evidence_gate import TAX_ID_EIN_RE
 
     assert TAX_ID_EIN_RE.search("12-3456789")
     assert TAX_ID_EIN_RE.search("EIN: 12-3456789")
@@ -739,7 +739,7 @@ def test_evidence_gate_result_dispatch_through_decide_for_gate() -> None:
     calling ``_v1_decide`` directly. This keeps the validation in lock-
     step with the dispatch table — when v2 lands, adding a branch to
     ``decide_for_gate`` is enough."""
-    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+    from dartwing_ocr.preprocessing.evidence_gate import (
         EvidenceGateResult,
         FiveSignalSet,
     )
@@ -755,7 +755,7 @@ def test_canonicalizer_rederives_decision_from_signals() -> None:
     canonical signals rather than just clamping the decision string.
     A caller-supplied ``decision="sufficient"`` with all-negative
     signals is overridden to the derived value (``"insufficient"``)."""
-    from ledgerlinc_ocr.pipeline.timing import RunSummary
+    from dartwing_ocr.pipeline.timing import RunSummary
 
     rs = RunSummary(
         stack_preset="cpu", resolved_profiles={}, execution_slice={},
@@ -790,7 +790,7 @@ def test_serializer_clamps_unknown_evidence_gate_id_to_v1() -> None:
     """Phase 6: a buggy caller cannot leak ``evidence_gate_id="v99"``
     onto the wire format. The serializer clamps unknown IDs to the
     default ``"v1"``."""
-    from ledgerlinc_ocr.pipeline.timing import RunSummary
+    from dartwing_ocr.pipeline.timing import RunSummary
 
     rs = RunSummary(
         stack_preset="cpu", resolved_profiles={}, execution_slice={},

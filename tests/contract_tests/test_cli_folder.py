@@ -11,7 +11,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-m", "ledgerlinc_ocr.validator", *args],
+        [sys.executable, "-m", "dartwing_ocr.validator", *args],
         cwd=_REPO_ROOT,
         capture_output=True,
         text=True,

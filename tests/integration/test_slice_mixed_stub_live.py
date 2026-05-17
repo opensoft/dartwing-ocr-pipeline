@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.cli import main
 
 MINIMAL_PDF_BYTES = (
     b"%PDF-1.4\n"
@@ -61,7 +61,7 @@ def test_explicit_stub_for_subset_with_injected_callable(tmp_path: Path):
 
     The injected callable wins per FR-012 / Research R-014.
     """
-    from ledgerlinc_ocr.pipeline.runner import Runner
+    from dartwing_ocr.pipeline.runner import Runner
 
     folder = tmp_path / "inv_008_easy"
     folder.mkdir()
@@ -69,7 +69,7 @@ def test_explicit_stub_for_subset_with_injected_callable(tmp_path: Path):
 
     seen: dict[str, bool] = {"called": False}
 
-    from ledgerlinc_ocr.pipeline.stages import default_preprocess
+    from dartwing_ocr.pipeline.stages import default_preprocess
 
     def custom_preprocess(invocation, artifacts_so_far):
         seen["called"] = True

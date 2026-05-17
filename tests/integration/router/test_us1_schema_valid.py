@@ -16,7 +16,7 @@ def test_cli_exits_zero_and_writes_schema_valid_artifact(
     artifact_path = green_fixture / "routing_decision.json"
     assert artifact_path.exists()
 
-    from ledgerlinc_ocr.validator import validate_artifact
+    from dartwing_ocr.validator import validate_artifact
 
     outcome = validate_artifact(
         artifact_path, "routing_decision", version="1.0.0"

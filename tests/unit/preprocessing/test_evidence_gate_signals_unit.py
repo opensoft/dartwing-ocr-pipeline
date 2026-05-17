@@ -13,7 +13,7 @@ since ``statistics.mean`` over a fixed input list is deterministic.
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     FiveSignalSet,
     compute_five_signals,
     evaluate_evidence_gate,

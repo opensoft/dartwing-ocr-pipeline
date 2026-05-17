@@ -20,7 +20,7 @@ from typing import Optional
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.region_strategies import resolve_region_strategy
+from dartwing_ocr.preprocessing.region_strategies import resolve_region_strategy
 
 
 @dataclass

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import sys
 
-from ledgerlinc_ocr.extract import version as version_mod
+from dartwing_ocr.extract import version as version_mod
 
 
 def test_format_is_package_plus_sha() -> None:
@@ -14,12 +14,12 @@ def test_format_is_package_plus_sha() -> None:
 
 
 def test_short_sha_falls_back_to_unknown(monkeypatch) -> None:
-    sys.modules.pop("ledgerlinc_ocr._build_sha", None)
+    sys.modules.pop("dartwing_ocr._build_sha", None)
 
     original_import = __import__
 
     def fake_import(name, *args, **kwargs):
-        if name == "ledgerlinc_ocr._build_sha":
+        if name == "dartwing_ocr._build_sha":
             raise ImportError(name)
         return original_import(name, *args, **kwargs)
 

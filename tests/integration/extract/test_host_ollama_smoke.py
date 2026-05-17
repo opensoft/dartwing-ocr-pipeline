@@ -17,13 +17,13 @@ from pathlib import Path
 import httpx
 import pytest
 
-from ledgerlinc_ocr.extract.cli import main as extract_main
-from ledgerlinc_ocr.validator import ArtifactName, validate_artifact
+from dartwing_ocr.extract.cli import main as extract_main
+from dartwing_ocr.validator import ArtifactName, validate_artifact
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _US1 = _REPO_ROOT / "tests" / "fixtures" / "extract" / "us1_happy"
 _GEMMA_CONFIG = (
-    _REPO_ROOT / "src" / "ledgerlinc_ocr" / "extract" / "voters" / "configs" / "gemma-edge.yaml"
+    _REPO_ROOT / "src" / "dartwing_ocr" / "extract" / "voters" / "configs" / "gemma-edge.yaml"
 )
 
 

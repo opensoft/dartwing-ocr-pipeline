@@ -32,7 +32,7 @@ Filesystem directory that aggregates the 20 per-document folders.
   - Difficulty distribution: exactly 5/5/5/5 across `easy`/`medium`/`hard`/`missing_name` (FR-001).
   - Numeric prefixes contiguous from `001` through `020` with no gaps (FR-002).
   - `document_id` derived from folder names equals the full folder name and is unique across the corpus (FR-002).
-- **Validator**: `validate_corpus()` in `src/ledgerlinc_ocr/validator/corpus.py`.
+- **Validator**: `validate_corpus()` in `src/dartwing_ocr/validator/corpus.py`.
 
 ### 2. DocumentFolder
 
@@ -114,7 +114,7 @@ Authoritative conventions document (new in this feature).
 
 ### 8. ValidatorViolationCode (module-API addition)
 
-One new value added to the enum in `src/ledgerlinc_ocr/validator/report.py`:
+One new value added to the enum in `src/dartwing_ocr/validator/report.py`:
 
 - **Name**: `FOLDER_SOURCE_PDF_UNREADABLE`.
 - **Meaning**: `source.pdf` exists but is empty or fails `pypdf` structural parse.
@@ -140,7 +140,7 @@ CorpusRoot (tests/stage1_vendor_identity/)
 docs/stage1-vendor-identity/
   └── LabelingGuide (labeling-guide.md)         [authoritative reference]
 
-src/ledgerlinc_ocr/validator/
+src/dartwing_ocr/validator/
   └── ValidatorViolationCode.FOLDER_SOURCE_PDF_UNREADABLE   [API addition]
 ```
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 
-from ledgerlinc_ocr.pipeline.timing import RunSummary
+from dartwing_ocr.pipeline.timing import RunSummary
 
 
 def test_two_cpu_runs_emit_identical_identifier_fields() -> None:

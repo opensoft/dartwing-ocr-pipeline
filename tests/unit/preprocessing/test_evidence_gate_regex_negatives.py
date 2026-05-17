@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     BUSINESS_SUFFIX_RE,
     TAX_ID_EIN_RE,
     TAX_ID_VAT_RE,

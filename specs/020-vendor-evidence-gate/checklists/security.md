@@ -70,7 +70,7 @@ implementation.
 ## Least Privilege and Privilege Escalation
 
 - [x] CHK036 Is the rule "the gate has no filesystem write access, no environment-variable mutation, no subprocess invocation" stated so the gate's privilege footprint is auditable as read-only-in-memory? [Clarity, data-model.md §10]
-- [x] CHK037 Is the rule "the gate reads no environment variables at runtime — the only env var the feature touches is `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`, which is read once at CLI parse time in `evidence_gate_optin.py`" stated explicitly? [Clarity, R-020.1 / data-model.md §10]
+- [x] CHK037 Is the rule "the gate reads no environment variables at runtime — the only env var the feature touches is `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK`, which is read once at CLI parse time in `evidence_gate_optin.py`" stated explicitly? [Clarity, R-020.1 / data-model.md §10]
 - [x] CHK038 Is the rule "the gate does NOT consult `edge_extraction_output.json`, `routing_decision.json`, or `final_structured_payload.json`" stated as a structural privilege constraint (gate cannot see downstream artifacts that might contain richer PII)? [Clarity, module-invariants.md MI-2 / MI-3]
 - [x] CHK039 Does the spec define whether the gate can be invoked outside the pipeline context (e.g., as a standalone CLI on an arbitrary `preprocess_output.json`), and if so, whether the operator running it has the same trust level as a pipeline operator? [Gap]
 

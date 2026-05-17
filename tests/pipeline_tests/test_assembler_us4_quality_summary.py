@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.assembler import Invocation, run
-from ledgerlinc_ocr.assembler.version import SEMVER, build_pipeline_version
+from dartwing_ocr.assembler import Invocation, run
+from dartwing_ocr.assembler.version import SEMVER, build_pipeline_version
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "fixtures" / "assembler"
 
@@ -58,7 +58,7 @@ def test_spam_gate_quality_summary(tmp_path: Path):
     folder = _stage(tmp_path, "empty_extraction_spam_gate")
     payload = _assemble(folder)
     qs = payload["quality_summary"]
-    assert qs["overall_vendor_confidence"] == 0.0
+    assert qs["overall_vendor_confidence"] == pytest.approx(0.0)
     assert qs["explicit_name_found"] is False
     assert qs["consensus_level"] == "single_voter_baseline"
     assert qs["secondary_identifiers_found"] == []

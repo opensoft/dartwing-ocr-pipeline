@@ -55,7 +55,7 @@ def tmp_doc(tmp_path: Path) -> Path:
 
 def test_explicit_all_stub_profiles_no_network(tmp_doc: Path):
     """Spec FR-013: stub execution opt-in via explicit profile flags."""
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     code = main([
         "run",
@@ -83,7 +83,7 @@ def test_explicit_all_stub_profiles_no_network(tmp_doc: Path):
 
 def test_help_lists_every_011_flag(capsys: pytest.CaptureFixture[str]):
     """Spec FR-032: contract amendment must update CLI argument set."""
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     # ``main`` traps SystemExit raised by argparse and returns 0 for --help.
     rc = main(["run", "--help"])
@@ -112,7 +112,7 @@ def test_help_lists_every_011_flag(capsys: pytest.CaptureFixture[str]):
 
 def test_default_contract_set_version_constant():
     """The runtime default follows the active stage 1 contract set."""
-    from ledgerlinc_ocr.pipeline.cli import _DEFAULT_CONTRACT_SET_VERSION
+    from dartwing_ocr.pipeline.cli import _DEFAULT_CONTRACT_SET_VERSION
     assert _DEFAULT_CONTRACT_SET_VERSION == "1.2.0"
 
 
@@ -121,7 +121,7 @@ def test_no_flag_run_uses_default_contract_set(tmp_doc: Path):
     declares; the runner-level validator MUST accept schema-valid stub
     artifacts under that contract set.
     """
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     # Explicit-stubs run uses the default contract version.
     code = main([
@@ -141,7 +141,7 @@ def test_no_flag_run_uses_default_contract_set(tmp_doc: Path):
 # ---------------------------------------------------------------------------
 
 def test_input_and_document_folder_both_rejected(tmp_doc: Path, tmp_path: Path):
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     other_pdf = tmp_path / "other.pdf"
     other_pdf.write_bytes(MINIMAL_PDF_BYTES)
@@ -154,14 +154,14 @@ def test_input_and_document_folder_both_rejected(tmp_doc: Path, tmp_path: Path):
 
 
 def test_no_input_selector_rejected():
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     code = main(["run"])
     assert code == 10
 
 
 def test_documents_file_with_document_folder_rejected(tmp_doc: Path, tmp_path: Path):
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     docs_file = tmp_path / "corpus.txt"
     docs_file.write_text(f"{tmp_doc}\n", encoding="utf-8")
@@ -175,7 +175,7 @@ def test_documents_file_with_document_folder_rejected(tmp_doc: Path, tmp_path: P
 
 def test_documents_file_with_output_dir_rejected(tmp_path: Path):
     """--output-dir is not allowed in warm-corpus mode."""
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     docs_file = tmp_path / "corpus.txt"
     target = tmp_path / "inv_001_easy"
@@ -192,7 +192,7 @@ def test_documents_file_with_output_dir_rejected(tmp_path: Path):
 
 def test_documents_file_with_document_id_rejected(tmp_path: Path):
     """--document-id is not allowed in warm-corpus mode (per-folder derivation)."""
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     docs_file = tmp_path / "corpus.txt"
     target = tmp_path / "inv_001_easy"

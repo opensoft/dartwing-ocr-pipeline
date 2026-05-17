@@ -89,8 +89,8 @@ All four fields MUST be emitted on EVERY run of the new binary, including:
 - `ppstructurev3@gpu` runs (with or without the opt-in)
 - `ppstructurev3@cpu` runs (CPU profile)
 - Stub-adapter runs
-- Single-document runs via `python -m ledgerlinc_ocr.preprocessing`
-- Corpus runs via `python -m ledgerlinc_ocr.pipeline`
+- Single-document runs via `python -m dartwing_ocr.preprocessing`
+- Corpus runs via `python -m dartwing_ocr.pipeline`
 
 Absence of any of these four fields on a run of the new binary is itself a regression signal (SC-003 / MI-16 / MI-17 in `module-invariants.md`).
 

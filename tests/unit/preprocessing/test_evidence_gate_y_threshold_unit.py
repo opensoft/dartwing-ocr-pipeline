@@ -11,7 +11,7 @@ Asserts:
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     Y_THRESHOLD_FRACTION,
     compute_five_signals,
 )

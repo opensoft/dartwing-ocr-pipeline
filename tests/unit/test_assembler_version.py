@@ -1,6 +1,6 @@
 """Unit tests for assembler version builder (Phase 2 T010)."""
 
-from ledgerlinc_ocr.assembler.version import SEMVER, build_pipeline_version
+from dartwing_ocr.assembler.version import SEMVER, build_pipeline_version
 
 
 def test_default_semver_matches_current_policy():

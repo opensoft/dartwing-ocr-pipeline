@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     FiveSignalSet,
     evaluate_evidence_gate,
 )

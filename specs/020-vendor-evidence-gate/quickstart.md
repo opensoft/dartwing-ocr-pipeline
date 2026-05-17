@@ -4,7 +4,7 @@ End-to-end walkthrough for feature 020 — the deterministic vendor-identity evi
 
 ---
 
-> **Implementation status (stacked-PR delivery)**: PR #38 (MVP) implements **Paths 1 + 2 + 6 + 7** (the always-emit observability surface + the v1 re-derivation walkthrough + the warm-corpus pipeline mode). **Paths 3, 4, and 5** exercise the `--evidence-gate-skip-fallback` flag + `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` env var, which land on stacked PR #40 (US4); running those commands against PR #38's tip will exit with `argparse: unknown argument --evidence-gate-skip-fallback`. The Appendix A FR-015 benchmark numbers and Appendix B FR-016 quality-gate numbers will be filled in by the US7 stacked PR.
+> **Implementation status (stacked-PR delivery)**: PR #38 (MVP) implements **Paths 1 + 2 + 6 + 7** (the always-emit observability surface + the v1 re-derivation walkthrough + the warm-corpus pipeline mode). **Paths 3, 4, and 5** exercise the `--evidence-gate-skip-fallback` flag + `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK` env var, which land on stacked PR #40 (US4); running those commands against PR #38's tip will exit with `argparse: unknown argument --evidence-gate-skip-fallback`. The Appendix A FR-015 benchmark numbers and Appendix B FR-016 quality-gate numbers will be filled in by the US7 stacked PR.
 
 Prerequisites:
 - Devcontainer is built (`pip install -r requirements.txt` already ran on `postCreateCommand`), OR you have a host Python 3.12 venv with `pip install -e ".[dev]"`.
@@ -17,7 +17,7 @@ Prerequisites:
 
 **Command**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu
 ```
@@ -51,7 +51,7 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Verify**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     | jq 'select(.kind == "run_summary") | .schema_version, .evidence_gate_id, .evidence_gate_state_counts'
@@ -63,7 +63,7 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Command**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu
 ```
@@ -81,7 +81,7 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Command**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu \
     --preprocess-strategy ocr-only-v1 \
@@ -116,7 +116,7 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Command**: (same as Path 3 but with a fixture where the gate would be `borderline` AND feature 019 FR-005 trigger fires)
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_006_layout_table \
     --preprocess-profile ppstructurev3@gpu \
     --preprocess-strategy ocr-only-v1 \
@@ -153,7 +153,7 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Command**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     --evidence-gate-skip-fallback
@@ -168,7 +168,7 @@ python -m ledgerlinc_ocr.preprocessing \
 
 **Verify**:
 ```bash
-python -m ledgerlinc_ocr.preprocessing \
+python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     --evidence-gate-skip-fallback 2>&1 \
@@ -177,7 +177,7 @@ python -m ledgerlinc_ocr.preprocessing \
 
 Same result with env-var fallback:
 ```bash
-LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m ledgerlinc_ocr.preprocessing \
+DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m dartwing_ocr.preprocessing \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu 2>&1 \
     | grep -F "--evidence-gate-skip-fallback ignored:"
@@ -185,7 +185,7 @@ LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m ledgerlinc_ocr.preprocessing 
 
 CLI wins when both are set (R-020.1):
 ```bash
-LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m ledgerlinc_ocr.preprocessing \
+DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m dartwing_ocr.preprocessing \
     --document-folder ... \
     --preprocess-profile ppstructurev3@gpu \
     # No --evidence-gate-skip-fallback flag, but env var is truthy
@@ -218,12 +218,12 @@ echo "$RUN_SUMMARY" | jq '.evidence_gate_documents[] | select(.document_id == "i
 
 ---
 
-## Path 7 — `python -m ledgerlinc_ocr.pipeline` warm-corpus mode
+## Path 7 — `python -m dartwing_ocr.pipeline` warm-corpus mode
 
-The pipeline CLI accepts the same `--evidence-gate-skip-fallback` flag and `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` env var as the preprocessing CLI (R-020.1). Behavior matrix is identical:
+The pipeline CLI accepts the same `--evidence-gate-skip-fallback` flag and `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK` env var as the preprocessing CLI (R-020.1). Behavior matrix is identical:
 
 ```bash
-python -m ledgerlinc_ocr.pipeline \
+python -m dartwing_ocr.pipeline \
     --documents-file <list> \
     --preprocess-profile ppstructurev3@gpu \
     --preprocess-strategy ocr-only-v1 \
@@ -238,10 +238,10 @@ The flag composes orthogonally with `--gpu-warmup`, `--module-set`, `--det-rec-v
 
 All seven of these MUST pass before merge per FR-024 / R-020.15:
 
-1. **Schema version bump**: `python -m ledgerlinc_ocr.preprocessing ... 2>&1 | jq -e 'select(.kind == "run_summary") | .schema_version == "0.1.7"'` → exit 0.
+1. **Schema version bump**: `python -m dartwing_ocr.preprocessing ... 2>&1 | jq -e 'select(.kind == "run_summary") | .schema_version == "0.1.7"'` → exit 0.
 2. **Four new fields always present**: stub-adapter run emits `evidence_gate_id`, `evidence_gate_state_counts`, `evidence_gate_documents`, `evidence_gate_suppressed_fallback_count` even when no documents are processed.
 3. **CPU warn-and-proceed**: `--evidence-gate-skip-fallback` on `ppstructurev3@cpu` emits the grep-able marker AND the run exits with the same status as the no-flag run.
-4. **Env-var precedence**: `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1` with no `--evidence-gate-skip-fallback` flag activates the opt-in; with `--no-evidence-gate-skip-fallback` (or its absence treated as off), CLI wins.
+4. **Env-var precedence**: `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=1` with no `--evidence-gate-skip-fallback` flag activates the opt-in; with `--no-evidence-gate-skip-fallback` (or its absence treated as off), CLI wins.
 5. **Signal re-derivation**: every per-document record's `decision` matches `v1_decide(record.signals)` exactly (SC-002 / SC-012).
 6. **Aggregate equals per-doc count**: `evidence_gate_state_counts[s]` equals the count of `evidence_gate_documents[i].decision == s` for each `s` in `{sufficient, borderline, insufficient}`.
 7. **Legacy byte-identity**: a run with NO `--evidence-gate-skip-fallback` flag produces a `preprocess_output.json` byte-identical to a pre-feature-020 run on the same fixture (SC-006 / SC-007).

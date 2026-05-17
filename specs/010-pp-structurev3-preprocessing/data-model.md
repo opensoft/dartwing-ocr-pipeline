@@ -43,7 +43,7 @@ No schema change. `block_type` is constrained to the frozen enum `{text, title, 
 | `seal` | `text` | seal-recognition is off, but layout may still label regions |
 | *any unlisted label* | `text` (fallback) + `[unknown_layout_label]` warning (FR-006) | defensible default; surfaces unknowns to humans |
 
-V2 labels (`text`, `title`, `table`, `figure`, `image`, `header`, `footer`, `reference`, `equation`, `list`) retain their current mapping from `src/ledgerlinc_ocr/preprocessing/ocr.py:15-26`, so existing V2-era integration tests do not need semantic updates — only OCR-text updates.
+V2 labels (`text`, `title`, `table`, `figure`, `image`, `header`, `footer`, `reference`, `equation`, `list`) retain their current mapping from `src/dartwing_ocr/preprocessing/ocr.py:15-26`, so existing V2-era integration tests do not need semantic updates — only OCR-text updates.
 
 `text` content on a block comes from concatenating the OCR lines that fall inside the block's bbox, joined with a single space. This matches V2 behavior; V3's richer `parsing_res_list` Markdown is discarded at the persistence boundary.
 
@@ -68,7 +68,7 @@ line_i = {
 
 ### `Table`
 
-No schema change. V3 exposes per-table HTML fragments via `table_res_list`. `_parse_table_dims(html) → (rows, columns)` in `src/ledgerlinc_ocr/preprocessing/ocr.py:113-132` is reused verbatim — the regex logic treats the HTML as opaque and is engine-version-agnostic. `cells` list construction is retained; V3's cell_bbox shape is a superset of V2's for our purposes (length-4 lists per cell).
+No schema change. V3 exposes per-table HTML fragments via `table_res_list`. `_parse_table_dims(html) → (rows, columns)` in `src/dartwing_ocr/preprocessing/ocr.py:113-132` is reused verbatim — the regex logic treats the HTML as opaque and is engine-version-agnostic. `cells` list construction is retained; V3's cell_bbox shape is a superset of V2's for our purposes (length-4 lists per cell).
 
 Projection boundary (FR-021 / R-014): `tables[]` is populated from V3's `table_res_list`, projected into the v1.0.0 schema shape **as of 010's landing commit** (strict-current-shape, Session 2026-04-23 Q24). Richer V3 content beyond the schema (raw HTML string, per-cell metadata, per-cell scores) is discarded at the persistence boundary in `ocr._extract_blocks()` / `ocr._extract_tables()`. `_parse_table_dims()` reads the HTML only to derive `rows`/`columns`; the HTML string itself is NOT persisted. Future AMENDMENTS entries that widen the schema (e.g., add optional `cell_confidence`) require a matching preprocessing code change before the new field is emitted — silent auto-pickup of schema additions is prohibited. `tables[]` ordering follows block order within each page (same sort key as `blocks[]`), preserving FR-004 byte-identical reruns.
 
@@ -106,7 +106,7 @@ Ordering within `warnings[]` (FR-020):
 
 No schema change. Target value string: `"stage1-preprocess-v0.2.0+paddleocr3.5.0.0000000.dpi300"`.
 
-Encoding (`src/ledgerlinc_ocr/preprocessing/version.py`):
+Encoding (`src/dartwing_ocr/preprocessing/version.py`):
 - `SLICE_PREFIX = "stage1-preprocess"` (unchanged)
 - `SEMVER = "v0.2.0"` (was `"v0.1.0"`)
 - `paddleocr_version` from `importlib.metadata.version("paddleocr")` → `"3.5.0"`
@@ -117,7 +117,7 @@ Encoding (`src/ledgerlinc_ocr/preprocessing/version.py`):
 
 ### `PageRasterFrame`
 
-Single rasterized PDF page yielded by `src/ledgerlinc_ocr/preprocessing/rasterize.py` into the `pipeline.py` per-page loop. Not persisted; lives only long enough for that page's OCR/layout work to complete.
+Single rasterized PDF page yielded by `src/dartwing_ocr/preprocessing/rasterize.py` into the `pipeline.py` per-page loop. Not persisted; lives only long enough for that page's OCR/layout work to complete.
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -145,7 +145,7 @@ Extraction logic in `ocr._extract_lines()` and `ocr._extract_blocks()` reads onl
 
 ### `WarningCategory`
 
-Closed enum in `src/ledgerlinc_ocr/preprocessing/warnings.py`:
+Closed enum in `src/dartwing_ocr/preprocessing/warnings.py`:
 
 ```python
 WARNING_CATEGORIES = [
@@ -165,7 +165,7 @@ Extension policy: a fifth category requires an AMENDMENTS entry (FR-020) AND an 
 
 ### `EngineInitError`
 
-New exception type in `src/ledgerlinc_ocr/preprocessing/errors.py`:
+New exception type in `src/dartwing_ocr/preprocessing/errors.py`:
 
 ```python
 class EngineInitError(PreprocessingError):

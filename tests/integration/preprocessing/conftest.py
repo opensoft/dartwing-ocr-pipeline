@@ -60,7 +60,7 @@ def _ensure_us3_fixtures() -> dict[str, Path]:
 
 
 def _run_pipeline(tmp_path_factory, folder_name: str, src_pdf: Path) -> dict:
-    from ledgerlinc_ocr.preprocessing import pipeline
+    from dartwing_ocr.preprocessing import pipeline
 
     folder = tmp_path_factory.mktemp(folder_name) / folder_name
     folder.mkdir()

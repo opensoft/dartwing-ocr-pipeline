@@ -22,7 +22,7 @@ still CPU-only. That leaves the GPU unused for the slowest local pipeline stage.
 
 The current local state is:
 
-- `src/ledgerlinc_ocr/preprocessing/ocr.py` constructs `PPStructureV3` with
+- `src/dartwing_ocr/preprocessing/ocr.py` constructs `PPStructureV3` with
   `device="cpu"`.
 - The profile resolver rejects `ppstructurev3@gpu` because feature 011 scoped
   PPStructureV3 as CPU-only.
@@ -30,7 +30,7 @@ The current local state is:
   `paddleocr==3.5.0`, but the installed Paddle wheel is CPU-only
   (`compiled_cuda == False`, `cuda_count == 0`).
 - The workstation GPU is an AMD/ROCm WSL device (`/dev/dxg`, `gfx1151`).
-- The `ledgerlinc-ollama` container maps `/dev/dxg` and selected ROCm/WSL
+- The `dartwing-ollama` container maps `/dev/dxg` and selected ROCm/WSL
   libraries, but `py-bench` currently does not expose `/dev/dxg`.
 - The existing warm PPStructure CPU integration test can run, but it is slow
   enough to make regular harness-driven validation uncomfortable.
@@ -245,7 +245,7 @@ Preflight success criteria:
 
 Profile success criteria, if Paddle GPU is available:
 
-4. `python -m ledgerlinc_ocr.pipeline run --document-folder <temp-doc> --start-at preprocess --stop-after preprocess --preprocess-profile ppstructurev3@gpu --overwrite` writes a schema-valid `preprocess_output.json`.
+4. `python -m dartwing_ocr.pipeline run --document-folder <temp-doc> --start-at preprocess --stop-after preprocess --preprocess-profile ppstructurev3@gpu --overwrite` writes a schema-valid `preprocess_output.json`.
 5. The same command fails fast with no artifact write when GPU prerequisites are
    intentionally absent.
 6. `ppstructurev3@cpu` still passes its existing tests.
@@ -418,7 +418,7 @@ Acceptance:
   documented blocker if the runtime is not viable.
 - **Risk: Docker Desktop hides the WSL GPU device from `py-bench`.**
   Mitigation: mirror the explicit device/library mapping pattern already used
-  for `ledgerlinc-ollama`, or document that Paddle GPU must run WSL-native or
+  for `dartwing-ollama`, or document that Paddle GPU must run WSL-native or
   native Linux instead of inside `py-bench`.
 - **Risk: The GPU profile silently runs on CPU.**
   Mitigation: fail fast unless Paddle reports a GPU-capable build and a selected

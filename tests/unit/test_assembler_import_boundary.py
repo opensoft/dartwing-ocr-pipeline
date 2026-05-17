@@ -1,6 +1,6 @@
 """T053 — FR-023/FR-025: assembler must be pure, artifact-to-artifact.
 
-Statically inspects every module under src/ledgerlinc_ocr/assembler/ and
+Statically inspects every module under src/dartwing_ocr/assembler/ and
 asserts none of them import preprocessing, pipeline code, model clients,
 or network libraries.
 """
@@ -15,13 +15,13 @@ import pytest
 ASSEMBLER_ROOT = (
     Path(__file__).resolve().parents[2]
     / "src"
-    / "ledgerlinc_ocr"
+    / "dartwing_ocr"
     / "assembler"
 )
 
 FORBIDDEN_PREFIXES = (
-    "ledgerlinc_ocr.preprocessing",
-    "ledgerlinc_ocr.pipeline",
+    "dartwing_ocr.preprocessing",
+    "dartwing_ocr.pipeline",
     "requests",
     "httpx",
     "urllib",
@@ -62,7 +62,7 @@ def _forbidden(name: str) -> str | None:
 
 
 def _assembler_modules() -> list[Path]:
-    return sorted(p for p in ASSEMBLER_ROOT.rglob("*.py"))
+    return sorted(ASSEMBLER_ROOT.rglob("*.py"))
 
 
 def test_assembler_package_exists():

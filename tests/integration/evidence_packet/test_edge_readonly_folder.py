@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evidence_packet import assemble_from_preprocess
+from dartwing_ocr.evidence_packet import assemble_from_preprocess
 
 pytestmark = pytest.mark.skipif(
     os.name != "posix", reason="chmod-based read-only check is POSIX-only"
@@ -33,7 +33,7 @@ def test_debug_readonly_folder_exit_5(tmp_path):
             [
                 sys.executable,
                 "-m",
-                "ledgerlinc_ocr.evidence_packet",
+                "dartwing_ocr.evidence_packet",
                 str(folder),
                 "-v",
             ],

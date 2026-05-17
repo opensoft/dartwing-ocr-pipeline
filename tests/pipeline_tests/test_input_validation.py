@@ -8,8 +8,8 @@ from typing import Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES
 
 
 def _last_record(capsys: pytest.CaptureFixture[str]) -> dict:
@@ -87,7 +87,7 @@ def test_read_only_destination_folder(
     dest.mkdir()
     original_mode = dest.stat().st_mode
     try:
-        os.chmod(dest, 0o555)
+        os.chmod(dest, 0o555)  # NOSONAR S2612 — intentional: simulate non-writable directory to exercise the OUTPUT_PATH_NOT_USABLE error path.
         code = main(
             [
                 "run",

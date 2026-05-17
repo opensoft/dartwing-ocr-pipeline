@@ -1,8 +1,8 @@
 # CLI Contract: `--evidence-gate-skip-fallback`
 
-> **Implementation status**: This contract describes the **US4 opt-in surface**, which lands on stacked PR #40, not on the MVP PR #38. PR #38 has no parser entry for `--evidence-gate-skip-fallback` and no resolver for `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`. Running the commands documented here against PR #38's tip exits with `argparse: unknown argument`. The contract is documented here on the MVP branch so US4's stacked PR can implement against a frozen, reviewed CLI contract rather than negotiating it during implementation.
+> **Implementation status**: This contract describes the **US4 opt-in surface**, which lands on stacked PR #40, not on the MVP PR #38. PR #38 has no parser entry for `--evidence-gate-skip-fallback` and no resolver for `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK`. Running the commands documented here against PR #38's tip exits with `argparse: unknown argument`. The contract is documented here on the MVP branch so US4's stacked PR can implement against a frozen, reviewed CLI contract rather than negotiating it during implementation.
 
-Feature 020 adds one boolean opt-in flag to both `python -m ledgerlinc_ocr.preprocessing` and `python -m ledgerlinc_ocr.pipeline`. No new value-bearing preset axis is introduced at landing because the `evidence_gate_id` closed-vocabulary has size one (`"v1"` only — see R-020.2 / `evidence-gate-rule.md`). No new exit code is introduced.
+Feature 020 adds one boolean opt-in flag to both `python -m dartwing_ocr.preprocessing` and `python -m dartwing_ocr.pipeline`. No new value-bearing preset axis is introduced at landing because the `evidence_gate_id` closed-vocabulary has size one (`"v1"` only — see R-020.2 / `evidence-gate-rule.md`). No new exit code is introduced.
 
 ---
 
@@ -11,7 +11,7 @@ Feature 020 adds one boolean opt-in flag to both `python -m ledgerlinc_ocr.prepr
 | Surface | Name | Type | Default | Notes |
 |---|---|---|---|---|
 | CLI flag | `--evidence-gate-skip-fallback` | boolean (presence) | `False` (absent) | Activates shape (b) skip-fallback (R-020.7 / R-020.8). |
-| Env-var fallback | `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` | string | unset / `""` (falsy) | Truthy values: `"1"`, `"true"`, `"yes"`, `"on"` (case-insensitive). Falsy values: `"0"`, `"false"`, `"no"`, `"off"`, `""`, unset. |
+| Env-var fallback | `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK` | string | unset / `""` (falsy) | Truthy values: `"1"`, `"true"`, `"yes"`, `"on"` (case-insensitive). Falsy values: `"0"`, `"false"`, `"no"`, `"off"`, `""`, unset. |
 
 ### Precedence (R-020.1)
 
@@ -50,7 +50,7 @@ The flag composes orthogonally with every CLI option features 014–019 added. S
 - `--region-strategy` (feature 018)
 - `--preprocess-strategy` (feature 019)
 
-It also does NOT introduce a new value-bearing preset axis at landing (R-020.2): there is no `--evidence-gate <id>` flag, no `LEDGERLINC_EVIDENCE_GATE` env var, no `evidence_gate` enum value in `UnknownPresetError.preset_axis`. Future presets (`v2`, `v3`, ...) will land their own selection flag at that time.
+It also does NOT introduce a new value-bearing preset axis at landing (R-020.2): there is no `--evidence-gate <id>` flag, no `DARTWING_EVIDENCE_GATE` env var, no `evidence_gate` enum value in `UnknownPresetError.preset_axis`. Future presets (`v2`, `v3`, ...) will land their own selection flag at that time.
 
 ---
 
@@ -68,7 +68,7 @@ Excerpt from `preprocessing/cli.py --help`:
                         combinations the flag is honored but is a no-op. On non-GPU profiles, a
                         stderr warning is emitted (`--evidence-gate-skip-fallback ignored:`) and the
                         run proceeds unchanged. Env-var fallback:
-                        LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK (truthy values: 1/true/yes/on).
+                        DARTWING_EVIDENCE_GATE_SKIP_FALLBACK (truthy values: 1/true/yes/on).
                         See specs/020-vendor-evidence-gate/contracts/evidence-gate-rule.md for the
                         v1 decision table.
 ```
@@ -84,7 +84,7 @@ The CLI's existing handling applies:
 - `1` — generic CLI error (uncaught runtime failure).
 - `2` — argparse usage error. Two paths fall here:
   - Malformed flag usage (e.g., `--evidence-gate-skip-fallback=yes` — the flag is boolean, no value accepted).
-  - Invalid `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` env-var value: the existing `_PRESET_ENV_VAR` helper raises `ValueError`, argparse catches it in its `type=` conversion path and calls `parser.error()` which exits 2. This is the same behavior the precedence section above documents.
+  - Invalid `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK` env-var value: the existing `_PRESET_ENV_VAR` helper raises `ValueError`, argparse catches it in its `type=` conversion path and calls `parser.error()` which exits 2. This is the same behavior the precedence section above documents.
 - Other codes (3, 4, 5, ... 16, ...) — unchanged from prior features.
 
 ---
@@ -93,13 +93,13 @@ The CLI's existing handling applies:
 
 CPU-safe checks that MUST pass in CI:
 
-1. `python -m ledgerlinc_ocr.preprocessing --help 2>&1 | grep -F -- "--evidence-gate-skip-fallback"` → exit 0.
-2. `python -m ledgerlinc_ocr.preprocessing ... --evidence-gate-skip-fallback --preprocess-profile ppstructurev3@cpu 2>&1 | grep -F -- "--evidence-gate-skip-fallback ignored:"` → exit 0.
-3. `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m ledgerlinc_ocr.preprocessing ... --preprocess-profile ppstructurev3@cpu 2>&1 | grep -F -- "--evidence-gate-skip-fallback ignored:"` → exit 0 (env-var fallback fires the same warn).
-4. `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK="" python -m ledgerlinc_ocr.preprocessing ... --preprocess-profile ppstructurev3@cpu 2>&1` does NOT emit the warn (empty string = unset per R-020.1).
+1. `python -m dartwing_ocr.preprocessing --help 2>&1 | grep -F -- "--evidence-gate-skip-fallback"` → exit 0.
+2. `python -m dartwing_ocr.preprocessing ... --evidence-gate-skip-fallback --preprocess-profile ppstructurev3@cpu 2>&1 | grep -F -- "--evidence-gate-skip-fallback ignored:"` → exit 0.
+3. `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m dartwing_ocr.preprocessing ... --preprocess-profile ppstructurev3@cpu 2>&1 | grep -F -- "--evidence-gate-skip-fallback ignored:"` → exit 0 (env-var fallback fires the same warn).
+4. `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK="" python -m dartwing_ocr.preprocessing ... --preprocess-profile ppstructurev3@cpu 2>&1` does NOT emit the warn (empty string = unset per R-020.1).
 5. Two runs with identical configuration produce byte-identical `run_summary` values for `evidence_gate_id`, `evidence_gate_state_counts`, `evidence_gate_documents`, and `evidence_gate_suppressed_fallback_count`.
 
 GPU-safe checks (deferrable per R-020.15):
 
-6. `python -m ledgerlinc_ocr.preprocessing ... --evidence-gate-skip-fallback --preprocess-profile ppstructurev3@gpu --preprocess-strategy ocr-only-v1` on a `sufficient`-eligible fixture: `evidence_gate_suppressed_fallback_count >= 1` AND `ocr_only_fallback_count == 0` for that document.
+6. `python -m dartwing_ocr.preprocessing ... --evidence-gate-skip-fallback --preprocess-profile ppstructurev3@gpu --preprocess-strategy ocr-only-v1` on a `sufficient`-eligible fixture: `evidence_gate_suppressed_fallback_count >= 1` AND `ocr_only_fallback_count == 0` for that document.
 7. Same command on a `borderline`-eligible fixture: `evidence_gate_suppressed_fallback_count == 0` AND `ocr_only_fallback_count == 1` for that document.

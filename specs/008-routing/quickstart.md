@@ -10,7 +10,7 @@ open (or the equivalent local Python 3.12 environment with
 1. **Python 3.12** — devcontainer default, matches
    `.devcontainer/Dockerfile`.
 2. **Editable install** — this slice ships as part of the existing
-   `ledgerlinc_ocr` package:
+   `dartwing_ocr` package:
    ```bash
    python3 -m venv .venv
    .venv/bin/pip install -e ".[dev]"
@@ -90,7 +90,7 @@ website — so the secondary-identifier floor is met by
 ## 2. Run the router
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.router route /tmp/inv_000_quickstart
+.venv/bin/python -m dartwing_ocr.router route /tmp/inv_000_quickstart
 ```
 
 Expected stdout (single JSON line):
@@ -168,7 +168,7 @@ Run the router a second time and diff the two outputs, ignoring
 
 ```bash
 cp /tmp/inv_000_quickstart/routing_decision.json /tmp/routing_a.json
-.venv/bin/python -m ledgerlinc_ocr.router route /tmp/inv_000_quickstart
+.venv/bin/python -m dartwing_ocr.router route /tmp/inv_000_quickstart
 cp /tmp/inv_000_quickstart/routing_decision.json /tmp/routing_b.json
 diff <(jq 'del(.processed_at)' /tmp/routing_a.json) \
      <(jq 'del(.processed_at)' /tmp/routing_b.json)
@@ -194,7 +194,7 @@ jq '.vendor_candidate.company_name |= {
   && mv /tmp/inv_000_quickstart/edge_extraction_output.json.new \
         /tmp/inv_000_quickstart/edge_extraction_output.json
 
-.venv/bin/python -m ledgerlinc_ocr.router route /tmp/inv_000_quickstart
+.venv/bin/python -m dartwing_ocr.router route /tmp/inv_000_quickstart
 ```
 
 Expected: `decision = "edge_review_required"`,
@@ -207,7 +207,7 @@ This is the load-bearing gate for the missing-name corpus (SC-002, SC-008).
 Point the router at a missing folder:
 
 ```bash
-.venv/bin/python -m ledgerlinc_ocr.router route /tmp/does_not_exist
+.venv/bin/python -m dartwing_ocr.router route /tmp/does_not_exist
 echo "exit code: $?"
 ```
 
@@ -218,7 +218,7 @@ Corrupt the input and retry:
 
 ```bash
 echo "{not valid json" > /tmp/inv_000_quickstart/edge_extraction_output.json
-.venv/bin/python -m ledgerlinc_ocr.router route /tmp/inv_000_quickstart
+.venv/bin/python -m dartwing_ocr.router route /tmp/inv_000_quickstart
 echo "exit code: $?"
 ```
 

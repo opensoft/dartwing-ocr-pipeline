@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.extract import exit_codes
-from ledgerlinc_ocr.extract.errors import (
+from dartwing_ocr.extract import exit_codes
+from dartwing_ocr.extract.errors import (
     FolderWriteError,
     InputContractDrift,
     MalformedResponse,

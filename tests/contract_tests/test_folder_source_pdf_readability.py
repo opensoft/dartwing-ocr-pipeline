@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 from pypdf import PdfWriter
 
-from ledgerlinc_ocr.validator import validate_folder
-from ledgerlinc_ocr.validator.report import Severity, ViolationCode
+from dartwing_ocr.validator import validate_folder
+from dartwing_ocr.validator.report import Severity, ViolationCode
 
 
 def _write_minimal_pdf(path: Path) -> None:

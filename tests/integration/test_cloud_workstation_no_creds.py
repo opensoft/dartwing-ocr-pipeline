@@ -54,7 +54,7 @@ def test_cloud_creds_in_env_do_not_change_behavior(
     monkeypatch.setenv("OPENAI_API_KEY", "sk-fake")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-fake")
 
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     code = main([
         "run",

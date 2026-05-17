@@ -7,14 +7,14 @@
 
 Ship the 20-document stage 1 vendor-identity corpus (`tests/stage1_vendor_identity/inv_001..inv_020_*/`) with real `source.pdf` files, hand-authored `expected.json` labels conforming to the frozen `expected.schema.json` at `contract_set_version = "1.0.0"`, and `notes.md` files for every `hard` and `missing_name` document. Deliver a labeling guide at `docs/stage1-vendor-identity/labeling-guide.md` that captures all conventions (difficulty definitions, `challenge_tags` assignment rules, null-vs-empty-string policy, company-name provenance decision tree, remit-to vs vendor selection, DBA vs legal name rules, missing-name invariants, and a PII/license screening checklist). Add one narrow code change: the folder validator's `source.pdf` check is extended from "file exists" to "file exists, non-empty, parses with `pypdf` without error" (per clarification Q4).
 
-The corpus blends team-held real-world invoices with publicly-available invoice samples used specifically to fill sparse difficulty buckets and challenge-tag coverage gaps. The single-labeler workflow is hand-editing JSON against the frozen contract, with `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` as the safety net. No labeling UI, no redaction pipeline, no external-reviewer step for this feature.
+The corpus blends team-held real-world invoices with publicly-available invoice samples used specifically to fill sparse difficulty buckets and challenge-tag coverage gaps. The single-labeler workflow is hand-editing JSON against the frozen contract, with `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` as the safety net. No labeling UI, no redaction pipeline, no external-reviewer step for this feature.
 
 ## Technical Context
 
 **Language/Version**: Python 3.12 (devcontainer base image, already established)
 **Primary Dependencies**: `pypdf >= 5.0, < 7` (already installed; used for PDF structural-integrity check in the validator); `jsonschema >= 4.22`, `pydantic >= 2.7` (already installed; used by existing validator — no new schemas in this feature)
 **Storage**: Filesystem only. 20 `source.pdf` + 20 `expected.json` + ≥10 `notes.md` under `tests/stage1_vendor_identity/`. One new Markdown doc at `docs/stage1-vendor-identity/labeling-guide.md`. No database, no network.
-**Testing**: `pytest` under `tests/contract_tests/` for the new PDF-readability validator behavior. Corpus coverage itself is verified by `python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` (SC-001, FR-014).
+**Testing**: `pytest` under `tests/contract_tests/` for the new PDF-readability validator behavior. Corpus coverage itself is verified by `python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` (SC-001, FR-014).
 **Target Platform**: Linux devcontainer (Python 3.12). No platform-specific dependencies.
 **Project Type**: Single project — harness-side content authoring plus a narrow validator extension. No new package, no new service.
 **Performance Goals**: Validator must remain interactive for the full 20-document corpus (well under 5 seconds wall time). PDF structural parse is O(pages) with pypdf's lazy reader and stays light.
@@ -40,7 +40,7 @@ The corpus blends team-held real-world invoices with publicly-available invoice 
 1. Pipeline/harness boundary preserved ✅ (harness-side only).
 2. Output contracts untouched ✅ (`contract_set_version = "1.0.0"` frozen).
 3. No runtime behavior change ✅ (validator extension is harness-side).
-4. Verifiable through a concrete local execution path ✅ (`python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity` + `pytest tests/contract_tests/`).
+4. Verifiable through a concrete local execution path ✅ (`python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity` + `pytest tests/contract_tests/`).
 5. No runtime/container change ✅.
 6. Evaluation comparison against labeled truth is *established* by this feature ✅.
 
@@ -117,7 +117,7 @@ docs/stage1-vendor-identity/
 └── labeling-guide.md                   # NEW — FR-017 deliverable
 
 # Validator delta (code change — Q4 clarification)
-src/ledgerlinc_ocr/validator/
+src/dartwing_ocr/validator/
 ├── folder.py                           # extended: source.pdf structural-integrity check
 └── report.py                           # extended: new ViolationCode (e.g., FOLDER_SOURCE_PDF_UNREADABLE)
 
@@ -129,14 +129,14 @@ tests/contract_tests/
 CLAUDE.md                               # Key References section gets labeling-guide.md entry
 ```
 
-**Structure Decision**: This feature lives primarily under `tests/stage1_vendor_identity/` (content) and `docs/stage1-vendor-identity/` (guide). It adds one narrow validator change under `src/ledgerlinc_ocr/validator/` with matching tests under `tests/contract_tests/`. No new packages, no layout changes to the existing code tree. The corpus folders follow the frozen `folder.schema.json` contract (name pattern `^inv_\d{3}_(easy|medium|hard|missing_name)$`, unconditional files `source.pdf` + `expected.json`, conditional `notes.md`). Documents 001-005 are `easy`, 006-010 are `medium`, 011-015 are `hard`, 016-020 are `missing_name` (contiguous numeric prefixes `001`..`020`, 5/5/5/5 bucket distribution, per FR-001/FR-002).
+**Structure Decision**: This feature lives primarily under `tests/stage1_vendor_identity/` (content) and `docs/stage1-vendor-identity/` (guide). It adds one narrow validator change under `src/dartwing_ocr/validator/` with matching tests under `tests/contract_tests/`. No new packages, no layout changes to the existing code tree. The corpus folders follow the frozen `folder.schema.json` contract (name pattern `^inv_\d{3}_(easy|medium|hard|missing_name)$`, unconditional files `source.pdf` + `expected.json`, conditional `notes.md`). Documents 001-005 are `easy`, 006-010 are `medium`, 011-015 are `hard`, 016-020 are `missing_name` (contiguous numeric prefixes `001`..`020`, 5/5/5/5 bucket distribution, per FR-001/FR-002).
 
 ## Audit-only Enforcement
 
 Two requirements in this feature are audit-enforced rather than machine-enforced by the validator:
 
 - **FR-015** — aggregate critical `challenge_tags` coverage across the 20 documents. No validator check exists for "at least one document carries tag X"; this is verified manually in tasks.md T052.
-- **FR-016** — challenge-tag *pairing* (`explicit_company_name` on every non-missing doc, `missing_company_name` on every missing-name doc, and the exclusions). The validator already enforces (a) the missing-name company_name triad via `MISSING_NAME_TRIAD_VIOLATION` in `src/ledgerlinc_ocr/validator/artifact.py` (`_missing_name_triad_on_expected`) and (b) the closed challenge-tag vocabulary via `CHALLENGE_TAG_UNKNOWN`. It does NOT enforce that `explicit_company_name` / `missing_company_name` pair correctly with `difficulty`. That pairing rule is audit-enforced in T052 alongside FR-015 coverage.
+- **FR-016** — challenge-tag *pairing* (`explicit_company_name` on every non-missing doc, `missing_company_name` on every missing-name doc, and the exclusions). The validator already enforces (a) the missing-name company_name triad via `MISSING_NAME_TRIAD_VIOLATION` in `src/dartwing_ocr/validator/artifact.py` (`_missing_name_triad_on_expected`) and (b) the closed challenge-tag vocabulary via `CHALLENGE_TAG_UNKNOWN`. It does NOT enforce that `explicit_company_name` / `missing_company_name` pair correctly with `difficulty`. That pairing rule is audit-enforced in T052 alongside FR-015 coverage.
 
 Adding a `CHALLENGE_TAG_PAIRING_VIOLATION` check to the validator is a reasonable follow-on amendment but is intentionally out of scope for this feature — the corpus is small enough (20 documents) that a human audit is cheaper and less risky than a module-API bump just to validate one pairing rule.
 

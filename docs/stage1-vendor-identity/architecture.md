@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document records the updated target architecture for the LedgerLinc OCR pipeline and the narrower stage 1 implementation slice that will be built first.
+This document records the updated target architecture for the Dartwing OCR pipeline and the narrower stage 1 implementation slice that will be built first.
 
 The target architecture is now a high-consensus hybrid pipeline built around:
 
@@ -143,7 +143,7 @@ Role:
 The three model outputs are compared by a deterministic consensus layer.
 
 > **Stage 1 implementation.** The stage 1 router is a model-free CLI
-> at `python -m ledgerlinc_ocr.router route <folder>`. It reads
+> at `python -m dartwing_ocr.router route <folder>`. It reads
 > `edge_extraction_output.json` and emits a schema-valid
 > `routing_decision.json` with `decision ∈ {edge_accept, edge_review_required}`
 > plus a priority-ordered `reasons[]` array. Canonical reason strings
@@ -255,7 +255,7 @@ For stage 1, the recommended runtime split remains:
 
 ## Stage 1 Controller (Feature 011)
 
-The pipeline package's `python -m ledgerlinc_ocr.pipeline run` entrypoint
+The pipeline package's `python -m dartwing_ocr.pipeline run` entrypoint
 is the stage 1 root/master controller. It owns:
 
 - per-stage profile resolution (`--preprocess-profile`,

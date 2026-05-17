@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.router.checks import compute_checks
+from dartwing_ocr.router.checks import compute_checks
 
 
 def _null():

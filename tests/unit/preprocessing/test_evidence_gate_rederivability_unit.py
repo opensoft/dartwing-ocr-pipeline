@@ -14,7 +14,7 @@ from itertools import product
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     CONFIDENCE_THRESHOLD,
     DENSITY_THRESHOLD,
     EvidenceGateResult,

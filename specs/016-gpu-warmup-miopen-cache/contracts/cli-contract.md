@@ -1,7 +1,7 @@
 # CLI Contract: GPU Warmup Opt-In Surface
 
 **Feature**: 016-gpu-warmup-miopen-cache
-**Applies to**: `python -m ledgerlinc_ocr.preprocessing` (single-doc) and `python -m ledgerlinc_ocr.pipeline` (warm-corpus mode)
+**Applies to**: `python -m dartwing_ocr.preprocessing` (single-doc) and `python -m dartwing_ocr.pipeline` (warm-corpus mode)
 **Decision source**: research.md R-016.1; spec FR-002, FR-010, /speckit.clarify Q1.
 
 ## 1. Activation surfaces
@@ -9,7 +9,7 @@
 | Surface | Form | Default | Wins when both set |
 |---|---|---|---|
 | CLI flag | `--gpu-warmup` (boolean; no `=value`) | absent (off) | yes |
-| Env var | `LEDGERLINC_GPU_WARMUP` | unset (off) | no |
+| Env var | `DARTWING_GPU_WARMUP` | unset (off) | no |
 
 **Env-var truthiness** (after `.strip().lower()`): `{"1", "true", "yes"}` ⇒ ON. Anything else (including `2`, `on`, `enabled`, empty string, unset) ⇒ OFF. Strict whitelist; ambiguous values are NOT errors — they are silently treated as OFF, matching how `LOG_LEVEL` parses unrecognized values.
 
@@ -24,7 +24,7 @@
                         first successful per-document run_summary entry.
                         Has no effect on ppstructurev3@cpu or stub adapters
                         (a stderr warning is emitted in those cases). Can also
-                        be set via the LEDGERLINC_GPU_WARMUP=1 environment
+                        be set via the DARTWING_GPU_WARMUP=1 environment
                         variable; the CLI flag wins when both are present.
 ```
 
@@ -63,11 +63,11 @@ Exit code 15 fires when `WarmupError` is caught at the runner / corpus_run bound
 - `--gpu-warmup` is **orthogonal** to `--preprocess-profile`: setting it never changes profile selection (Assumptions in spec).
 - Setting `--gpu-warmup` with `--preprocess-profile=ppstructurev3@gpu`: warmup runs (the headline path).
 - Setting `--gpu-warmup` with any other profile: warn-and-proceed (§ 3 row 5–6).
-- Setting `LEDGERLINC_GPU_WARMUP=1` globally in a CI shell: safe — every CPU/stub job in the same shell hits the warn-and-proceed path; only `ppstructurev3@gpu` jobs activate warmup (this is the design ergonomic R-016.1 chose the env-var fallback for).
+- Setting `DARTWING_GPU_WARMUP=1` globally in a CI shell: safe — every CPU/stub job in the same shell hits the warn-and-proceed path; only `ppstructurev3@gpu` jobs activate warmup (this is the design ergonomic R-016.1 chose the env-var fallback for).
 
 ## 6. Stability
 
 - `--gpu-warmup` flag name is part of this feature's public CLI surface; renaming it is a breaking change.
-- The env-var name `LEDGERLINC_GPU_WARMUP` follows the existing `LEDGERLINC_*` convention (cf. `LEDGERLINC_OCR_LOG_LEVEL`).
+- The env-var name `DARTWING_GPU_WARMUP` follows the existing `DARTWING_*` convention (cf. `DARTWING_OCR_LOG_LEVEL`).
 - Exit code 15 is part of the same exit-code contract feature 014 established; reordering or removing it is a breaking change.
 - Stderr warning literal `--gpu-warmup ignored:` is part of this contract for test stability; if the wording changes, the literal MUST be preserved.

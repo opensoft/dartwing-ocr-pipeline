@@ -49,7 +49,6 @@ def build_with_table() -> Path:
     col_widths = [260, 260, 260, 260]
     row_height = 110
     rows = 3
-    cols = 4
     right = left + sum(col_widths)
     bottom = top + rows * row_height
 

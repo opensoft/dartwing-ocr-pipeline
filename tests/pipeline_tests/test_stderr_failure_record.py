@@ -8,9 +8,9 @@ from typing import Any, Callable
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import Runner
-from ledgerlinc_ocr.pipeline.stages import default_preprocess
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import Runner
+from dartwing_ocr.pipeline.stages import default_preprocess
 
 _STAGE_VOCAB = {
     "arguments",
@@ -114,7 +114,7 @@ def test_output_path_not_usable_shape(
     dest.mkdir()
     mode = dest.stat().st_mode
     try:
-        os.chmod(dest, 0o555)
+        os.chmod(dest, 0o555)  # NOSONAR S2612 — intentional: simulate non-writable directory to verify the StructuredFailureRecord path.
         code = main(
             [
                 "run",

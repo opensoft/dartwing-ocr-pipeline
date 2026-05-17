@@ -5,7 +5,7 @@ isolate one slot. No filesystem, no pipeline, no rules.
 """
 from __future__ import annotations
 
-from ledgerlinc_ocr.router.checks import (
+from dartwing_ocr.router.checks import (
     compute_checks,
     is_grounded,
     phone_is_grounded,

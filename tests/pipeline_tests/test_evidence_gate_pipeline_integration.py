@@ -29,7 +29,7 @@ from typing import Any
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import evaluate_and_record
+from dartwing_ocr.preprocessing.evidence_gate import evaluate_and_record
 
 
 def _write_preprocess_output(folder: Path, content: dict[str, Any]) -> None:
@@ -167,7 +167,7 @@ def test_evaluate_and_record_missing_file_emits_insufficient(
     documents: list[dict[str, Any]] = []
 
     with caplog.at_level(
-        logging.WARNING, logger="ledgerlinc_ocr.preprocessing.evidence_gate"
+        logging.WARNING, logger="dartwing_ocr.preprocessing.evidence_gate"
     ):
         evaluate_and_record(
             document_folder=folder,
@@ -208,7 +208,7 @@ def test_evaluate_and_record_malformed_json_emits_insufficient(
     documents: list[dict[str, Any]] = []
 
     with caplog.at_level(
-        logging.WARNING, logger="ledgerlinc_ocr.preprocessing.evidence_gate"
+        logging.WARNING, logger="dartwing_ocr.preprocessing.evidence_gate"
     ):
         evaluate_and_record(
             document_folder=folder,
@@ -291,7 +291,7 @@ def test_evaluate_and_record_emits_insufficient_on_internal_exception(
     # uses. The object form (vs. string form) ensures the new binding
     # lands in the same module __dict__ that ``evaluate_and_record``
     # reads from at call time.
-    import ledgerlinc_ocr.preprocessing.evidence_gate as eg_module
+    import dartwing_ocr.preprocessing.evidence_gate as eg_module
 
     def _explode(*args: Any, **kwargs: Any) -> None:
         raise RuntimeError("secret OCR text that must not leak")
@@ -302,7 +302,7 @@ def test_evaluate_and_record_emits_insufficient_on_internal_exception(
     documents: list[dict[str, Any]] = []
 
     with caplog.at_level(
-        logging.WARNING, logger="ledgerlinc_ocr.preprocessing.evidence_gate"
+        logging.WARNING, logger="dartwing_ocr.preprocessing.evidence_gate"
     ):
         eg_module.evaluate_and_record(
             document_folder=folder,

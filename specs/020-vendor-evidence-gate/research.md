@@ -6,7 +6,7 @@ This document records the decisions made in Phase 0 of `/speckit.plan` for featu
 
 ## R-020.1 — CLI flag name and env-var fallback for the skip-fallback opt-in
 
-**Decision**: A single boolean opt-in flag `--evidence-gate-skip-fallback` (off by default) on both `python -m ledgerlinc_ocr.preprocessing` and `python -m ledgerlinc_ocr.pipeline`, with env-var fallback `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`. Precedence: CLI wins when both are set; empty-string env = unset. Truthy values: `"1"`, `"true"`, `"yes"`, `"on"` (case-insensitive). Falsy values: `"0"`, `"false"`, `"no"`, `"off"`, `""`, unset. Any other value rejects with the same error path the existing `_PRESET_ENV_VAR` helpers use.
+**Decision**: A single boolean opt-in flag `--evidence-gate-skip-fallback` (off by default) on both `python -m dartwing_ocr.preprocessing` and `python -m dartwing_ocr.pipeline`, with env-var fallback `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK`. Precedence: CLI wins when both are set; empty-string env = unset. Truthy values: `"1"`, `"true"`, `"yes"`, `"on"` (case-insensitive). Falsy values: `"0"`, `"false"`, `"no"`, `"off"`, `""`, unset. Any other value rejects with the same error path the existing `_PRESET_ENV_VAR` helpers use.
 
 **Rationale**: Mirrors feature 016 `--gpu-warmup` / feature 017 `--module-set` / `--det-rec-variant` / feature 018 `--raster-profile` / `--region-strategy` / feature 019 `--preprocess-strategy` exactly. The CLI-wins-with-empty-string-env precedence keeps composition predictable when operators script the pipeline. Boolean opt-in (rather than a value-bearing preset axis) is correct here because the registry has size one at landing — there is no `--evidence-gate <id>` selection to make. The flag has exactly two states: opt-in active or not.
 
@@ -359,7 +359,7 @@ Cold-cache runs (e.g., after `~/.cache/miopen` clearance per feature 016 operato
 | `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
 | `EVIDENCE_GATE_ID_V1` | `"v1"` | R-020.2 | `preprocessing/identifiers.py` module level |
 | `EVIDENCE_GATE_ID_DEFAULT` | `EVIDENCE_GATE_ID_V1` | R-020.2 | `preprocessing/identifiers.py` module level |
-| `EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR` | `"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK"` | R-020.1 | `preprocessing/evidence_gate_optin.py` module level |
+| `EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR` | `"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK"` | R-020.1 | `preprocessing/evidence_gate_optin.py` module level |
 | `SCHEMA_VERSION` (RunSummary) | `"0.1.7"` (bumped from `"0.1.6"`) | R-020.9 | `pipeline/timing.py` |
 
 ## Appendix B — Quality-gate evidence (filled at landing)

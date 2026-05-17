@@ -24,7 +24,7 @@ def test_cold_default_run_stdout_record_shape_preserves_002(
     *shape* of the stdout record, not the substance of the artifacts.
     Stub profiles produce a schema-valid record with the same key set.
     """
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     src = CORPUS_ROOT / "inv_001_easy" / "source.pdf"
     if not src.exists():

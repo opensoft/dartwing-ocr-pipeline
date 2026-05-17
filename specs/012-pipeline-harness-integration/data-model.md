@@ -27,7 +27,7 @@ The subprocess command assembled from a `HarnessPipelineRequest`.
 
 | Field | Type | Validation | Notes |
 |---|---|---|---|
-| `argv` | tuple[str, ...] | starts with current Python executable and `-m ledgerlinc_ocr.pipeline run` | Never shell-expanded. |
+| `argv` | tuple[str, ...] | starts with current Python executable and `-m dartwing_ocr.pipeline run` | Never shell-expanded. |
 | `documents_file` | `Path` or null | exists for corpus mode during command execution | Temporary file containing selected document folders. |
 | `cwd` | `Path` or null | optional | Inherits current process working directory unless tests override. |
 

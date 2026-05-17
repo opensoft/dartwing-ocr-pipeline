@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.corpus import (
+from dartwing_ocr.pipeline.corpus import (
     CorpusParseError,
     DocumentEntry,
     WarmProfileRegistry,

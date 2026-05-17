@@ -6,8 +6,8 @@ import textwrap
 
 import pytest
 
-from ledgerlinc_ocr.extract.config import load_voter_config
-from ledgerlinc_ocr.extract.errors import VoterConfigInvalid
+from dartwing_ocr.extract.config import load_voter_config
+from dartwing_ocr.extract.errors import VoterConfigInvalid
 
 
 def test_packaged_stub_loads_cleanly() -> None:
@@ -16,7 +16,7 @@ def test_packaged_stub_loads_cleanly() -> None:
     assert config.voter_role == "primary_extractor"
     assert config.consensus_mode == "single_voter_baseline"
     assert config.model_runtime.provider == "stub"
-    assert config.reconciliation.ungrounded_confidence_cap == 0.30
+    assert config.reconciliation.ungrounded_confidence_cap == pytest.approx(0.30)
     assert path.name == "stub.yaml"
     assert extensions == {}
 
@@ -109,6 +109,6 @@ def test_malformed_yaml_rejected(tmp_path) -> None:
 def test_extension_keys_preserved_out_of_strict_model(tmp_path) -> None:
     body = _BASE + 'x_fixture_path: "./voter_response.json"\n'
     p = _write(tmp_path, body)
-    config, path, extensions = load_voter_config(str(p))
+    config, _, extensions = load_voter_config(str(p))
     assert extensions == {"x_fixture_path": "./voter_response.json"}
     assert config.voter_id == "v"

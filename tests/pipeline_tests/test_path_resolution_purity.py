@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline import path_resolution
-from ledgerlinc_ocr.pipeline.path_resolution import (
+from dartwing_ocr.pipeline import path_resolution
+from dartwing_ocr.pipeline.path_resolution import (
     derive_document_id,
     resolve_destination,
     resolve_input_pdf,

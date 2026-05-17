@@ -5,10 +5,10 @@ The helper is intentionally folder-oriented and runs on a temporary copy of the
 requested per-document folder so the committed corpus is never mutated.
 
 Current stage 1 benchmark flow:
-1. `python -m ledgerlinc_ocr.preprocessing --document-folder <temp-folder>`
-2. `python -m ledgerlinc_ocr.extract --folder <temp-folder> --voter gemma-edge`
+1. `python -m dartwing_ocr.preprocessing --document-folder <temp-folder>`
+2. `python -m dartwing_ocr.extract --folder <temp-folder> --voter gemma-edge`
 
-The top-level `ledgerlinc-pipeline` CLI is not used here because it is still
+The top-level `dartwing-pipeline` CLI is not used here because it is still
 the frozen contract/stub runner rather than the fully wired vertical slice.
 """
 
@@ -194,7 +194,7 @@ def _benchmark_lane(
         preprocess_command = [
             sys.executable,
             "-m",
-            "ledgerlinc_ocr.preprocessing",
+            "dartwing_ocr.preprocessing",
             "--document-folder",
             str(work_folder),
         ]
@@ -211,7 +211,7 @@ def _benchmark_lane(
             extract_command = [
                 sys.executable,
                 "-m",
-                "ledgerlinc_ocr.extract",
+                "dartwing_ocr.extract",
                 "--folder",
                 str(work_folder),
                 "--voter",
@@ -288,7 +288,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--voter",
         default="gemma-edge",
-        help="Extractor voter name passed to ledgerlinc_ocr.extract.",
+        help="Extractor voter name passed to dartwing_ocr.extract.",
     )
     parser.add_argument(
         "--gpu-url",
@@ -321,7 +321,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--extract-log-level",
         default="INFO",
         choices=("DEBUG", "INFO", "WARNING", "ERROR"),
-        help="Log level forwarded to ledgerlinc_ocr.extract.",
+        help="Log level forwarded to dartwing_ocr.extract.",
     )
     return parser
 
