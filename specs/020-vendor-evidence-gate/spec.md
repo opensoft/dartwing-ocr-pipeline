@@ -5,6 +5,17 @@
 **Status**: Draft
 **Input**: User description: "Build the next optimization and quality-control slice after feature 019. Features 014-019 established the GPU preprocessing lane, warmup/timing, PPStructure reduction, region-first behavior, and OCR-only fast-lane fallback. Feature 020 should add deterministic vendor-identity evidence scoring from preprocessing output so the pipeline can identify clearly sufficient vendor-identity cases earlier, with no schema changes to the four canonical stage 1 artifacts."
 
+---
+
+> **Implementation status (stacked-PR delivery)**: This spec describes the full feature-020 surface across all seven user stories (US1–US7). The implementation lands in PR-sized increments:
+>
+> - **PR #38 (MVP, this branch)** — US1 + US2 + US3: five-signal computation, v1 decision table, four additive `run_summary` fields. Observability only — no behavioral change.
+> - **PR #40 (stacked on #38)** — US4: skip-fallback opt-in (`--evidence-gate-skip-fallback` + `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`) + deterministic suppression predicate + the `preprocessing/evidence_gate_optin.py` module.
+> - **PR #39 (stacked on #38)** — US6: schema-preservation regression guards on the four canonical stage-1 artifact shapes.
+> - **US5 (CPU-safety guards)** and **US7 (promotion quality gate + FR-015 benchmark + FR-016 quality-gate numbers)** — deferred follow-up PRs, not yet open.
+>
+> When reading this spec on PR #38, expect: full FR/SC/MI coverage of US1+US2+US3 in code + tests; full *spec-document* coverage of US4–US7 but no code/test for those slices yet. Their behavioral surfaces (`--evidence-gate-skip-fallback`, the optin module, suppression-fallback side effect, benchmark/quality-gate numbers in `quickstart.md` Appendix A / `research.md` Appendix B) become operational on their respective stacked PRs.
+
 ## Clarifications
 
 ### Session 2026-05-14

@@ -2,6 +2,10 @@
 
 End-to-end walkthrough for feature 020 — the deterministic vendor-identity evidence gate over `preprocess_output.json`. Seven representative paths cover the FR-007 shape (b) skip-fallback behavioral surface, the FR-013 CPU/stub warn-and-proceed surface, and the FR-001 / FR-006 always-emit observability surface. Run from the worktree root.
 
+---
+
+> **Implementation status (stacked-PR delivery)**: PR #38 (MVP) implements **Paths 1 + 2 + 6 + 7** (the always-emit observability surface + the v1 re-derivation walkthrough + the warm-corpus pipeline mode). **Paths 3, 4, and 5** exercise the `--evidence-gate-skip-fallback` flag + `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` env var, which land on stacked PR #40 (US4); running those commands against PR #38's tip will exit with `argparse: unknown argument --evidence-gate-skip-fallback`. The Appendix A FR-015 benchmark numbers and Appendix B FR-016 quality-gate numbers will be filled in by the US7 stacked PR.
+
 Prerequisites:
 - Devcontainer is built (`pip install -r requirements.txt` already ran on `postCreateCommand`), OR you have a host Python 3.12 venv with `pip install -e ".[dev]"`.
 - For GPU paths: `paddlepaddle-dcu` installed in `.venv-paddle-rocm` and `scripts/start-host-ollama-rocm-wsl.sh` is the canonical Ollama startup (per feature 016 / 019 quickstart).

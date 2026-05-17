@@ -1,6 +1,8 @@
 # CLI Contract: `--evidence-gate-skip-fallback`
 
-Feature 020 adds one boolean opt-in flag to both `python -m ledgerlinc_ocr.preprocessing` and `python -m ledgerlinc_ocr.pipeline`. No new value-bearing preset axis is introduced at landing because the `evidence_gate_id` registry has size one (`"v1"` only — see R-020.2 / `evidence-gate-rule.md`). No new exit code is introduced.
+> **Implementation status**: This contract describes the **US4 opt-in surface**, which lands on stacked PR #40, not on the MVP PR #38. PR #38 has no parser entry for `--evidence-gate-skip-fallback` and no resolver for `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`. Running the commands documented here against PR #38's tip exits with `argparse: unknown argument`. The contract is documented here on the MVP branch so US4's stacked PR can implement against a frozen, reviewed CLI contract rather than negotiating it during implementation.
+
+Feature 020 adds one boolean opt-in flag to both `python -m ledgerlinc_ocr.preprocessing` and `python -m ledgerlinc_ocr.pipeline`. No new value-bearing preset axis is introduced at landing because the `evidence_gate_id` closed-vocabulary has size one (`"v1"` only — see R-020.2 / `evidence-gate-rule.md`). No new exit code is introduced.
 
 ---
 

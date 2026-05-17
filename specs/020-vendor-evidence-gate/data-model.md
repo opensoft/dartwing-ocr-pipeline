@@ -1,5 +1,7 @@
 # Phase 1 Data Model: Vendor-Identity Evidence Gate
 
+> **Implementation status**: PR #38 (MVP) implements **§1–§6 and §9** (gate preset surface, `FiveSignalSet`, `EvidenceGateResult`, `EvidenceGateDocumentRecord`, `RunSummary` additive fields, regex constants, numeric constants, stop-word set, CPU/stub identity values). **§7 ('State transitions and side effects') describes US4 skip-fallback behavior that lands on stacked PR #40** — the suppression side effect in `preprocessing/pipeline.py` and the `evidence_gate_optin.py` module are documented here but not yet implemented on PR #38.
+
 This document specifies the entities, types, validation rules, and state transitions added by feature 020. All entities live in-process; nothing is persisted to a new file (FR-021). The four canonical stage 1 artifact schemas are unchanged.
 
 ---
