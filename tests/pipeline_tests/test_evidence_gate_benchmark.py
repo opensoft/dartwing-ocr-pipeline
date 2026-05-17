@@ -1,0 +1,136 @@
+"""Feature 020 / T053 / FR-015 / R-020.13 / R-020.16 / R-020.15: GPU four-run
+benchmark over the fixed 5-doc subset producing Appendix A numbers.
+
+Marked ``@pytest.mark.gpu`` and **deferrable per R-020.15** — GPU workstation
+hardware is required to actually run the benchmark. On a CPU-only host (the
+default suite filter ``-m "not gpu"`` deselects this file) the test is
+collected but never executes. When the deferred GPU run is performed in a
+follow-up, the ``@pytest.mark.skip`` decorator can be removed and the body
+will exercise the full four-run discipline below.
+
+Four-run benchmark discipline (R-020.16):
+
+1. Invoke ``--gpu-warmup`` ONCE at the start of the session to populate the
+   MIOpen / COMGR caches and warm the PPStructureV3 / OCR-only engine pools
+   per feature 016 / 019 precedent.
+2. Run the legacy default (no opt-in) over the 5-doc subset TWICE; discard
+   run 1 timings; record run 2's ``phase_timings.*`` as the legacy baseline.
+3. Run the skip-fallback candidate (opt-in active) over the same subset
+   TWICE; discard run 1; record run 2 as the candidate.
+4. For each document, compute the latency delta ``(legacy_total -
+   candidate_total)`` AND the host's per-key jitter band (the absolute
+   spread between the two legacy values for that key on that document).
+
+Per-key change assertion (FR-015 / Clarifications Session 2026-05-16 Q1
+Option A): for each *suppressed* document (one with
+``evidence_gate_suppressed_fallback_count`` incrementing on that doc),
+assert ONLY ``phase_timings.per_page_inference`` and ``phase_timings.total``
+decrease vs. legacy run 2; assert ``paddle_import``, ``gpu_bind_probe``,
+``engine_init``, ``warmup``, ``rasterization``, ``artifact_write`` stay
+within the per-key jitter band. For *unsuppressed* documents (candidate
+gate decision was ``borderline`` or ``insufficient`` and the fallback
+ran), assert all keys stay within their respective jitter bands.
+
+5-doc subset lookup procedure (R-020.13):
+
+- FIRST, read ``specs/017-ppstructurev3-module-reduction/quickstart.md``
+  Appendix A and ``specs/019-ocr-only-fast-lane/quickstart.md`` § FR-015
+  benchmark table — if either has been filled with three concrete
+  ``inv_*`` folder names at landing, use that exact list to preserve
+  cross-feature comparability.
+- If neither has been filled (as of 2026-05-16 both list the medium /
+  hard docs as TBD), use this candidate subset matching the R-017.11
+  constraint of "2 easy + 1 mid-difficulty + 2 challenging":
+  ``inv_001_easy``, ``inv_002_easy``, ``inv_006_medium``,
+  ``inv_011_hard``, ``inv_012_hard``.
+- Record the actual subset used in ``quickstart.md`` Appendix A so it
+  is auditable.
+
+Cold-cache runs (after ``~/.cache/miopen`` clearance) are explicitly OUT
+of FR-015 scope per R-020.16.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+pytestmark = pytest.mark.gpu
+
+# Phase-timing keys emitted by the GPU lane per feature 014/015/016 timing
+# surface. Of these, ONLY `per_page_inference` and `total` are allowed to
+# decrease on a suppressed document; every other key must stay within the
+# host's per-key jitter band.
+_GPU_PHASE_KEYS: tuple[str, ...] = (
+    "paddle_import",
+    "gpu_bind_probe",
+    "engine_init",
+    "warmup",
+    "rasterization",
+    "per_page_inference",
+    "artifact_write",
+    "total",
+)
+_ALLOWED_DECREASE_KEYS: frozenset[str] = frozenset({"per_page_inference", "total"})
+
+# R-020.13 / R-017.11 default subset — fallback when 017/019 quickstart
+# tables are still TBD. The benchmark MUST record which list was used in
+# ``quickstart.md`` Appendix A.
+_DEFAULT_5_DOC_SUBSET: tuple[str, ...] = (
+    "inv_001_easy",
+    "inv_002_easy",
+    "inv_006_medium",
+    "inv_011_hard",
+    "inv_012_hard",
+)
+
+
+@pytest.mark.skip(
+    reason=(
+        "GPU four-run benchmark; deferrable per R-020.15. Requires the "
+        "workstation GPU (`paddlepaddle-dcu`) plus the fixed 5-doc subset "
+        "with a `sufficient`-eligible header band. Run manually via "
+        "`pytest -m gpu tests/pipeline_tests/test_evidence_gate_benchmark.py` "
+        "on the workstation; outputs are recorded in "
+        "`specs/020-vendor-evidence-gate/quickstart.md` Appendix A "
+        "(numbers) and `research.md` Appendix B (quality-gate verdict). "
+        "CPU-safe coverage of the suppression mechanics lives in "
+        "`test_evidence_gate_skip_fallback_borderline_cpu.py` and "
+        "`test_evidence_gate_recorded_over_final.py`."
+    )
+)
+def test_evidence_gate_benchmark_four_run_per_key_deltas_gpu(
+    tmp_path: Path,
+) -> None:
+    """GPU benchmark: two legacy runs + two candidate runs over the
+    5-doc subset; per-key delta assertions per FR-015 / Clarifications
+    Q1 Option A.
+
+    The assertion shape (executed when the GPU deferral is closed):
+
+    - For each suppressed document (where
+      ``evidence_gate_suppressed_fallback_count`` increments on the
+      candidate run), only ``per_page_inference`` and ``total`` may
+      drop vs. legacy run 2; all other keys (``paddle_import``,
+      ``gpu_bind_probe``, ``engine_init``, ``warmup``, ``rasterization``,
+      ``artifact_write``) must stay within the per-key jitter band
+      computed from ``abs(legacy_run_1[key] - legacy_run_2[key])`` on
+      that document.
+    - For each unsuppressed document (candidate decision is
+      ``borderline`` or ``insufficient`` and the fallback engages), ALL
+      keys including ``per_page_inference`` and ``total`` must stay
+      within their respective jitter bands.
+    """
+    # Body intentionally fails when run on GPU without an updated
+    # implementation that drives the four-run benchmark loop. At PR
+    # landing time on a CPU host this is unreachable thanks to the
+    # module-level `pytestmark = pytest.mark.gpu` + `@pytest.mark.skip`
+    # above. The deferred GPU run replaces this body with the real
+    # benchmark loop, removes the skip decorator, and updates Appendix
+    # A / B with the recorded numbers.
+    _ = _GPU_PHASE_KEYS, _ALLOWED_DECREASE_KEYS, _DEFAULT_5_DOC_SUBSET
+    pytest.fail(
+        "GPU benchmark deferred per R-020.15; remove @pytest.mark.skip "
+        "and wire the four-run loop when the workstation GPU is available."
+    )

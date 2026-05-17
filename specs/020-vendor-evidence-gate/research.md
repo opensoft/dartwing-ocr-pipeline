@@ -366,3 +366,5 @@ This appendix is intentionally empty in the planning phase. At landing time (aft
 The promotion gate (FR-016) passes iff `candidate aggregate_score >= legacy aggregate_score` AND `candidate pass count >= legacy pass count`, both measured across the 5-doc subset.
 
 If GPU verification was deferred per R-020.15, this appendix records the deferral with a one-line cross-reference to the follow-up issue/task in `tasks.md`.
+
+**T056 deferral note (US7 landing, CPU-only runner)**: GPU benchmark + quality-gate verification deferred per R-020.15. Cross-reference: `tasks.md` T058 — surveillance follow-up captures the deferred GPU runs (`test_evidence_gate_benchmark.py` produces the numbers above; `test_quality_gate_two_metric_evidence_gate.py` produces the candidate-vs-legacy verdict). Both test skeletons are present in `tests/pipeline_tests/` with `@pytest.mark.gpu` markers and explicit `@pytest.mark.skip` reasons; they activate once workstation GPU hardware is available.
