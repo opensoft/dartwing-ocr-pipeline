@@ -497,3 +497,88 @@ def test_canonicalization_rejects_nan_inf_strings_in_signals() -> None:
     assert signals["vendor_name_candidate_count"] == 0
     assert signals["header_band_token_density"] == 0
     assert signals["ocr_detection_confidence_mean"] == 0.0
+
+
+# --- Phase 5 fixes: safe_bool + OverflowError + state_counts coercion -----
+
+
+def test_safe_int_handles_float_infinity() -> None:
+    """Phase 5: ``_safe_int`` no longer raises ``OverflowError`` when
+    asked to coerce ``float('inf')`` / ``float('-inf')`` — both fall
+    back to the safe default."""
+    from ledgerlinc_ocr.pipeline.timing import _safe_int
+
+    assert _safe_int(float("inf")) == 0
+    assert _safe_int(float("-inf")) == 0
+    assert _safe_int(float("nan")) == 0
+
+
+def test_safe_bool_rejects_non_bool_inputs() -> None:
+    """Phase 5: ``_safe_bool`` accepts only actual booleans; any other
+    type (string, int, float, list, dict, None) → default. This
+    closes the ``bool("false") == True`` hole."""
+    from ledgerlinc_ocr.pipeline.timing import _safe_bool
+
+    assert _safe_bool(True) is True
+    assert _safe_bool(False) is False
+    assert _safe_bool("false") is False  # KEY case
+    assert _safe_bool("True") is False  # KEY case
+    assert _safe_bool("nonsense") is False
+    assert _safe_bool(1) is False  # int → default
+    assert _safe_bool(0) is False
+    assert _safe_bool(None) is False
+    assert _safe_bool([]) is False
+
+
+def test_canonicalization_uses_safe_bool_for_signal_booleans() -> None:
+    """Phase 5: a per-doc record carrying string values in the boolean
+    signal slots gets coerced to ``False`` at the serializer boundary,
+    not ``True`` (which raw ``bool(...)`` would produce for non-empty
+    strings)."""
+    from ledgerlinc_ocr.pipeline.timing import RunSummary
+
+    rs = RunSummary(
+        stack_preset="cpu", resolved_profiles={}, execution_slice={},
+        on_failure="abort", documents_total=1, documents_succeeded=1,
+        documents_failed=0,
+        evidence_gate_state_counts={"sufficient": 0, "borderline": 0, "insufficient": 1},
+        evidence_gate_documents=[
+            {
+                "document_id": "inv_001_easy",
+                "decision": "insufficient",
+                "signals": {
+                    "vendor_name_candidate_count": 0,
+                    "header_band_token_density": 0,
+                    "ocr_detection_confidence_mean": 0.0,
+                    "business_suffix_present": "false",  # string, not bool
+                    "tax_id_shaped_present": "True",  # string, not bool
+                },
+            },
+        ],
+    )
+    d = rs.to_dict()
+    signals = d["evidence_gate_documents"][0]["signals"]
+    assert signals["business_suffix_present"] is False
+    assert signals["tax_id_shaped_present"] is False
+
+
+def test_state_counts_serializer_uses_safe_int() -> None:
+    """Phase 5: the ``evidence_gate_state_counts`` serializer now uses
+    ``_safe_int`` so a buggy accumulator carrying a non-int value
+    (e.g., ``float('inf')`` or a string) coerces to 0 rather than
+    raising or emitting garbage."""
+    from ledgerlinc_ocr.pipeline.timing import RunSummary
+
+    rs = RunSummary(
+        stack_preset="cpu", resolved_profiles={}, execution_slice={},
+        on_failure="abort", documents_total=0, documents_succeeded=0,
+        documents_failed=0,
+        evidence_gate_state_counts={
+            "sufficient": float("inf"),  # type: ignore[dict-item]
+            "borderline": "garbage",  # type: ignore[dict-item]
+            "insufficient": -3,
+        },
+    )
+    d = rs.to_dict()
+    state_counts = d["evidence_gate_state_counts"]
+    assert state_counts == {"sufficient": 0, "borderline": 0, "insufficient": 0}

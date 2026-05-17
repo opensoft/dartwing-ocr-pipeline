@@ -166,25 +166,13 @@ def _ns_to_seconds(ns: int) -> float:
     return round(ns / 1e9, 6)
 
 
-# Feature 020 (Phase 3 post-review): closed-vocabulary key sets for the
-# evidence-gate per-document record. Used by `_canonicalize_evidence_gate_record`
-# at the serializer boundary so a buggy caller cannot leak extra keys
-# (or raw token fields) onto the operator-facing run_summary line. This
-# is the last-line-of-defense PII closure parallel to the
-# `ppstructure_modules_invoked` sort-and-intersect canonicalization
-# already enforced for that field.
-_EVIDENCE_GATE_RECORD_KEYS: frozenset[str] = frozenset(
-    {"document_id", "decision", "signals"}
-)
-_EVIDENCE_GATE_SIGNAL_KEYS: frozenset[str] = frozenset(
-    {
-        "vendor_name_candidate_count",
-        "header_band_token_density",
-        "ocr_detection_confidence_mean",
-        "business_suffix_present",
-        "tax_id_shaped_present",
-    }
-)
+# Feature 020 (Phase 3 post-review): closed-vocabulary decision set for
+# the evidence-gate per-document record. Used by
+# `_canonicalize_evidence_gate_record` at the serializer boundary so a
+# caller-supplied record cannot leak an out-of-vocabulary `decision`
+# onto the wire format. The record-keys and signal-keys whitelists are
+# enforced implicitly by the canonicalizer building a fresh dict with
+# exactly those keys; explicit frozensets would be redundant.
 _EVIDENCE_GATE_DECISION_VOCAB: frozenset[str] = frozenset(
     {"sufficient", "borderline", "insufficient"}
 )
@@ -199,14 +187,20 @@ def _safe_int(value: Any, default: int = 0) -> int:
     subclass of `int` so ``int(True) == 1`` silently. This helper is
     used at the serializer boundary where a buggy caller's bad scalar
     must NOT propagate to the wire format.
+
+    Phase 5 hardening (post-review): also catches ``OverflowError``
+    from ``int(float('inf'))`` / ``int(float('-inf'))``.
     """
     if isinstance(value, bool) or value is None:
         return default
     if isinstance(value, int):
         return value if value >= 0 else default
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return default
     try:
         coerced = int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
     return coerced if coerced >= 0 else default
 
@@ -226,11 +220,24 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return default
     try:
         coerced = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
     if math.isnan(coerced) or math.isinf(coerced):
         return default
     return max(0.0, min(1.0, coerced))
+
+
+def _safe_bool(value: Any, default: bool = False) -> bool:
+    """Coerce ``value`` to bool; return ``default`` on anything that
+    is not strictly a ``bool``.
+
+    Phase 5 hardening (post-review): raw ``bool(...)`` converts any
+    non-empty string (including ``"false"`` and arbitrary text) to
+    ``True``, breaking the serializer-boundary guarantee that
+    wrong-typed inputs land on safe defaults. Only accept actual
+    ``True`` / ``False``.
+    """
+    return value if isinstance(value, bool) else default
 
 
 def _canonicalize_evidence_gate_record(
@@ -273,11 +280,11 @@ def _canonicalize_evidence_gate_record(
             "ocr_detection_confidence_mean": _safe_float(
                 raw_signals.get("ocr_detection_confidence_mean")
             ),
-            "business_suffix_present": bool(
-                raw_signals.get("business_suffix_present", False)
+            "business_suffix_present": _safe_bool(
+                raw_signals.get("business_suffix_present")
             ),
-            "tax_id_shaped_present": bool(
-                raw_signals.get("tax_id_shaped_present", False)
+            "tax_id_shaped_present": _safe_bool(
+                raw_signals.get("tax_id_shaped_present")
             ),
         },
     }
@@ -520,15 +527,23 @@ class RunSummary:
             # buggy caller cannot leak a sparse object onto the wire.
             "evidence_gate_id": self.evidence_gate_id,
             "evidence_gate_state_counts": {
-                "sufficient": int(self.evidence_gate_state_counts.get("sufficient", 0)),
-                "borderline": int(self.evidence_gate_state_counts.get("borderline", 0)),
-                "insufficient": int(self.evidence_gate_state_counts.get("insufficient", 0)),
+                "sufficient": _safe_int(
+                    self.evidence_gate_state_counts.get("sufficient", 0)
+                ),
+                "borderline": _safe_int(
+                    self.evidence_gate_state_counts.get("borderline", 0)
+                ),
+                "insufficient": _safe_int(
+                    self.evidence_gate_state_counts.get("insufficient", 0)
+                ),
             },
             "evidence_gate_documents": [
                 _canonicalize_evidence_gate_record(r)
                 for r in self.evidence_gate_documents
             ],
-            "evidence_gate_suppressed_fallback_count": self.evidence_gate_suppressed_fallback_count,
+            "evidence_gate_suppressed_fallback_count": _safe_int(
+                self.evidence_gate_suppressed_fallback_count
+            ),
         }
 
     def as_json_line(self) -> str:

@@ -294,4 +294,12 @@ Per the Q3 clarification, **over-time regression surveillance for `evidence_gate
 
 This entry persists in Appendix B even if all other GPU deferrals close — the surveillance question is a permanent follow-up, not a deferred verification.
 
-CPU-safe floor that MUST pass before merge: items 1–7 of "Smoke tests" above plus the eight CPU-safe unit tests listed in `plan.md` § Source Code (`test_evidence_gate_signals_unit.py`, `test_evidence_gate_decision_unit.py`, `test_evidence_gate_optin_unit.py`, `test_evidence_gate_y_threshold_unit.py`, `test_cpu_warn_and_proceed_evidence_gate.py`, `test_run_summary_schema_0_1_7.py`, `test_evidence_gate_corpus_run.py`, `test_legacy_byte_identity_evidence_gate.py` CPU variant).
+CPU-safe floor that MUST pass before merge of PR #38 (MVP):
+- items 1–7 of "Smoke tests" above
+- the CPU-safe unit tests under `tests/unit/preprocessing/test_evidence_gate_*.py` (signals, decision, malformed-input, NFKC, rederivability, regex-negatives, registry, strategy-uniformity, y-threshold, module-safety, A-fixes)
+- the pipeline-level coverage under `tests/pipeline_tests/test_evidence_gate_*.py` (runsummary-aggregation, field-order, pipeline-integration, callsite-regression)
+- the schema-bump test `tests/pipeline_tests/test_run_summary_schema_0_1_7.py`
+
+CPU-safe floor that MUST pass before merge of the stacked PRs:
+- **PR #40 (US4 — skip-fallback opt-in)**: `tests/unit/preprocessing/test_evidence_gate_optin_unit.py` (CLI/env-var resolution; landing on #40 not in PR #38) + `tests/pipeline_tests/test_cpu_warn_and_proceed_evidence_gate.py` (CPU warn-and-proceed marker; landing on #40 not in PR #38)
+- **PR #39 (US6 — schema-preservation regressions)**: `tests/pipeline_tests/test_legacy_byte_identity_evidence_gate.py` CPU variant (landing on #39 not in PR #38).

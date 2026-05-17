@@ -160,7 +160,7 @@ CPU-safe tests in `tests/pipeline_tests/`:
 
 1. `test_run_summary_schema_0_1_7.py` — asserts the bump from `"0.1.6"` to `"0.1.7"` and the presence of all four new fields on stub-adapter and CPU runs.
 2. `test_evidence_gate_runsummary_aggregation.py` (synthetic RunSummary level) + `test_evidence_gate_pipeline_integration.py` (real on-disk wiring) — together assert that `evidence_gate_state_counts[s]` equals `count(evidence_gate_documents | .decision == s)` for each closed-vocabulary state.
-3. `test_legacy_byte_identity_evidence_gate.py` (CPU variant) — asserts feature 014–019 surface bytes are unchanged on a no-opt-in run.
+3. `test_legacy_byte_identity_evidence_gate.py` (CPU variant) — **lands on stacked PR #39 (US6)**, NOT on PR #38. Asserts feature 014–019 surface bytes are unchanged on a no-opt-in run. The byte-identity contract is enforced on PR #38 by `test_run_summary_schema_0_1_7.py::test_features_014_to_019_keys_byte_identical_to_baseline`, which value-parity-compares every pre-020 key against the captured `tests/fixtures/feature_020_baseline/run_summary_pre_020.json` baseline.
 
 GPU-marked tests (deferrable per R-020.15):
 

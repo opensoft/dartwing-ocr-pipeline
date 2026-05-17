@@ -64,7 +64,7 @@ Hard invariants enforced at the module-import and module-call boundaries. Each i
 
 | # | Invariant | Enforcement |
 |---|---|---|
-| MI-20 | At landing, the skip-fallback opt-in defaults to OFF on every profile (including `ppstructurev3@gpu`). A run with no `--evidence-gate-skip-fallback` flag AND no truthy `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` env var MUST produce identical behavior to a pre-feature-020 run on the same fixture (modulo the four additive `run_summary` fields). | `test_legacy_byte_identity_evidence_gate.py` (CPU) asserts `preprocess_output.json` byte-identity to a feature-019 baseline. |
+| MI-20 | At landing, the skip-fallback opt-in defaults to OFF on every profile (including `ppstructurev3@gpu`). A run with no `--evidence-gate-skip-fallback` flag AND no truthy `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` env var MUST produce identical behavior to a pre-feature-020 run on the same fixture (modulo the four additive `run_summary` fields). | **US4 / stacked PR #40 — not enforced on PR #38.** When US4 lands, `test_legacy_byte_identity_evidence_gate.py` (CPU, on stacked PR #39 per US6) asserts `preprocess_output.json` byte-identity to a feature-019 baseline. On PR #38, the run_summary surface invariant is asserted by `test_run_summary_schema_0_1_7.py::test_features_014_to_019_keys_byte_identical_to_baseline` (value-parity carry-forward against the captured pre-020 baseline fixture). |
 | MI-21 | Promoting the opt-in to default-on requires passing the FR-016 quality gate (R-020.14) AND a code change to flip the default in `evidence_gate_optin.py::resolve_evidence_gate_skip_fallback`. This is explicitly out of scope for the initial landing of feature 020. | Manual review at promotion time; not enforced by CI in the current landing. |
 
 ---

@@ -1,6 +1,6 @@
 # Phase 1 Data Model: Vendor-Identity Evidence Gate
 
-> **Implementation status**: PR #38 (MVP) implements **§1–§6 and §9** (gate preset surface, `FiveSignalSet`, `EvidenceGateResult`, `EvidenceGateDocumentRecord`, `RunSummary` additive fields, regex constants, numeric constants, stop-word set, CPU/stub identity values). **§7 ('State transitions and side effects') describes US4 skip-fallback behavior that lands on stacked PR #40** — the suppression side effect in `preprocessing/pipeline.py` and the `evidence_gate_optin.py` module are documented here but not yet implemented on PR #38.
+> **Implementation status**: PR #38 (MVP) implements **§1–§9** (gate preset surface, `FiveSignalSet`, `EvidenceGateResult`, `EvidenceGateDocumentRecord`, `RunSummary` additive fields, regex constants, numeric constants, stop-word set, CPU/stub identity values). **§10 ('State transitions and side effects') describes the FULL feature surface across all user stories** — only the third bullet (`pipeline/timing.py` schema bump + four additive fields) lands in PR #38; the skip-fallback side effect in `preprocessing/pipeline.py` and the `--evidence-gate-skip-fallback` CLI flag in `preprocessing/cli.py` / `pipeline/cli.py` are documented here but **land on stacked PR #40 (US4)**, not in PR #38.
 
 This document specifies the entities, types, validation rules, and state transitions added by feature 020. All entities live in-process; nothing is persisted to a new file (FR-021). The four canonical stage 1 artifact schemas are unchanged.
 
@@ -274,8 +274,8 @@ Contrast with feature 019's `preprocess_strategy_id` which uses `cpu-default` / 
 The evidence gate is **stateless** at module level. There are no in-process mutable globals. Each call to `evaluate_evidence_gate(preprocess_output_dict, *, gate_id="v1")` is a pure function: same input ⇒ same output across reruns and hosts (SC-001).
 
 Side effects under feature 020:
-- `preprocessing/pipeline.py`: when the suppression predicate (R-020.8) returns `True`, the OCR-only candidate `preprocess_output.json` is kept as the document's final preprocessing output INSTEAD of triggering feature 019's PPStructureV3 fallback. This side effect is operator-visible via `evidence_gate_suppressed_fallback_count` on `run_summary`.
-- `pipeline/timing.py`: `RunSummary.SCHEMA_VERSION` is bumped from `"0.1.6"` to `"0.1.7"` and four new top-level fields are emitted on every run.
-- `preprocessing/cli.py` / `pipeline/cli.py`: a new boolean opt-in flag `--evidence-gate-skip-fallback` is accepted; when set on a non-GPU profile, a stderr warn line is emitted and the run proceeds unchanged (R-020.12).
+- **[US4 / stacked PR #40 — NOT in PR #38]** `preprocessing/pipeline.py`: when the suppression predicate (R-020.8) returns `True`, the OCR-only candidate `preprocess_output.json` is kept as the document's final preprocessing output INSTEAD of triggering feature 019's PPStructureV3 fallback. This side effect is operator-visible via `evidence_gate_suppressed_fallback_count` on `run_summary`.
+- **[PR #38 — landed]** `pipeline/timing.py`: `RunSummary.SCHEMA_VERSION` is bumped from `"0.1.6"` to `"0.1.7"` and four new top-level fields are emitted on every run.
+- **[US4 / stacked PR #40 — NOT in PR #38]** `preprocessing/cli.py` / `pipeline/cli.py`: a new boolean opt-in flag `--evidence-gate-skip-fallback` is accepted; when set on a non-GPU profile, a stderr warn line is emitted and the run proceeds unchanged (R-020.12).
 
 No state is persisted across runs (FR-021 / no new artifact). All state lives in the in-process `RunSummary` instance and is emitted on the single `kind: "run_summary"` stdout line at run completion.
