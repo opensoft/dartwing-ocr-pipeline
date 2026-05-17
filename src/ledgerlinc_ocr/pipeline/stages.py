@@ -427,19 +427,8 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
                 det_rec_variant_id=invocation.det_rec_variant_id,
                 raster_profile_id=invocation.raster_profile_id,
                 region_strategy_id=invocation.region_strategy_id,
-                # Feature 019: thread the preprocess_strategy_id into the
-                # per-stage Invocation so the OCR-only dispatch fires.
-                preprocess_strategy_id=getattr(
-                    invocation, "preprocess_strategy_id", None
-                ),
-                # Feature 020 (T041 / R-020.1 / R-020.7): thread the
-                # skip-fallback opt-in into the per-stage Invocation so
-                # the orchestrator's disposition seam can decide whether
-                # to evaluate the gate on the OCR-only candidate AND
-                # whether to suppress the FR-005 PPStructureV3 fallback.
-                evidence_gate_skip_fallback_optin=getattr(
-                    invocation, "evidence_gate_skip_fallback_optin", False
-                ),
+                preprocess_strategy_id=invocation.preprocess_strategy_id,
+                evidence_gate_skip_fallback_optin=invocation.evidence_gate_skip_fallback_optin,
             )
             try:
                 out_path = preprocessing_run(
@@ -450,15 +439,9 @@ def _ppstructurev3_factory(lane: str) -> AdapterFactory:
                 invocation.region_strategy_fallback_fired = (
                     pre_invocation.region_strategy_fallback_fired
                 )
-                # Feature 019 (T021 / R-019.10 / I-019.4): copy the per-doc
-                # OCR-only fallback flag back onto the warm CLIInvocation so
-                # corpus_run can aggregate `ocr_only_fallback_count`.
                 invocation.ocr_only_fallback_fired = (
                     pre_invocation.ocr_only_fallback_fired
                 )
-                # Feature 020 (T042 / R-020.8 / MI-16): copy the per-doc
-                # suppression flag back so corpus_run can aggregate
-                # `evidence_gate_suppressed_fallback_count`.
                 invocation.evidence_gate_suppressed_fired = (
                     pre_invocation.evidence_gate_suppressed_fired
                 )

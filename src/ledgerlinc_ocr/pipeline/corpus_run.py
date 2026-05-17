@@ -266,12 +266,8 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         resolve_region_strategy_value as _resolve_region_strategy_value_018,
         region_strategy_warn_message as _region_strategy_warn_018,
     )
-    # Feature 020 (T041 / R-020.1 / R-020.12 / MI-22 / MI-23): skip-fallback
-    # opt-in resolution for the warm-corpus path mirrors features
-    # 017/018/019 axes above. Pure boolean — no UnknownPresetError surface.
     from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
-        resolve_evidence_gate_skip_fallback as _resolve_evidence_gate_skip_fallback_020,
-        evidence_gate_skip_fallback_warn_message as _evidence_gate_skip_fallback_warn_020,
+        apply_skip_fallback_optin as _apply_evidence_gate_skip_fallback_optin,
     )
     from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
         resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value_019,
@@ -327,32 +323,19 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
             sys.stderr.write(_preprocess_strategy_warn_019(_profile_for_warn_017) + "\n")
             _preprocess_strategy_threaded_019 = None
 
-    # Feature 020 (T041 / R-020.1 / R-020.12 / MI-22 / MI-23): resolve
-    # the skip-fallback opt-in for the warm-corpus path. Same precedence
-    # contract as the preprocessing CLI (CLI flag > env > default OFF).
-    # When the opt-in is active AND the resolved preprocess lane is not
-    # GPU, emit ONE stderr warn-and-proceed line and force the threaded
-    # opt-in to False. Same warn-and-proceed shape as features 017/018/019
-    # axes above.
-    _evidence_gate_skip_fallback_threaded_020 = (
-        _resolve_evidence_gate_skip_fallback_020(
-            getattr(args, "evidence_gate_skip_fallback", False)
+    try:
+        _evidence_gate_skip_fallback_threaded = _apply_evidence_gate_skip_fallback_optin(
+            cli_value=args.evidence_gate_skip_fallback,
+            is_gpu_profile=_is_gpu_lane_017(_warm_lane_017),
+            active_profile_name=(
+                _warm_pp_profile_017.raw_value
+                if _warm_pp_profile_017 is not None
+                else (getattr(args, "preprocess_profile", None) or "ppstructurev3@cpu")
+            ),
         )
-    )
-    if (
-        _evidence_gate_skip_fallback_threaded_020
-        and _preprocess_in_slice_for_warn_017
-        and not _is_gpu_lane_017(_warm_lane_017)
-    ):
-        _profile_for_warn_020 = (
-            _warm_pp_profile_017.raw_value
-            if _warm_pp_profile_017 is not None
-            else (getattr(args, "preprocess_profile", None) or "ppstructurev3@cpu")
-        )
-        sys.stderr.write(
-            _evidence_gate_skip_fallback_warn_020(_profile_for_warn_020) + "\n"
-        )
-        _evidence_gate_skip_fallback_threaded_020 = False
+    except ValueError as exc:
+        sys.stderr.write(f"error: {exc}\n")
+        return 2
 
     # Resolve the threaded values to preset objects for the warm-init factory.
     _module_set_obj_017: object | None = None
@@ -547,13 +530,13 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
     # `evidence_gate_suppressed_fallback_count` accumulator stays at 0
     # on the MVP slice — US4 (a follow-up PR) wires the per-doc
     # suppression-event flag onto this counter when shape (b) fires.
-    _evidence_gate_state_counts_020: dict[str, int] = {
+    _evidence_gate_state_counts: dict[str, int] = {
         "sufficient": 0,
         "borderline": 0,
         "insufficient": 0,
     }
-    _evidence_gate_documents_020: list[dict[str, Any]] = []
-    _evidence_gate_suppressed_fallback_count_020 = 0
+    _evidence_gate_documents: list[dict[str, Any]] = []
+    _evidence_gate_suppressed_fallback_count = 0
 
     for entry in documents:
         folder_raw = entry.raw
@@ -566,7 +549,7 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
             raster_profile_id=_raster_profile_threaded_018,
             region_strategy_id=_region_strategy_threaded_018,
             preprocess_strategy_id=_preprocess_strategy_threaded_019,
-            evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_threaded_020,
+            evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_threaded,
         )
         if invocation is None:
             failed += 1
@@ -614,17 +597,12 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         # 018 does for `region_strategy_fallback_fired`.
         if getattr(invocation, "ocr_only_fallback_fired", False):
             _ocr_only_fallback_count_019 += 1
-        # Feature 020 (T042 / R-020.8 / MI-16 / MI-17): aggregate per-doc
-        # evidence-gate suppression flag. The live preprocessing adapter
-        # copies the per-document
-        # `preprocessing.pipeline.Invocation.evidence_gate_suppressed_fired`
-        # flag back onto this warm-corpus `CLIInvocation` exactly like
-        # feature 019 does for `ocr_only_fallback_fired`. Single sum
-        # across the run lands on
-        # `RunSummary.evidence_gate_suppressed_fallback_count` below.
-        if getattr(invocation, "evidence_gate_suppressed_fired", False):
-            _evidence_gate_suppressed_fallback_count_020 += 1
         observed_exit_codes.append(result.exit_code)
+        if (
+            result.exit_code == ExitCode.SUCCESS
+            and invocation.evidence_gate_suppressed_fired
+        ):
+            _evidence_gate_suppressed_fallback_count += 1
         if result.exit_code == ExitCode.SUCCESS:
             succeeded += 1
             _emit_stdout_summary(
@@ -715,8 +693,8 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
                 )
                 if _gate_input is not None:
                     _gate_result = evaluate_evidence_gate(_gate_input)
-                    _evidence_gate_state_counts_020[_gate_result.decision] += 1
-                    _evidence_gate_documents_020.append(
+                    _evidence_gate_state_counts[_gate_result.decision] += 1
+                    _evidence_gate_documents.append(
                         build_evidence_gate_document_record(
                             document_id=invocation.document_id,
                             result=_gate_result,
@@ -986,9 +964,9 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         # stays at default 0 on the MVP slice; US4 (follow-up PR) wires
         # the suppression-event counter when shape (b) fires.
         evidence_gate_id="v1",
-        evidence_gate_state_counts=_evidence_gate_state_counts_020,
-        evidence_gate_documents=_evidence_gate_documents_020,
-        evidence_gate_suppressed_fallback_count=_evidence_gate_suppressed_fallback_count_020,
+        evidence_gate_state_counts=_evidence_gate_state_counts,
+        evidence_gate_documents=_evidence_gate_documents,
+        evidence_gate_suppressed_fallback_count=_evidence_gate_suppressed_fallback_count,
     )
     emit_run_summary(summary)
 

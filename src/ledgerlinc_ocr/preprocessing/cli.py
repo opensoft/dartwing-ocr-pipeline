@@ -34,6 +34,9 @@ from ledgerlinc_ocr.preprocessing.errors import (
     InputRejectedError,
     WarmupError,
 )
+from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
+    apply_skip_fallback_optin as _apply_evidence_gate_skip_fallback_optin,
+)
 from ledgerlinc_ocr.preprocessing.warmup_optin import (
     is_warmup_optin_set,
     is_gpu_lane,
@@ -219,35 +222,21 @@ def _build_parser() -> argparse.ArgumentParser:
             "CLI flag wins."
         ),
     )
-    # Feature 020 (T038 / R-020.1 / R-020.7 / R-020.8 / R-020.12 /
-    # contracts/cli-contract.md §1): the skip-fallback opt-in for the
-    # OCR-only ⇒ PPStructureV3 fallback path. OFF by default per FR-012
-    # / MI-20 — no operator action equals legacy behavior. Composes with
-    # `--preprocess-strategy=ocr-only-v1`: when the FR-005 trigger fires
-    # AND the evidence gate concludes `sufficient` on the OCR-only
-    # candidate AND this opt-in is active, the fallback to PPStructureV3
-    # is suppressed and the OCR-only output is kept as the final
-    # preprocess_output (R-020.8 four-conjunct predicate). On any other
-    # decision the legacy fallback fires unchanged. Also accepted via
-    # LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK; the CLI flag wins.
     p.add_argument(
         "--evidence-gate-skip-fallback",
         action="store_true",
         default=False,
         help=(
-            "Opt into the vendor-identity evidence-gate skip-fallback "
-            "behavior: when --preprocess-strategy=ocr-only-v1 AND the "
-            "FR-005 combined two-threshold trigger fires AND the "
-            "evidence gate concludes `sufficient` on the OCR-only "
-            "candidate, suppress the FR-005 PPStructureV3 fallback and "
-            "keep the OCR-only output as the final preprocess_output. "
-            "Off by default on every profile; only meaningful on "
-            "ppstructurev3@gpu with --preprocess-strategy=ocr-only-v1. "
-            "On non-GPU profiles a stderr warning is emitted and the "
-            "flag is ignored (warn-and-proceed). Each suppression event "
-            "increments evidence_gate_suppressed_fallback_count on the "
-            "run_summary. Can also be set via "
-            "LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK; the CLI flag wins."
+            "Suppress feature 019's OCR-only-to-PPStructureV3 fallback "
+            "when the evidence gate concludes 'sufficient' on the "
+            "OCR-only candidate. Off by default. Requires "
+            "--preprocess-profile=ppstructurev3@gpu AND "
+            "--preprocess-strategy=ocr-only-v1 to have effect. On "
+            "non-GPU profiles a stderr warning is emitted "
+            "(--evidence-gate-skip-fallback ignored:) and the run "
+            "proceeds unchanged. Env-var fallback: "
+            "LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK "
+            "(truthy: 1/true/yes/on)."
         ),
     )
     return p
@@ -394,14 +383,6 @@ def main(argv: list[str] | None = None) -> int:
     from ledgerlinc_ocr.preprocessing.preprocess_strategies import (
         resolve_user_preprocess_strategy as _resolve_user_preprocess_strategy,
     )
-    # Feature 020 (T039 / R-020.1 / R-020.12 / MI-22 / MI-23): skip-fallback
-    # opt-in resolution mirrors features 017/018/019 axes above. Pure
-    # boolean (not string-valued), so no UnknownPresetError surface.
-    from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
-        resolve_evidence_gate_skip_fallback as _resolve_evidence_gate_skip_fallback,
-        evidence_gate_skip_fallback_warn_message as _evidence_gate_skip_fallback_warn,
-    )
-
     _module_set_raw = _resolve_module_set_value(args.module_set)
     _det_rec_raw = _resolve_det_rec_variant_value(args.det_rec_variant)
     _raster_profile_raw = _resolve_raster_profile_value(args.raster_profile)
@@ -459,28 +440,19 @@ def main(argv: list[str] | None = None) -> int:
             print(_preprocess_strategy_warn(active_profile_name_017), file=sys.stderr)
             _preprocess_strategy_threaded = None
 
-    # Feature 020 (T039 / R-020.1 / R-020.12 / MI-22 / MI-23): resolve
-    # the skip-fallback opt-in AFTER the cross-profile warn-and-proceed
-    # branch above so the active profile name is known. The flag is a
-    # pure boolean (no UnknownPresetError surface). When the opt-in is
-    # active AND the active profile is not `ppstructurev3@gpu`, emit
-    # exactly ONE stderr warn-and-proceed line (containing the grep-able
-    # `--evidence-gate-skip-fallback ignored:` marker per MI-22) and
-    # force the threaded opt-in to False so the orchestrator's
-    # disposition seam takes the legacy code path. Exit code is
-    # unchanged (MI-23).
-    _evidence_gate_skip_fallback_optin = _resolve_evidence_gate_skip_fallback(
-        args.evidence_gate_skip_fallback
-    )
-    if _evidence_gate_skip_fallback_optin and not _is_gpu_lane_017(preprocess_lane):
-        active_profile_name_020 = (
-            args.preprocess_profile if args.preprocess_profile else "ppstructurev3@cpu"
+    try:
+        _evidence_gate_skip_fallback_optin = _apply_evidence_gate_skip_fallback_optin(
+            cli_value=args.evidence_gate_skip_fallback,
+            is_gpu_profile=_is_gpu_lane_017(preprocess_lane),
+            active_profile_name=(
+                args.preprocess_profile
+                if args.preprocess_profile
+                else "ppstructurev3@cpu"
+            ),
         )
-        print(
-            _evidence_gate_skip_fallback_warn(active_profile_name_020),
-            file=sys.stderr,
-        )
-        _evidence_gate_skip_fallback_optin = False
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
     # Feature 016 (T008 / T010 / T021 / FR-010 / SC-007): resolve the warmup
     # opt-in surface (CLI flag + LEDGERLINC_GPU_WARMUP env var). When set on
@@ -518,14 +490,6 @@ def main(argv: list[str] | None = None) -> int:
         # pipeline orchestrator (T011) reads this and dispatches on
         # PreprocessStrategy.kind (ppstructurev3 / ocr-only / identity).
         preprocess_strategy_id=_preprocess_strategy_threaded,
-        # Feature 020 (T039 / R-020.1 / R-020.7 / R-020.8): threaded
-        # skip-fallback opt-in boolean. False on every CPU/stub run
-        # (warn-and-proceed already nulled it above when set); True
-        # only on `ppstructurev3@gpu` when the operator activated it.
-        # The orchestrator (T040) reads this in the OCR-only dispatch
-        # branch to decide whether to evaluate the evidence gate on
-        # the candidate output AND whether to suppress the FR-005
-        # PPStructureV3 fallback.
         evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_optin,
     )
 
@@ -827,12 +791,12 @@ def _emit_single_doc_run_summary(
     # gate skips and accumulators stay at defaults — the always-emit
     # contract per MI-16 / MI-17 still ships the four `run_summary`
     # fields with default-zero values.
-    _evidence_gate_state_counts_020: dict[str, int] = {
+    _evidence_gate_state_counts: dict[str, int] = {
         "sufficient": 0,
         "borderline": 0,
         "insufficient": 0,
     }
-    _evidence_gate_documents_020: list[dict[str, Any]] = []
+    _evidence_gate_documents: list[dict[str, Any]] = []
     if documents_succeeded == 1:
         try:
             from ledgerlinc_ocr.preprocessing.evidence_gate import (
@@ -846,8 +810,8 @@ def _emit_single_doc_run_summary(
             )
             if _gate_input is not None:
                 _gate_result = evaluate_evidence_gate(_gate_input)
-                _evidence_gate_state_counts_020[_gate_result.decision] += 1
-                _evidence_gate_documents_020.append(
+                _evidence_gate_state_counts[_gate_result.decision] += 1
+                _evidence_gate_documents.append(
                     build_evidence_gate_document_record(
                         document_id=document_id or invocation.document_folder.name,
                         result=_gate_result,
@@ -888,18 +852,11 @@ def _emit_single_doc_run_summary(
         # Feature 020 (T029 / R-020.10 / MI-16 / MI-17): four additive
         # top-level fields. Same wiring discipline as corpus_run.py —
         # `evidence_gate_id` is `"v1"` uniformly; `state_counts` and
-        # `documents` come from the single-doc accumulator above (or
-        # the all-zero defaults if the doc failed); suppression counter
-        # stays at 0 on the MVP slice.
         evidence_gate_id="v1",
-        evidence_gate_state_counts=_evidence_gate_state_counts_020,
-        evidence_gate_documents=_evidence_gate_documents_020,
-        # Feature 020 (T042 / R-020.8 / MI-16 / MI-17): per-doc
-        # suppression flag from the orchestrator → per-run accumulator.
-        # Single-doc CLI takes the value 0 or 1 (same pattern as
-        # `ocr_only_fallback_count` from feature 019 / I-019.4).
+        evidence_gate_state_counts=_evidence_gate_state_counts,
+        evidence_gate_documents=_evidence_gate_documents,
         evidence_gate_suppressed_fallback_count=(
-            1 if getattr(invocation, "evidence_gate_suppressed_fired", False) else 0
+            1 if success and invocation.evidence_gate_suppressed_fired else 0
         ),
     )
     emit_run_summary(summary)

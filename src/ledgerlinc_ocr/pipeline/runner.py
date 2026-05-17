@@ -154,25 +154,7 @@ class CLIInvocation:
     # mode aggregates the flag into `RunSummary.ocr_only_fallback_count`.
     preprocess_strategy_id: str | None = None
     ocr_only_fallback_fired: bool = False
-    # Feature 020 (T041 / R-020.1 / R-020.7 / R-020.8): skip-fallback
-    # opt-in boolean threaded from `pipeline/cli.py::main` after argv
-    # parse + cross-profile warn-and-proceed. `False` by default per
-    # FR-012 / MI-20. The live preprocessing adapter (stages.py /
-    # corpus_run.py) forwards this to the per-stage
-    # `preprocessing.pipeline.Invocation.evidence_gate_skip_fallback_optin`
-    # so the orchestrator's disposition seam can decide whether to
-    # evaluate the gate on the OCR-only candidate AND whether to
-    # suppress the FR-005 fallback.
     evidence_gate_skip_fallback_optin: bool = False
-    # Feature 020 (T042 / R-020.8 / MI-16 / MI-17): mutable per-document
-    # suppression flag mirroring `ocr_only_fallback_fired` above. The
-    # live preprocessing adapter copies the per-doc
-    # `preprocessing.pipeline.Invocation.evidence_gate_suppressed_fired`
-    # back onto this CLIInvocation after each
-    # `preprocessing.pipeline.run()` call so warm-corpus mode can
-    # aggregate the per-run
-    # `RunSummary.evidence_gate_suppressed_fallback_count` accumulator
-    # the same way feature 019 / 018 aggregate their fallback counters.
     evidence_gate_suppressed_fired: bool = False
 
 
