@@ -215,9 +215,9 @@ If zero documents fail, the `## Failing documents` section renders "_All documen
 
 ---
 
-## 15. Reuse of `ledgerlinc_ocr.validator.loader`
+## 15. Reuse of `dartwing_ocr.validator.loader`
 
-**Decision**: The evaluator imports `load_contract_set` and `validate_artifact` from `ledgerlinc_ocr.validator` rather than re-implementing Draft-2020-12 validation. It uses them as a private dependency (no re-export) and passes through their exceptions for schema failures.
+**Decision**: The evaluator imports `load_contract_set` and `validate_artifact` from `dartwing_ocr.validator` rather than re-implementing Draft-2020-12 validation. It uses them as a private dependency (no re-export) and passes through their exceptions for schema failures.
 
 **Rationale**: The validator has already proven this path in the 001 feature; duplicating it would desync. Keeping the import one-way (evaluator → validator, never back) preserves the harness-boundary spirit of constitution §I.
 

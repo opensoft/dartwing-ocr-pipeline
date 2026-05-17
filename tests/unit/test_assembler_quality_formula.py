@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.assembler.quality import (
+from dartwing_ocr.assembler.quality import (
     compute_overall_vendor_confidence,
     derive_secondary_identifiers,
 )
@@ -53,7 +53,7 @@ def test_all_null_yields_zero():
     ext = _vc(company_conf=0.0)
     secondary = derive_secondary_identifiers(ext)
     assert secondary == []
-    assert compute_overall_vendor_confidence(ext, secondary) == 0.0
+    assert compute_overall_vendor_confidence(ext, secondary) == pytest.approx(0.0)
 
 
 def test_company_only_yields_half_company_conf():
@@ -82,11 +82,11 @@ def test_result_is_rounded_to_four_decimals():
     secondary = derive_secondary_identifiers(ext)
     got = compute_overall_vendor_confidence(ext, secondary)
     # 0.5 * 0.12345 + 0.0 = 0.061725 → round(_, 4) = 0.0617
-    assert got == 0.0617
+    assert got == pytest.approx(0.0617)
 
 
 def test_result_is_clipped_to_unit_interval():
     # company_conf=2.0 violates schema but the clip is a defensive property.
     ext = _vc(company_conf=2.0)
     got = compute_overall_vendor_confidence(ext, derive_secondary_identifiers(ext))
-    assert got == 1.0
+    assert got == pytest.approx(1.0)

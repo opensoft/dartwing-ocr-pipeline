@@ -51,7 +51,7 @@ Ensemble-readiness, evidence-first design, CPU-only determinism, and single-writ
 
 **Target Platform**: Linux (devcontainer, native WSL Ubuntu 24.04). CPU-only, single-threaded (`cpu_threads=1`, `use_mp=False`), `enable_mkldnn=False`. No GPU, no ROCm, no cloud.
 
-**Project Type**: Single Python package migration. No new top-level package; existing `src/ledgerlinc_ocr/preprocessing/` module is refactored in place. No CLI-surface change — `ledgerlinc-preprocess` (and `python -m ledgerlinc_ocr.preprocessing`) keep the same flags, exit codes, and stdout/stderr shape. The one CLI-observable change is FR-016 hard-fail: engine-init failure now exits non-zero with no artifact, instead of today's behavior where layout exceptions are caught per-page and surfaced as warnings.
+**Project Type**: Single Python package migration. No new top-level package; existing `src/dartwing_ocr/preprocessing/` module is refactored in place. No CLI-surface change — `dartwing-preprocess` (and `python -m dartwing_ocr.preprocessing`) keep the same flags, exit codes, and stdout/stderr shape. The one CLI-observable change is FR-016 hard-fail: engine-init failure now exits non-zero with no artifact, instead of today's behavior where layout exceptions are caught per-page and surfaced as warnings.
 
 **Performance Goals**: No hard deadline imposed by this slice. SC-005 requires that the first-run wall-clock for a single invoice in the devcontainer is **recorded** in `specs/010-pp-structurev3-preprocessing/research.md` under a "Baseline timings" heading (with exact invoice, CPU model, RAM, OS). V3 with `enable_mkldnn=False` is known to be slower than V2 on the same hardware; that's accepted in exchange for correctness.
 
@@ -70,7 +70,7 @@ Ensemble-readiness, evidence-first design, CPU-only determinism, and single-writ
 **Scale/Scope**: 20-document stage 1 corpus (`inv_001..inv_020`, 5 easy / 5 medium / 5 hard / 5 missing_name). Typical invoice: 1–4 pages, US Letter / A4. One document per CLI invocation; the corpus regeneration sweep wraps the CLI in a bash loop with halt-on-nonzero.
 
 **Deferred plan-level decisions** (from /speckit.clarify):
-- **Block ordering within a page**: keep the existing `(bbox.y0, bbox.x0, det_idx)` stable sort from `src/ledgerlinc_ocr/preprocessing/ocr.py:269`. V3 output is not guaranteed deterministic in list order, so the sort is preserved; `reading_order` is assigned `1..N` from the sorted sequence. No change from 003.
+- **Block ordering within a page**: keep the existing `(bbox.y0, bbox.x0, det_idx)` stable sort from `src/dartwing_ocr/preprocessing/ocr.py:269`. V3 output is not guaranteed deterministic in list order, so the sort is preserved; `reading_order` is assigned `1..N` from the sorted sequence. No change from 003.
 - ~~**FR-013 test-file comment format**~~: promoted into spec FR-013 after `/speckit.analyze` finding I1 (2026-04-22) — spec now pins free-form prose mirroring FR-010. No longer deferred.
 - ~~**OCR recognition threshold under PP-OCRv5**~~: resolved in spec FR-007 (Session 2026-04-22, Q16) — engine default, no override; default value recorded in `research.md` R-012. No longer deferred.
 - ~~**`tables[]` population under V3**~~: resolved in spec FR-021 (Session 2026-04-22 Q17 + Session 2026-04-23 Q24) — project into v1.0.0 shape as of 010's landing; richer content discarded; future AMENDMENTS require matching code changes. No longer deferred.
@@ -87,7 +87,7 @@ Evaluated against `.specify/memory/constitution.md` **v1.1.0** (2026-04-22 amend
 
 | Principle | Gate | Status |
 |-----------|------|--------|
-| I. One Repo, Clear Runtime Boundaries | Preprocessing stays in the pipeline layer; does not embed extraction, routing, or harness concerns; does not bundle a model server. | **PASS** — `src/ledgerlinc_ocr/preprocessing/` remains pipeline-only. Writes `preprocess_output.json` only. PaddleOCR is a pipeline dependency run in-process, not a served model. Host Ollama is untouched by this slice. |
+| I. One Repo, Clear Runtime Boundaries | Preprocessing stays in the pipeline layer; does not embed extraction, routing, or harness concerns; does not bundle a model server. | **PASS** — `src/dartwing_ocr/preprocessing/` remains pipeline-only. Writes `preprocess_output.json` only. PaddleOCR is a pipeline dependency run in-process, not a served model. Host Ollama is untouched by this slice. |
 | II. Evidence-First, Schema-First Design | Artifact MUST validate against the `preprocess_output` contract; prompts/code adapt to the schema, not the reverse. | **PASS** — FR-001 pins validation against the latest `preprocess_output.schema.json`. Contract set v1.2.0 is amended additively (2026-04-23) to permit `confidence: null`, per the FR-004 / R-013 schema-first confidence rule — the widening is documented in `contracts/stage1_vendor_identity/AMENDMENTS.md` and is a strict superset of v1.0.0/v1.1.0. Newly generated preprocessing artifacts and evidence packets emit `contract_set_version = "1.2.0"`. Richer V3 content that doesn't fit the contract is discarded. |
 | III. Deterministic Control Over Model Output | Warnings, status downgrades, label-mapping fallback, block ordering, reading-order assignment are deterministic code — no model judgment. | **PASS** — FR-003, FR-006, FR-018, FR-019, FR-020 all specify code-level rules. Label mapping uses a closed dict with a deterministic `"text"` fallback. `ingestion_sources.paddleocr_vl.status` downgrade is rule-based, not model-inferred. Model confidence is a signal only, never a gate. |
 | IV. Provenance and Review Safety | Preserve explicit-vs-inferred provenance. | **N/A for this slice** — preprocessing does not produce `company_name` fields. FR-002 explicitly notes preprocessing quality is independent of vendor-identity label polarity (the missing-name subset gets the same quality guarantees). Provenance is the extractor's responsibility. |
@@ -104,7 +104,7 @@ Evaluated against `.specify/memory/constitution.md` **v1.1.0** (2026-04-22 amend
 1. Pipeline vs. harness boundary preserved — this slice is pipeline-only; harness is untouched.
 2. Output contracts — one narrow AMENDMENTS entry (v1.2.0, 2026-04-23) widens `preprocess_output` and mirrored `evidence_packet` structural `block.confidence` / `ocr_line.confidence` to accept `null` for engine-missing or otherwise schema-unusable scores. `docs/stage1-vendor-identity/schemas.md` carries a matching null-allowance note. Numeric confidence values remain bounded to `[0.0, 1.0]`; other schemas are unchanged.
 3. Runtime behavior — FR-011 updates `docs/stage1-vendor-identity/architecture.md`, `docs/stage1-vendor-identity/ollama-runtime.md` (where it references PaddleOCR versions), `specs/003-pdf-preprocessing/research.md`, and the preprocessing quickstart.
-4. Verifiable through concrete local execution — `ledgerlinc-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy` against the real engine; quickstart walks this end-to-end.
+4. Verifiable through concrete local execution — `dartwing-preprocess --document-folder tests/stage1_vendor_identity/inv_001_easy` against the real engine; quickstart walks this end-to-end.
 5. Runtime/container changes — dependency pin updates in `pyproject.toml` and `requirements.txt` only; no devcontainer image change, no new compose services. First-run warm-up is called out in docs.
 6. Evaluation comparison preserved — `expected.json` labels are untouched. Downstream evaluator still compares `final_structured_payload.json` to `expected.json` on the regenerated baselines.
 7. **Consistent with `docs/stage1-vendor-identity/architecture.md`** (constitution v1.1.0 amendment, 2026-04-22) — this spec and plan do not deviate from the target architecture. The trijunction-ingestion → triple-voter → deterministic-routing shape described in architecture.md is preserved; this slice narrows stage 1 to a single-engine (PaddleOCR-only) preprocessing lane, which architecture.md itself identifies as the "stage 1 slice" starting point. No deviation declaration required.
@@ -135,7 +135,7 @@ specs/010-pp-structurev3-preprocessing/
 Only the `preprocessing/` module is touched. No other src paths change.
 
 ```text
-src/ledgerlinc_ocr/
+src/dartwing_ocr/
 ├── preprocessing/
 │   ├── ocr.py                # REWRITTEN — retires run_ocr_lines(), replaces PPStructure with PPStructureV3.
 │   │                         # Extracts OCR lines from V3's built-in overall_ocr_res; extends
@@ -198,7 +198,7 @@ tests/
 contracts/stage1_vendor_identity/v1.0.0/  # FROZEN — no files touched.
 ```
 
-**Structure Decision**: In-place migration of the existing `src/ledgerlinc_ocr/preprocessing/` module. One new submodule (`warnings.py`) to centralize FR-020's closed vocabulary and ordering; everything else is modifying files that already exist. The frozen v1.0.0 contract set is untouched. No new top-level package, no container change, no CLI-surface change beyond FR-016's new hard-fail exit path.
+**Structure Decision**: In-place migration of the existing `src/dartwing_ocr/preprocessing/` module. One new submodule (`warnings.py`) to centralize FR-020's closed vocabulary and ordering; everything else is modifying files that already exist. The frozen v1.0.0 contract set is untouched. No new top-level package, no container change, no CLI-surface change beyond FR-016's new hard-fail exit path.
 
 ## Complexity Tracking
 

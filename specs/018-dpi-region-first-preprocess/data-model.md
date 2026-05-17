@@ -7,7 +7,7 @@ This feature is preset-and-observability heavy: it adds two closed-vocabulary pr
 
 ## Entity: RasterProfile
 
-A named, closed-vocabulary preset that resolves to a single integer DPI value used by the rasterizer. Lives in `src/ledgerlinc_ocr/preprocessing/raster_profiles.py`. Entries in the registry are immutable across the process lifetime.
+A named, closed-vocabulary preset that resolves to a single integer DPI value used by the rasterizer. Lives in `src/dartwing_ocr/preprocessing/raster_profiles.py`. Entries in the registry are immutable across the process lifetime.
 
 ```python
 @dataclass(frozen=True)
@@ -30,7 +30,7 @@ class RasterProfile:
 
 ## Entity: RegionStrategy
 
-A named, closed-vocabulary preset that owns the page-targeting decision and the FR-007 fallback trigger check. Lives in `src/ledgerlinc_ocr/preprocessing/region_strategies.py`. Entries in the registry are immutable across the process lifetime.
+A named, closed-vocabulary preset that owns the page-targeting decision and the FR-007 fallback trigger check. Lives in `src/dartwing_ocr/preprocessing/region_strategies.py`. Entries in the registry are immutable across the process lifetime.
 
 ```python
 @dataclass(frozen=True)
@@ -88,7 +88,7 @@ class PreprocessAxesResolution:
 
 ## Entity: UnknownPresetError (extended additively from feature 017)
 
-Existing exception class in `src/ledgerlinc_ocr/preprocessing/errors.py` (introduced by feature 017). This feature **widens its `preset_axis: Literal[…]` field additively** — no new exception class, no new caller signature, no new exit code.
+Existing exception class in `src/dartwing_ocr/preprocessing/errors.py` (introduced by feature 017). This feature **widens its `preset_axis: Literal[…]` field additively** — no new exception class, no new caller signature, no new exit code.
 
 ```python
 # Before feature 018:

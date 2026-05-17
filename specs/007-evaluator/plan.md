@@ -5,9 +5,9 @@
 
 ## Summary
 
-Build a new `ledgerlinc_ocr.evaluator` subpackage that compares a document's hand-labeled `expected.json` against the pipeline's `final_structured_payload.json` per the normalization rules, partial-match policy, weights, and pass gates in `docs/stage1-vendor-identity/scoring.md`, and writes a schema-valid `evaluation_document.json` into the same folder. A corpus mode iterates every per-document folder under a corpus root, lazily evaluates any folder missing `evaluation_document.json` (only hard-failing when pipeline inputs themselves are missing or invalid), and writes `evaluation_run_summary.json` plus a canonical Markdown `evaluation_run_summary.md` at the corpus root (also streamed to stdout).
+Build a new `dartwing_ocr.evaluator` subpackage that compares a document's hand-labeled `expected.json` against the pipeline's `final_structured_payload.json` per the normalization rules, partial-match policy, weights, and pass gates in `docs/stage1-vendor-identity/scoring.md`, and writes a schema-valid `evaluation_document.json` into the same folder. A corpus mode iterates every per-document folder under a corpus root, lazily evaluates any folder missing `evaluation_document.json` (only hard-failing when pipeline inputs themselves are missing or invalid), and writes `evaluation_run_summary.json` plus a canonical Markdown `evaluation_run_summary.md` at the corpus root (also streamed to stdout).
 
-Technical approach: a pure-Python, offline, deterministic library + argparse CLI that mirrors the existing `ledgerlinc_ocr.validator` module layout. No PyTorch, no network, no model calls. Normalization, comparison, gate evaluation, and aggregation are implemented as small, independently testable modules whose contracts flow through typed dataclasses. All JSON output is serialized through a single writer that enforces `sort_keys=False`, explicit key ordering, and a trailing newline for byte-level determinism. Schema validation is reused from the existing `jsonschema` Draft 2020-12 stack already wired up for the validator. The evaluator is invoked via `python -m ledgerlinc_ocr.evaluator evaluate document <folder>` and `python -m ledgerlinc_ocr.evaluator evaluate corpus <root>` (per clarification Q5).
+Technical approach: a pure-Python, offline, deterministic library + argparse CLI that mirrors the existing `dartwing_ocr.validator` module layout. No PyTorch, no network, no model calls. Normalization, comparison, gate evaluation, and aggregation are implemented as small, independently testable modules whose contracts flow through typed dataclasses. All JSON output is serialized through a single writer that enforces `sort_keys=False`, explicit key ordering, and a trailing newline for byte-level determinism. Schema validation is reused from the existing `jsonschema` Draft 2020-12 stack already wired up for the validator. The evaluator is invoked via `python -m dartwing_ocr.evaluator evaluate document <folder>` and `python -m dartwing_ocr.evaluator evaluate corpus <root>` (per clarification Q5).
 
 ## Technical Context
 
@@ -16,7 +16,7 @@ Technical approach: a pure-Python, offline, deterministic library + argparse CLI
 **Storage**: Filesystem only. Reads `expected.json` and `final_structured_payload.json` inside per-document folders under `tests/stage1_vendor_identity/inv_XXX_<difficulty>/` (or a user-supplied corpus root). Writes `evaluation_document.json` into the same folder and `evaluation_run_summary.json` + `evaluation_run_summary.md` at the corpus root.
 **Testing**: `pytest>=8.2,<9` (already declared dev extra). New tests live under `tests/evaluator_tests/` and a schema-level contract test under `tests/contract_tests/`. `pytest-socket` continues to block network access in tests.
 **Target Platform**: Linux (devcontainer Python 3.12). CPU-only. Fully offline — no Ollama, no PaddleOCR, no network. Runs from host and devcontainer identically.
-**Project Type**: Single-project Python library + CLI, co-located with the existing `validator`, `preprocessing`, and `pipeline` subpackages under `src/ledgerlinc_ocr/`.
+**Project Type**: Single-project Python library + CLI, co-located with the existing `validator`, `preprocessing`, and `pipeline` subpackages under `src/dartwing_ocr/`.
 **Performance Goals**: One-document evaluation ≤ 1 s wall-clock on a developer workstation (SC-001); 20-document corpus evaluation ≤ 5 s (SC-002). Both easily met — everything is string comparison and arithmetic over ≤ 18 scored fields per document.
 **Constraints**:
 - Deterministic byte-identical output run-over-run except for `run_id` (FR-018).
@@ -26,7 +26,7 @@ Technical approach: a pure-Python, offline, deterministic library + argparse CLI
 - Must produce no partial output on hard error (FR-020).
 - Contract-set pinned to `1.1.0` (MINOR-forward compat per FR-013 — same major, artifact minor ≤ pinned minor); any non-compatible drift hard-fails.
 
-**Scale/Scope**: 20-document stage-1 corpus; 18 scored fields per document; 5 difficulty/bucket keys (`easy`, `medium`, `hard`, `missing_name`); one run per invocation. Code footprint target: < 1 kLOC across `src/ledgerlinc_ocr/evaluator/`.
+**Scale/Scope**: 20-document stage-1 corpus; 18 scored fields per document; 5 difficulty/bucket keys (`easy`, `medium`, `hard`, `missing_name`); one run per invocation. Code footprint target: < 1 kLOC across `src/dartwing_ocr/evaluator/`.
 
 ## Constitution Check
 
@@ -64,18 +64,18 @@ specs/007-evaluator/
 ├── data-model.md        # Phase 1 output (this command)
 ├── quickstart.md        # Phase 1 output (this command)
 ├── contracts/           # Phase 1 output (this command)
-│   └── module-api.md    # Python public API stability surface for ledgerlinc_ocr.evaluator
+│   └── module-api.md    # Python public API stability surface for dartwing_ocr.evaluator
 └── tasks.md             # Phase 2 output (/speckit.tasks — NOT created here)
 ```
 
 ### Source Code (repository root)
 
-New code lives exclusively under `src/ledgerlinc_ocr/evaluator/` and `tests/evaluator_tests/`. No existing file is modified except `pyproject.toml` (to register the optional script entry point) and `.claude/CLAUDE.md` contexts. The layout mirrors the established `validator/` subpackage for consistency with the team's existing conventions.
+New code lives exclusively under `src/dartwing_ocr/evaluator/` and `tests/evaluator_tests/`. No existing file is modified except `pyproject.toml` (to register the optional script entry point) and `.claude/CLAUDE.md` contexts. The layout mirrors the established `validator/` subpackage for consistency with the team's existing conventions.
 
 ```text
-src/ledgerlinc_ocr/evaluator/
+src/dartwing_ocr/evaluator/
 ├── __init__.py              # Public surface: evaluate_document, evaluate_corpus, result dataclasses, exceptions
-├── __main__.py              # Thin re-export of cli.main for `python -m ledgerlinc_ocr.evaluator`
+├── __main__.py              # Thin re-export of cli.main for `python -m dartwing_ocr.evaluator`
 ├── cli.py                   # argparse: `evaluate document <folder>` / `evaluate corpus <root>`
 ├── document.py              # Per-document orchestration: read → validate → compare → gate → write
 ├── corpus.py                # Corpus aggregator + lazy per-document evaluation + report dispatch
@@ -113,7 +113,7 @@ tests/contract_tests/
 └── test_evaluation_artifacts.py   # Validates evaluator outputs against the frozen schemas
 ```
 
-**Structure Decision**: Single-project Python library + CLI. The new `src/ledgerlinc_ocr/evaluator/` subpackage mirrors the existing `validator/` subpackage surface (module layout, `__main__.py` convention, argparse grouping, typed public API in `__init__.py`). This keeps the harness codebase navigable for anyone who has used the validator and keeps review diffs small by reusing `jsonschema` loading, the contracts directory, and the `pytest` + `pytest-socket` configuration already in place.
+**Structure Decision**: Single-project Python library + CLI. The new `src/dartwing_ocr/evaluator/` subpackage mirrors the existing `validator/` subpackage surface (module layout, `__main__.py` convention, argparse grouping, typed public API in `__init__.py`). This keeps the harness codebase navigable for anyone who has used the validator and keeps review diffs small by reusing `jsonschema` loading, the contracts directory, and the `pytest` + `pytest-socket` configuration already in place.
 
 ## Complexity Tracking
 

@@ -9,7 +9,7 @@ This contract describes the **only** addition this feature makes to the existing
 ## 1. Codebase-level version bump
 
 ```python
-# src/ledgerlinc_ocr/pipeline/timing.py
+# src/dartwing_ocr/pipeline/timing.py
 SCHEMA_VERSION = "0.1.3"  # was "0.1.2"
 ```
 

@@ -7,15 +7,15 @@ This document resolves the implementation-level decisions the spec deferred to `
 
 ## R-017.1: Activation mechanism for both new switches
 
-**Decision**: Add two CLI flags to BOTH the existing `python -m ledgerlinc_ocr.preprocessing` entry point and `python -m ledgerlinc_ocr.pipeline` (corpus mode):
+**Decision**: Add two CLI flags to BOTH the existing `python -m dartwing_ocr.preprocessing` entry point and `python -m dartwing_ocr.pipeline` (corpus mode):
 
 - `--module-set <id>` (string; default `cpu-default` on the CPU profile, default `legacy` on the GPU profile)
 - `--det-rec-variant <id>` (string; default `cpu-default` on the CPU profile, default `legacy` on the GPU profile)
 
 Each flag has an env-var fallback:
 
-- `LEDGERLINC_MODULE_SET=<id>` (CLI flag wins when both are set)
-- `LEDGERLINC_DET_REC_VARIANT=<id>` (CLI flag wins when both are set)
+- `DARTWING_MODULE_SET=<id>` (CLI flag wins when both are set)
+- `DARTWING_DET_REC_VARIANT=<id>` (CLI flag wins when both are set)
 
 **Env-var literal-value handling**: the env-var value is passed verbatim to `resolve_module_set` / `resolve_det_rec_variant` — no `.strip()`, no case normalization, no whitespace trimming. A trailing newline, surrounding whitespace, or a mixed-case value (e.g., `Reduced-V1`) results in `UnknownPresetError` → exit code 16. This is intentional: identifier values are case-sensitive lowercase by codebase convention (`ppstructurev3@gpu`, etc.); a forgiving normalization here would mask typos. The same handling applies to the CLI flag — `argparse` does not normalize string values either.
 
@@ -199,7 +199,7 @@ The audit callable returns a deterministic sorted list of strings drawn from `AU
 
 ## R-017.8: Run-summary `SCHEMA_VERSION` codebase-level bump
 
-**Decision**: `src/ledgerlinc_ocr/pipeline/timing.py:86` `SCHEMA_VERSION = "0.1.3"` → `SCHEMA_VERSION = "0.1.4"`. Every run of the new binary emits `schema_version: "0.1.4"` regardless of preset selection (CPU, stub, GPU-legacy, GPU-reduced). The 0.1.4 schema is a strict superset of 0.1.3: it adds three new top-level fields. Existing 0.1.3 fields (`schema_version`, `kind`, `stack_preset`, `resolved_profiles`, `execution_slice`, `on_failure`, `documents_total`, `documents_succeeded`, `documents_failed`, `profile_initialization_seconds`, `per_document`, `preprocess_lane`, plus the per-document `phase_timings.*` keys including feature 016's `warmup`) MUST NOT be renamed, removed, or have their type changed (FR-009 / FR-019).
+**Decision**: `src/dartwing_ocr/pipeline/timing.py:86` `SCHEMA_VERSION = "0.1.3"` → `SCHEMA_VERSION = "0.1.4"`. Every run of the new binary emits `schema_version: "0.1.4"` regardless of preset selection (CPU, stub, GPU-legacy, GPU-reduced). The 0.1.4 schema is a strict superset of 0.1.3: it adds three new top-level fields. Existing 0.1.3 fields (`schema_version`, `kind`, `stack_preset`, `resolved_profiles`, `execution_slice`, `on_failure`, `documents_total`, `documents_succeeded`, `documents_failed`, `profile_initialization_seconds`, `per_document`, `preprocess_lane`, plus the per-document `phase_timings.*` keys including feature 016's `warmup`) MUST NOT be renamed, removed, or have their type changed (FR-009 / FR-019).
 
 The three new top-level fields land in `RunSummary.to_dict()`'s emission order between `preprocess_lane` (the last existing top-level field added by feature 014 T027) and the run summary's terminating brace:
 
@@ -227,7 +227,7 @@ The three new top-level fields land in `RunSummary.to_dict()`'s emission order b
 
 ## R-017.9: `UnknownPresetError` shape and routing
 
-**Decision**: A new `UnknownPresetError(message: str, preset_axis: str, preset_value: str, valid_values: tuple[str, ...])` exception lives in `src/ledgerlinc_ocr/preprocessing/errors.py`, mirroring the `EngineInitError` / `WarmupError` shapes used by feature 014 and 016. `preprocessing/presets.py`'s `resolve_module_set(name)` and `resolve_det_rec_variant(name)` raise it with the appropriate `preset_axis` (`module_set` or `det_rec_variant`) and `valid_values` (the corresponding registry keys as a tuple).
+**Decision**: A new `UnknownPresetError(message: str, preset_axis: str, preset_value: str, valid_values: tuple[str, ...])` exception lives in `src/dartwing_ocr/preprocessing/errors.py`, mirroring the `EngineInitError` / `WarmupError` shapes used by feature 014 and 016. `preprocessing/presets.py`'s `resolve_module_set(name)` and `resolve_det_rec_variant(name)` raise it with the appropriate `preset_axis` (`module_set` or `det_rec_variant`) and `valid_values` (the corresponding registry keys as a tuple).
 
 Both CLI entry points (`preprocessing/cli.py` and `pipeline/cli.py`) catch `UnknownPresetError` at the same boundary they already catch `EngineInitError` / `WarmupError`: print `error: unknown <preset_axis>: <preset_value!r> — valid values are: <comma-separated valid_values>` to stderr, exit non-zero (exit code **16**, immediately after feature 016's exit code 15), and emit no `run_summary`.
 

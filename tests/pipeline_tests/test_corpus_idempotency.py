@@ -5,8 +5,8 @@ import hashlib
 from pathlib import Path
 from typing import Callable
 
-from ledgerlinc_ocr.pipeline.cli import main
-from ledgerlinc_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES
+from dartwing_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.runner import RESERVED_ARTIFACT_NAMES
 
 
 def _sha256(path: Path) -> str:

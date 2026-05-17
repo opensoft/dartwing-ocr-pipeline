@@ -21,12 +21,12 @@ from typing import Any
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import (
+from dartwing_ocr.preprocessing.evidence_gate import (
     build_evidence_gate_document_record,
     evaluate_evidence_gate,
     load_preprocess_output_for_gate,
 )
-from ledgerlinc_ocr.preprocessing.pipeline import (
+from dartwing_ocr.preprocessing.pipeline import (
     decide_ocr_only_fallback_disposition,
 )
 

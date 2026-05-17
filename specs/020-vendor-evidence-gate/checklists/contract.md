@@ -64,7 +64,7 @@ final-payload assembler, evaluator). Every item validates the
 ## CLI Surface — Flag and Env-Var Contract
 
 - [x] CHK033 Is the flag name `--evidence-gate-skip-fallback` pinned, not described as "a boolean opt-in flag"? [Clarity, R-020.1 / cli-contract.md]
-- [x] CHK034 Is the env-var name `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK` pinned and aligned with the feature 016/017/018/019 naming convention? [Consistency, R-020.1]
+- [x] CHK034 Is the env-var name `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK` pinned and aligned with the feature 016/017/018/019 naming convention? [Consistency, R-020.1]
 - [x] CHK035 Is the precedence rule "CLI wins when both are set" stated unambiguously, with empty-string env = unset called out separately? [Clarity, R-020.1 / cli-contract.md]
 - [x] CHK036 Is the truthy/falsy vocabulary (`"1"`, `"true"`, `"yes"`, `"on"` vs. `"0"`, `"false"`, `"no"`, `"off"`, `""`, unset) pinned at the contract level, not left to implementation discretion? [Completeness, R-020.1]
 - [x] CHK037 Is the rejection behavior for an unrecognized env-var value pinned to the same error path the existing `_PRESET_ENV_VAR` helpers use? [Consistency, R-020.1 / cli-contract.md §Exit codes]

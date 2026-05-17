@@ -8,7 +8,7 @@ locales (Linux / macOS / Windows; en_US / ja_JP / etc.).
 
 from __future__ import annotations
 
-from ledgerlinc_ocr.preprocessing.evidence_gate import compute_five_signals
+from dartwing_ocr.preprocessing.evidence_gate import compute_five_signals
 
 
 def _doc(text: str) -> dict:

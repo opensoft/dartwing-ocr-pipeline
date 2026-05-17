@@ -18,7 +18,7 @@ Replace `<repo>` with your absolute repo root and `<corpus>` with `<repo>/tests/
 ## 0. Verify the install
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run --help | head -40
+python -m dartwing_ocr.pipeline run --help | head -40
 ```
 
 You should see the new flags listed: `--preprocess-profile`, `--extract-profile`, `--routing-profile`, `--final-payload-profile`, `--stack-preset`, `--start-at`, `--stop-after`, `--documents-file`, `--on-failure`, `--ollama-cpu-url`, `--ollama-jetson-url`. If any are missing, the install is stale; re-run `pip install -e ".[dev]"`.
@@ -32,7 +32,7 @@ Verifies the controller foundation slice (FR-034 step 1) without touching Paddle
 ```bash
 mkdir -p /tmp/stub-run && cp tests/stage1_vendor_identity/inv_001_easy/source.pdf /tmp/stub-run/
 
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder /tmp/stub-run \
     --preprocess-profile stub \
     --extract-profile stub \
@@ -50,7 +50,7 @@ Expected:
 Validate the artifacts against the installed contract set:
 
 ```bash
-python -m ledgerlinc_ocr.validator validate folder /tmp/stub-run
+python -m dartwing_ocr.validator validate folder /tmp/stub-run
 ```
 
 ---
@@ -62,7 +62,7 @@ Use case: re-run only extraction against an already-preprocessed folder without 
 ### 2a. Produce a `preprocess_output.json` first
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder /tmp/stub-run \
     --preprocess-profile stub \
     --stop-after preprocess \
@@ -74,7 +74,7 @@ Only `preprocess_output.json` is rewritten; the other three artifacts (if presen
 ### 2b. Re-run only the extract stage
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder /tmp/stub-run \
     --start-at extract \
     --stop-after extract \
@@ -88,7 +88,7 @@ The runner validates the upstream `preprocess_output.json` against the installed
 
 ```bash
 rm /tmp/stub-run/preprocess_output.json
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder /tmp/stub-run \
     --start-at routing \
     --stop-after routing \
@@ -119,7 +119,7 @@ The file is UTF-8, one folder per line, blank/`#`-comment lines ignored after st
 ### 3b. Run with stub profiles first (Paddle-free smoke test)
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --documents-file /tmp/corpus.txt \
     --preprocess-profile stub \
     --extract-profile stub \
@@ -136,7 +136,7 @@ Expected:
 ### 3c. Run with `ppstructurev3@cpu` (the real warm path)
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --documents-file /tmp/corpus.txt \
     --preprocess-profile ppstructurev3@cpu \
     --extract-profile stub \
@@ -159,7 +159,7 @@ Add a deliberately-broken folder to the file and rerun:
 mkdir -p /tmp/inv_999_easy && echo "not a pdf" > /tmp/inv_999_easy/source.pdf
 echo "/tmp/inv_999_easy" >> /tmp/corpus.txt
 
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --documents-file /tmp/corpus.txt \
     --preprocess-profile ppstructurev3@cpu \
     --extract-profile stub \
@@ -183,7 +183,7 @@ Use case: top-level harness invocation that exercises the real preprocessing -> 
 
 ```bash
 # Single document, defaults (ppstructurev3@cpu / ollama@gpu / rules@cpu / assembler@cpu)
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --overwrite
 ```
@@ -191,7 +191,7 @@ python -m ledgerlinc_ocr.pipeline run \
 Or, equivalently, with the preset:
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --stack-preset full-workstation \
     --overwrite
@@ -200,7 +200,7 @@ python -m ledgerlinc_ocr.pipeline run \
 Or, for the multi-document harness path:
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --documents-file /tmp/corpus.txt \
     --stack-preset full-workstation
 ```
@@ -215,7 +215,7 @@ To switch to the optional CPU Ollama lane (the WSL CPU container, default `:1143
 
 ```bash
 docker compose -f .devcontainer/docker-compose.yml --profile ollama up -d
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --documents-file /tmp/corpus.txt \
     --preprocess-profile ppstructurev3@cpu \
     --extract-profile ollama@cpu \
@@ -232,7 +232,7 @@ The artifact filenames and schemas are byte-identical between the two extraction
 `cloud-workstation` and `ensemble@workstation` are accepted by argument validation in this feature but the live implementation is deferred to FR-034 step 4. Selecting them produces a deterministic fail-fast:
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --stack-preset cloud-workstation \
     --overwrite
@@ -247,7 +247,7 @@ Expected exit code `10` (`USAGE_ERROR`); stderr's structured failure record uses
 After running step 3c, inspect the run summary line:
 
 ```bash
-python -m ledgerlinc_ocr.pipeline run \
+python -m dartwing_ocr.pipeline run \
     --documents-file /tmp/corpus.txt \
     --preprocess-profile ppstructurev3@cpu \
     --extract-profile stub \

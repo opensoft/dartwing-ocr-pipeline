@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from ledgerlinc_ocr.evaluator.compare import FieldResult
-from ledgerlinc_ocr.evaluator.gates import (
+from dartwing_ocr.evaluator.compare import FieldResult
+from dartwing_ocr.evaluator.gates import (
     overall_passed,
     review_routing_passed,
     vendor_identity_passed,
 )
-from ledgerlinc_ocr.evaluator.scoring import ResultLabel, SCORED_FIELDS
+from dartwing_ocr.evaluator.scoring import ResultLabel, SCORED_FIELDS
 
 
 def _fr(field: str, result: ResultLabel, expected: Any = "x", actual: Any = "x") -> FieldResult:

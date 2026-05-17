@@ -1,6 +1,6 @@
 # Stage 1 Vendor Identity
 
-This folder stores the planning documents for stage 1 of the LedgerLinc OCR pipeline test effort.
+This folder stores the planning documents for stage 1 of the Dartwing OCR pipeline test effort.
 
 Stage 1 is intentionally narrow:
 

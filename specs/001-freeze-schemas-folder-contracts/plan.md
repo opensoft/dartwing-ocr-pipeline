@@ -5,7 +5,7 @@
 
 ## Summary
 
-Deliver the frozen stage 1 contract set and its validator. The feature produces two co-versioned layers: (a) the existing human-facing documentation in `docs/stage1-vendor-identity/` plus `.specify/memory/constitution.md`, and (b) a new machine-readable contract layer at `contracts/stage1_vendor_identity/v1.0.0/` consisting of JSON Schema (Draft 2020-12) files for the seven persisted artifacts and the folder contract, plus a contract-set metadata file. Both layers advance together under a single `contract_set_version` (semver, starting at `1.0.0`), which is stamped on every persisted artifact. A Python CLI + module (`src/ledgerlinc_ocr/validator/`) validates artifacts and folders against the contract set, enforcing JSON-Schema-expressible rules via `jsonschema` and cross-artifact rules (company-name provenance triad, document-count consistency, reserved-filename use) via deterministic Python code. The validator emits a canonical machine-readable structured report plus a human-readable CLI rendering, signals pass/fail via exit code, and writes structured reports that the downstream harness can aggregate across the 20-document corpus. No pipeline extraction, routing, or evaluation behavior is delivered by this slice — only the contracts, the validator, and the corpus-folder scaffold that depends on them.
+Deliver the frozen stage 1 contract set and its validator. The feature produces two co-versioned layers: (a) the existing human-facing documentation in `docs/stage1-vendor-identity/` plus `.specify/memory/constitution.md`, and (b) a new machine-readable contract layer at `contracts/stage1_vendor_identity/v1.0.0/` consisting of JSON Schema (Draft 2020-12) files for the seven persisted artifacts and the folder contract, plus a contract-set metadata file. Both layers advance together under a single `contract_set_version` (semver, starting at `1.0.0`), which is stamped on every persisted artifact. A Python CLI + module (`src/dartwing_ocr/validator/`) validates artifacts and folders against the contract set, enforcing JSON-Schema-expressible rules via `jsonschema` and cross-artifact rules (company-name provenance triad, document-count consistency, reserved-filename use) via deterministic Python code. The validator emits a canonical machine-readable structured report plus a human-readable CLI rendering, signals pass/fail via exit code, and writes structured reports that the downstream harness can aggregate across the 20-document corpus. No pipeline extraction, routing, or evaluation behavior is delivered by this slice — only the contracts, the validator, and the corpus-folder scaffold that depends on them.
 
 ## Technical Context
 
@@ -92,7 +92,7 @@ specs/001-freeze-schemas-folder-contracts/
 
 ### Source Code (repository root)
 
-Single-project Python library + CLI, matching the implementation-plan's recommended structure under `src/ledgerlinc_ocr/`. The machine-readable contract layer lives at repo root `contracts/` per the spec's Clarification 1 (co-located, version-gated).
+Single-project Python library + CLI, matching the implementation-plan's recommended structure under `src/dartwing_ocr/`. The machine-readable contract layer lives at repo root `contracts/` per the spec's Clarification 1 (co-located, version-gated).
 
 ```text
 contracts/
@@ -111,11 +111,11 @@ contracts/
         └── README.md                           # Machine-layer amendment checklist
 
 src/
-└── ledgerlinc_ocr/
+└── dartwing_ocr/
     ├── __init__.py
     └── validator/
         ├── __init__.py                         # Public module API (see contracts/module-api.md)
-        ├── __main__.py                         # python -m ledgerlinc_ocr.validator entry
+        ├── __main__.py                         # python -m dartwing_ocr.validator entry
         ├── cli.py                              # argparse CLI
         ├── loader.py                           # Loads contract-set v{X.Y.Z} from contracts/
         ├── artifact.py                         # JSON Schema-based artifact validation
@@ -160,7 +160,7 @@ tests/
     └── test_cli.py
 ```
 
-**Structure Decision**: Single-project Python layout with the machine-readable contract layer at `contracts/stage1_vendor_identity/v{X.Y.Z}/` (repo-root, co-located with `docs/` and `src/`). This placement matches the spec's Clarification 1 — the machine layer is co-located with the human layer and both are updated together through the amendment path. The validator lives at `src/ledgerlinc_ocr/validator/` as the first module populated in the `src/ledgerlinc_ocr/` tree recommended by the implementation plan; later pipeline modules (`preprocess/`, `extract/`, `routing/`, `evaluate/`) will be added next to it by subsequent features without re-home. The runtime corpus root `tests/stage1_vendor_identity/` is created empty; pytest tests live in a sibling directory `tests/contract_tests/` to avoid conflict.
+**Structure Decision**: Single-project Python layout with the machine-readable contract layer at `contracts/stage1_vendor_identity/v{X.Y.Z}/` (repo-root, co-located with `docs/` and `src/`). This placement matches the spec's Clarification 1 — the machine layer is co-located with the human layer and both are updated together through the amendment path. The validator lives at `src/dartwing_ocr/validator/` as the first module populated in the `src/dartwing_ocr/` tree recommended by the implementation plan; later pipeline modules (`preprocess/`, `extract/`, `routing/`, `evaluate/`) will be added next to it by subsequent features without re-home. The runtime corpus root `tests/stage1_vendor_identity/` is created empty; pytest tests live in a sibling directory `tests/contract_tests/` to avoid conflict.
 
 ## Complexity Tracking
 

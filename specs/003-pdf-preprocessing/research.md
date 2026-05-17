@@ -29,7 +29,7 @@ Every decision below is scoped to what stage 1 actually needs — PDF-in,
   adds OS dependency; subprocess roundtrip per page is slower; external binary
   upgrades can shift output, risking determinism regressions.
 - `PyMuPDF` (`fitz`): fast, great quality, but is AGPL unless a commercial
-  license is acquired. LedgerLinc has not cleared that licensing path — rejecting
+  license is acquired. Dartwing has not cleared that licensing path — rejecting
   now rather than retrofitting later.
 - `pdfplumber` / `pdfminer.six`: text-extraction oriented, not rasterization.
   Out of scope.
@@ -181,7 +181,7 @@ GitHub issue #1):
   (`inv_011_hard`), and the highest low-confidence ratio was 0.0737
   (`inv_011_hard`), still below the `good` / `low` boundary. The provisional
   constants therefore did not misfire and were kept unchanged.
-- Because no threshold constant changed, `src/ledgerlinc_ocr/preprocessing/version.py`
+- Because no threshold constant changed, `src/dartwing_ocr/preprocessing/version.py`
   `SEMVER` was not bumped.
 - All three signals are derivable from what PaddleOCR already returns (line
   confidences + detected rotation/skew). No new dependency.
@@ -271,7 +271,7 @@ stage1-preprocess-{semver}+paddleocr{pkg_ver}.{weights_hash7}.dpi{dpi}
 
 ## Decision 9 — CLI invocation surface
 
-**Decision**: `python -m ledgerlinc_ocr.preprocessing --document-folder tests/stage1_vendor_identity/inv_001_easy`.
+**Decision**: `python -m dartwing_ocr.preprocessing --document-folder tests/stage1_vendor_identity/inv_001_easy`.
 
 Flags:
 - `--document-folder PATH` (required): the per-document folder containing

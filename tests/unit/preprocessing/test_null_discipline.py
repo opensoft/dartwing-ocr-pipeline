@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import pipeline
+from dartwing_ocr.preprocessing import pipeline
 
 HERE = Path(__file__).resolve().parent
 FIXTURE_ROOT = HERE.parents[1] / "fixtures" / "preprocessing"
@@ -66,7 +66,7 @@ def test_ocr_failure_yields_empty_string_not_null(tmp_path, monkeypatch):
     # V3 migration (FR-007): run_ocr_lines retired — the engine crash path is
     # now exercised via `run_page` returning `([], [], [], [warning])` per its
     # internal try/except contract.
-    from ledgerlinc_ocr.preprocessing import ocr
+    from dartwing_ocr.preprocessing import ocr
 
     def _fail_engine(image, page_number, width, height):
         return [], [], [], [
@@ -89,7 +89,7 @@ def test_ocr_failure_yields_empty_string_not_null(tmp_path, monkeypatch):
 def test_empty_page_still_has_empty_string_document_text(tmp_path, monkeypatch):
     """If every page comes back with zero blocks, document_text is "" not null."""
     # V3 migration (FR-007): run_ocr_lines + run_layout merged into run_page.
-    from ledgerlinc_ocr.preprocessing import ocr
+    from dartwing_ocr.preprocessing import ocr
 
     def _empty_page(image, page_number, width, height):
         return [], [], [], []

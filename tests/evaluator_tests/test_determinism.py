@@ -6,7 +6,7 @@ import json
 import shutil
 from pathlib import Path
 
-from ledgerlinc_ocr.evaluator import evaluate_corpus, evaluate_document
+from dartwing_ocr.evaluator import evaluate_corpus, evaluate_document
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

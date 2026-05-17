@@ -84,10 +84,10 @@ def us5_partial_input_folder(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def run_extractor():
-    """Returns a callable that invokes `ledgerlinc_ocr.extract.cli.main` in-process."""
+    """Returns a callable that invokes `dartwing_ocr.extract.cli.main` in-process."""
 
     def _run(folder: Path, voter_config: Path, voter: str = "stub") -> int:
-        from ledgerlinc_ocr.extract.cli import main as extract_main
+        from dartwing_ocr.extract.cli import main as extract_main
 
         return extract_main(
             [

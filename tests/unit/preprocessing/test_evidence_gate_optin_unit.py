@@ -7,7 +7,7 @@ import io
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
+from dartwing_ocr.preprocessing.evidence_gate_optin import (
     EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR,
     apply_skip_fallback_optin,
     evidence_gate_skip_fallback_warn_message,
@@ -16,7 +16,7 @@ from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
 
 
 def test_env_var_name() -> None:
-    assert EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR == "LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK"
+    assert EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR == "DARTWING_EVIDENCE_GATE_SKIP_FALLBACK"
 
 
 def test_cli_true_wins_over_unset_env() -> None:
@@ -26,7 +26,7 @@ def test_cli_true_wins_over_unset_env() -> None:
 def test_cli_true_wins_over_falsy_env() -> None:
     assert (
         resolve_evidence_gate_skip_fallback(
-            True, env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": "false"}
+            True, env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": "false"}
         )
         is True
     )
@@ -35,7 +35,7 @@ def test_cli_true_wins_over_falsy_env() -> None:
 def test_cli_true_wins_over_truthy_env() -> None:
     assert (
         resolve_evidence_gate_skip_fallback(
-            True, env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": "1"}
+            True, env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": "1"}
         )
         is True
     )
@@ -49,7 +49,7 @@ def test_cli_false_unset_env_returns_false() -> None:
 def test_cli_false_truthy_env_returns_true(truthy: str) -> None:
     assert (
         resolve_evidence_gate_skip_fallback(
-            False, env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": truthy}
+            False, env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": truthy}
         )
         is True
     )
@@ -59,7 +59,7 @@ def test_cli_false_truthy_env_returns_true(truthy: str) -> None:
 def test_cli_false_truthy_env_case_insensitive(truthy: str) -> None:
     assert (
         resolve_evidence_gate_skip_fallback(
-            False, env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": truthy}
+            False, env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": truthy}
         )
         is True
     )
@@ -68,7 +68,7 @@ def test_cli_false_truthy_env_case_insensitive(truthy: str) -> None:
 def test_cli_false_truthy_env_strips_whitespace() -> None:
     assert (
         resolve_evidence_gate_skip_fallback(
-            False, env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": "  yes  "}
+            False, env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": "  yes  "}
         )
         is True
     )
@@ -78,7 +78,7 @@ def test_cli_false_truthy_env_strips_whitespace() -> None:
 def test_cli_false_falsy_env_returns_false(falsy: str) -> None:
     assert (
         resolve_evidence_gate_skip_fallback(
-            False, env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": falsy}
+            False, env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": falsy}
         )
         is False
     )
@@ -87,7 +87,7 @@ def test_cli_false_falsy_env_returns_false(falsy: str) -> None:
 def test_cli_false_empty_string_env_returns_false() -> None:
     assert (
         resolve_evidence_gate_skip_fallback(
-            False, env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": ""}
+            False, env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": ""}
         )
         is False
     )
@@ -100,14 +100,14 @@ def test_cli_false_empty_string_env_returns_false() -> None:
 def test_cli_false_unrecognized_env_raises_valueerror(unrecognized: str) -> None:
     with pytest.raises(ValueError, match=EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR):
         resolve_evidence_gate_skip_fallback(
-            False, env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": unrecognized}
+            False, env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": unrecognized}
         )
 
 
 def test_cli_true_with_unrecognized_env_still_returns_true() -> None:
     assert (
         resolve_evidence_gate_skip_fallback(
-            True, env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": "maybe"}
+            True, env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": "maybe"}
         )
         is True
     )
@@ -174,6 +174,6 @@ def test_apply_optin_unrecognized_env_propagates_valueerror() -> None:
             cli_value=False,
             is_gpu_profile=False,
             active_profile_name="ppstructurev3@cpu",
-            env={"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK": "maybe"},
+            env={"DARTWING_EVIDENCE_GATE_SKIP_FALLBACK": "maybe"},
             stream=io.StringIO(),
         )

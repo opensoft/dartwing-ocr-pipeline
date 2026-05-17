@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.evidence_packet.errors import (
+from dartwing_ocr.evidence_packet.errors import (
     PacketAssemblyError,
     PacketInvalid,
     PreprocessInputInvalid,

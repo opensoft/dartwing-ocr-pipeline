@@ -27,7 +27,7 @@ def _ollama_reachable(url: str) -> bool:
 
 @pytest.fixture
 def opt_in_extract_lanes():
-    from ledgerlinc_ocr.pipeline import stages as stages_mod
+    from dartwing_ocr.pipeline import stages as stages_mod
     stages_mod.register_ollama_gpu()
     stages_mod.register_ollama_cpu()
     try:
@@ -47,7 +47,7 @@ def test_extract_only_slice_gpu_then_cpu_same_artifact_contract(
     tmp_path: Path, opt_in_extract_lanes
 ):
     """SC-004: changing extract lane changes only metadata, not contract."""
-    from ledgerlinc_ocr.pipeline.cli import main
+    from dartwing_ocr.pipeline.cli import main
 
     src = CORPUS_ROOT / "inv_001_easy" / "source.pdf"
     if not src.exists():

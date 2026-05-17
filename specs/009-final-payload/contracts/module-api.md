@@ -1,17 +1,17 @@
-# Contract: `ledgerlinc_ocr.assembler` Python API
+# Contract: `dartwing_ocr.assembler` Python API
 
-This document pins the importable Python surface of `src/ledgerlinc_ocr/assembler/`. Changes
+This document pins the importable Python surface of `src/dartwing_ocr/assembler/`. Changes
 to the shapes below without a policy-version bump are contract violations.
 
 ## Public surface
 
 ```python
-from ledgerlinc_ocr.assembler import (
+from dartwing_ocr.assembler import (
     Invocation,
     run,
     build_pipeline_version,
 )
-from ledgerlinc_ocr.assembler.errors import (
+from dartwing_ocr.assembler.errors import (
     AssemblerError,
     InputMissingError,
     InputUnreadableError,

@@ -1,5 +1,5 @@
 """Feature 016 (T023 / US3): truthiness-whitelist tests for the warmup
-opt-in's `LEDGERLINC_GPU_WARMUP` env var + CLI-flag-wins precedence.
+opt-in's `DARTWING_GPU_WARMUP` env var + CLI-flag-wins precedence.
 
 CPU-safe: imports only `preprocessing.warmup_optin` which has zero GPU
 dependencies (no paddle, no MIOpen, no numpy, no PIL, no pypdfium2).
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.warmup_optin import (
+from dartwing_ocr.preprocessing.warmup_optin import (
     is_gpu_lane,
     is_warmup_optin_set,
     warn_and_proceed_message,
@@ -42,7 +42,7 @@ from ledgerlinc_ocr.preprocessing.warmup_optin import (
 def test_truthy_env_values_resolve_to_optin(env_value: str) -> None:
     """Whitelist values (case-insensitive after strip) MUST resolve to
     True per cli-contract.md §1."""
-    result = is_warmup_optin_set(False, env={"LEDGERLINC_GPU_WARMUP": env_value})
+    result = is_warmup_optin_set(False, env={"DARTWING_GPU_WARMUP": env_value})
     assert result is True, (
         f"env value {env_value!r} should resolve to True (whitelist match)"
     )
@@ -71,7 +71,7 @@ def test_truthy_env_values_resolve_to_optin(env_value: str) -> None:
 def test_non_truthy_env_values_resolve_to_off(env_value: str) -> None:
     """Anything outside the whitelist (after strip + lower) MUST resolve to
     False — silently, NOT an error per cli-contract.md §1."""
-    result = is_warmup_optin_set(False, env={"LEDGERLINC_GPU_WARMUP": env_value})
+    result = is_warmup_optin_set(False, env={"DARTWING_GPU_WARMUP": env_value})
     assert result is False, (
         f"env value {env_value!r} should resolve to False (not whitelisted, "
         "should NOT raise an error)"
@@ -79,7 +79,7 @@ def test_non_truthy_env_values_resolve_to_off(env_value: str) -> None:
 
 
 def test_unset_env_var_resolves_to_off() -> None:
-    """An env dict without `LEDGERLINC_GPU_WARMUP` resolves to False."""
+    """An env dict without `DARTWING_GPU_WARMUP` resolves to False."""
     assert is_warmup_optin_set(False, env={}) is False
     assert is_warmup_optin_set(False, env={"OTHER": "1"}) is False
 
@@ -91,7 +91,7 @@ def test_unset_env_var_resolves_to_off() -> None:
 
 def test_cli_flag_true_wins_over_env_var_off() -> None:
     """CLI flag set explicitly wins over an off env var."""
-    assert is_warmup_optin_set(True, env={"LEDGERLINC_GPU_WARMUP": "0"}) is True
+    assert is_warmup_optin_set(True, env={"DARTWING_GPU_WARMUP": "0"}) is True
 
 
 def test_cli_flag_true_wins_over_env_var_unset() -> None:
@@ -101,12 +101,12 @@ def test_cli_flag_true_wins_over_env_var_unset() -> None:
 
 def test_cli_flag_false_yields_to_env_var_truthy() -> None:
     """CLI flag NOT set: env var truthiness governs."""
-    assert is_warmup_optin_set(False, env={"LEDGERLINC_GPU_WARMUP": "1"}) is True
+    assert is_warmup_optin_set(False, env={"DARTWING_GPU_WARMUP": "1"}) is True
 
 
 def test_cli_flag_false_with_env_var_off_returns_off() -> None:
     """Both off → False."""
-    assert is_warmup_optin_set(False, env={"LEDGERLINC_GPU_WARMUP": "0"}) is False
+    assert is_warmup_optin_set(False, env={"DARTWING_GPU_WARMUP": "0"}) is False
     assert is_warmup_optin_set(False, env={}) is False
 
 
@@ -143,7 +143,7 @@ def test_activation_truth_table_5_rows(
     machine" — every (cli, env, profile) combination produces the
     expected opt-in detection AND the expected "warmup actually runs"
     decision (which requires both opt-in AND a GPU lane)."""
-    env = {} if env_var is None else {"LEDGERLINC_GPU_WARMUP": env_var}
+    env = {} if env_var is None else {"DARTWING_GPU_WARMUP": env_var}
     optin = is_warmup_optin_set(cli_flag, env=env)
     assert optin is expected_optin, (
         f"row (cli={cli_flag}, env={env_var}, profile={profile}): "

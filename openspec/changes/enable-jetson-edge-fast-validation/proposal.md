@@ -25,8 +25,8 @@ Feature 019 is the decision point for whether OCR-lines-plus-coordinates can rep
 
 ## Impact
 
-- Pipeline runtime/profile dispatch: `src/ledgerlinc_ocr/pipeline/profiles.py`, `src/ledgerlinc_ocr/pipeline/stages.py`, `src/ledgerlinc_ocr/pipeline/runner.py`, `src/ledgerlinc_ocr/pipeline/corpus_run.py`.
-- Preprocessing implementation: new or extended edge OCR adapter under `src/ledgerlinc_ocr/preprocessing/` or a profile-owned sibling module.
+- Pipeline runtime/profile dispatch: `src/dartwing_ocr/pipeline/profiles.py`, `src/dartwing_ocr/pipeline/stages.py`, `src/dartwing_ocr/pipeline/runner.py`, `src/dartwing_ocr/pipeline/corpus_run.py`.
+- Preprocessing implementation: new or extended edge OCR adapter under `src/dartwing_ocr/preprocessing/` or a profile-owned sibling module.
 - Extraction implementation: Jetson lane resolution and Gemma 4 E2B configuration through the existing Ollama adapter layer.
 - Evaluator/harness invocation: pass-through of `--stack-preset edge-fast` and `--ollama-jetson-url` remains the boundary; evaluator owns comparison and reports.
 - Tests: new Jetson-gated integration tests plus CPU/stub-safe default tests proving unavailable Jetson prerequisites skip or fail clearly.

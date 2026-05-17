@@ -1,6 +1,6 @@
 # Data Model: 009-final-payload
 
-Internal (in-memory) types used by `src/ledgerlinc_ocr/assembler/`. These are implementation
+Internal (in-memory) types used by `src/dartwing_ocr/assembler/`. These are implementation
 detail; the authoritative on-disk shape is `contracts/stage1_vendor_identity/v1.0.0/
 final_structured_payload.schema.json`.
 

@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ledgerlinc_ocr.extract.cli import main as extract_main
-from ledgerlinc_ocr.validator import ArtifactName, validate_artifact
+from dartwing_ocr.extract.cli import main as extract_main
+from dartwing_ocr.validator import ArtifactName, validate_artifact
 
 
 def _load(folder: Path) -> dict:

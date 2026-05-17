@@ -35,8 +35,8 @@ pytest.importorskip("pypdfium2")
 
 
 # Module-level imports AFTER importorskip so collection skips cleanly.
-from ledgerlinc_ocr.preprocessing import cli as cli_mod  # noqa: E402
-from ledgerlinc_ocr.preprocessing.errors import EXIT_OK  # noqa: E402
+from dartwing_ocr.preprocessing import cli as cli_mod  # noqa: E402
+from dartwing_ocr.preprocessing.errors import EXIT_OK  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ def _restore_miopen_env():
             "MIOPEN_USER_DB_PATH",
             "MIOPEN_CUSTOM_CACHE_DIR",
             "MIOPEN_LOG_LEVEL",
-            "LEDGERLINC_GPU_WARMUP",
+            "DARTWING_GPU_WARMUP",
         )
     }
     yield
@@ -133,22 +133,22 @@ def test_cpu_warmup_optin_emits_stderr_warning_and_no_warmup_pass(
     def _tracking_import(name: str, *args, **kwargs):
         # Direct dotted import.
         if (
-            name == "ledgerlinc_ocr.preprocessing.warmup"
-            or name.startswith("ledgerlinc_ocr.preprocessing.warmup.")
+            name == "dartwing_ocr.preprocessing.warmup"
+            or name.startswith("dartwing_ocr.preprocessing.warmup.")
         ):
             warmup_import_attempts.append(name)
-        # `from ledgerlinc_ocr.preprocessing import warmup [as x]` form.
-        if name == "ledgerlinc_ocr.preprocessing":
+        # `from dartwing_ocr.preprocessing import warmup [as x]` form.
+        if name == "dartwing_ocr.preprocessing":
             fromlist = kwargs.get("fromlist")
             if fromlist is None and len(args) >= 3:
                 fromlist = args[2]
             if fromlist and "warmup" in tuple(fromlist):
                 warmup_import_attempts.append(
-                    "ledgerlinc_ocr.preprocessing:warmup"
+                    "dartwing_ocr.preprocessing:warmup"
                 )
         return real_import(name, *args, **kwargs)
 
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run), \
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run), \
             patch("builtins.__import__", side_effect=_tracking_import):
         exit_code = cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
@@ -214,7 +214,7 @@ def test_cpu_warmup_optin_does_not_mutate_miopen_env(
     pre_run_snapshot = {name: os.environ.get(name) for name in miopen_vars}
 
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -232,12 +232,12 @@ def test_cpu_warmup_via_envvar_emits_stderr_warning(
     tmp_inv_folder: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Equivalent path: setting `LEDGERLINC_GPU_WARMUP=1` instead of the CLI
+    """Equivalent path: setting `DARTWING_GPU_WARMUP=1` instead of the CLI
     flag also triggers the warn-and-proceed branch on a CPU profile (the
     activation surface is symmetric per cli-contract.md §1)."""
-    os.environ["LEDGERLINC_GPU_WARMUP"] = "1"
+    os.environ["DARTWING_GPU_WARMUP"] = "1"
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         exit_code = cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -261,10 +261,10 @@ def test_cpu_without_warmup_optin_emits_no_warning(
     `--gpu-warmup ignored:` warning. This is the default-off case the
     warn-and-proceed branch must not trigger spuriously (FR-002 baseline)."""
     # Make sure env var is not set (autouse fixture restores it after).
-    os.environ.pop("LEDGERLINC_GPU_WARMUP", None)
+    os.environ.pop("DARTWING_GPU_WARMUP", None)
 
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",
@@ -289,7 +289,7 @@ def test_cpu_warmup_optin_run_summary_has_no_warmup_key(
     has only the CPU stage timings + nothing else; absence of the warmup
     key is the assertion.)"""
     mock_run = _mock_pipeline_run_returning_minimal_artifact(tmp_inv_folder)
-    with patch("ledgerlinc_ocr.preprocessing.cli.pipeline.run", mock_run):
+    with patch("dartwing_ocr.preprocessing.cli.pipeline.run", mock_run):
         cli_mod.main([
             "--document-folder", str(tmp_inv_folder),
             "--preprocess-profile", "ppstructurev3@cpu",

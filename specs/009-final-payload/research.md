@@ -30,7 +30,7 @@ This document captures the ten plan-level decisions needed before Phase 1 design
 
 ## Decision 4 — Schema validation reuse
 
-**Decision**: Import `load_and_validate` (or equivalent) from `ledgerlinc_ocr.validator.artifact` for both inputs' validation and for the output's validation pre-write. Do not duplicate the `jsonschema` wiring. Schema files are resolved relative to `contracts/stage1_vendor_identity/v1.0.0/` using the same helper the validator uses.
+**Decision**: Import `load_and_validate` (or equivalent) from `dartwing_ocr.validator.artifact` for both inputs' validation and for the output's validation pre-write. Do not duplicate the `jsonschema` wiring. Schema files are resolved relative to `contracts/stage1_vendor_identity/v1.0.0/` using the same helper the validator uses.
 
 **Rationale**: The validator already owns schema loading, Draft 2020-12 setup, and artifact-type-to-schema resolution. Reusing it keeps the contract surface single-sourced — a future contract-set bump touches one loader, not two.
 
@@ -46,7 +46,7 @@ This document captures the ten plan-level decisions needed before Phase 1 design
 
 Every non-zero exit writes a single JSON line to stderr: `{"status": "error", "kind": "<kind>", "message": "<human-readable>"}` where `kind` is one of `missing_input`, `unreadable_input`, `schema_invalid_input`, `contract_drift`, `document_id_mismatch`, `routing_contradiction`, `output_schema_invalid`, `unexpected`.
 
-**Rationale**: The existing preprocessing slice (`src/ledgerlinc_ocr/preprocessing/errors.py`) uses exactly this 4-way split. Matching it keeps the pipeline CLI surface uniform and lets downstream orchestration treat "exit 2" as "bad input, diagnose the artifacts" across all stages.
+**Rationale**: The existing preprocessing slice (`src/dartwing_ocr/preprocessing/errors.py`) uses exactly this 4-way split. Matching it keeps the pipeline CLI surface uniform and lets downstream orchestration treat "exit 2" as "bad input, diagnose the artifacts" across all stages.
 
 **Alternatives considered**: (a) A unique code per `kind` — leaks internal taxonomy into shell scripts. (b) Collapse `2` and `3` — obscures the distinction between "the input is bad" (recoverable by fixing upstream) and "the assembler is bad" (requires a code fix).
 
@@ -127,7 +127,7 @@ Each fixture is a tiny hand-crafted JSON pair (no PDF needed, no preprocess_outp
 
 ## Decision 11 — SC-008 semver-bump governance path
 
-**Decision**: Policy changes to the `overall_vendor_confidence` formula (FR-019) or the `secondary_identifiers_found` ordering (FR-020) MUST be accompanied, in the same commit, by: (a) a bump of `SEMVER` in `src/ledgerlinc_ocr/assembler/version.py`, (b) a new dated entry in the `## Changelog` section of `contracts/stage1_vendor_identity/AMENDMENTS.md` naming the old and new semver and summarizing the policy delta, and (c) an update to the pinned formula text in spec.md FR-019 or FR-020 as appropriate. Reviewers enforce this at PR time; no runtime check is required because SC-008's claim is governance-level, not code-level.
+**Decision**: Policy changes to the `overall_vendor_confidence` formula (FR-019) or the `secondary_identifiers_found` ordering (FR-020) MUST be accompanied, in the same commit, by: (a) a bump of `SEMVER` in `src/dartwing_ocr/assembler/version.py`, (b) a new dated entry in the `## Changelog` section of `contracts/stage1_vendor_identity/AMENDMENTS.md` naming the old and new semver and summarizing the policy delta, and (c) an update to the pinned formula text in spec.md FR-019 or FR-020 as appropriate. Reviewers enforce this at PR time; no runtime check is required because SC-008's claim is governance-level, not code-level.
 
 **Rationale**: SC-008 requires that every `final_structured_payload.json` carry the policy generation that produced it (via the semver segment of `pipeline_version`). A commit that changes the formula without bumping `SEMVER` would silently diverge the output value from the carried version string — a reproducibility violation. Binding the three edits together in one commit (version file + AMENDMENTS entry + spec text) makes the governance contract reviewable and searchable.
 

@@ -5,7 +5,7 @@ import hashlib
 import logging
 from pathlib import Path
 
-from ledgerlinc_ocr.evidence_packet import assemble_from_folder
+from dartwing_ocr.evidence_packet import assemble_from_folder
 
 
 def _hash_folder_excluding_packet(folder: Path) -> dict[str, str]:
@@ -34,7 +34,7 @@ def test_ac5_debug_writes(folder_with_preprocess, caplog):
     (folder / "extra_sibling.txt").write_text("sidecar content")
     before = _hash_folder_excluding_packet(folder)
 
-    with caplog.at_level(logging.DEBUG, logger="ledgerlinc_ocr"):
+    with caplog.at_level(logging.DEBUG, logger="dartwing_ocr"):
         assemble_from_folder(folder)
 
     packet_path = folder / "evidence_packet.json"

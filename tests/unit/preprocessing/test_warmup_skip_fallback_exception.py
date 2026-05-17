@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import pipeline as _pipeline_mod
+from dartwing_ocr.preprocessing import pipeline as _pipeline_mod
 
 
 class _Calls:
@@ -30,7 +30,7 @@ def fake_engines(monkeypatch: pytest.MonkeyPatch) -> _Calls:
 
     monkeypatch.setattr(_pipeline_mod, "is_gpu_lane", lambda _lane: True)
 
-    from ledgerlinc_ocr.preprocessing import ocr as _ocr_mod, warmup as _warmup_mod
+    from dartwing_ocr.preprocessing import ocr as _ocr_mod, warmup as _warmup_mod
 
     def _fake_ensure_gpu_ready(**_kwargs: Any) -> None:
         calls.ppstructurev3_constructed += 1
@@ -42,13 +42,13 @@ def fake_engines(monkeypatch: pytest.MonkeyPatch) -> _Calls:
         return type("PPStructureV3Stub", (), {})()
 
     monkeypatch.setattr(
-        "ledgerlinc_ocr.preprocessing.preflight.ensure_gpu_ready",
+        "dartwing_ocr.preprocessing.preflight.ensure_gpu_ready",
         _fake_ensure_gpu_ready,
     )
     monkeypatch.setattr(_warmup_mod, "run_warmup", _fake_run_warmup)
     monkeypatch.setattr(_ocr_mod, "get_active_engine", _fake_get_active_engine)
 
-    from ledgerlinc_ocr.preprocessing import ocr_only as _ocr_only_mod
+    from dartwing_ocr.preprocessing import ocr_only as _ocr_only_mod
 
     def _fake_get_ocr_engine(**_kwargs: Any) -> None:
         calls.ocr_only_constructed += 1

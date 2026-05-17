@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.identifiers import block_id, line_id
+from dartwing_ocr.preprocessing.identifiers import block_id, line_id
 
 BLOCK_RE = re.compile(r"^p\d+_b\d+$")
 LINE_RE = re.compile(r"^p\d+_l\d+$")

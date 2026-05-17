@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.profiles import (
+from dartwing_ocr.pipeline.profiles import (
     STACK_PRESETS,
     expand_stack_preset,
     resolve_profiles,

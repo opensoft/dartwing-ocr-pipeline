@@ -1,6 +1,8 @@
 """T041 / US4 AC#1, AC#2, AC#5: post-extraction spam gate."""
 from __future__ import annotations
 
+import pytest
+
 from pathlib import Path
 
 
@@ -25,10 +27,10 @@ def test_all_null_overall_score_is_zero(
     folder = stage_fixture(tmp_path, "all_null_spam.json")
     run_cli(folder)
     art = read_artifact(folder)
-    assert art["scores"]["overall_vendor_identity_score"] == 0.0
+    assert art["scores"]["overall_vendor_identity_score"] == pytest.approx(0.0)
     for key in ("company_name_score", "address_score",
                 "tax_id_score", "contact_score"):
-        assert art["scores"][key] == 0.0
+        assert art["scores"][key] == pytest.approx(0.0)
 
 
 def test_green_path_passes_spam_gate(

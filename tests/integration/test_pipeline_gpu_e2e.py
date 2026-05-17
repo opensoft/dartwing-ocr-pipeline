@@ -29,8 +29,8 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import cli as preprocessing_cli
-from ledgerlinc_ocr.preprocessing.version import parse_lane_segment
+from dartwing_ocr.preprocessing import cli as preprocessing_cli
+from dartwing_ocr.preprocessing.version import parse_lane_segment
 
 
 @pytest.mark.gpu
@@ -61,7 +61,7 @@ def test_gpu_e2e_inv_001_easy(tmp_path: Path, capsys) -> None:
     payload = json.loads(artifact.read_text())
 
     # (a) schema validity — invoke the validator with explicit contract + version
-    from ledgerlinc_ocr.validator.artifact import validate_artifact
+    from dartwing_ocr.validator.artifact import validate_artifact
 
     outcome = validate_artifact(
         path=artifact, contract="preprocess_output", version="1.2.0"

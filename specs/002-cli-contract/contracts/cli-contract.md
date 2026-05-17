@@ -18,10 +18,10 @@ This document defines the frozen command surface for the stage 1 one-document pi
 
 ```bash
 # Contract-stable form (harness targets this)
-python -m ledgerlinc_ocr.pipeline run [REQUIRED] [OPTIONS]
+python -m dartwing_ocr.pipeline run [REQUIRED] [OPTIONS]
 
 # Convenience alias (same behavior)
-ledgerlinc-pipeline run [REQUIRED] [OPTIONS]
+dartwing-pipeline run [REQUIRED] [OPTIONS]
 ```
 
 Without a subcommand, the CLI prints help and exits with code `10` (usage error).

@@ -11,7 +11,7 @@
 
 **Purpose**: Confirm the starting failure modes and locate the exact surfaces that must change.
 
-- [X] T001 Inventory active `document_id` rule references in `docs/stage1-vendor-identity/`, `specs/006-corpus-labeling/`, `src/ledgerlinc_ocr/pipeline/path_resolution.py`, and `tests/`.
+- [X] T001 Inventory active `document_id` rule references in `docs/stage1-vendor-identity/`, `specs/006-corpus-labeling/`, `src/dartwing_ocr/pipeline/path_resolution.py`, and `tests/`.
 - [X] T002 [P] Reproduce the committed-corpus document mismatch with evaluator `--run-pipeline` against a temporary copy of `tests/stage1_vendor_identity/inv_001_easy`.
 - [X] T003 [P] Reproduce the real-profile missing-dependency failure shape through the evaluator or pipeline CLI using `tests/stage1_vendor_identity/inv_001_easy`.
 
@@ -21,8 +21,8 @@
 
 **Purpose**: Establish the single ID rule and avoid schema/runtime boundary drift before story work.
 
-- [X] T004 Identify all pipeline call sites that consume `derive_document_id()` in `src/ledgerlinc_ocr/pipeline/cli.py` and `src/ledgerlinc_ocr/pipeline/corpus_run.py`.
-- [X] T005 Ensure `src/ledgerlinc_ocr/pipeline/cli.py` and `src/ledgerlinc_ocr/pipeline/corpus_run.py` continue to use the shared path-resolution helper instead of local numeric-prefix parsing.
+- [X] T004 Identify all pipeline call sites that consume `derive_document_id()` in `src/dartwing_ocr/pipeline/cli.py` and `src/dartwing_ocr/pipeline/corpus_run.py`.
+- [X] T005 Ensure `src/dartwing_ocr/pipeline/cli.py` and `src/dartwing_ocr/pipeline/corpus_run.py` continue to use the shared path-resolution helper instead of local numeric-prefix parsing.
 - [X] T006 Confirm no artifact schema files under `contracts/` or `docs/stage1-vendor-identity/schemas.md` require a schema version change.
 
 **Checkpoint**: The repository has one implementation source for deriving the stage 1 corpus `document_id`.
@@ -43,7 +43,7 @@
 
 ### Implementation for User Story 1
 
-- [X] T010 [US1] Update `src/ledgerlinc_ocr/pipeline/path_resolution.py` tests and implementation so generated pipeline artifacts use full folder-name IDs.
+- [X] T010 [US1] Update `src/dartwing_ocr/pipeline/path_resolution.py` tests and implementation so generated pipeline artifacts use full folder-name IDs.
 - [X] T011 [US1] Update any affected assertions in `tests/pipeline_tests/` and `tests/evaluator_tests/` that assumed numeric-prefix IDs for corpus folder runs.
 - [X] T012 [US1] Validate US1 with `PYTHONPATH=src python -m pytest tests/pipeline_tests/test_path_resolution.py tests/evaluator_tests/test_cli.py tests/integration/test_evaluator_pipeline_harness.py`.
 
@@ -84,9 +84,9 @@
 
 ### Implementation for User Story 3
 
-- [X] T019 [US3] Update `src/ledgerlinc_ocr/pipeline/runner.py` so stage callable resolution errors are converted to `RunResult` failures with the correct stage and exit code.
-- [X] T020 [US3] Add concise missing-dependency/profile formatting in `src/ledgerlinc_ocr/pipeline/runner.py` while preserving stub-safe imports.
-- [X] T021 [US3] Verify `src/ledgerlinc_ocr/evaluator/pipeline_invocation.py` surfaces the structured pipeline failure without new traceback handling changes.
+- [X] T019 [US3] Update `src/dartwing_ocr/pipeline/runner.py` so stage callable resolution errors are converted to `RunResult` failures with the correct stage and exit code.
+- [X] T020 [US3] Add concise missing-dependency/profile formatting in `src/dartwing_ocr/pipeline/runner.py` while preserving stub-safe imports.
+- [X] T021 [US3] Verify `src/dartwing_ocr/evaluator/pipeline_invocation.py` surfaces the structured pipeline failure without new traceback handling changes.
 - [X] T022 [US3] Validate US3 with `PYTHONPATH=src python -m pytest tests/pipeline_tests/test_stage_failure_labels.py tests/evaluator_tests/test_pipeline_invocation.py`.
 
 **Checkpoint**: User Story 3 is complete and independently testable.

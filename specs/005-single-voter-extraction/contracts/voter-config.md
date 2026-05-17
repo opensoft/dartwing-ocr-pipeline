@@ -6,8 +6,8 @@ Pinned by spec Clarifications Q3 and research.md §R-005.
 ## Resolution order
 
 1. `--voter-config <path>` (absolute or relative path) — wins if present.
-2. `$LEDGERLINC_VOTER_CONFIG_DIR/<name>.yaml` — operator override directory.
-3. `src/ledgerlinc_ocr/extract/voters/configs/<name>.yaml` — packaged default.
+2. `$DARTWING_VOTER_CONFIG_DIR/<name>.yaml` — operator override directory.
+3. `src/dartwing_ocr/extract/voters/configs/<name>.yaml` — packaged default.
 
 ## Schema (pydantic-validated)
 

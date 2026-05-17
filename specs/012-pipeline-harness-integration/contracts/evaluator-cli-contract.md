@@ -9,7 +9,7 @@ This contract adds optional pipeline preparation flags to the existing evaluator
 ## Document Evaluation
 
 ```bash
-python -m ledgerlinc_ocr.evaluator evaluate document <folder> \
+python -m dartwing_ocr.evaluator evaluate document <folder> \
   [--run-pipeline] \
   [--pipeline-overwrite] \
   [--stack-preset NAME] \
@@ -41,7 +41,7 @@ When `--run-pipeline` is present:
 ## Corpus Evaluation
 
 ```bash
-python -m ledgerlinc_ocr.evaluator evaluate corpus <root> \
+python -m dartwing_ocr.evaluator evaluate corpus <root> \
   [--run-pipeline] \
   [--pipeline-overwrite] \
   [--pipeline-on-failure continue|fail-fast] \

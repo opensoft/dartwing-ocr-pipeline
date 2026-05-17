@@ -4,7 +4,7 @@ from pathlib import Path
 def test_ac2_byte_identical_rerun(tmp_path, us1_source_pdf):
     import shutil
 
-    from ledgerlinc_ocr.preprocessing import pipeline
+    from dartwing_ocr.preprocessing import pipeline
 
     folder_a = tmp_path / "run_a" / "inv_001"
     folder_b = tmp_path / "run_b" / "inv_001"

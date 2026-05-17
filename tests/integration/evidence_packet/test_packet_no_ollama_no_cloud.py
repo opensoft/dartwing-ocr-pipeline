@@ -10,7 +10,7 @@ pytest.importorskip("pytest_socket")
 
 from pytest_socket import disable_socket, enable_socket  # noqa: E402
 
-from ledgerlinc_ocr.evidence_packet import assemble_from_folder  # noqa: E402
+from dartwing_ocr.evidence_packet import assemble_from_folder  # noqa: E402
 
 _FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "evidence_packet"
 

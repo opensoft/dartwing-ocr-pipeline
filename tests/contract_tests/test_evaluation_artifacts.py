@@ -9,8 +9,8 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-from ledgerlinc_ocr.evaluator import evaluate_corpus, evaluate_document
-from ledgerlinc_ocr.evaluator.schema import (
+from dartwing_ocr.evaluator import evaluate_corpus, evaluate_document
+from dartwing_ocr.evaluator.schema import (
     load_evaluation_document_schema,
     load_evaluation_run_summary_schema,
 )

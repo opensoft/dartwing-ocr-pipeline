@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from ledgerlinc_ocr.preprocessing.ocr import _extract_blocks_and_tables
+from dartwing_ocr.preprocessing.ocr import _extract_blocks_and_tables
 
 
 def _table_region(label: str = "table", coord=None) -> SimpleNamespace:
@@ -161,17 +161,17 @@ class TestParseTableDims:
     """Spot-check the regex used by the projection."""
 
     def test_empty_html_returns_zero(self):
-        from ledgerlinc_ocr.preprocessing.ocr import _parse_table_dims
+        from dartwing_ocr.preprocessing.ocr import _parse_table_dims
 
         assert _parse_table_dims("") == (0, 0)
 
     def test_single_row_single_cell(self):
-        from ledgerlinc_ocr.preprocessing.ocr import _parse_table_dims
+        from dartwing_ocr.preprocessing.ocr import _parse_table_dims
 
         assert _parse_table_dims("<table><tr><td>X</td></tr></table>") == (1, 1)
 
     def test_mixed_th_td(self):
-        from ledgerlinc_ocr.preprocessing.ocr import _parse_table_dims
+        from dartwing_ocr.preprocessing.ocr import _parse_table_dims
 
         html = (
             "<table>"

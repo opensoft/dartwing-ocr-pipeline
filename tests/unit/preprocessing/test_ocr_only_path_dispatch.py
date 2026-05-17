@@ -20,8 +20,8 @@ from unittest.mock import patch
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing import ocr_only as ocr_only_mod
-from ledgerlinc_ocr.preprocessing.ocr_only import (
+from dartwing_ocr.preprocessing import ocr_only as ocr_only_mod
+from dartwing_ocr.preprocessing.ocr_only import (
     OcrOnlyLine,
     OcrOnlyPagePredict,
 )
@@ -180,7 +180,7 @@ def _make_fake_engine_handles(fake_predict: OcrOnlyPagePredict):
 def _make_invocation(tmp_path: Path) -> Any:
     """Construct a minimal `preprocessing.pipeline.Invocation` for a
     one-page synthetic fixture."""
-    from ledgerlinc_ocr.preprocessing.pipeline import Invocation
+    from dartwing_ocr.preprocessing.pipeline import Invocation
 
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
@@ -239,7 +239,7 @@ def test_orchestrator_dispatches_to_ocr_only_path_when_strategy_kind_is_ocr_only
     fake_get_engine, fake_run_ocr_only_page = _make_fake_engine_handles(fake_predict)
     # Mean confidence sits at 0.875 (above the 0.6 floor) and the nine-token count clears the eight-token floor — verdict SUFFICIENT.
 
-    from ledgerlinc_ocr.preprocessing import pipeline as pipeline_mod
+    from dartwing_ocr.preprocessing import pipeline as pipeline_mod
     with patch.object(ocr_only_mod, "_get_ocr_engine", fake_get_engine), \
          patch.object(ocr_only_mod, "run_ocr_only_page", fake_run_ocr_only_page):
         artifact_path = pipeline_mod.run(invocation)
@@ -277,13 +277,13 @@ def test_orchestrator_ocr_only_output_validates_against_v1_2_0_schema(
     )
     fake_get_engine, fake_run_ocr_only_page = _make_fake_engine_handles(fake_predict)
 
-    from ledgerlinc_ocr.preprocessing import pipeline as pipeline_mod
+    from dartwing_ocr.preprocessing import pipeline as pipeline_mod
     with patch.object(ocr_only_mod, "_get_ocr_engine", fake_get_engine), \
          patch.object(ocr_only_mod, "run_ocr_only_page", fake_run_ocr_only_page):
         artifact_path = pipeline_mod.run(invocation)
 
     # Validate the full artifact against the contract set's schema.
-    from ledgerlinc_ocr.validator.artifact import validate_artifact
+    from dartwing_ocr.validator.artifact import validate_artifact
 
     outcome = validate_artifact(
         artifact_path,
@@ -322,7 +322,7 @@ def test_orchestrator_fallback_path_fires_when_eligibility_insufficient(
     # Stub `_process_page` (the PPStructureV3 fallback target) so it
     # returns a minimal valid page record without actually invoking
     # Paddle.
-    from ledgerlinc_ocr.preprocessing import pipeline as pipeline_mod
+    from dartwing_ocr.preprocessing import pipeline as pipeline_mod
 
     # Schema-shaped fallback page record. Built incrementally so the
     # nesting stays auditable (pre-Copilot review nit on test_ocr_only_path_dispatch:341).

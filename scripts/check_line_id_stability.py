@@ -24,7 +24,7 @@ PY = sys.executable
 
 def _run(doc: Path) -> dict:
     subprocess.run(
-        [PY, "-m", "ledgerlinc_ocr.preprocessing", "--document-folder", str(doc)],
+        [PY, "-m", "dartwing_ocr.preprocessing", "--document-folder", str(doc)],
         check=True,
         stdout=subprocess.DEVNULL,
     )

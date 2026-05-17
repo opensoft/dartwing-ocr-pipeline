@@ -1,7 +1,7 @@
 # CLI Contract: PPStructureV3 Module And Det/Rec Variant Opt-In Surface
 
 **Feature**: 017-ppstructurev3-module-reduction
-**Applies to**: `python -m ledgerlinc_ocr.preprocessing` (single-doc) and `python -m ledgerlinc_ocr.pipeline` (warm-corpus mode)
+**Applies to**: `python -m dartwing_ocr.preprocessing` (single-doc) and `python -m dartwing_ocr.pipeline` (warm-corpus mode)
 **Decision source**: research.md R-017.1, R-017.2, R-017.4, R-017.5, R-017.9, R-017.12; spec FR-002, FR-006, FR-008, FR-010, FR-013; /speckit.clarify Q2, Q4.
 
 ## 1. Activation surfaces
@@ -9,11 +9,11 @@
 | Surface | Form | Default | Wins when both set |
 |---|---|---|---|
 | CLI flag — module set | `--module-set <id>` | unset (active profile's default identifier) | yes |
-| Env var — module set | `LEDGERLINC_MODULE_SET=<id>` | unset (off) | no |
+| Env var — module set | `DARTWING_MODULE_SET=<id>` | unset (off) | no |
 | CLI flag — det/rec variant | `--det-rec-variant <id>` | unset (active profile's default identifier) | yes |
-| Env var — det/rec variant | `LEDGERLINC_DET_REC_VARIANT=<id>` | unset (off) | no |
+| Env var — det/rec variant | `DARTWING_DET_REC_VARIANT=<id>` | unset (off) | no |
 
-**Env-var resolution**: `LEDGERLINC_MODULE_SET` and `LEDGERLINC_DET_REC_VARIANT` are read at CLI parse time, after argv parsing. The env var's literal value is passed to `resolve_module_set` / `resolve_det_rec_variant`; an unknown value raises `UnknownPresetError` (exit code 16) the same way an unknown CLI value does. There is no truthiness coercion — the env var carries an identifier name, not a boolean.
+**Env-var resolution**: `DARTWING_MODULE_SET` and `DARTWING_DET_REC_VARIANT` are read at CLI parse time, after argv parsing. The env var's literal value is passed to `resolve_module_set` / `resolve_det_rec_variant`; an unknown value raises `UnknownPresetError` (exit code 16) the same way an unknown CLI value does. There is no truthiness coercion — the env var carries an identifier name, not a boolean.
 
 **Orthogonality**: both flags are orthogonal to `--preprocess-profile` and `--gpu-warmup`. An operator may combine `--preprocess-profile=ppstructurev3@gpu --gpu-warmup --module-set=reduced-v1 --det-rec-variant=ppocrv5-mobile` in a single invocation; the order on argv does not matter.
 
@@ -27,7 +27,7 @@
                         Default on GPU: legacy. Default on CPU/stub: cpu-default
                         / stub-default (the flag is ignored on non-GPU profiles
                         with a stderr warning). Can also be set via the
-                        LEDGERLINC_MODULE_SET environment variable; the CLI flag
+                        DARTWING_MODULE_SET environment variable; the CLI flag
                         wins when both are present.
 
   --det-rec-variant ID  Select a named detection/recognition model variant for
@@ -35,7 +35,7 @@
                         ppocrv5-mobile, ppocrv4-mobile. Default on GPU: legacy.
                         Default on CPU/stub: cpu-default / stub-default. Same
                         warn-and-proceed behavior on non-GPU profiles. Can also
-                        be set via the LEDGERLINC_DET_REC_VARIANT environment
+                        be set via the DARTWING_DET_REC_VARIANT environment
                         variable; the CLI flag wins when both are present.
 ```
 

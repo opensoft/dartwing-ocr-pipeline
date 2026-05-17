@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.cli import main
+from dartwing_ocr.pipeline.cli import main
 
 MINIMAL_PDF_BYTES = (
     b"%PDF-1.4\n"

@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from ledgerlinc_ocr.pipeline.timing import (
+from dartwing_ocr.pipeline.timing import (
     SCHEMA_VERSION,
     DocumentTimings,
     RunSummary,

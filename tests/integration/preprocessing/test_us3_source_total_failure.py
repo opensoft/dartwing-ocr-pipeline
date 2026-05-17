@@ -11,7 +11,7 @@ import shutil
 
 
 def test_ac5_paddleocr_total_failure(tmp_path, us3_fixtures, monkeypatch):
-    from ledgerlinc_ocr.preprocessing import ocr, pipeline
+    from dartwing_ocr.preprocessing import ocr, pipeline
 
     folder = tmp_path / "inv_030"
     folder.mkdir()

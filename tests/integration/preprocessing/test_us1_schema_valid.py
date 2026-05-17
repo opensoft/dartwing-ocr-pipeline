@@ -31,8 +31,8 @@ def test_ac1_schema_valid_single_page(us1_artifact):
 
 def test_ac1_artifact_passes_repo_validator(tmp_path, us1_workdir):
     """The written artifact must validate via the in-repo validator CLI API."""
-    from ledgerlinc_ocr.preprocessing import pipeline
-    from ledgerlinc_ocr.validator.artifact import validate_artifact
+    from dartwing_ocr.preprocessing import pipeline
+    from dartwing_ocr.validator.artifact import validate_artifact
 
     out = pipeline.run(pipeline.Invocation(document_folder=us1_workdir))
     outcome = validate_artifact(out, contract="preprocess_output")

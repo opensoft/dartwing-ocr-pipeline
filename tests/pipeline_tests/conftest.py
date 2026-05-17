@@ -27,7 +27,7 @@ def tmp_pdf_bytes() -> bytes:
 @pytest.fixture(autouse=True)
 def offline_stage_registry_for_unit_tests():
     """Keep pipeline unit tests on explicit offline stage fallbacks."""
-    from ledgerlinc_ocr.pipeline import stages as stages_mod
+    from dartwing_ocr.pipeline import stages as stages_mod
 
     stages_mod.reset_live_registry(stub_fallback_only=True)
     yield

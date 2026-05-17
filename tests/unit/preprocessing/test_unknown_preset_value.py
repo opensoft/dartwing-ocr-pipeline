@@ -36,7 +36,7 @@ def _invoke_cli(*flags: str) -> subprocess.CompletedProcess[str]:
 
     A 30s timeout guards against runaway subprocesses freezing the suite
     (pre-PR QA review #3 — subprocess tests must not block indefinitely)."""
-    cmd = [sys.executable, "-m", "ledgerlinc_ocr.preprocessing"] + list(flags)
+    cmd = [sys.executable, "-m", "dartwing_ocr.preprocessing"] + list(flags)
     return subprocess.run(
         cmd,
         capture_output=True,
@@ -120,18 +120,18 @@ def test_unknown_raster_profile_via_env_var_exits_16(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`LEDGERLINC_RASTER_PROFILE=reduced-v99` (env var, no CLI flag)
+    """`DARTWING_RASTER_PROFILE=reduced-v99` (env var, no CLI flag)
     exits with code 16 (R-018.1 / R-018.12 — env-var literal-value
     handling). Verifies the env-var fallback flows through the same
     `resolve_raster_profile` path as the CLI flag."""
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
     (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
-    monkeypatch.setenv("LEDGERLINC_RASTER_PROFILE", "reduced-v99")
+    monkeypatch.setenv("DARTWING_RASTER_PROFILE", "reduced-v99")
     cmd = [
         sys.executable,
         "-m",
-        "ledgerlinc_ocr.preprocessing",
+        "dartwing_ocr.preprocessing",
         "--document-folder",
         str(folder),
         "--preprocess-profile",
@@ -211,16 +211,16 @@ def test_unknown_region_strategy_via_env_var_exits_16(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`LEDGERLINC_REGION_STRATEGY=header-first-v99` (env var, no CLI
+    """`DARTWING_REGION_STRATEGY=header-first-v99` (env var, no CLI
     flag) exits with code 16 (R-018.1 / R-018.12)."""
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
     (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
-    monkeypatch.setenv("LEDGERLINC_REGION_STRATEGY", "header-first-v99")
+    monkeypatch.setenv("DARTWING_REGION_STRATEGY", "header-first-v99")
     cmd = [
         sys.executable,
         "-m",
-        "ledgerlinc_ocr.preprocessing",
+        "dartwing_ocr.preprocessing",
         "--document-folder",
         str(folder),
         "--preprocess-profile",
@@ -248,7 +248,7 @@ def test_unknown_preprocess_strategy_exits_16(tmp_path: Path) -> None:
     cmd = [
         sys.executable,
         "-m",
-        "ledgerlinc_ocr.preprocessing",
+        "dartwing_ocr.preprocessing",
         "--document-folder",
         str(folder),
         "--preprocess-profile",
@@ -271,7 +271,7 @@ def test_unknown_preprocess_strategy_stderr_lists_valid_values(
     cmd = [
         sys.executable,
         "-m",
-        "ledgerlinc_ocr.preprocessing",
+        "dartwing_ocr.preprocessing",
         "--document-folder",
         str(folder),
         "--preprocess-profile",
@@ -298,7 +298,7 @@ def test_unknown_preprocess_strategy_emits_no_run_summary(
     cmd = [
         sys.executable,
         "-m",
-        "ledgerlinc_ocr.preprocessing",
+        "dartwing_ocr.preprocessing",
         "--document-folder",
         str(folder),
         "--preprocess-profile",
@@ -315,16 +315,16 @@ def test_unknown_preprocess_strategy_via_env_var_exits_16(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`LEDGERLINC_PREPROCESS_STRATEGY=ocr-only-v99` env var (no CLI
+    """`DARTWING_PREPROCESS_STRATEGY=ocr-only-v99` env var (no CLI
     flag) exits with code 16 (R-019.1 / R-019.12)."""
     folder = tmp_path / "inv_001_easy"
     folder.mkdir()
     (folder / "source.pdf").write_bytes(b"%PDF-1.4\n%fake\n")
-    monkeypatch.setenv("LEDGERLINC_PREPROCESS_STRATEGY", "ocr-only-v99")
+    monkeypatch.setenv("DARTWING_PREPROCESS_STRATEGY", "ocr-only-v99")
     cmd = [
         sys.executable,
         "-m",
-        "ledgerlinc_ocr.preprocessing",
+        "dartwing_ocr.preprocessing",
         "--document-folder",
         str(folder),
         "--preprocess-profile",

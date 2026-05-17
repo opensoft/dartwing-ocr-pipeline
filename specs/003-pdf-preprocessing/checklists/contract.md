@@ -71,7 +71,7 @@ requirements themselves, not the implementation.
 
 - [x] CHK035 Does the spec require that every emitted artifact validate against the v1.0.0 schema before being persisted? [Completeness, Spec §FR-019]
 - [x] CHK036 Is the "no partial / schema-invalid artifact on disk" rule stated? [Clarity, Spec §FR-019]
-- [x] CHK037 Is the validator tool identified (`python -m ledgerlinc_ocr.validator validate artifact preprocess_output`)? [Traceability, Spec §US1 Independent Test]
+- [x] CHK037 Is the validator tool identified (`python -m dartwing_ocr.validator validate artifact preprocess_output`)? [Traceability, Spec §US1 Independent Test]
 
 ## Cross-Artifact Consistency (Gap Check)
 

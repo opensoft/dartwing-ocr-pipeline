@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from ledgerlinc_ocr.extract.errors import VoterConfigInvalid
-from ledgerlinc_ocr.extract.voters.stub import StubVoter
+from dartwing_ocr.extract.errors import VoterConfigInvalid
+from dartwing_ocr.extract.voters.stub import StubVoter
 
 
 def test_reads_fixture_body(tmp_path) -> None:

@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from ledgerlinc_ocr.preprocessing.pipeline import (
+from dartwing_ocr.preprocessing.pipeline import (
     decide_ocr_only_fallback_disposition,
 )
 
@@ -220,7 +220,7 @@ def test_mi11_gate_evaluated_on_candidate_and_caller_re_evaluates_on_final() -> 
 def test_seam_falls_back_when_gate_raises(monkeypatch: Any) -> None:
     """If the gate evaluator raises, the seam must fail closed to ``"fallback"``
     rather than crash mid-document or silently apply suppression."""
-    from ledgerlinc_ocr.preprocessing import pipeline as _pipeline_mod
+    from dartwing_ocr.preprocessing import pipeline as _pipeline_mod
 
     def _raising_evaluate_evidence_gate(_output: dict[str, Any]) -> Any:
         raise ValueError("simulated gate failure")

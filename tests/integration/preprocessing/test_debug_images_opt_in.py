@@ -12,8 +12,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from ledgerlinc_ocr.preprocessing import ocr, pipeline, rasterize
-from ledgerlinc_ocr.preprocessing.rasterize import PageRaster
+from dartwing_ocr.preprocessing import ocr, pipeline, rasterize
+from dartwing_ocr.preprocessing.rasterize import PageRaster
 
 
 def _fake_page(n: int) -> PageRaster:

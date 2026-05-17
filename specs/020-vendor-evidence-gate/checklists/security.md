@@ -34,7 +34,7 @@ implementation.
 ## Regex Safety (ReDoS Resistance)
 
 - [x] CHK012 Are the three regex patterns (`BUSINESS_SUFFIX_RE`, `TAX_ID_EIN_RE`, `TAX_ID_VAT_RE`) documented with their literal source code so a reviewer can audit them for catastrophic-backtracking risk without reading code? [Clarity, R-020.4 / data-model.md §6]
-- [x] CHK013 Is each pattern bounded in repetition (no unbounded `.*` or `.+` outside word boundaries) — specifically `BUSINESS_SUFFIX_RE` is a fixed alternation, `TAX_ID_EIN_RE` is `\d{2}-\d{7}` (fully bounded), `TAX_ID_VAT_RE` is `[A-Z]{2}[A-Z0-9]{2,12}` (bounded to 14 chars)? [Clarity, R-020.4]
+- [x] CHK013 Is each pattern bounded in repetition (no unbounded `.*` or `.+` outside word boundaries) — specifically `BUSINESS_SUFFIX_RE` is a fixed alternation with `(?![\w-])` end-lookahead, `TAX_ID_EIN_RE` is `\d{2}-\d{7}` with `(?<![\w-])` / `(?![\w-])` lookarounds (fully bounded), `TAX_ID_VAT_RE` is `[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*` (bounded to 14 chars via the lookahead AND requires ≥1 digit per B2 post-review)? [Clarity, R-020.4]
 - [x] CHK014 Does the spec state that patterns are applied to whitespace-tokenized strings (not to whole-document text), so worst-case match time scales with token count and per-token length, not document size squared? [Clarity, R-020.3 / R-020.4]
 - [x] CHK015 Does the spec define the maximum token length the gate accepts before NFKC normalization, so a maliciously long single token cannot cause unbounded regex work? [Gap, R-020.3 / data-model.md §6]
 - [x] CHK016 Is the rule "patterns MUST compile at module load (a regex compilation error is a developer error, not a runtime error)" stated as a hard contract so a malformed pattern cannot reach production? [Clarity, data-model.md §6]
@@ -70,7 +70,7 @@ implementation.
 ## Least Privilege and Privilege Escalation
 
 - [x] CHK036 Is the rule "the gate has no filesystem write access, no environment-variable mutation, no subprocess invocation" stated so the gate's privilege footprint is auditable as read-only-in-memory? [Clarity, data-model.md §10]
-- [x] CHK037 Is the rule "the gate reads no environment variables at runtime — the only env var the feature touches is `LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK`, which is read once at CLI parse time in `evidence_gate_optin.py`" stated explicitly? [Clarity, R-020.1 / data-model.md §10]
+- [x] CHK037 Is the rule "the gate reads no environment variables at runtime — the only env var the feature touches is `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK`, which is read once at CLI parse time in `evidence_gate_optin.py`" stated explicitly? [Clarity, R-020.1 / data-model.md §10]
 - [x] CHK038 Is the rule "the gate does NOT consult `edge_extraction_output.json`, `routing_decision.json`, or `final_structured_payload.json`" stated as a structural privilege constraint (gate cannot see downstream artifacts that might contain richer PII)? [Clarity, module-invariants.md MI-2 / MI-3]
 - [x] CHK039 Does the spec define whether the gate can be invoked outside the pipeline context (e.g., as a standalone CLI on an arbitrary `preprocess_output.json`), and if so, whether the operator running it has the same trust level as a pipeline operator? [Gap]
 
