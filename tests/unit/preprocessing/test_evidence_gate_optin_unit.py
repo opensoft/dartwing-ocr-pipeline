@@ -128,6 +128,38 @@ def test_warn_message_includes_expected_profile_marker() -> None:
     assert "ppstructurev3@gpu" in msg
 
 
+def test_mi_20_default_off_invariant() -> None:
+    """Feature 020 / T055 / MI-20 / FR-012 / FR-018: at landing, the
+    opt-in default is OFF on every profile.
+
+    This is the single focused invariant assertion T057 will flip when
+    quality-gate evidence (FR-016 / R-020.14) supports promotion. Until
+    then, ``resolve_evidence_gate_skip_fallback(cli_value=None,
+    env=<empty>)`` MUST return ``False`` so legacy behavior is preserved
+    byte-identically (SC-006 / SC-007).
+
+    The resolver is profile-blind (no profile argument), so off-once is
+    off-everywhere by construction — one assertion suffices to pin MI-20
+    across the entire profile matrix.
+
+    The duplication with ``test_cli_none_unset_env_returns_false`` in
+    this same file is INTENTIONAL — that test pins the resolver's
+    mechanical behavior; this test names the MI-20 invariant explicitly
+    so the promotion-flip site (T057) is locatable by test NAME (not
+    line number, which drifts) in the test suite. Do not remove as a
+    "duplicate" without updating T057's promotion procedure to point at
+    the new pin.
+
+    Flipping the default at T057 means replacing this assertion's
+    expected value with ``True`` AND adding a regression test under
+    ``tests/pipeline_tests/test_legacy_behavior_selectable_after_promotion.py``
+    that exercises ``DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=0`` to
+    confirm legacy non-suppression behavior is still selectable
+    (FR-018).
+    """
+    assert resolve_evidence_gate_skip_fallback(cli_value=None, env={}) is False
+
+
 def test_apply_optin_false_returns_false_without_warn() -> None:
     stream = io.StringIO()
     result = apply_skip_fallback_optin(

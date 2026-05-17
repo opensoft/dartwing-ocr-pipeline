@@ -265,6 +265,8 @@ This appendix is intentionally empty in the planning phase. At landing, the FR-0
 
 Per-document `evidence_gate_documents` records, the aggregate `evidence_gate_state_counts`, and the per-document `evidence_gate_suppressed_fallback_count` increments are captured directly from the `run_summary` line of each benchmark run.
 
+**T056 deferral note (US7 landing, CPU-only runner)**: FR-015 benchmark numbers deferred per R-020.15. Cross-reference: `tasks.md` T058 — surveillance follow-up captures the deferred GPU runs. The `test_evidence_gate_benchmark.py` skeleton is present in `tests/pipeline_tests/` with the four-run discipline assertions written out; it activates once workstation GPU hardware is available.
+
 ## Appendix B — Deferred GPU verification (filled at landing or in `tasks.md`)
 
 Per R-020.15 / FR-026, the following GPU-marked tests / benchmarks MAY be deferred if workstation GPU hardware is unavailable at landing time:
