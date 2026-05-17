@@ -480,6 +480,71 @@ def build_evidence_gate_document_record(
     }
 
 
+def should_suppress_fallback(
+    *,
+    preprocess_strategy_id: str | None,
+    fr_005_trigger_would_fire: bool,
+    opt_in_active: bool,
+    candidate_gate_decision: GateDecision | str,
+) -> bool:
+    """Feature 020 / T037 / R-020.8 / MI-13: four-conjunct predicate that
+    decides whether the feature 019 OCR-only ⇒ PPStructureV3 fallback
+    should be SUPPRESSED on the current document.
+
+    Returns ``True`` iff ALL four conjuncts hold:
+
+    1. ``preprocess_strategy_id == "ocr-only-v1"`` — the operator is
+       running the OCR-only strategy (skip-fallback has no meaning on
+       any other strategy because no fallback would fire).
+    2. ``fr_005_trigger_would_fire == True`` — the feature 019 FR-005
+       combined two-threshold check WOULD trigger a fallback (token
+       count below floor OR mean detector confidence below floor).
+       Without this conjunct, the OCR-only path would have stayed on
+       OCR-only on its own — there is no fallback to suppress.
+    3. ``opt_in_active == True`` — the operator activated the opt-in
+       via the CLI flag or env var (default OFF per FR-012 / MI-20).
+    4. ``candidate_gate_decision == "sufficient"`` — the evidence gate
+       evaluated on the OCR-only candidate output concluded the page-1
+       header band carries enough vendor-identity evidence to accept
+       the OCR-only output as-is. ``"borderline"`` and ``"insufficient"``
+       NEVER trigger suppression regardless of the other three inputs
+       (MI-14 / FR-009 / SC-011) — those decisions explicitly mean the
+       gate is not confident enough to override the FR-005 fallback.
+
+    Pure function: no globals, no I/O, no module-level state mutation.
+    Colocated with the gate body (not in ``evidence_gate_optin.py``)
+    because the predicate consumes ``candidate_gate_decision``, which
+    is a gate output. The opt-in module owns CLI/env resolution and
+    warn-message strings only.
+
+    Args:
+        preprocess_strategy_id: The active ``preprocess_strategy_id``
+            after CLI/env resolution + warn-and-proceed nulling. ``None``
+            on no-flag runs; the string ``"ocr-only-v1"`` is the only
+            value that can satisfy conjunct 1.
+        fr_005_trigger_would_fire: Output of the feature 019
+            ``check_eligibility`` call on the OCR-only candidate (True
+            iff verdict is ``INSUFFICIENT``).
+        opt_in_active: Output of
+            ``resolve_evidence_gate_skip_fallback`` after CLI/env
+            resolution.
+        candidate_gate_decision: One of the closed three-state strings
+            ``"sufficient"`` / ``"borderline"`` / ``"insufficient"``
+            returned by ``evaluate_evidence_gate()`` on the OCR-only
+            candidate ``preprocess_output``. Any other value (defensive)
+            is treated as non-``"sufficient"`` and returns ``False``.
+
+    Returns:
+        ``True`` iff the four-conjunct predicate holds.
+    """
+    return (
+        preprocess_strategy_id == "ocr-only-v1"
+        and fr_005_trigger_would_fire is True
+        and opt_in_active is True
+        and candidate_gate_decision == "sufficient"
+    )
+
+
 def load_preprocess_output_for_gate(
     preprocess_output_path: Any,
 ) -> Mapping[str, Any] | None:
@@ -528,4 +593,5 @@ __all__ = (
     "compute_five_signals",
     "evaluate_evidence_gate",
     "load_preprocess_output_for_gate",
+    "should_suppress_fallback",
 )

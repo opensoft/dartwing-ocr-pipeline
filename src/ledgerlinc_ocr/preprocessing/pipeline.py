@@ -122,6 +122,27 @@ class Invocation:
     # default-False on every run kind. Per I-019.4, granularity is per-
     # document — never per-page, never per threshold trip.
     ocr_only_fallback_fired: bool = False
+    # Feature 020 (T040 / R-020.1 / R-020.7 / R-020.8): resolved skip-
+    # fallback opt-in boolean from the CLI parse. Default `False` per
+    # FR-012 / MI-20 — the legacy (no-opt-in) behavior is preserved on
+    # every run. The orchestrator reads this in the OCR-only dispatch
+    # branch to decide whether to evaluate the evidence gate on the
+    # candidate output AND whether to suppress the FR-005 PPStructureV3
+    # fallback when the four-conjunct predicate holds.
+    evidence_gate_skip_fallback_optin: bool = False
+    # Feature 020 (T040 / T042 / R-020.7 / R-020.8): mutable per-document
+    # suppression flag. The orchestrator sets this to `True` if shape (b)
+    # suppression fires for this document (R-020.8 four-conjunct
+    # predicate returned True AND the OCR-only candidate was kept as the
+    # final preprocess_output). The CLI / corpus_run reads this AFTER
+    # `pipeline.run()` returns to increment the per-run
+    # `RunSummary.evidence_gate_suppressed_fallback_count` accumulator
+    # per MI-16 / MI-17 / R-020.10. Always-emit-with-default-False on
+    # every run kind. Per R-020.8 the predicate is a per-document gate;
+    # the flag is mutually exclusive with `ocr_only_fallback_fired` on
+    # the same document (when suppression fires, the FR-005 fallback
+    # never runs, so `ocr_only_fallback_fired` stays False).
+    evidence_gate_suppressed_fired: bool = False
 
 
 def _derive_document_id(folder_name: str) -> str:
@@ -1119,6 +1140,117 @@ def _run_region_first_path(
     )
 
 
+def _build_candidate_preprocess_output_for_gate(
+    pages: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Construct a minimal ``preprocess_output``-shaped dict from the OCR-only
+    candidate's in-memory pages so the evidence gate can be evaluated
+    BEFORE the artifact write.
+
+    The evidence gate reads only ``pages[0].height`` and
+    ``pages[0].blocks[*]`` (specifically each block's ``bbox`` and
+    ``text``; see ``evidence_gate._band_blocks`` and
+    ``evidence_gate._tokens_from_blocks``). All other artifact fields
+    (``contract_set_version``, ``pipeline_version``, ``quality``,
+    ``ingestion_sources``, ``warnings``, ``document_id``, …) are
+    irrelevant to the gate decision.
+
+    Returns a dict containing only ``pages`` so the gate sees exactly
+    what it needs without leaking partial state. Safe to pass to
+    ``evaluate_evidence_gate(...)`` (R-020.7).
+    """
+    return {"pages": pages}
+
+
+def decide_ocr_only_fallback_disposition(
+    *,
+    preprocess_strategy_id: str | None,
+    fr_005_trigger_would_fire: bool,
+    opt_in_active: bool,
+    candidate_pages: list[dict[str, Any]],
+) -> tuple[str, str | None]:
+    """Feature 020 / T040 / R-020.7 / R-020.8: decide whether the OCR-only
+    candidate output should be SUPPRESSED (gate said sufficient AND opt-in
+    active AND FR-005 trigger would fire AND strategy is OCR-only) or
+    fall through to the legacy FR-005 PPStructureV3 fallback.
+
+    This is the **injection seam** referenced by tasks.md T040 (I3 fix) /
+    T033a / T034a — CPU-safe tests exercise the disposition logic without
+    invoking PaddleOCR by calling this helper directly with crafted
+    candidate-page state.
+
+    Returns a 2-tuple ``(disposition, candidate_gate_decision)``:
+
+    - ``disposition`` is one of:
+      - ``"suppress"`` — the four-conjunct R-020.8 predicate held; the
+        OCR-only candidate is kept as the final output, the FR-005
+        PPStructureV3 fallback is NOT run, and
+        ``Invocation.evidence_gate_suppressed_fired`` should be set
+        ``True`` by the caller.
+      - ``"fallback"`` — the FR-005 trigger fires but suppression does
+        not apply (opt-in off, gate not ``sufficient``, etc.); the
+        caller MUST run the legacy PPStructureV3 fallback per feature
+        019 R-019.10.
+      - ``"keep"`` — the FR-005 trigger did NOT fire; the OCR-only
+        candidate is kept as the final output via the standard feature
+        019 path (no fallback, no suppression — this is the no-op case).
+
+    - ``candidate_gate_decision`` is the gate decision string on the
+      OCR-only candidate (``"sufficient"`` / ``"borderline"`` /
+      ``"insufficient"``) when the gate was actually evaluated (i.e.
+      ``fr_005_trigger_would_fire AND opt_in_active``), otherwise
+      ``None``. Callers may use this for logging / debugging; the
+      orchestrator does NOT propagate it to the recorded run_summary
+      ``evidence_gate_documents`` entry — that entry is always built
+      from the FINAL preprocess_output per MI-10 / R-020.7.
+
+    Per R-020.7 evaluation order:
+      1. Preprocessing produces a candidate `preprocess_output`.
+      2. If `preprocess_strategy_id == "ocr-only-v1"` AND the feature
+         019 FR-005 trigger fires AND opt-in is active, evaluate the
+         gate on the OCR-only candidate output.
+      3. If candidate gate decision is `sufficient`, suppress the
+         fallback (keep OCR-only as final).
+      4. Otherwise run feature 019's existing PPStructureV3 fallback
+         unchanged and re-evaluate the gate on the post-fallback
+         output for the recorded decision.
+
+    This helper handles step (2) and (3); the caller in `_run_inner`
+    threads the disposition into the dispatch branch and the recorded-
+    decision evaluation happens at the post-fallback boundary.
+
+    Pure function: no global state, no I/O, no PaddleOCR import.
+    """
+    if not fr_005_trigger_would_fire:
+        # No fallback to suppress; the OCR-only candidate is kept as-is.
+        return "keep", None
+
+    # FR-005 trigger fires. Decide between suppress and fallback.
+    if not opt_in_active:
+        # Opt-in OFF (FR-012 / MI-20 default) — legacy fallback fires.
+        return "fallback", None
+
+    # Opt-in active AND trigger fires AND strategy is (or might be)
+    # OCR-only. Evaluate the gate on the candidate pages.
+    from ledgerlinc_ocr.preprocessing.evidence_gate import (
+        evaluate_evidence_gate,
+        should_suppress_fallback,
+    )
+
+    candidate_output = _build_candidate_preprocess_output_for_gate(candidate_pages)
+    candidate_result = evaluate_evidence_gate(candidate_output)
+    candidate_decision = candidate_result.decision
+
+    if should_suppress_fallback(
+        preprocess_strategy_id=preprocess_strategy_id,
+        fr_005_trigger_would_fire=fr_005_trigger_would_fire,
+        opt_in_active=opt_in_active,
+        candidate_gate_decision=candidate_decision,
+    ):
+        return "suppress", candidate_decision
+    return "fallback", candidate_decision
+
+
 def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # Feature 018 (H5 fix): defensive reset of the per-document fallback
     # flag at the top of every `_run_inner` call so a re-used Invocation
@@ -1127,6 +1259,9 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
     # invariant ("flag reflects THIS run only") is now guaranteed.
     invocation.region_strategy_fallback_fired = False
     invocation.ocr_only_fallback_fired = False
+    # Feature 020 (T040 / R-020.8): defensive reset of the per-document
+    # suppression flag with the same rationale as the two flags above.
+    invocation.evidence_gate_suppressed_fired = False
 
     _resolved_preprocess_strategy = None
     _is_ocr_only = False
@@ -1281,10 +1416,45 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
                 dpi=_resolved_dpi,
                 invocation=invocation,
             )
-            if _eligibility_insufficient:
+            # Feature 020 (T040 / R-020.7 / R-020.8): consult the
+            # disposition seam BEFORE deciding to fall back. The seam is
+            # a pure function over the candidate's in-memory pages so
+            # CPU-safe tests (T034a) can exercise the suppression path
+            # without invoking PaddleOCR.
+            #
+            # `_ocr_tuple` shape (from `_run_ocr_only_path`):
+            # (pages, warnings, tables, all_lines, pages_with_output, silent_empty)
+            _candidate_pages = _ocr_tuple[0]
+            _disposition, _candidate_decision = (
+                decide_ocr_only_fallback_disposition(
+                    preprocess_strategy_id=invocation.preprocess_strategy_id,
+                    fr_005_trigger_would_fire=_eligibility_insufficient,
+                    opt_in_active=invocation.evidence_gate_skip_fallback_optin,
+                    candidate_pages=_candidate_pages,
+                )
+            )
+            if _disposition == "suppress":
+                # R-020.7 step 3 / R-020.8 / MI-12: gate said `sufficient`
+                # on the OCR-only candidate AND opt-in active AND trigger
+                # would fire AND strategy is `ocr-only-v1`. Keep the
+                # OCR-only output as the final preprocess_output; do NOT
+                # fall back to PPStructureV3. The FR-005 fallback was
+                # SUPPRESSED — set the per-doc flag so the caller can
+                # increment evidence_gate_suppressed_fallback_count.
+                # `ocr_only_fallback_fired` stays False (mutually
+                # exclusive with `evidence_gate_suppressed_fired` on
+                # this document by construction).
+                invocation.evidence_gate_suppressed_fired = True
+                _acc.merge_tuple(tuple(_ocr_tuple))  # type: ignore[arg-type]
+            elif _disposition == "fallback":
                 # R-019.10 / I-019.4 fallback: discard OCR-only partial
                 # output and re-run the document under the active
-                # region strategy on PPStructureV3.
+                # region strategy on PPStructureV3. Feature 020
+                # preserves this branch unchanged from feature 019;
+                # the gate decision on the post-fallback output is
+                # recorded by the caller (corpus_run / preprocess CLI)
+                # per MI-10 / R-020.7 step 4 — the recorded decision
+                # is ALWAYS over the FINAL preprocess_output.
                 invocation.ocr_only_fallback_fired = True
                 if _is_region_first and _resolved_region_strategy is not None:
                     if _region_first_into_acc():
@@ -1293,6 +1463,9 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:
                 else:
                     _full_page_into_acc()
             else:
+                # `keep` — FR-005 trigger did NOT fire; OCR-only output
+                # is kept as-is per the standard feature 019 path
+                # (no fallback, no suppression).
                 _acc.merge_tuple(tuple(_ocr_tuple))  # type: ignore[arg-type]
         elif _is_region_first and _resolved_region_strategy is not None:
             # Region-first path: page 1 only via rasterize_page_band; pages

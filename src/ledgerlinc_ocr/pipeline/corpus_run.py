@@ -104,6 +104,7 @@ def _per_document_invocation(
     raster_profile_id: str | None = None,
     region_strategy_id: str | None = None,
     preprocess_strategy_id: str | None = None,
+    evidence_gate_skip_fallback_optin: bool = False,
 ) -> tuple[CLIInvocation | None, ExitCode | None, str]:
     """Build a CLIInvocation for one document folder.
 
@@ -166,6 +167,7 @@ def _per_document_invocation(
         raster_profile_id=raster_profile_id,
         region_strategy_id=region_strategy_id,
         preprocess_strategy_id=preprocess_strategy_id,
+        evidence_gate_skip_fallback_optin=evidence_gate_skip_fallback_optin,
     )
     return invocation, None, ""
 
@@ -264,6 +266,13 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         resolve_region_strategy_value as _resolve_region_strategy_value_018,
         region_strategy_warn_message as _region_strategy_warn_018,
     )
+    # Feature 020 (T041 / R-020.1 / R-020.12 / MI-22 / MI-23): skip-fallback
+    # opt-in resolution for the warm-corpus path mirrors features
+    # 017/018/019 axes above. Pure boolean — no UnknownPresetError surface.
+    from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
+        resolve_evidence_gate_skip_fallback as _resolve_evidence_gate_skip_fallback_020,
+        evidence_gate_skip_fallback_warn_message as _evidence_gate_skip_fallback_warn_020,
+    )
     from ledgerlinc_ocr.preprocessing.preprocess_strategy_optin import (
         resolve_preprocess_strategy_value as _resolve_preprocess_strategy_value_019,
         preprocess_strategy_warn_message as _preprocess_strategy_warn_019,
@@ -317,6 +326,33 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         if _preprocess_strategy_raw_019 is not None:
             sys.stderr.write(_preprocess_strategy_warn_019(_profile_for_warn_017) + "\n")
             _preprocess_strategy_threaded_019 = None
+
+    # Feature 020 (T041 / R-020.1 / R-020.12 / MI-22 / MI-23): resolve
+    # the skip-fallback opt-in for the warm-corpus path. Same precedence
+    # contract as the preprocessing CLI (CLI flag > env > default OFF).
+    # When the opt-in is active AND the resolved preprocess lane is not
+    # GPU, emit ONE stderr warn-and-proceed line and force the threaded
+    # opt-in to False. Same warn-and-proceed shape as features 017/018/019
+    # axes above.
+    _evidence_gate_skip_fallback_threaded_020 = (
+        _resolve_evidence_gate_skip_fallback_020(
+            getattr(args, "evidence_gate_skip_fallback", False)
+        )
+    )
+    if (
+        _evidence_gate_skip_fallback_threaded_020
+        and _preprocess_in_slice_for_warn_017
+        and not _is_gpu_lane_017(_warm_lane_017)
+    ):
+        _profile_for_warn_020 = (
+            _warm_pp_profile_017.raw_value
+            if _warm_pp_profile_017 is not None
+            else (getattr(args, "preprocess_profile", None) or "ppstructurev3@cpu")
+        )
+        sys.stderr.write(
+            _evidence_gate_skip_fallback_warn_020(_profile_for_warn_020) + "\n"
+        )
+        _evidence_gate_skip_fallback_threaded_020 = False
 
     # Resolve the threaded values to preset objects for the warm-init factory.
     _module_set_obj_017: object | None = None
@@ -530,6 +566,7 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
             raster_profile_id=_raster_profile_threaded_018,
             region_strategy_id=_region_strategy_threaded_018,
             preprocess_strategy_id=_preprocess_strategy_threaded_019,
+            evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_threaded_020,
         )
         if invocation is None:
             failed += 1
@@ -577,6 +614,16 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
         # 018 does for `region_strategy_fallback_fired`.
         if getattr(invocation, "ocr_only_fallback_fired", False):
             _ocr_only_fallback_count_019 += 1
+        # Feature 020 (T042 / R-020.8 / MI-16 / MI-17): aggregate per-doc
+        # evidence-gate suppression flag. The live preprocessing adapter
+        # copies the per-document
+        # `preprocessing.pipeline.Invocation.evidence_gate_suppressed_fired`
+        # flag back onto this warm-corpus `CLIInvocation` exactly like
+        # feature 019 does for `ocr_only_fallback_fired`. Single sum
+        # across the run lands on
+        # `RunSummary.evidence_gate_suppressed_fallback_count` below.
+        if getattr(invocation, "evidence_gate_suppressed_fired", False):
+            _evidence_gate_suppressed_fallback_count_020 += 1
         observed_exit_codes.append(result.exit_code)
         if result.exit_code == ExitCode.SUCCESS:
             succeeded += 1

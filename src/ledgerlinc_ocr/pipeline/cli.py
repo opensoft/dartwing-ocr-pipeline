@@ -216,6 +216,29 @@ def _build_parser() -> argparse.ArgumentParser:
             "LEDGERLINC_PREPROCESS_STRATEGY; the CLI flag wins."
         ),
     )
+    # Feature 020 (T041 / R-020.1 / R-020.7 / R-020.8 / R-020.12 /
+    # contracts/cli-contract.md §1): skip-fallback opt-in for the
+    # OCR-only ⇒ PPStructureV3 fallback path. OFF by default per
+    # FR-012 / MI-20. See `preprocessing/cli.py` help text for the
+    # full semantics — this is the warm-corpus/orchestrator surface.
+    run.add_argument(
+        "--evidence-gate-skip-fallback",
+        action="store_true",
+        default=False,
+        help=(
+            "Opt into the vendor-identity evidence-gate skip-fallback "
+            "behavior on ppstructurev3@gpu: when "
+            "--preprocess-strategy=ocr-only-v1 AND the FR-005 combined "
+            "two-threshold trigger fires AND the evidence gate concludes "
+            "`sufficient` on the OCR-only candidate, suppress the "
+            "PPStructureV3 fallback and keep the OCR-only output as the "
+            "final preprocess_output. Off by default on every profile; "
+            "warn-and-proceed on non-GPU profiles. Each suppression event "
+            "increments evidence_gate_suppressed_fallback_count on "
+            "run_summary. Can also be set via "
+            "LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK; the CLI flag wins."
+        ),
+    )
     # Stack preset (FR-004A).
     run.add_argument(
         "--stack-preset",
@@ -712,6 +735,35 @@ def _run_cold(
             + "\n"
         )
         _preprocess_strategy_raw_019 = None
+    # Feature 020 (T041 / R-020.1 / R-020.12 / MI-22 / MI-23): cold-path
+    # skip-fallback opt-in resolution mirrors feature 019 above. Pure
+    # boolean (no UnknownPresetError surface). Warn-and-proceed on
+    # non-GPU profile force-nulls the opt-in (here, sets it to False
+    # so the orchestrator's disposition seam takes the legacy code path).
+    from ledgerlinc_ocr.preprocessing.evidence_gate_optin import (
+        resolve_evidence_gate_skip_fallback as _resolve_evidence_gate_skip_fallback_020,
+        evidence_gate_skip_fallback_warn_message as _evidence_gate_skip_fallback_warn_020,
+    )
+    _evidence_gate_skip_fallback_threaded_020 = (
+        _resolve_evidence_gate_skip_fallback_020(
+            getattr(args, "evidence_gate_skip_fallback", False)
+        )
+    )
+    if (
+        _evidence_gate_skip_fallback_threaded_020
+        and _preprocess_in_slice
+        and not _preprocess_is_gpu
+    ):
+        sys.stderr.write(
+            _evidence_gate_skip_fallback_warn_020(
+                _resolve_warning_profile_name(
+                    _preprocess_profile, args.preprocess_profile
+                )
+            )
+            + "\n"
+        )
+        _evidence_gate_skip_fallback_threaded_020 = False
+
     # Thread the post-warn-and-proceed values onto the cold-path
     # invocation so `_run_inner`'s ensure_gpu_ready call receives them.
     invocation.module_set_id = _module_set_raw_017
@@ -719,6 +771,9 @@ def _run_cold(
     invocation.raster_profile_id = _raster_profile_raw_018
     invocation.region_strategy_id = _region_strategy_raw_018
     invocation.preprocess_strategy_id = _preprocess_strategy_raw_019
+    invocation.evidence_gate_skip_fallback_optin = (
+        _evidence_gate_skip_fallback_threaded_020
+    )
 
     # Hoisted warmup: must run BEFORE the runner's stage dispatch so
     # warmup duration is excluded from per-doc `phase_timings.total`.
