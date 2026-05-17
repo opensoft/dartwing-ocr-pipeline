@@ -59,20 +59,27 @@ All five values are computed by `EvidenceGate.evaluate(preprocess_output_dict, *
 
 ```python
 BUSINESS_SUFFIX_RE = re.compile(
-    r"(?i)\b(LLC|Inc|Incorporated|Ltd|Limited|GmbH|S\.A\.|S\.A\.S\.|Corp|Corporation|Co\.)\b"
+    r"(?i)\b(LLC|Incorporated|Inc|Limited|Ltd|GmbH|S\.A\.S\.|S\.A\.|Corporation|Corp|Co\.)(?!\w)"
 )
 TAX_ID_EIN_RE = re.compile(r"\b\d{2}-\d{7}\b")
-TAX_ID_VAT_RE = re.compile(r"\b[A-Z]{2}[A-Z0-9]{2,12}\b")
+TAX_ID_VAT_RE = re.compile(
+    r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"
+)
 ```
 
-`business_suffix_present` matches against `BUSINESS_SUFFIX_RE`. `tax_id_shaped_present` matches against `TAX_ID_EIN_RE` OR `TAX_ID_VAT_RE`. Matching is whole-token only (the `\b` boundary handles this); the `\.` escapes prevent dot-class wildcards. Patterns are case-insensitive only for the business-suffix list (legitimately variant cased in invoices — `inc.` / `Inc.` / `INC.`); tax-id patterns are case-sensitive because EIN is numeric and VAT is conventionally uppercase.
+`business_suffix_present` matches against `BUSINESS_SUFFIX_RE`. `tax_id_shaped_present` matches against `TAX_ID_EIN_RE` OR `TAX_ID_VAT_RE`. Matching is whole-token only; the `\.` escapes prevent dot-class wildcards. Patterns are case-insensitive only for the business-suffix list (legitimately variant cased in invoices — `inc.` / `Inc.` / `INC.`); tax-id patterns are case-sensitive because EIN is numeric and VAT is conventionally uppercase.
 
-**Rationale**: These patterns are deterministic, locally-evaluable, and capture the most common vendor-identity tokens without requiring NLP. The `S.A.` and `S.A.S.` patterns intentionally include French/Spanish entity types since the corpus may contain non-US invoices. VAT patterns are conservative — they match the EU canonical shape (`[A-Z]{2}` country prefix + alphanumeric body); they will produce some false positives on order numbers, but that's acceptable for a presence signal feeding a residual `borderline` decision.
+`BUSINESS_SUFFIX_RE` uses `\b...(?!\w)` rather than `\b...\b` so suffixes ending in `.` (Co. / S.A. / S.A.S.) still match when they sit at end-of-string — the trailing `\b` fails on a `.`-to-end transition because both sides are non-word and no boundary fires. Longer alternatives (`Incorporated` / `Limited` / `S.A.S.` / `Corporation`) are listed before their shorter prefixes so the regex engine commits to the longer match first.
+
+`TAX_ID_VAT_RE` requires **at least one digit** in the alphanumeric run (the `(?=[A-Z0-9]{2,12}\b)` lookahead pins the overall length, then `[A-Z0-9]*\d[A-Z0-9]*` requires a digit somewhere). The prior pattern `\b[A-Z]{2}[A-Z0-9]{2,12}\b` matched common all-letter invoice header words (`INVOICE`, `PAYMENT`, `NUMBER`, `BALANCE`, `RECEIPT`, ...) and inflated `tax_id_shaped_present` on virtually every invoice — a correctness bug surfaced during review (B2).
+
+**Rationale**: These patterns are deterministic, locally-evaluable, and capture the most common vendor-identity tokens without requiring NLP. The `S.A.` and `S.A.S.` patterns intentionally include French/Spanish entity types since the corpus may contain non-US invoices. The VAT pattern is conservative — it matches the EU canonical shape (`[A-Z]{2}` country prefix + alphanumeric body containing at least one digit); it will produce some false positives on order numbers that begin with two letters and contain a digit, but that's acceptable for a presence signal feeding a residual `borderline` decision.
 
 **Alternatives considered**:
 - `(?i)` on the tax-id patterns (rejected: EIN is numeric, no case variation possible; VAT inflates false positives without case anchoring).
-- Use word-boundary lookarounds instead of `\b` (rejected: adds regex complexity without precision gain).
+- Use word-boundary lookarounds for `BUSINESS_SUFFIX_RE` start as well (rejected: `\b` at the start works correctly because suffix tokens start with a letter; only the end boundary needed the lookahead-style fix).
 - Add UK-specific NI numbers / SSN-shaped patterns (rejected: PII risk and not needed for vendor-identity; SSN-shaped patterns would actually FAIL the test corpus per the PII screening checklist in `labeling-guide.md`).
+- Drop the digit requirement in `TAX_ID_VAT_RE` and rely on a stop-word allow-list (rejected: the false-positive corpus is open-ended — `INVOICE`/`PAYMENT`/`NUMBER`/`BALANCE`/`SUBTOTAL`/`QUANTITY`/`DESCRIPTION` is incomplete and would drift with every new locale).
 
 ---
 
@@ -345,7 +352,7 @@ Cold-cache runs (e.g., after `~/.cache/miopen` clearance per feature 016 operato
 | `CONFIDENCE_THRESHOLD` | `0.70` | R-020.6 | `preprocessing/evidence_gate.py` module level |
 | `BUSINESS_SUFFIX_RE` | per R-020.4 | R-020.4 | `preprocessing/evidence_gate.py` module level |
 | `TAX_ID_EIN_RE` | `r"\b\d{2}-\d{7}\b"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
-| `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}[A-Z0-9]{2,12}\b"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
+| `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"` | R-020.4 | `preprocessing/evidence_gate.py` module level |
 | `EVIDENCE_GATE_ID_V1` | `"v1"` | R-020.2 | `preprocessing/identifiers.py` module level |
 | `EVIDENCE_GATE_ID_DEFAULT` | `EVIDENCE_GATE_ID_V1` | R-020.2 | `preprocessing/identifiers.py` module level |
 | `EVIDENCE_GATE_SKIP_FALLBACK_ENV_VAR` | `"LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK"` | R-020.1 | `preprocessing/evidence_gate_optin.py` module level |

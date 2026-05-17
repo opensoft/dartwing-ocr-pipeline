@@ -46,6 +46,7 @@ from ledgerlinc_ocr.pipeline.timing import (
     emit_run_summary,
 )
 from ledgerlinc_ocr.preprocessing.errors import WarmupError
+from ledgerlinc_ocr.preprocessing.evidence_gate import evaluate_and_record
 from ledgerlinc_ocr.preprocessing.warmup_optin import (
     is_gpu_lane,
     is_warmup_optin_set,
@@ -651,46 +652,16 @@ def run_warm_corpus(  # NOSONAR - legacy orchestrator; behavior-preserving split
             # Feature 020 (T028 / R-020.7 / R-020.10 / R-020.11 / FR-003 /
             # FR-006): evaluate the evidence gate on the FINAL
             # preprocess_output.json of this successful document. The
-            # decision is recorded against the file as it actually
-            # landed on disk (post-fallback if fallback fired per
-            # feature 019). The gate is a pure read over
-            # preprocess_output content — no Paddle, no GPU, runs on
-            # CPU profiles + stub adapters uniformly per FR-014.
-            try:
-                from ledgerlinc_ocr.preprocessing.evidence_gate import (
-                    build_evidence_gate_document_record,
-                    evaluate_evidence_gate,
-                    load_preprocess_output_for_gate,
-                )
-
-                _gate_input = load_preprocess_output_for_gate(
-                    folder_resolved / "preprocess_output.json"
-                )
-                if _gate_input is not None:
-                    _gate_result = evaluate_evidence_gate(_gate_input)
-                    _evidence_gate_state_counts_020[_gate_result.decision] += 1
-                    _evidence_gate_documents_020.append(
-                        build_evidence_gate_document_record(
-                            document_id=invocation.document_id,
-                            result=_gate_result,
-                        )
-                    )
-                # If the file cannot be loaded (missing / malformed),
-                # the gate skips this document — counters stay where
-                # they are. This is a conservative miss; the document
-                # is already counted in `documents_succeeded` so the
-                # discrepancy is auditable (state_counts sum can be
-                # less than documents_succeeded when artifact writes
-                # raced). In normal operation every successful
-                # document has a readable preprocess_output.json.
-            except Exception:  # noqa: BLE001 — gate failure must not break the run
-                # Defensive: a bug in the gate module MUST NOT abort
-                # the corpus run. The gate is observability — its
-                # failure surfaces as missing per-doc records in
-                # `evidence_gate_documents`, which the always-emit
-                # contract on the four `run_summary` fields still
-                # honors (default-zero counters + empty array).
-                pass
+            # gate is a pure read over preprocess_output content — no
+            # Paddle, no GPU, runs on CPU + stub adapters uniformly per
+            # FR-014. Failures are observability-only and never abort
+            # the corpus run; see `evaluate_and_record` for the policy.
+            evaluate_and_record(
+                document_folder=folder_resolved,
+                document_id=invocation.document_id,
+                state_counts=_evidence_gate_state_counts_020,
+                documents=_evidence_gate_documents_020,
+            )
         else:
             failed += 1
             # Feature 014 (T024 / R-014.4 / FR-010): when the resolved
@@ -1072,13 +1043,19 @@ def _emit_warm_init_failure_summary(
         # ocr_only_fallback_count is always 0.
         preprocess_strategy_id=_failure_preprocess_strategy_id,
         ocr_only_fallback_count=0,
-        # Feature 020 (T028 / R-020.10 / MI-16 / MI-17): always-emit
-        # the four evidence-gate fields on the warm-init failure path
-        # too. No documents reached the gate, so state_counts is all-
-        # zero, documents is empty, and the suppression counter is 0.
-        # `evidence_gate_id` is still "v1" — the closed-vocabulary
-        # identifier is profile-independent (data-model.md §9).
+        # Feature 020 (T028 / R-020.10 / MI-16 / MI-17 / M1 cleanup):
+        # always-emit the four evidence-gate fields on the warm-init
+        # failure path too. No documents reached the gate, so
+        # state_counts is all-zero, documents is empty, and the
+        # suppression counter is 0. ALL FOUR fields are passed
+        # explicitly (rather than relying on factory defaults for
+        # state_counts and documents) so a future edit that supplies
+        # one but not the others cannot silently violate MI-18.
         evidence_gate_id="v1",
+        evidence_gate_state_counts={
+            "sufficient": 0, "borderline": 0, "insufficient": 0,
+        },
+        evidence_gate_documents=[],
         evidence_gate_suppressed_fallback_count=0,
         documents_total=len(documents),
         documents_succeeded=0,

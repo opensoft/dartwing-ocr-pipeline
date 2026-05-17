@@ -188,14 +188,14 @@ The `evidence_gate_id` is not repeated per-document — it appears once on the t
 
 | Name | Pattern | Flags | Matches |
 |---|---|---|---|
-| `BUSINESS_SUFFIX_RE` | `r"(?i)\b(LLC\|Inc\|Incorporated\|Ltd\|Limited\|GmbH\|S\.A\.\|S\.A\.S\.\|Corp\|Corporation\|Co\.)\b"` | `re.IGNORECASE` via `(?i)` flag in pattern | Common business-entity suffixes (English, French, Spanish, German); case-insensitive. |
+| `BUSINESS_SUFFIX_RE` | `r"(?i)\b(LLC\|Incorporated\|Inc\|Limited\|Ltd\|GmbH\|S\.A\.S\.\|S\.A\.\|Corporation\|Corp\|Co\.)(?!\w)"` | `re.IGNORECASE` via `(?i)` flag in pattern | Common business-entity suffixes (English, French, Spanish, German); case-insensitive. Trailing `(?!\w)` (vs. `\b`) lets `.`-suffixed forms match at end-of-string; longer alternatives listed before their prefixes. |
 | `TAX_ID_EIN_RE` | `r"\b\d{2}-\d{7}\b"` | none | US EIN canonical shape `XX-XXXXXXX`. |
-| `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}[A-Z0-9]{2,12}\b"` | none | EU-style VAT shape `<country><alphanumeric>`. |
+| `TAX_ID_VAT_RE` | `r"\b[A-Z]{2}(?=[A-Z0-9]{2,12}\b)[A-Z0-9]*\d[A-Z0-9]*\b"` | none | EU-style VAT shape: 2-letter country prefix + 2..12 alphanumerics with **at least one digit**. The digit requirement rejects all-letter invoice header words (`INVOICE`, `PAYMENT`, `NUMBER`, `BALANCE`, ...) that the prior `[A-Z]{2}[A-Z0-9]{2,12}` pattern falsely matched. |
 
 **Validation invariants**:
 - All three patterns MUST compile at module load (a regex compilation error is a developer error, not a runtime error).
 - Patterns MUST be applied only to whitespace-tokenized strings drawn from `preprocess_output.json` block/box text fields after NFKC Unicode normalization.
-- Matching is whole-token; `\b` boundaries ensure substring matches inside larger words do not count.
+- Matching is whole-token; `\b` (or `(?!\w)`) boundaries ensure substring matches inside larger words do not count.
 
 ---
 

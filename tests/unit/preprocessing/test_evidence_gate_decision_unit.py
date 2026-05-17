@@ -20,9 +20,9 @@ import pytest
 from ledgerlinc_ocr.preprocessing.evidence_gate import (
     CONFIDENCE_THRESHOLD,
     DENSITY_THRESHOLD,
-    EVIDENCE_GATES,
     FiveSignalSet,
     _v1_decide,
+    decide_for_gate,
 )
 
 
@@ -167,9 +167,9 @@ def test_vendor_name_count_boundary_exactly_1_qualifies_as_positive() -> None:
 # --- Registry exposes _v1_decide consistently -----------------------------
 
 
-def test_registry_v1_decide_matches_module_function() -> None:
-    """``EVIDENCE_GATES['v1'].decide`` MUST be the same callable as the
-    module-level ``_v1_decide`` (or behaviorally indistinguishable)."""
+def test_decide_for_gate_v1_matches_module_function() -> None:
+    """``decide_for_gate("v1", ...)`` MUST be behaviorally indistinguishable
+    from the module-level ``_v1_decide``."""
     s = FiveSignalSet(
         vendor_name_candidate_count=1,
         header_band_token_density=DENSITY_THRESHOLD,
@@ -177,4 +177,4 @@ def test_registry_v1_decide_matches_module_function() -> None:
         business_suffix_present=True,
         tax_id_shaped_present=False,
     )
-    assert EVIDENCE_GATES["v1"].decide(s) == _v1_decide(s) == "sufficient"
+    assert decide_for_gate("v1", s) == _v1_decide(s) == "sufficient"

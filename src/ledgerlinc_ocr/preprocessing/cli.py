@@ -764,29 +764,14 @@ def _emit_single_doc_run_summary(
     }
     _evidence_gate_documents_020: list[dict[str, Any]] = []
     if documents_succeeded == 1:
-        try:
-            from ledgerlinc_ocr.preprocessing.evidence_gate import (
-                build_evidence_gate_document_record,
-                evaluate_evidence_gate,
-                load_preprocess_output_for_gate,
-            )
+        from ledgerlinc_ocr.preprocessing.evidence_gate import evaluate_and_record
 
-            _gate_input = load_preprocess_output_for_gate(
-                invocation.document_folder / "preprocess_output.json"
-            )
-            if _gate_input is not None:
-                _gate_result = evaluate_evidence_gate(_gate_input)
-                _evidence_gate_state_counts_020[_gate_result.decision] += 1
-                _evidence_gate_documents_020.append(
-                    build_evidence_gate_document_record(
-                        document_id=document_id or invocation.document_folder.name,
-                        result=_gate_result,
-                    )
-                )
-        except Exception:  # noqa: BLE001 — gate failure must not break the run
-            # Defensive — bug in the gate module surfaces as a missing
-            # per-doc record, not an aborted CLI invocation.
-            pass
+        evaluate_and_record(
+            document_folder=invocation.document_folder,
+            document_id=document_id or invocation.document_folder.name,
+            state_counts=_evidence_gate_state_counts_020,
+            documents=_evidence_gate_documents_020,
+        )
     summary = RunSummary(
         stack_preset=None,
         resolved_profiles={"preprocess": _profile_slug_for_lane(preprocess_lane)},

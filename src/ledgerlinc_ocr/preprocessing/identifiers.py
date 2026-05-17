@@ -89,10 +89,11 @@ STUB_DEFAULT_PREPROCESS_STRATEGY: str = "stub-default"
 
 # Feature 020 (T004 / R-020.2 / data-model.md §1 / contracts/evidence-gate-rule.md
 # §Closed-vocabulary preset registry): closed-vocabulary `run_summary` identifier
-# for the evidence-gate axis. Registry size at landing is exactly one — only
-# `"v1"` is a valid value. Future presets (`"v2"`, `"v3"`, ...) land via additive
-# code change in `preprocessing/evidence_gate.py::EVIDENCE_GATES` plus a new
-# `--evidence-gate <id>` CLI flag at that time (R-020.2). Unlike features
+# for the evidence-gate axis. Only `"v1"` is a valid value at landing. Future
+# presets (`"v2"`, `"v3"`, ...) land via additive code change in
+# `preprocessing/evidence_gate.py` — a new `_v2_decide` function plus an
+# additional branch in `evaluate_evidence_gate` / `decide_for_gate` — plus a
+# new `--evidence-gate <id>` CLI flag at that time (R-020.2). Unlike features
 # 017/018/019, the evidence-gate axis emits the same `"v1"` identifier on CPU,
 # stub-adapter, and GPU lanes uniformly — the gate is a pure read over
 # `preprocess_output.json` content and runs on every profile (FR-014 /
