@@ -1,15 +1,24 @@
 """Feature 020 / T023 / R-020.11 / MI-18: aggregate-vs-per-doc consistency
-test.
+test (RunSummary level).
 
 MI-18 invariant: ``evidence_gate_state_counts[s]`` MUST equal the count
 of ``evidence_gate_documents[i].decision == s`` for each ``s`` in the
 closed three-state vocabulary.
 
-This is a UNIT-level test over synthetic ``RunSummary`` construction —
-it does NOT spin up a full stub-adapter corpus run. The full integration
-path is exercised by the prior-features pipeline_tests that we did not
-break (covered by T060's full CPU regression). The MI-18 invariant
-itself is what we want to lock down here.
+This file holds the **synthetic** RunSummary-level coverage: tests
+construct RunSummary objects directly with hand-crafted state_counts
+and document records, then assert the MI-18 invariant after
+``to_dict()``. The companion file
+``test_evidence_gate_pipeline_integration.py`` exercises the production
+``evaluate_and_record`` helper end-to-end against real
+preprocess_output.json fixtures on disk; the two together cover both
+the aggregate-level contract and the on-disk-input wiring path.
+
+C2 (post-review): this file was originally named
+``test_evidence_gate_corpus_run.py`` which misled readers into
+expecting a real corpus_run invocation; renamed to
+``test_evidence_gate_runsummary_aggregation.py`` to honestly describe
+the level being tested.
 """
 
 from __future__ import annotations

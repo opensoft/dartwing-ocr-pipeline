@@ -1,6 +1,6 @@
 # Quickstart: Vendor-Identity Evidence Gate
 
-End-to-end walkthrough for feature 020 — the deterministic vendor-identity evidence gate over `preprocess_output.json`. Six representative paths cover the FR-007 shape (b) skip-fallback behavioral surface, the FR-013 CPU/stub warn-and-proceed surface, and the FR-001 / FR-006 always-emit observability surface. Run from the worktree root.
+End-to-end walkthrough for feature 020 — the deterministic vendor-identity evidence gate over `preprocess_output.json`. Seven representative paths cover the FR-007 shape (b) skip-fallback behavioral surface, the FR-013 CPU/stub warn-and-proceed surface, and the FR-001 / FR-006 always-emit observability surface. Run from the worktree root.
 
 Prerequisites:
 - Devcontainer is built (`pip install -r requirements.txt` already ran on `postCreateCommand`), OR you have a host Python 3.12 venv with `pip install -e ".[dev]"`.
@@ -14,7 +14,7 @@ Prerequisites:
 **Command**:
 ```bash
 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu
 ```
 
@@ -48,7 +48,7 @@ python -m ledgerlinc_ocr.preprocessing \
 **Verify**:
 ```bash
 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     | jq 'select(.kind == "run_summary") | .schema_version, .evidence_gate_id, .evidence_gate_state_counts'
 ```
@@ -60,7 +60,7 @@ python -m ledgerlinc_ocr.preprocessing \
 **Command**:
 ```bash
 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu
 ```
 
@@ -78,7 +78,7 @@ python -m ledgerlinc_ocr.preprocessing \
 **Command**:
 ```bash
 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@gpu \
     --preprocess-strategy ocr-only-v1 \
     --evidence-gate-skip-fallback
@@ -113,7 +113,7 @@ python -m ledgerlinc_ocr.preprocessing \
 **Command**: (same as Path 3 but with a fixture where the gate would be `borderline` AND feature 019 FR-005 trigger fires)
 ```bash
 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_006_layout_table/source.pdf \
+    --document-folder tests/stage1_vendor_identity/inv_006_layout_table \
     --preprocess-profile ppstructurev3@gpu \
     --preprocess-strategy ocr-only-v1 \
     --evidence-gate-skip-fallback
@@ -150,7 +150,7 @@ python -m ledgerlinc_ocr.preprocessing \
 **Command**:
 ```bash
 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     --evidence-gate-skip-fallback
 ```
@@ -165,7 +165,7 @@ python -m ledgerlinc_ocr.preprocessing \
 **Verify**:
 ```bash
 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu \
     --evidence-gate-skip-fallback 2>&1 \
     | grep -F "--evidence-gate-skip-fallback ignored:"
@@ -174,7 +174,7 @@ python -m ledgerlinc_ocr.preprocessing \
 Same result with env-var fallback:
 ```bash
 LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file tests/stage1_vendor_identity/inv_001_easy/source.pdf \
+    --document-folder tests/stage1_vendor_identity/inv_001_easy \
     --preprocess-profile ppstructurev3@cpu 2>&1 \
     | grep -F "--evidence-gate-skip-fallback ignored:"
 ```
@@ -182,7 +182,7 @@ LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m ledgerlinc_ocr.preprocessing 
 CLI wins when both are set (R-020.1):
 ```bash
 LEDGERLINC_EVIDENCE_GATE_SKIP_FALLBACK=1 python -m ledgerlinc_ocr.preprocessing \
-    --documents-file ... \
+    --document-folder ... \
     --preprocess-profile ppstructurev3@gpu \
     # No --evidence-gate-skip-fallback flag, but env var is truthy
     # ⇒ opt-in is active (env-var fallback)

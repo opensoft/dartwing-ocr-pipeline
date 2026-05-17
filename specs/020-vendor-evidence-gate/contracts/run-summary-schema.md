@@ -112,18 +112,20 @@ Each field is emitted regardless of whether the gate actually evaluated any docu
 
 ## Order of keys in `RunSummary.to_dict()`
 
-The emitted JSON key order is deterministic. After feature 020 lands:
+The emitted JSON key order is deterministic. The authoritative source is `pipeline/timing.py::RunSummary.to_dict()`; this section documents the order so a reader can verify by inspection. After feature 020 lands, the full ordered emission is:
 
 ```
-kind, schema_version, phase_timings, total_documents, total_pages, fail_fast,
-warn_lines, errors, exit_code,
+kind, schema_version, stack_preset, resolved_profiles, execution_slice, on_failure,
+documents_total, documents_succeeded, documents_failed,
+profile_initialization_seconds, per_document,
+preprocess_lane,
 module_set_id, det_rec_variant_id, ppstructure_modules_invoked,
 raster_profile_id, region_strategy_id, region_strategy_fallback_count,
 preprocess_strategy_id, ocr_only_fallback_count,
 evidence_gate_id, evidence_gate_state_counts, evidence_gate_documents, evidence_gate_suppressed_fallback_count
 ```
 
-(Order of feature 014–019 fields is illustrative; the exact prior order in `pipeline/timing.py::RunSummary.to_dict()` is the authoritative source and is not changed by this feature — only the four new fields are appended at the end.)
+The four new feature-020 fields are appended at the end; no pre-020 field is renamed, removed, or repositioned. Per-document records (inside `per_document`) and `phase_timings` continue to follow the feature-015 / feature-016 ordering rules established in those features' contracts.
 
 ---
 

@@ -34,7 +34,7 @@ def _make_signals(
     has_suffix: bool,
     has_tax_id: bool,
 ) -> FiveSignalSet:
-    """Construct a FiveSignalSet matching the four boolean derivatives.
+    """Construct a FiveSignalSet matching the five boolean derivatives.
 
     Numeric values are chosen so the boolean threshold checks evaluate
     as expected (positive level just above threshold, negative level

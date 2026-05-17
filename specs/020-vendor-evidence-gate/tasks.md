@@ -8,6 +8,24 @@ description: "Task list for feature 020 — Deterministic Vendor-Identity Signal
 **Input**: Design documents from `/specs/020-vendor-evidence-gate/`
 **Prerequisites**: `plan.md` (required), `spec.md` (required for user stories), `research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
+---
+
+> **B post-review note (post-merge of MVP)**: Several US2 tasks describe an
+> `EvidenceGate` dataclass + `EVIDENCE_GATES = {"v1": EvidenceGate(...)}`
+> registry. The MVP implementation collapsed that scaffolding to module
+> constants + `decide_for_gate(gate_id, signals)` dispatch because the
+> registry had size exactly one at landing (YAGNI per the project
+> constitution). The tasks remain ticked because the underlying contract
+> they describe — closed-vocabulary preset selection, re-derivability,
+> additive extension for v2 — is preserved by the flatter shape. See
+> `data-model.md §1` and `research.md R-020.2` for the post-review
+> reconciliation. Specifically: `T017` (EvidenceGate dataclass), `T019`
+> (EVIDENCE_GATES registry registration), and `T020` (EvidenceGateResult
+> validation against registry) describe the original plan; the landed
+> code uses the flatter `decide_for_gate` form documented in the
+> reconciled spec.
+
+
 **Tests**: Included by default. The spec mandates specific named tests as part of every FR/SC/MI (the contract documents under `contracts/` and the smoke-test list in `quickstart.md` enumerate them explicitly), and FR-024 / R-020.15 require `@pytest.mark.gpu` marking with a CPU-safe deferral floor. Tests are part of the deliverable, not optional.
 
 **Organization**: Tasks are grouped by user story (US1–US7) to enable independent implementation and review. P1 stories (US1–US4) are load-bearing for the feature's value; P2 (US5–US6) are regression guards; P3 (US7) is the promotion-gate evidence.

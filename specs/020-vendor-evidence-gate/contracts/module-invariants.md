@@ -1,6 +1,8 @@
-# Module Invariants: `preprocessing/evidence_gate.py` and `preprocessing/evidence_gate_optin.py`
+# Module Invariants: `preprocessing/evidence_gate.py` (+ `preprocessing/evidence_gate_optin.py` when US4 lands)
 
 Hard invariants enforced at the module-import and module-call boundaries. Each invariant maps to a specific FR / SC in `spec.md`.
+
+**Note (B post-review)**: the MVP slice landed only `preprocessing/evidence_gate.py`. The companion `preprocessing/evidence_gate_optin.py` module is part of the US4 skip-fallback work that follows in a stacked PR (#40); MIs that reference it (MI-11 through MI-15, MI-20 through MI-24) describe the contract that opt-in module MUST satisfy when it lands. They are not currently enforced because the module does not yet exist in this PR.
 
 ---
 
@@ -20,8 +22,8 @@ Hard invariants enforced at the module-import and module-call boundaries. Each i
 
 | # | Invariant | Enforcement |
 |---|---|---|
-| MI-6 | Two invocations of `EvidenceGate.evaluate(input_dict)` on byte-identical input dicts MUST produce byte-identical `EvidenceGateResult`s on the same host AND across hosts. | `test_evidence_gate_signals_unit.py` asserts byte-equality across two invocations on the same input. |
-| MI-7 | The decision `d` produced by `EvidenceGate.evaluate(input_dict)` MUST satisfy `d == EVIDENCE_GATES[gate_id].decide(result.signals)` (re-derivability). | `test_evidence_gate_decision_unit.py` asserts the invariant on a parameterized table of synthetic `FiveSignalSet` values. |
+| MI-6 | Two invocations of `evaluate_evidence_gate(input_dict)` on byte-identical input dicts MUST produce byte-identical `EvidenceGateResult`s on the same host AND across hosts. | `test_evidence_gate_signals_unit.py` asserts byte-equality across two invocations on the same input. |
+| MI-7 | The decision `d` produced by `evaluate_evidence_gate(input_dict)` MUST satisfy `d == decide_for_gate(result.evidence_gate_id, result.signals)` (re-derivability). | `test_evidence_gate_rederivability_unit.py` asserts the invariant on a parameterized table of synthetic `FiveSignalSet` values. |
 | MI-8 | `Y_THRESHOLD_FRACTION`, `DENSITY_THRESHOLD`, `CONFIDENCE_THRESHOLD`, and the regex constants MUST be `Final[...]` and immutable at module load. | Static analysis (mypy / pyright); a runtime test attempts mutation and asserts `AttributeError` / `FrozenInstanceError`. |
 | MI-9 | Token extraction MUST use NFKC Unicode normalization before tokenization. | Unit test passes a string containing combining characters / fullwidth forms; asserts the normalized token list matches the expected canonical list. |
 
@@ -81,6 +83,6 @@ Hard invariants enforced at the module-import and module-call boundaries. Each i
 
 | # | Invariant | Enforcement |
 |---|---|---|
-| MI-25 | `EVIDENCE_GATES` MUST contain exactly the keys defined at landing (`"v1"` only). Mutating the registry at runtime is a developer error. | Type signature `EVIDENCE_GATES: Final[dict[str, EvidenceGate]]` plus a unit test that asserts `dict(EVIDENCE_GATES) == {"v1": ...}` at module load. |
-| MI-26 | `EvidenceGate.decide` MUST return one of `{"sufficient", "borderline", "insufficient"}` and nothing else (no fourth state, no `None`, no string outside the closed vocabulary). | The return type annotation is `Literal["sufficient", "borderline", "insufficient"]`; mypy / pyright enforces. Runtime tests cover the boundary at all three thresholds and reject any non-literal return via a parameterized table. |
+| MI-25 | `decide_for_gate` MUST accept exactly the gate IDs defined at landing (`"v1"` only) and raise `KeyError` for any other id. The valid set is documented in code as the `EVIDENCE_GATE_ID_V1` constant. | Unit test `test_evidence_gate_registry_unit.py::test_unknown_gate_id_rejected` asserts the `KeyError` path; `test_only_v1_gate_id_is_accepted` covers the happy path. |
+| MI-26 | `decide_for_gate` and `evaluate_evidence_gate` MUST return a decision in `{"sufficient", "borderline", "insufficient"}` and nothing else (no fourth state, no `None`, no string outside the closed vocabulary). | The return type annotation is `Literal["sufficient", "borderline", "insufficient"]`; mypy / pyright enforces. Runtime tests cover the boundary at all three thresholds and reject any non-literal return via a parameterized table over the 32-row truth table. |
 | MI-27 | Adding a future signal or a new state requires a code change plus a new closed-vocabulary entry; runtime parameter knobs are forbidden. | Manual review at preset-amendment time; `FiveSignalSet` is a frozen dataclass with five named fields. Adding a sixth signal is a typed dataclass change. |

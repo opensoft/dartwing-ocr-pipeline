@@ -4,41 +4,42 @@ This document specifies the entities, types, validation rules, and state transit
 
 ---
 
-## 1. `EvidenceGate` (closed-vocabulary preset)
+## 1. Gate preset surface (closed vocabulary)
 
 **Module**: `preprocessing/evidence_gate.py`
-**Kind**: frozen dataclass (or `pydantic.BaseModel` with `model_config = ConfigDict(frozen=True)`)
-**Purpose**: Identify the active gate-rule body for a run; future iterations add additional registry entries.
+**Kind**: module-level constants + `decide_for_gate(gate_id, signals)` dispatch function (a flatter form than the original 1-element registry — see B post-review reconciliation).
+**Purpose**: Identify the active gate-rule body for a run; future iterations add additional dispatch branches.
 
-| Field | Type | Notes |
+The preset surface comprises:
+
+| Symbol | Type | Notes |
 |---|---|---|
-| `evidence_gate_id` | `str` | Closed vocabulary at landing: `"v1"`. Future presets `"v2"`, `"v3"`, ... add additional entries. |
-| `y_threshold_fraction` | `float` | Page-1 header-band coordinate scope, in fraction of page height. Value: `0.25` (R-020.5). |
-| `density_threshold` | `int` | Threshold for `header_band_token_density` (R-020.6). Value: `8`. |
-| `confidence_threshold` | `float` | Threshold for `ocr_detection_confidence_mean` (R-020.6). Value: `0.70`. |
-| `decide` | `Callable[[FiveSignalSet], Literal["sufficient", "borderline", "insufficient"]]` | The decision-table body (R-020.6). For `v1` this is the boolean expression in R-020.6. |
+| `EVIDENCE_GATE_ID_V1` | `str` constant | Value `"v1"`. The only valid `evidence_gate_id` at landing. |
+| `EVIDENCE_GATE_ID_DEFAULT` | `str` constant | Currently identical to `EVIDENCE_GATE_ID_V1`. |
+| `Y_THRESHOLD_FRACTION` | `Final[float]` | Page-1 header-band coordinate scope, in fraction of page height. Value: `0.25` (R-020.5). |
+| `DENSITY_THRESHOLD` | `Final[int]` | Threshold for `header_band_token_density` (R-020.6). Value: `8`. |
+| `CONFIDENCE_THRESHOLD` | `Final[float]` | Threshold for `ocr_detection_confidence_mean` (R-020.6). Value: `0.70`. |
+| `decide_for_gate(gate_id, signals)` | `(str, FiveSignalSet) -> GateDecision` | Dispatch hook. At landing only `"v1"` is accepted; any other id raises `KeyError`. Future presets (`"v2"`, `"v3"`, ...) land additive branches here per R-020.2. |
+| `evaluate_evidence_gate(preprocess_output, gate_id="v1")` | `(dict, str) -> EvidenceGateResult` | Top-level entry point: compute signals + dispatch + bundle result. |
 
 **Validation**:
-- `evidence_gate_id` MUST be a member of `EVIDENCE_GATES` registry keys.
-- `y_threshold_fraction` MUST satisfy `0.0 < y_threshold_fraction < 1.0`.
-- `density_threshold` MUST be `>= 0`.
-- `confidence_threshold` MUST satisfy `0.0 <= confidence_threshold <= 1.0`.
-- `decide` is a pure function: same input ⇒ same output across reruns and hosts (FR-001 / SC-001).
+- `gate_id` MUST be `"v1"`; `evaluate_evidence_gate` and `decide_for_gate` raise `KeyError` otherwise.
+- `Y_THRESHOLD_FRACTION` satisfies `0.0 < y_threshold_fraction < 1.0`.
+- `DENSITY_THRESHOLD` is `>= 0`.
+- `CONFIDENCE_THRESHOLD` satisfies `0.0 <= confidence_threshold <= 1.0`.
+- The decision function is pure: same input ⇒ same output across reruns and hosts (FR-001 / SC-001).
 
-**Module-level registry**:
+**v1 dispatch sketch**:
 ```python
-EVIDENCE_GATES: Final[dict[str, EvidenceGate]] = {
-    "v1": EvidenceGate(
-        evidence_gate_id="v1",
-        y_threshold_fraction=0.25,
-        density_threshold=8,
-        confidence_threshold=0.70,
-        decide=_v1_decide,
-    ),
-}
+def decide_for_gate(gate_id: str, signals: FiveSignalSet) -> GateDecision:
+    if gate_id != EVIDENCE_GATE_ID_V1:
+        raise KeyError(f"unknown evidence gate id: {gate_id!r}")
+    return _v1_decide(signals)
 ```
 
-**State transitions**: None. `EvidenceGate` is immutable once constructed.
+**Rationale for the flatter shape** (B post-review reconciliation): the original plan called for an `EvidenceGate` dataclass + `EVIDENCE_GATES = {"v1": EvidenceGate(...)}` registry. With registry size exactly one at landing, the dataclass + Callable indirection was scaffolding for a v2 that has no spec yet — YAGNI per the project constitution. The collapsed form preserves the R-020.2 extension contract (additive code change to land v2) without the dataclass overhead.
+
+**State transitions**: None. Module-level constants are immutable; the dispatch function is stateless.
 
 ---
 
@@ -61,7 +62,7 @@ EVIDENCE_GATES: Final[dict[str, EvidenceGate]] = {
 - Numeric fields MUST be finite (no `NaN`, no `Infinity`).
 - `ocr_detection_confidence_mean` MUST be in `[0.0, 1.0]` inclusive.
 
-**State transitions**: None. `FiveSignalSet` is immutable once constructed by `EvidenceGate.evaluate(...)`.
+**State transitions**: None. `FiveSignalSet` is immutable once constructed by `evaluate_evidence_gate(...)`.
 
 **JSON serialization** (when emitted inside `evidence_gate_documents.signals`):
 ```json
@@ -91,7 +92,7 @@ Field order is deterministic and matches the dataclass field order.
 
 **Validation**:
 - `decision` MUST be one of the three values in the closed-vocabulary.
-- `decision` MUST equal `EVIDENCE_GATES[evidence_gate_id].decide(signals)` (SC-002 / SC-012 — re-derivability constraint).
+- `decision` MUST equal `decide_for_gate(evidence_gate_id, signals)` (SC-002 / SC-012 — re-derivability constraint).
 
 **State transitions**: None.
 
@@ -209,7 +210,7 @@ The `evidence_gate_id` is not repeated per-document — it appears once on the t
 | `DENSITY_THRESHOLD` | `int` | `8` | R-020.6 | `header_band_token_density >= threshold` |
 | `CONFIDENCE_THRESHOLD` | `float` | `0.70` | R-020.6 | `ocr_detection_confidence_mean >= threshold` |
 
-All three constants are module-level frozen constants; they are NOT operator-tunable. A future preset (`v2`) would land via a new `EvidenceGate` registry entry with its own constants, not by mutating these.
+All three constants are module-level frozen constants; they are NOT operator-tunable. A future preset (`v2`) would land via an additive `_v2_decide` function + a new `decide_for_gate` branch with its own thresholds (referenced from new module-level constants), not by mutating these.
 
 ---
 

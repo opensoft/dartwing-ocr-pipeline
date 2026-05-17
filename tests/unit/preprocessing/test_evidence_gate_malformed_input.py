@@ -109,7 +109,14 @@ def test_malformed_input_does_not_raise(name: str, malformed: dict) -> None:
 
 def test_unusual_text_field_types_do_not_raise() -> None:
     """Blocks with non-string ``text`` (None, int, list, dict) are silently
-    skipped per the gate's defensive iteration — no crash."""
+    skipped per the gate's defensive iteration — no crash.
+
+    A4 (post-review): blocks whose ``text`` field is non-string used
+    to still contribute to the confidence mean; now they are skipped.
+    With no contributing blocks, all five signals collapse to negative
+    level → decision is ``insufficient``, matching the spec's
+    malformed-input edge case (C1 review).
+    """
     weird_doc = {
         "pages": [
             {
@@ -126,11 +133,9 @@ def test_unusual_text_field_types_do_not_raise() -> None:
         ]
     }
     result = evaluate_evidence_gate(weird_doc)
-    # All blocks contribute 0 tokens (non-string text skipped); decision
-    # is insufficient because density=0 → all five at negative level.
+    # All blocks contribute 0 tokens AND 0 confidence (A4 filter):
+    # density=0, mean=0.0, no name, no suffix, no tax-id → all five
+    # at negative level → insufficient.
     assert result.signals.header_band_token_density == 0
-    # However, confidences ARE numeric, so mean is real. The mean is 0.9.
-    # has_confidence = True (0.9 >= 0.70). has_name = False, has_density = False,
-    # has_suffix = False, has_tax_id = False → not all negative,
-    # but density=0 → borderline.
-    assert result.decision == "borderline"
+    assert result.signals.ocr_detection_confidence_mean == 0.0
+    assert result.decision == "insufficient"

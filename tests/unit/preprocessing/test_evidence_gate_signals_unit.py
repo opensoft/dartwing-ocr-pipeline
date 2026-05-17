@@ -49,9 +49,15 @@ def test_vendor_name_count_title_case() -> None:
 
 
 def test_vendor_name_count_all_caps() -> None:
-    """ALL-CAPS multi-char tokens count as vendor-name candidates."""
+    """ALL-CAPS multi-char tokens count as vendor-name candidates.
+
+    A5 expansion: business-entity suffix tokens (CORP, LLC, INC, ...)
+    are now in the stop-word list because they are NOT vendor names —
+    they are appended to vendor names. Fixture text uses two
+    name-shaped tokens so the test still covers the ALL-CAPS case.
+    """
     doc = _doc_with_blocks(
-        [{"text": "ACME CORP", "confidence": 0.9, "bbox": [0, 0, 100, 100]}]
+        [{"text": "ACME WIDGET", "confidence": 0.9, "bbox": [0, 0, 100, 100]}]
     )
     result = compute_five_signals(doc)
     assert result.vendor_name_candidate_count == 2

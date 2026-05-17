@@ -25,7 +25,6 @@ Asserts:
 
 from __future__ import annotations
 
-import importlib
 from itertools import product
 
 import pytest
@@ -94,13 +93,21 @@ def test_decide_returns_closed_vocabulary() -> None:
         )
 
 
-def test_module_reload_produces_same_constants() -> None:
-    """Re-importing ``evidence_gate`` produces the same constants
-    (deterministic at module load — no random state, no env-var
-    influence on registry construction)."""
-    module = importlib.import_module("ledgerlinc_ocr.preprocessing.evidence_gate")
-    reloaded = importlib.reload(module)
-    assert reloaded.EVIDENCE_GATE_ID_V1 == "v1"
-    assert reloaded.Y_THRESHOLD_FRACTION == 0.25
-    assert reloaded.DENSITY_THRESHOLD == 8
-    assert reloaded.CONFIDENCE_THRESHOLD == 0.70
+def test_module_constants_are_deterministic() -> None:
+    """Module constants are deterministic at import time — no random
+    state, no env-var influence on the values.
+
+    C4 cleanup (post-review): the prior version of this test called
+    ``importlib.reload(module)`` to verify "same constants on re-import".
+    Reload replaces ``sys.modules[...]`` with a new module object,
+    introducing test-order dependence (subsequent tests that already
+    imported ``FiveSignalSet`` keep the OLD class, while newly-loaded
+    test bodies see the NEW one — `isinstance(result.signals,
+    FiveSignalSet)` fails). The same determinism property is now
+    asserted via direct value inspection — same guarantee, no
+    sys.modules side effects.
+    """
+    assert EVIDENCE_GATE_ID_V1 == "v1"
+    assert Y_THRESHOLD_FRACTION == 0.25
+    assert DENSITY_THRESHOLD == 8
+    assert CONFIDENCE_THRESHOLD == 0.70

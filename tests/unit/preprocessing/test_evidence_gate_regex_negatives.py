@@ -115,18 +115,20 @@ def test_real_ein_still_matches() -> None:
         # The substring `Incorporated` appears inside a longer word —
         # `\b` boundaries must prevent the match.
         "unincorporated",
-        # Hyphen counts as a word boundary in Python re, so this DOES
-        # match `\bCo\.\b` only if literal `Co.` is present; just
-        # `Co-operative` should NOT match because there is no period.
-        "Co-operative",
+        # A1 (post-review): `(?![\w-])` excludes a trailing hyphen so
+        # the suffix never matches inside hyphenated compounds.
+        "Inc-related", "Incorporated-by-reference", "Ltd-affiliate",
+        "Corp-shell", "GmbH-AG", "LLC-subsidiary",
         # No business suffix anywhere.
         "regular", "text", "Header",
+        # `Co-operative` lacks the literal `.` that `Co\.` requires.
+        "Co-operative",
     ],
 )
 def test_business_suffix_word_boundary(token: str) -> None:
-    """M6: BUSINESS_SUFFIX_RE only fires on a word-boundary-bounded suffix
-    token. ``unincorporated`` / ``Co-operative`` / non-suffix words MUST
-    NOT match."""
+    """M6 + A1: BUSINESS_SUFFIX_RE only fires on a word-boundary-bounded
+    suffix token; hyphenated compounds like ``Inc-related`` must NOT
+    match."""
     assert not BUSINESS_SUFFIX_RE.search(token), (
         f"{token!r} falsely matched BUSINESS_SUFFIX_RE — word-boundary failure"
     )

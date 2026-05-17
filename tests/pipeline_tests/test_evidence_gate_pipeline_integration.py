@@ -146,30 +146,54 @@ def test_evaluate_and_record_aggregates_across_multiple_docs(
         assert state_counts[s] == expected
 
 
-def test_evaluate_and_record_skips_missing_file(tmp_path: Path) -> None:
-    """No ``preprocess_output.json`` in the folder → no record, no
-    counter increment, no exception."""
+def test_evaluate_and_record_missing_file_emits_insufficient(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A6 (post-review): missing ``preprocess_output.json`` → emit an
+    ``insufficient`` record + log a warning. Keeps MI-18 invariant
+    strong (state_counts always sums to documents_succeeded)."""
     folder = tmp_path / "inv_005_easy"
     folder.mkdir()
-    # Note: file intentionally NOT written.
+    # File intentionally NOT written.
 
     state_counts = {"sufficient": 0, "borderline": 0, "insufficient": 0}
     documents: list[dict[str, Any]] = []
 
-    evaluate_and_record(
-        document_folder=folder,
-        document_id="inv_005_easy",
-        state_counts=state_counts,
-        documents=documents,
-    )
+    with caplog.at_level(
+        logging.WARNING, logger="ledgerlinc_ocr.preprocessing.evidence_gate"
+    ):
+        evaluate_and_record(
+            document_folder=folder,
+            document_id="inv_005_easy",
+            state_counts=state_counts,
+            documents=documents,
+        )
 
-    assert state_counts == {"sufficient": 0, "borderline": 0, "insufficient": 0}
-    assert documents == []
+    assert state_counts == {"sufficient": 0, "borderline": 0, "insufficient": 1}
+    assert len(documents) == 1
+    record = documents[0]
+    assert record["document_id"] == "inv_005_easy"
+    assert record["decision"] == "insufficient"
+    # All signals at negative level.
+    assert record["signals"]["vendor_name_candidate_count"] == 0
+    assert record["signals"]["header_band_token_density"] == 0
+    assert record["signals"]["ocr_detection_confidence_mean"] == 0.0
+    assert record["signals"]["business_suffix_present"] is False
+    assert record["signals"]["tax_id_shaped_present"] is False
+    # Warning logged, document_id present, no exception content.
+    warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert "inv_005_easy" in warnings[0].getMessage()
 
 
-def test_evaluate_and_record_skips_malformed_json(tmp_path: Path) -> None:
-    """Corrupt JSON → load fails closed to None → no record, no
-    counter, no exception."""
+def test_evaluate_and_record_malformed_json_emits_insufficient(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A6 (post-review): corrupt JSON → load fails closed to None →
+    helper emits an ``insufficient`` record + log warning. Same as
+    missing-file case."""
     folder = tmp_path / "inv_006_easy"
     folder.mkdir()
     (folder / "preprocess_output.json").write_text("{not valid json")
@@ -177,15 +201,67 @@ def test_evaluate_and_record_skips_malformed_json(tmp_path: Path) -> None:
     state_counts = {"sufficient": 0, "borderline": 0, "insufficient": 0}
     documents: list[dict[str, Any]] = []
 
+    with caplog.at_level(
+        logging.WARNING, logger="ledgerlinc_ocr.preprocessing.evidence_gate"
+    ):
+        evaluate_and_record(
+            document_folder=folder,
+            document_id="inv_006_easy",
+            state_counts=state_counts,
+            documents=documents,
+        )
+
+    assert state_counts == {"sufficient": 0, "borderline": 0, "insufficient": 1}
+    assert len(documents) == 1
+    assert documents[0]["decision"] == "insufficient"
+
+
+def test_evaluate_and_record_non_dict_json_emits_insufficient(
+    tmp_path: Path,
+) -> None:
+    """A6: parsed JSON that is not a dict (e.g., top-level list, string,
+    number) → load returns None → insufficient record emitted."""
+    folder = tmp_path / "inv_006a_easy"
+    folder.mkdir()
+    (folder / "preprocess_output.json").write_text('["list", "at", "top"]')
+
+    state_counts = {"sufficient": 0, "borderline": 0, "insufficient": 0}
+    documents: list[dict[str, Any]] = []
+
     evaluate_and_record(
         document_folder=folder,
-        document_id="inv_006_easy",
+        document_id="inv_006a_easy",
         state_counts=state_counts,
         documents=documents,
     )
 
-    assert state_counts == {"sufficient": 0, "borderline": 0, "insufficient": 0}
-    assert documents == []
+    assert state_counts["insufficient"] == 1
+    assert len(documents) == 1
+    assert documents[0]["decision"] == "insufficient"
+
+
+def test_evaluate_and_record_non_utf8_emits_insufficient(
+    tmp_path: Path,
+) -> None:
+    """A3: non-UTF-8 file content does not crash the helper; A6:
+    falls through to the insufficient-record emission."""
+    folder = tmp_path / "inv_006b_easy"
+    folder.mkdir()
+    # Latin-1 encoded bytes that are NOT valid UTF-8.
+    (folder / "preprocess_output.json").write_bytes(b'\xff\xfe\xfd')
+
+    state_counts = {"sufficient": 0, "borderline": 0, "insufficient": 0}
+    documents: list[dict[str, Any]] = []
+
+    evaluate_and_record(
+        document_folder=folder,
+        document_id="inv_006b_easy",
+        state_counts=state_counts,
+        documents=documents,
+    )
+
+    assert state_counts["insufficient"] == 1
+    assert len(documents) == 1
 
 
 def test_evaluate_and_record_logs_warning_on_internal_exception(

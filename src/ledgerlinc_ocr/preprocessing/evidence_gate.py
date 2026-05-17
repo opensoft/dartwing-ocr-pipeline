@@ -42,15 +42,17 @@ CONFIDENCE_THRESHOLD: Final[float] = 0.70
 # risk.
 #
 # BUSINESS_SUFFIX_RE: `\b` at the start anchors to a token boundary
-# before the suffix; `(?!\w)` at the end requires "not followed by a
-# word character" instead of the trailing `\b` that the original PR
-# used. The trailing-`\b` version silently failed to match suffixes
-# ending in `.` (e.g., `Co.` / `S.A.` / `S.A.S.`) when they sat at
-# end-of-string — `\b` requires a word/non-word transition and both
-# `.` and end-of-string are non-word, so no boundary fires.
+# before the suffix; `(?![\w-])` at the end requires "not followed by
+# a word character OR a hyphen". The trailing-`\b` version silently
+# failed to match suffixes ending in `.` (e.g., `Co.` / `S.A.` /
+# `S.A.S.`) when they sat at end-of-string — `\b` requires a
+# word/non-word transition and both `.` and end-of-string are
+# non-word, so no boundary fires. The hyphen exclusion (vs. plain
+# `(?!\w)`) prevents hyphenated compounds like `Inc-related` or
+# `Incorporated-by-reference` from falsely matching the suffix.
 # S.A.S. is listed BEFORE S.A. so the longer alternative wins.
 BUSINESS_SUFFIX_RE: Final[re.Pattern[str]] = re.compile(
-    r"(?i)\b(LLC|Incorporated|Inc|Limited|Ltd|GmbH|S\.A\.S\.|S\.A\.|Corporation|Corp|Co\.)(?!\w)"
+    r"(?i)\b(LLC|Incorporated|Inc|Limited|Ltd|GmbH|S\.A\.S\.|S\.A\.|Corporation|Corp|Co\.)(?![\w-])"
 )
 TAX_ID_EIN_RE: Final[re.Pattern[str]] = re.compile(r"\b\d{2}-\d{7}\b")
 # A 2-letter country prefix followed by 2..12 alphanumerics that MUST
@@ -67,20 +69,28 @@ TAX_ID_VAT_RE: Final[re.Pattern[str]] = re.compile(
 # against the alphabetic-only projection of each token after upper-casing
 # (B1: punctuation is stripped before the lookup, so `INVOICE:` and
 # `Payment.` are filtered the same as their bare forms).
+#
+# A5 expansion (post-review): the set covers three classes —
+#   1. Invoice-header labels (`INVOICE`, `BILL`, `TAX`, `DATE`, `PAGE`,
+#      `NUMBER`, `TOTAL`, `AMOUNT`, `DUE`, `PAYMENT`, `FROM`, `TO`)
+#   2. Tax-ID label tokens (`EIN`, `VAT`) — these are label markers, not
+#      vendor names; their presence is captured elsewhere via the
+#      tax-id-shaped regex on the value tokens
+#   3. Business-entity suffix tokens (`LLC`, `INC`, `INCORPORATED`,
+#      `LTD`, `LIMITED`, `GMBH`, `CORP`, `CORPORATION`, `CO`) — suffixes
+#      ARE business-vendor indicators (captured by `business_suffix_present`)
+#      but they are NOT vendor NAMES; including them in the candidate
+#      count double-counts the same evidence
 VENDOR_NAME_STOP_WORDS: Final[frozenset[str]] = frozenset(
     {
-        "INVOICE",
-        "BILL",
-        "TAX",
-        "DATE",
-        "PAGE",
-        "NUMBER",
-        "TOTAL",
-        "AMOUNT",
-        "DUE",
-        "PAYMENT",
-        "FROM",
-        "TO",
+        # Invoice-header labels
+        "INVOICE", "BILL", "TAX", "DATE", "PAGE", "NUMBER", "TOTAL",
+        "AMOUNT", "DUE", "PAYMENT", "FROM", "TO",
+        # Tax-ID label tokens
+        "EIN", "VAT",
+        # Business-entity suffixes (also captured by business_suffix_present)
+        "LLC", "INC", "INCORPORATED", "LTD", "LIMITED", "GMBH", "CORP",
+        "CORPORATION", "CO",
     }
 )
 
@@ -101,10 +111,25 @@ class FiveSignalSet:
     tax_id_shaped_present: bool
 
     def __post_init__(self) -> None:
+        # A2 strict type check: `bool` is a subclass of `int` in Python,
+        # so `True < 0` is False and a bare `isinstance(..., int)` check
+        # accepts booleans. The count fields are integer counts, never
+        # booleans — reject `True`/`False` explicitly so a misrouted
+        # boolean cannot be silently serialized into the int field.
+        if type(self.vendor_name_candidate_count) is not int:
+            raise TypeError(
+                f"vendor_name_candidate_count must be int (not bool), got "
+                f"{type(self.vendor_name_candidate_count).__name__}"
+            )
         if self.vendor_name_candidate_count < 0:
             raise ValueError(
                 f"vendor_name_candidate_count must be >= 0, got "
                 f"{self.vendor_name_candidate_count!r}"
+            )
+        if type(self.header_band_token_density) is not int:
+            raise TypeError(
+                f"header_band_token_density must be int (not bool), got "
+                f"{type(self.header_band_token_density).__name__}"
             )
         if self.header_band_token_density < 0:
             raise ValueError(
@@ -112,6 +137,11 @@ class FiveSignalSet:
                 f"{self.header_band_token_density!r}"
             )
         c = self.ocr_detection_confidence_mean
+        if type(c) is not float:
+            raise TypeError(
+                f"ocr_detection_confidence_mean must be float (not bool/int), "
+                f"got {type(c).__name__}"
+            )
         if math.isnan(c) or math.isinf(c):
             raise ValueError(
                 f"ocr_detection_confidence_mean must be finite, got {c!r}"
@@ -119,6 +149,16 @@ class FiveSignalSet:
         if not (0.0 <= c <= 1.0):
             raise ValueError(
                 f"ocr_detection_confidence_mean must be in [0.0, 1.0], got {c!r}"
+            )
+        if type(self.business_suffix_present) is not bool:
+            raise TypeError(
+                f"business_suffix_present must be bool, got "
+                f"{type(self.business_suffix_present).__name__}"
+            )
+        if type(self.tax_id_shaped_present) is not bool:
+            raise TypeError(
+                f"tax_id_shaped_present must be bool, got "
+                f"{type(self.tax_id_shaped_present).__name__}"
             )
 
 
@@ -275,14 +315,26 @@ def _count_band_tokens(tokens: list[str]) -> int:
 
 
 def _mean_band_confidence(blocks: list[Mapping[str, Any]]) -> float:
-    """Arithmetic mean of ``confidence`` across in-band blocks (R-020.3).
+    """Arithmetic mean of ``confidence`` across in-band blocks that
+    contributed tokens (R-020.3).
 
-    Returns ``0.0`` when the band is empty OR no block has a numeric
-    confidence. Out-of-range confidences are clamped to ``[0.0, 1.0]``
-    before averaging — defensive against producer drift.
+    Returns ``0.0`` when the band is empty OR no contributing block has
+    a numeric confidence. Out-of-range confidences are clamped to
+    ``[0.0, 1.0]`` before averaging — defensive against producer drift.
+
+    A4 (post-review): blocks whose ``text`` field is missing or
+    non-string contribute zero tokens to ``_tokens_from_blocks`` but
+    previously still contributed to the confidence mean. That allowed a
+    document with only non-text blocks at high confidence to evaluate
+    above the 0.70 threshold despite having NO textual evidence. The
+    mean now considers only blocks whose ``text`` is a string — keeping
+    the confidence signal aligned with the token signal.
     """
     confidences: list[float] = []
     for block in blocks:
+        text = block.get("text")
+        if not isinstance(text, str):
+            continue
         c = block.get("confidence")
         if c is None:
             continue
@@ -409,6 +461,15 @@ def load_preprocess_output_for_gate(
 
     Returns the parsed dict on success or ``None`` when the file cannot
     be read or parsed. Never raises — fails closed.
+
+    The catch clause covers four failure modes:
+    - ``OSError`` — file missing, permission denied, IO error
+    - ``json.JSONDecodeError`` — file content is not valid JSON
+    - ``UnicodeDecodeError`` — file content is not valid UTF-8 (A3
+      post-review: previously leaked through and contradicted the
+      "never raises" contract)
+    - ``ValueError`` — pypy and CPython have raised this on extremely
+      malformed paths; defensive
     """
     try:
         path = Path(preprocess_output_path)
@@ -417,7 +478,7 @@ def load_preprocess_output_for_gate(
     try:
         with open(path, encoding="utf-8") as f:
             obj = json.load(f)
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError, ValueError):
         return None
     if not isinstance(obj, dict):
         return None
@@ -437,13 +498,18 @@ def evaluate_and_record(
     On success: increments ``state_counts[result.decision]`` and appends one
     record to ``documents``.
 
-    On unreadable / malformed input: silently skips — no record, no
-    counter increment. Operators detect this as ``sum(state_counts) <
-    documents_succeeded``.
+    On unreadable / non-dict / corrupt input: emits an ``insufficient``
+    record with all-negative-level signals and logs a warning (A6
+    post-review). Previously this path silently skipped — but the
+    spec's malformed-input edge case says wrong-shape input should
+    produce an ``insufficient`` record. The new behavior keeps MI-18
+    invariant strong: ``sum(state_counts) == documents_succeeded``
+    holds even when some documents have corrupt preprocess outputs.
 
     On unexpected exception from the gate itself: logs a warning (no
-    exception content surfaced — PII-safe per FR-003) and continues; the
-    gate is observability and a bug here MUST NOT abort the run.
+    exception content surfaced — PII-safe per FR-003) and continues
+    without emitting a record; the gate is observability and a bug
+    here MUST NOT abort the run.
 
     Used identically by ``pipeline/corpus_run.py`` and
     ``preprocessing/cli.py`` to avoid drift between the two call sites
@@ -454,8 +520,30 @@ def evaluate_and_record(
             Path(document_folder) / "preprocess_output.json"
         )
         if gate_input is None:
-            return
-        result = evaluate_evidence_gate(gate_input)
+            # A6: emit insufficient record so state_counts always sums
+            # to documents_succeeded. Warning surfaces the
+            # corrupt-input case to operators without disclosing file
+            # contents (PII-safe per FR-003).
+            _logger.warning(
+                "evidence_gate: preprocess_output.json for document_id=%r "
+                "is missing, unreadable, or not a JSON object; emitting "
+                "insufficient record",
+                document_id,
+            )
+            insufficient_signals = FiveSignalSet(
+                vendor_name_candidate_count=0,
+                header_band_token_density=0,
+                ocr_detection_confidence_mean=0.0,
+                business_suffix_present=False,
+                tax_id_shaped_present=False,
+            )
+            result = EvidenceGateResult(
+                signals=insufficient_signals,
+                decision="insufficient",
+                evidence_gate_id=EVIDENCE_GATE_ID_V1,
+            )
+        else:
+            result = evaluate_evidence_gate(gate_input)
         state_counts[result.decision] += 1
         documents.append(
             build_evidence_gate_document_record(
