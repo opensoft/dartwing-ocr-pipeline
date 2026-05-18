@@ -14,6 +14,10 @@ Format per decision: **Decision** / **Rationale** / **Alternatives considered** 
 
 **Rationale**: This layout (a) preserves the per-document folder contract that feature-007 evaluator and the FR-019 quality gate expect; (b) keeps lane and run identity explicit in the path itself, so `cat /tmp/021-bench/legacy/run2/inv_001_easy/preprocess_output.json` is unambiguous; (c) keeps warmup separated from the comparison pairs so the FR-012 "discard first run of each pair" discipline maps directly to `run1/` discard, `run2/` keep; (d) lets an operator run `diff -r /tmp/021-bench/legacy/run2 /tmp/021-bench/candidate/run2` to spot artifact-level divergence; (e) is trivially scriptable for cleanup (`rm -rf /tmp/021-bench/`).
 
+**Identical-input invariant**: the scratch-copy mirror procedure copies each `source.pdf` from the SAME canonical corpus path (`tests/stage1_vendor_identity/<doc>/source.pdf`) into every (lane × run) scratch location. This guarantees identical source.pdf bytes across all 25 per-document scratch folders, so any cross-lane phase-timing difference is attributable to the lane configuration, not to input drift.
+
+**Same-session invariant**: legacy and candidate lanes MUST run in the same shell session, against the same workstation state, against the same Ollama placement (same loaded model, same `size_vram` from `/api/ps`). Cross-session comparison invalidates the jitter band because the cache-warmth baseline is no longer continuous across the four-run sequence.
+
 **Alternatives considered**:
 
 - **Document-first layout** (`/tmp/021-bench/inv_XXX/<lane>/run<N>/...`). Rejected: less convenient for evaluator-harness ingestion (the harness expects a directory root that contains per-document folders, not a directory root whose children are document IDs that themselves split into lanes).
@@ -29,6 +33,8 @@ Format per decision: **Decision** / **Rationale** / **Alternatives considered** 
 **Decision**: All `phase_timings.*` values in Appendix A are recorded as **seconds with three decimal places** (e.g., `0.842`). This matches feature 015's `run_summary.phase_timings.*` emission format (seconds, three decimals). Jitter band values and material-change deltas use the same unit and formatting.
 
 **Rationale**: Feature 015 (`015-gpu-engine-reuse-timing`) introduced the `phase_timings.*` keys with seconds-as-float emission; reusing the same unit avoids cross-feature confusion and makes Appendix A directly comparable to any raw `run_summary` stdout line. Three decimals are precise enough for the jitter formula (jitter band is typically in the 0.05–0.20s range on this workstation) without false precision.
+
+**FP comparison tolerance**: all jitter-formula comparisons (`max(...)`, `|Δ| > threshold`) MUST operate on the recorded 3-decimal values, not on the underlying full-precision floats. Two reviewers transcribing the same `run_summary` line and applying the formula by hand or via spreadsheet will see identical 3-decimal inputs and therefore agree on every `is_material` verdict. Tools that hold full-precision floats (e.g., `numpy`-based audit scripts) MUST round to 3 decimals before comparison to preserve this byte-for-byte agreement.
 
 **Alternatives considered**:
 
@@ -252,8 +258,38 @@ The feature-007 outputs are produced by running the existing evaluator harness w
 
 ---
 
+## R-021.15: Re-run scope after procedural-finding corpus mutation
+
+**Decision**: After a procedural-finding corpus mutation (Edge Case: "benchmark run accidentally targets committed corpus folders"), the operator MUST restart the **full four-run sequence from warmup** — not just the contaminated lane's pair. The contamination invalidates the cache-warmth baseline for BOTH pairs because the mutated state (any committed-corpus write) may have triggered MIOpen / COMGR cache regeneration, leaving the workstation in an unknown cache state relative to the original warmup.
+
+**Rationale**: (a) Partial re-runs (just the contaminated lane) cannot guarantee the four-run jitter-band invariant (paired-run spread reflects the workstation's noise floor, not the contamination's noise floor). (b) The four-run discipline's whole point is comparison against a continuous cache-warmth baseline; breaking that baseline mid-sequence is operationally equivalent to a workstation reboot (Edge Case "Four-run sequence interrupted by workstation reboot or process restart") and is handled the same way. (c) The cost (one extra warmup + two extra runs) is small compared to the cost of a tainted Appendix A entry.
+
+**Alternatives considered**:
+
+- **Re-run only the contaminated lane's pair**. Rejected: the cache state may have drifted between pairs; comparing the new pair against the prior pair's run-2 risks a false-negative finding.
+- **Mark the prior Appendix A entry as "tainted" and amend in place**. Rejected: violates the re-derivability discipline (SC-005) and creates a confused audit trail.
+
+**Affected requirements**: FR-012 (four-run discipline), FR-018 (scratch discipline), SC-011 (zero corpus mutation), Edge Cases §"benchmark run accidentally targets committed corpus folders", failure-handling.md CHK031.
+
+---
+
+## R-021.16: Quality-gate BLOCKED on missing `expected.json`
+
+**Decision**: If any document in the FR-011 benchmark subset lacks an `expected.json` at the time the FR-019 quality gate runs, the gate's verdict is **BLOCKED** with named cause `"missing expected.json for <document_id>"` (one named cause per missing document, joined if multiple). Skip-fallback remains opt-in per FR-027 (BLOCKED → stay opt-in). The aggregate score and per-document pass count fields in the Quality-Gate Verdict entity are `null` per data-model.md §4 BLOCKED-state validation.
+
+**Rationale**: (a) Per-document pass count is undefined when there's no truth file to compare against; the feature-007 evaluator returns a missing-expected error rather than guessing. (b) Treating missing-expected as BLOCKED (not FAIL) is correct because it's a corpus-state issue, not a candidate-regression issue. (c) The named cause includes the offending document_id so the operator knows which `expected.json` to add or restore before re-running.
+
+**Alternatives considered**:
+
+- **Treat as FAIL with zero score for the missing doc**. Rejected: conflates corpus-state issue with candidate regression; misleads the promotion-decision reviewer.
+- **Score only the documents with expected.json present**. Rejected: violates FR-013's same-subset rule (legacy and candidate must use the same 5 documents in the verdict).
+
+**Affected requirements**: FR-019 (two-metric quality gate), FR-022 (BLOCKED verdict with named cause), data-model.md §4 (Quality-Gate Verdict shape), quality-gate.md CHK041.
+
+---
+
 ## Phase-0 Outcome
 
-All **14** planning decisions resolved (13 original + R-021.14 added 2026-05-18 during analyze remediation). No NEEDS CLARIFICATION items remain. Constitution Check re-evaluated post-Phase-0: still PASS (no decision above introduces a new package, schema, or pipeline-code surface; the new `configs/voter/ollama-gpu.yaml` is a configuration file, not pipeline code, and the new `scripts/check-ollama-gpu-readiness.sh` is explicitly outside `dartwing_ocr` per the FR-002 carve-out and Constitution §I; R-021.14 documents existing CLI semantics, does not change them).
+All **16** planning decisions resolved (13 original + R-021.14 added during /speckit.analyze remediation + R-021.15 and R-021.16 added during /speckit.checklist walk resolution). No NEEDS CLARIFICATION items remain. Constitution Check re-evaluated post-Phase-0: still PASS (no decision above introduces a new package, schema, or pipeline-code surface; the new `configs/voter/ollama-gpu.yaml` is a configuration file, not pipeline code, and the new `scripts/check-ollama-gpu-readiness.sh` is explicitly outside `dartwing_ocr` per the FR-002 carve-out and Constitution §I; R-021.14–R-021.16 document existing semantics and procedural rules, not new pipeline behavior).
 
 **Next**: Phase 1 — generate `data-model.md`, `contracts/`, `quickstart.md`, then re-evaluate the Constitution Check.

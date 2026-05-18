@@ -55,6 +55,11 @@ This contract pins the structural shape of Appendix A (benchmark numbers) and Ap
 - All timing values MUST use the R-021.2 unit/format convention.
 - Tables MUST be GitHub-flavored Markdown.
 
+### Invalidation rules
+
+- **Environment-fingerprint change**: if ANY field in §1 (Environment fingerprint) differs between two Appendix A entries (e.g., a Paddle wheel upgrade, an Ollama version bump, a kernel update, a different `evidence_gate_id`), the prior entry is **no longer comparison-valid** against the new entry. A fresh four-run sequence is required to produce a new comparison-valid Appendix A subsection. The prior entry is preserved as historical evidence but MUST NOT be cited by a Quality-Gate Verdict that references the new fingerprint.
+- **Audience scope**: the performance numbers in Appendix A are produced for the **promotion-decision reviewer audience** (internal pipeline engineers + reviewers). They are NOT marketing latency claims; they are a non-regression argument against the legacy lane. External-stakeholder consumption requires separate framing.
+
 ## Appendix B — Quality Gate Verdict + Promotion Decision
 
 ### Required subsections (in order)

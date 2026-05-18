@@ -190,6 +190,8 @@ PromotionDecisionRecord {
 
 **State transitions**: A record is immutable once recorded; a future change of operational posture creates a new dated record and the prior record is retained as history.
 
+**Demotion path** (promote-to-default → stay-opt-in, if a regression appears after promotion): a future demotion creates a NEW dated record with `decision: "stay opt-in"`, citing the regression in the rationale and a fresh `gating_verdict_ref` to the FAIL or BLOCKED verdict that motivated the demotion. The prior promote-to-default record is **retained as history** — never edited or deleted. The inverted-default code change MUST be reverted in the same body of work as the demotion record (same PR), so the operational state and the documented decision land atomically.
+
 **Recording**: Appendix B `### Promotion Decision (YYYY-MM-DD)` subsection (authoritative) + runbook `## Promotion Decision` mirror (R-021.11). Synchronization is verified by a CPU-safe contract test (see `contracts/appendix-recording.md`).
 
 ---

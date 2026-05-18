@@ -22,6 +22,12 @@ Bulleted list (no commands yet):
 - A scratch directory `/tmp/021-bench/` available (or another explicit scratch root).
 - The voter config at `configs/voter/ollama-gpu.yaml` (R-021.7) names the loaded extraction model.
 
+**Operator skills**: the runbook assumes operator familiarity with `git`, Python venvs, and basic shell (`bash` / `zsh`). Anything beyond that floor is explained inline.
+
+**Demo audience**: internal pipeline engineers and reviewers; external stakeholders (compliance, legal) by invitation only — the demo surfaces internal observability fields that may carry context-sensitive information.
+
+**Expected wall-time**: readiness gate (Step 1) takes ≈ 30 seconds; the canonical demo command (Step 2) takes ≈ 60–120 seconds per run on this workstation. A run that exceeds 5× expected wall-time is a finding and should be investigated before the demo continues.
+
 ### 3. `## Step 1 — GPU Readiness Gate (REQUIRED)`
 
 Two sub-steps in fixed order:
@@ -113,6 +119,8 @@ If the audience wants to see suppression in action: re-run Step 2 with and witho
 
 A short reminder reproducing FR-018 + FR-025(f): all output lands under `/tmp/021-bench/` (or another explicit scratch root); committed corpus under `tests/stage1_vendor_identity/` is NEVER mutated by a demo run. Operators concerned about contamination can `git status tests/stage1_vendor_identity/` after the demo and confirm zero changes.
 
+**Cleanup discipline**: after the demo / benchmark, the operator MAY `rm -rf /tmp/021-bench/` to remove scratch outputs. Scratch retention is operator choice — the runbook does not require it but does not forbid it.
+
 ### 8. `## Promotion Decision`
 
 Mirror of the Appendix B `### Promotion Decision (YYYY-MM-DD)` subsection (per [appendix-recording.md §Promotion-decision synchronization contract](./appendix-recording.md)). Must contain:
@@ -131,6 +139,13 @@ Concise table of common failure paths with named-cause remediation:
 | `check-ollama-gpu-readiness.sh` exits non-zero           | See Step 1b table.                     | …                                                                   |
 | Demo command exits non-zero                              | Likely a missed readiness step.       | Re-run Step 1; if Step 1 passes, capture the demo stderr and escalate. |
 | `evidence_gate_suppressed_fallback_count` is unexpectedly 0 on a `sufficient` document | Skip-fallback not enabled. | Either pass `--evidence-gate-skip-fallback` (stay-opt-in operational mode) or confirm the runbook reflects the current promotion decision. |
+
+**Abort path** (mid-demo cleanup): `Ctrl+C` interrupts the running pipeline command. After interrupt, the operator MAY `rm -rf /tmp/021-bench/` to clean up scratch outputs. Readiness state (Paddle preflight + Ollama placement) is unchanged by the interrupt — re-running the demo from Step 2 does not require re-running Step 1 unless Ollama state has changed.
+
+### Documentation discipline
+
+- Runbook examples MUST use document IDs (e.g., `inv_001_easy`) and synthetic vendor strings where any vendor-identity content is shown.
+- The runbook MUST NEVER include real vendor names, addresses, or other PII extracted from any document in `tests/stage1_vendor_identity/`. Feature 006's PII screening covers the corpus; the runbook MUST NOT undo that screening by reproducing screened content in example output.
 
 ### 10. `## See also`
 

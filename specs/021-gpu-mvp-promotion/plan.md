@@ -142,7 +142,7 @@ specs/020-vendor-evidence-gate/
 
 ## Phase 0 → Phase 1 Handoff
 
-Phase 0 (research.md) resolves 14 planning decisions surfaced by the checklist gap-flag review, this plan's structural choices, and the post-/speckit.analyze CLI-surface verification:
+Phase 0 (research.md) resolves 16 planning decisions surfaced by the checklist gap-flag review, this plan's structural choices, the post-/speckit.analyze CLI-surface verification, and the /speckit.checklist walk resolution (close-with-edit items):
 
 - **R-021.1** Scratch-copy directory layout under `/tmp/021-bench/`
 - **R-021.2** Timing unit + numeric formatting for Appendix A
@@ -158,6 +158,8 @@ Phase 0 (research.md) resolves 14 planning decisions surfaced by the checklist g
 - **R-021.12** Partial-progress benchmark recording (3 of 5 documents succeed)
 - **R-021.13** Aggregate vendor-identity score formula (which feature-007 evaluator output is the source of truth)
 - **R-021.14** Warm-corpus output semantics — `--output-dir` is NOT honored in `--documents-file` mode; outputs land back in each per-doc folder, so scratch-copy mirroring is the only way to keep committed corpus clean (added 2026-05-18 during analyze remediation)
+- **R-021.15** Re-run scope after procedural-finding corpus mutation — operator MUST restart the full four-run sequence from warmup, not just the contaminated lane (added 2026-05-18 during checklist walk resolution)
+- **R-021.16** Quality-gate BLOCKED on missing `expected.json` — when any benchmarked document lacks an `expected.json`, FR-019 verdict is BLOCKED with named cause "missing expected.json for <document_id>" (added 2026-05-18 during checklist walk resolution)
 
 Phase 1 produces:
 
