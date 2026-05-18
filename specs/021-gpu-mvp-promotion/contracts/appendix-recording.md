@@ -83,7 +83,7 @@ This contract pins the structural shape of Appendix A (benchmark numbers) and Ap
    - `Decided by: <team identifier>` + `Decided at: <ISO date>`.
    - `Rationale:` 2–4 sentences.
    - If `promote to default`:
-     - `Inverted default location: <file:lineref>` (e.g., `src/dartwing_ocr/preprocessing/evidence_gate_optin.py L42`).
+     - `Inverted default location: <file>:<line>` (colon-separated; e.g., `src/dartwing_ocr/preprocessing/evidence_gate_optin.py:42`).
      - `Explicit-off flag: <flag>` (e.g., `--no-evidence-gate-skip-fallback`).
      - `Explicit-off env var: <env var>` (e.g., `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=0`).
      - `Legacy-path test: <test path>` (the CPU-safe test exercising the inverted-default disable).

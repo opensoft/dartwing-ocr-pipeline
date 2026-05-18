@@ -173,7 +173,7 @@ PromotionDecisionRecord {
     decided_at: str                                            # ISO-8601 date
     decided_by: str                                            # team identifier (e.g., "Dartwing OCR pipeline team")
     promotion_artifacts: {                                    # populated only if decision == "promote to default"
-        inverted_default_location: str                        # e.g., "src/dartwing_ocr/preprocessing/evidence_gate_optin.py L42"
+        inverted_default_location: str                        # e.g., "src/dartwing_ocr/preprocessing/evidence_gate_optin.py:42" — colon-separated file:line per contracts/appendix-recording.md §Promotion Decision
         explicit_off_flag: str                                # e.g., "--no-evidence-gate-skip-fallback"
         explicit_off_env_var: str                             # e.g., "DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=0"
         legacy_path_test: str                                 # path to the CPU-safe test exercising the legacy path

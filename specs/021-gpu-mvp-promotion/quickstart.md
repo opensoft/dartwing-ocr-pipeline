@@ -165,8 +165,8 @@ Create `docs/stage1-vendor-identity/runbook-gpu-mvp-demo.md` following [contract
 - Readiness gate (Step 1) comes BEFORE the demo command (Step 2).
 - Step 2 uses `ppstructurev3@gpu` + `configs/voter/ollama-gpu.yaml` only — NO `@cpu` or `stub` command in the documented path.
 - Step 3 walks through every one of the seven feature-020 `run_summary` observability fields.
-- Step 7 (Scratch discipline) reproduces FR-018 + FR-025(f).
-- Step 8 (Promotion Decision) mirrors the Appendix B subsection.
+- The **§Scratch Discipline** section reproduces FR-018 + FR-025(f).
+- The **§Promotion Decision** section mirrors the Appendix B subsection.
 
 Self-check after writing: `grep -E '@cpu|stub-voter' docs/stage1-vendor-identity/runbook-gpu-mvp-demo.md` MUST return zero matches (FR-025(c), SC-008).
 
