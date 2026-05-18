@@ -49,3 +49,6 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-ra --import-mode=importlib"
+markers = [
+    "gpu: requires AMD ROCm + paddlepaddle-dcu + host Ollama on GPU (workstation only; CPU CI skips)",
+]

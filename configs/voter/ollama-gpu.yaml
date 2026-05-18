@@ -1,0 +1,19 @@
+# Canonical voter config for the GPU MVP demo (feature 021 R-021.7).
+#
+# Consumed by:
+#   - scripts/check-ollama-gpu-readiness.sh (FR-002 readiness helper) — reads
+#     `model_name` to look up the matched entry in Ollama's GET /api/ps response
+#     and assert `size_vram > 0 AND size_vram == size`.
+#   - The demo runbook's extraction lane (FR-025) — the operator runs the
+#     `dartwing-extract` extractor against this config, which selects the
+#     `ollama@gpu` profile and the named model.
+#
+# Schema: feature 005 voter-config schema. Single required top-level key
+# `model_name: string (non-empty)`. The model name MUST match the entry name
+# Ollama reports in `/api/ps` for the loaded extraction model.
+#
+# At landing time the operator pins `model_name` to whichever model is loaded
+# on the workstation's host Ollama (e.g., `qwen2.5vl:7b`, `gemma2:9b`, etc.).
+# Update this file in lockstep with `ollama pull <model>` operations.
+
+model_name: "qwen2.5vl:7b"

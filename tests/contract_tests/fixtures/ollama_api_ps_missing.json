@@ -1,0 +1,20 @@
+{
+  "models": [
+    {
+      "name": "gemma2:9b",
+      "model": "gemma2:9b",
+      "size": 5443328000,
+      "size_vram": 5443328000,
+      "digest": "sha256:fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gemma2",
+        "families": ["gemma2"],
+        "parameter_size": "9B",
+        "quantization_level": "Q4_K_M"
+      },
+      "expires_at": "2026-05-18T23:00:00Z"
+    }
+  ]
+}

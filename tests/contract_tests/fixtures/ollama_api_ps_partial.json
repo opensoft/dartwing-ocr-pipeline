@@ -1,0 +1,20 @@
+{
+  "models": [
+    {
+      "name": "qwen2.5vl:7b",
+      "model": "qwen2.5vl:7b",
+      "size": 5120000000,
+      "size_vram": 3072000000,
+      "digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2vl",
+        "families": ["qwen2vl"],
+        "parameter_size": "7B",
+        "quantization_level": "Q4_K_M"
+      },
+      "expires_at": "2026-05-18T23:00:00Z"
+    }
+  ]
+}
