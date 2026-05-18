@@ -220,10 +220,10 @@ grep -E '@cpu|stub-voter' docs/stage1-vendor-identity/runbook-gpu-mvp-demo.md &&
 
 - [spec.md](./spec.md) — feature spec + Clarifications 2026-05-18.
 - [plan.md](./plan.md) — this feature's implementation plan.
-- [research.md](./research.md) — R-021.1 through R-021.13 planning decisions.
+- [research.md](./research.md) — R-021.1 through R-021.14 planning decisions.
 - [data-model.md](./data-model.md) — entity shapes for verdicts, run records, jitter band, promotion decision.
 - [contracts/ollama-readiness-helper.md](./contracts/ollama-readiness-helper.md) — shell helper invocation contract.
 - [contracts/gpu-test-marker.md](./contracts/gpu-test-marker.md) — pytest marker + test-conversion contract.
 - [contracts/appendix-recording.md](./contracts/appendix-recording.md) — Appendix A + B table shapes.
 - [contracts/runbook.md](./contracts/runbook.md) — demo runbook structural contract.
-- [checklists/*.md](./checklists/) — eight release-gate checklists (355 deep items).
+- [checklists/*.md](./checklists/) — **15 release-gate checklists, 657 items total** (canonical count — pin shared with `plan.md` and `tasks.md`). Includes the auto-generated `requirements.md` plus 14 deep-rigor domain checklists (the original 12 + `dependencies.md` and `clarifications.md` added during the post-analyze checklist reverify).

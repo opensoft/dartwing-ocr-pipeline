@@ -89,6 +89,7 @@ This checklist tests the *requirements writing* of the benchmark — not the ben
 - [ ] CHK046 Is the requirement for recording the workstation environment fingerprint (ROCm version, Paddle wheel version, Ollama version) explicit, or only implicit in "run notes"? [Gap, Coverage]
 - [ ] CHK047 Are requirements defined for the case where the candidate-lane suppressed-document count differs from the expected (e.g., a document the operator expected to be `sufficient` is `borderline` on this run)? [Gap, Edge Case]
 - [ ] CHK048 Is the requirement explicit about whether the benchmark must record successful Paddle preflight state per run (so post-hoc auditors know the gate passed for each run)? [Gap, Coverage]
+- [ ] CHK049 Is FR-007 (the inverse of FR-006 — `borderline` and `insufficient` documents MUST still run PPStructureV3 fallback on `ppstructurev3@gpu`, with `evidence_gate_suppressed_fallback_count` *not* incrementing for them) covered by an explicit benchmark-record requirement, so the decision-table compliance is verifiable per-document from Appendix A? [Gap, Coverage, Spec §FR-007, §US2 Scenario 2]
 
 ## Notes
 
