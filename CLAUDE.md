@@ -64,7 +64,17 @@ Use Speckit for feature worktrees, implementation planning, task breakdown, and 
 
 Before running `/speckit.specify`, verify from the same shell/container with `git status -sb` and `git branch --show-current` that the checkout is on `main` with no unintended worktree changes. Never run `/speckit.specify` from a feature branch, cleanup branch, or existing Speckit worktree. If not on `main`, stop and switch to `main` only after preserving or committing any current work. This rule applies even when updating an existing feature spec.
 
-Do not pre-create Codex-prefixed branches for Speckit features. The normal Codex `codex/` branch prefix applies to ad hoc Codex work, but Speckit features must let the `/speckit.specify` `before_specify` hook create the feature branch/worktree using the canonical `NNN-feature-name` form. After specify creates that worktree, run follow-on Speckit commands (`/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`) from the generated worktree, not from `main` and not from an unrelated older worktree selected by `cta`.
+Do not pre-create Codex-prefixed branches for Speckit features. The normal Codex `codex/` branch prefix applies to ad hoc Codex work, but Speckit features must let the `/speckit.specify` `before_specify` hook create the feature branch/worktree using the canonical `NNN-feature-name` form.
+
+**Worktree-context enforcement (hard rule, applies every turn)**: `/speckit.specify` and `/speckit.constitution` are the ONLY Speckit commands that may run from `main`. Every other Speckit command — `/speckit.clarify`, `/speckit.checklist`, `/speckit.plan`, `/speckit.tasks`, `/speckit.analyze`, `/speckit.implement` — MUST run against the feature worktree, never against the main checkout. Before invoking any of those follow-on commands, Claude MUST:
+
+1. Determine the target feature directory (from `.specify/feature.json` in the worktree, or from the most recent `specs/NNN-*` the user is working on).
+2. Resolve the worktree path: typically `../<repo-name>-worktrees/<NNN-feature-name>/`. Verify it exists with `ls`.
+3. Run every Bash command for that Speckit invocation as `cd <worktree-path> && <command>` so prerequisite scripts, git operations, and file reads all target the worktree's working tree and branch — never the parent main checkout. Pass absolute paths under the worktree to Read/Edit/Write tools.
+4. Verify the target with `git -C <worktree-path> branch --show-current` matches the expected `NNN-feature-name` before any state-mutating step.
+5. If the worktree doesn't exist (e.g., the user invoked a follow-on command before `/speckit.specify` ran for this NNN), STOP and tell the user — do NOT silently fall back to main and do NOT create the worktree without explicit approval.
+
+The shell's apparent cwd (the user's terminal location) does NOT determine the target — the absolute worktree path does. A user sitting in the main checkout typing `/speckit.analyze` is a normal case, and the right response is for Claude to operate against the worktree's absolute paths, never against main's. The harness rule is enforced by Claude reading this CLAUDE.md every turn; if a future shell-script guard is added, it lives at `.specify/scripts/bash/check-feature-context.sh` and is invoked by each follow-on speckit skill — until then, this prose IS the enforcement.
 
 Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec` is on `PATH`. Do not add OpenSpec to the lightweight Dartwing project container; that container remains focused on the pipeline runtime and local validation path.
 
