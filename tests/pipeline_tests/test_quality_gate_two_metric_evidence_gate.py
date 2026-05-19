@@ -75,6 +75,12 @@ CANDIDATE_RUN2 = Path("/tmp/021-bench/candidate/run2/evaluation_run_summary.json
 # FR-011 fixed five-document benchmark subset (research.md R-021.13 +
 # R-020.13 fallback list). The quality-gate verdict MUST be computed over
 # this exact subset on both lanes; same-subset is FR-013's hard rule.
+#
+# Cross-file invariant: this MUST match
+# ``tests/pipeline_tests/test_evidence_gate_benchmark.py::_DEFAULT_5_DOC_SUBSET``
+# (the same FR-011 subset, encoded as a tuple there). Both are derived from
+# `specs/021-gpu-mvp-promotion/spec.md` Assumptions / FR-011. If you change
+# one, change the other in the same commit.
 _EXPECTED_BENCHMARK_SUBSET: frozenset[str] = frozenset({
     "inv_001_easy",
     "inv_002_easy",
@@ -222,9 +228,18 @@ def test_quality_gate_two_metric_evidence_gate_gpu() -> None:
     BOTH the aggregate vendor-identity pass rate AND the corpus field-
     level accuracy (FR-020 strict conjunction).
 
+    Shape + FR-011 fixed-subset validation runs up-front via
+    ``_assert_summary_shape`` so feature-007 schema drift (missing
+    aggregates, wrong document count, wrong document IDs) surfaces as
+    a named-cause AssertionError rather than a confusing TypeError
+    downstream inside the metric extractor.
+
     Failure (NOT skip) on regression is intentional per SC-008.
-    BLOCKED via xfail when either lane's summary is missing or malformed
-    per R-021.16.
+    Schema drift (shape-violation) is also a test FAILURE — feature-007
+    is a sibling package and its schema is a code contract; a drift is
+    a coding bug, not a FR-022 hardware/runtime BLOCKED case.
+    BLOCKED via xfail is reserved for the FR-022 named-cause path
+    (summary missing or malformed JSON per R-021.16).
     """
     legacy = _load_summary(LEGACY_RUN2)
     candidate = _load_summary(CANDIDATE_RUN2)

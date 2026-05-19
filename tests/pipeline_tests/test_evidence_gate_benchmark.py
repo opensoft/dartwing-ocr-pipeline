@@ -115,6 +115,12 @@ _ALLOWED_DECREASE_KEYS: frozenset[str] = frozenset({"per_page_inference", "total
 # R-020.13 / R-017.11 default subset — fallback when 017/019 quickstart
 # tables are still TBD. The benchmark MUST record which list was used in
 # ``quickstart.md`` Appendix A.
+#
+# Cross-file invariant: this MUST match
+# ``tests/pipeline_tests/test_quality_gate_two_metric_evidence_gate.py::
+# _EXPECTED_BENCHMARK_SUBSET`` (the FR-011 fixed five-document subset).
+# Both are derived from `specs/021-gpu-mvp-promotion/spec.md` Assumptions /
+# FR-011. If you change one, change the other in the same commit.
 _DEFAULT_5_DOC_SUBSET: tuple[str, ...] = (
     "inv_001_easy",
     "inv_002_easy",
@@ -154,7 +160,13 @@ def test_evidence_gate_benchmark_four_run_per_key_deltas_gpu(
     # GPU run replaces this body with the real four-run benchmark loop
     # and updates `specs/020-vendor-evidence-gate/quickstart.md`
     # Appendix A + `research.md` Appendix B with the recorded numbers.
-    _ = tmp_path, _GPU_PHASE_KEYS, _ALLOWED_DECREASE_KEYS, _DEFAULT_5_DOC_SUBSET
+    _ = (
+        tmp_path,
+        _GPU_TIMING_KEYS,
+        _CONDITIONAL_KEYS,
+        _ALLOWED_DECREASE_KEYS,
+        _DEFAULT_5_DOC_SUBSET,
+    )
     pytest.fail(
         "GPU benchmark deferred per R-020.15; wire the four-run loop "
         "(warmup × 1, legacy × 2, candidate × 2; per-key change "
