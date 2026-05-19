@@ -219,13 +219,60 @@ def test_fail_config_file_missing(tmp_path):
 
 
 def test_fail_config_no_model_name_key(tmp_path):
+    """Missing `model_name` key in voter config → exit 4 with the YAML
+    tag named in the stderr message (PR #43 Codex P2 fix: yq-tag check
+    distinguishes missing/null/list/object from a real string scalar)."""
     voter_config = _write_voter_config(tmp_path, model_name=None)
     result = _run_helper("--voter-config", str(voter_config))
 
     assert result.returncode == 4
     assert result.stdout == ""
     assert "missing or malformed" in result.stderr
-    assert "no model_name" in result.stderr
+    # The yq-tag check (Codex P2 fix) names the unexpected YAML tag.
+    # A missing key resolves to `!!null` via the `// "!!null"` fallback.
+    assert "model_name must be a string scalar" in result.stderr
+    assert "!!null" in result.stderr
+
+
+def test_fail_config_model_name_is_list(tmp_path):
+    """PR #43 Codex P2 regression: a non-scalar `model_name` (list)
+    MUST exit 4 with the "string scalar" stderr — NOT pass through to
+    Ollama and exit 2 (not loaded)."""
+    voter_config = tmp_path / "voter.yaml"
+    voter_config.write_text('model_name:\n  - one\n  - two\n')
+    result = _run_helper("--voter-config", str(voter_config))
+
+    assert result.returncode == 4
+    assert result.stdout == ""
+    assert "model_name must be a string scalar" in result.stderr
+    assert "!!seq" in result.stderr  # yq's YAML tag for a list
+
+
+def test_fail_config_model_name_is_object(tmp_path):
+    """PR #43 Codex P2 regression: a non-scalar `model_name` (object/map)
+    MUST exit 4 with the "string scalar" stderr."""
+    voter_config = tmp_path / "voter.yaml"
+    voter_config.write_text('model_name:\n  primary: qwen\n')
+    result = _run_helper("--voter-config", str(voter_config))
+
+    assert result.returncode == 4
+    assert result.stdout == ""
+    assert "model_name must be a string scalar" in result.stderr
+    assert "!!map" in result.stderr  # yq's YAML tag for an object
+
+
+def test_fail_config_model_name_empty_string(tmp_path):
+    """An explicit empty string `model_name: ""` MUST exit 4 with the
+    "empty string" stderr (NOT the "string scalar" stderr — the tag
+    check passes for an empty string, the post-trim length check
+    catches it)."""
+    voter_config = tmp_path / "voter.yaml"
+    voter_config.write_text('model_name: ""\n')
+    result = _run_helper("--voter-config", str(voter_config))
+
+    assert result.returncode == 4
+    assert result.stdout == ""
+    assert "model_name is empty string" in result.stderr
 
 
 def test_fail_no_voter_config_flag():
@@ -253,6 +300,32 @@ def test_fail_voter_config_flag_truncated():
     assert result.stdout == ""
     assert "missing or malformed" in result.stderr
     assert "--voter-config requires a value" in result.stderr
+
+
+def test_fail_voter_config_equals_empty(tmp_path):
+    """PR #43 Copilot review: `--voter-config=` (empty value via the
+    `=` form) MUST exit 4 fast — not pass an empty string to the
+    file-existence check and exit 4 with the wrong reason."""
+    result = _run_helper("--voter-config=")
+
+    assert result.returncode == 4
+    assert result.stdout == ""
+    assert "missing or malformed" in result.stderr
+    assert "--voter-config= requires a value" in result.stderr
+
+
+def test_fail_base_url_equals_empty(tmp_path):
+    """PR #43 Copilot review: `--base-url=` (empty value via the `=`
+    form) MUST exit 4 with a config error — NOT pass an empty string
+    to curl and exit 3 (unreachable), which would send operators down
+    the wrong remediation path."""
+    voter_config = _write_voter_config(tmp_path, MODEL_LOADED)
+    result = _run_helper("--voter-config", str(voter_config), "--base-url=")
+
+    assert result.returncode == 4
+    assert result.stdout == ""
+    assert "missing or malformed" in result.stderr
+    assert "--base-url= requires a value" in result.stderr
 
 
 def test_fail_base_url_flag_truncated(tmp_path):

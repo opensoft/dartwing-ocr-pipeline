@@ -4,7 +4,7 @@
 **Spec refs**: [spec.md §FR-002](../spec.md), [research.md §R-021.9](../research.md), [data-model.md §6](../data-model.md)
 **Constitution refs**: §I (boundary — outside `dartwing_ocr`), §III (deterministic check)
 
-This contract defines the shell helper invoked by the readiness gate (FR-001 covers Paddle preflight; this helper covers FR-002 Ollama placement). The helper is implemented in POSIX-compatible shell using `curl` + `jq` + `yq` (system tools), with no Python dependency.
+This contract defines the shell helper invoked by the readiness gate (FR-001 covers Paddle preflight; this helper covers FR-002 Ollama placement). The helper is implemented as a `bash(1)` script (shebang `#!/usr/bin/env bash`) using bash-specific features (`set -o pipefail` per §Behavior contract step 0; bash parameter-expansion patterns for whitespace trimming) plus `curl` + `jq` + `yq` (system tools), with no Python dependency. The contract's "no Python dependency" clause is unchanged; the implementation language clarification (POSIX `sh` → `bash`) was made under the PR #43 Copilot review.
 
 **Tool prerequisites**: `curl`, `jq`, and `mikefarah/yq v4+` (Go binary; the apt-packaged kislyuk/python-yq variant works for the simple `.model_name` expression the helper uses, but the Go binary is what the workstation host and devcontainer install). The devcontainer Dockerfile installs all three; on bare-metal workstations operators must ensure they are on `$PATH`. Missing prereqs exit `3` (curl/jq) or `4` (yq) with a named-cause stderr line.
 
@@ -72,7 +72,7 @@ No stdout is emitted on FAIL. Stderr templates MUST name the unmet prerequisite 
 
 0. **Shell options**: the script runs under `set -u` (undefined-variable references abort) AND `set -o pipefail` (the rightmost non-zero exit status of any pipe propagates as the pipe's exit code, instead of being masked by the rightmost stage's success). `set -e` (errexit) is deliberately NOT enabled — the script controls every failure path explicitly via `if ! …` blocks so the exit-code-to-status-literal mapping in §Exit codes is the only source of truth. Adding `set -e` would conflict with that mapping.
 1. **Argument parsing**: missing or unrecognized flags → exit `4` with stderr template `FAIL: voter-config <path> missing or malformed (usage error)`. The helper does NOT print a usage banner to stderr beyond the FAIL line.
-2. **Voter-config read**: read `--voter-config` PATH; parse as YAML via `yq -r '.model_name'`; require non-empty string; on any failure → exit `4`.
+2. **Voter-config read**: read `--voter-config` PATH; assert `model_name` exists AND is a string scalar (via `yq -r '.model_name | tag'` returning `!!str`); reject non-scalar values (list, object, null) with exit `4` and a named cause; then read the value, trim whitespace, require non-empty; on any failure → exit `4`.
 3. **HTTP fetch**: `curl --silent --show-error --fail --max-time 10 <base_url>/api/ps`; on curl non-zero or non-200 → exit `3`.
 4. **JSON parse**: pipe response through `jq -e --arg n "<model_name>" '.models[] | select(.name == $n)'`; on no match → exit `2`.
 5. **Placement check**: extract `size` and `size_vram` from the matched entry; if `size_vram == 0 || size_vram < size` → exit `1`; else → exit `0`.

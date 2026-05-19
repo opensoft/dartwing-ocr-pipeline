@@ -63,6 +63,14 @@ while [ "$#" -gt 0 ]; do
             ;;
         --voter-config=*)
             voter_config="${1#--voter-config=}"
+            # PR #43 Copilot review: reject `--voter-config=` with an
+            # empty value; otherwise downstream `if [ ! -f "" ]` would
+            # exit 4 with a confusing "file not found" message. Classify
+            # as a config error up-front.
+            if [ -z "$voter_config" ]; then
+                echo "FAIL: voter-config <unset> missing or malformed (--voter-config= requires a value)" >&2
+                exit 4
+            fi
             shift
             ;;
         --base-url)
@@ -75,6 +83,15 @@ while [ "$#" -gt 0 ]; do
             ;;
         --base-url=*)
             base_url="${1#--base-url=}"
+            # PR #43 Copilot review: `--base-url=` with an empty value
+            # would yield `api_url="/api/ps"` and exit 3 (unreachable),
+            # sending operators down the wrong remediation path. An
+            # empty base URL is a typo, not a network issue — classify
+            # as config error (exit 4) here.
+            if [ -z "$base_url" ]; then
+                echo "FAIL: voter-config ${voter_config:-<unset>} missing or malformed (--base-url= requires a value)" >&2
+                exit 4
+            fi
             shift
             ;;
         *)
@@ -108,16 +125,30 @@ if ! command -v yq >/dev/null 2>&1; then
     exit 4
 fi
 
-# yq's -r/-e behavior differs between mikefarah/yq (v4 Go) and kislyuk/yq
-# (Python wrapper around jq). Both accept `'.model_name'`. We tolerate either
-# by trimming and treating "null"/"" as absence.
-model_name="$(yq -r '.model_name // ""' "$voter_config" 2>/dev/null | head -n1 || echo "")"
+# PR #43 Codex review (P2): validate `model_name` is a STRING scalar
+# before using it. A non-scalar value (list, object, multi-line block
+# scalar, null) would otherwise have its first-rendered-line treated as
+# a real model name and the helper would exit 2 ("not loaded") instead
+# of the contract's exit 4 ("config"). yq's `tag` filter returns the
+# YAML type tag of the queried value: `!!str` for strings, `!!seq` for
+# lists, `!!map` for objects, `!!null` for null/missing.
+#
+# Both yq variants (mikefarah/yq v4 Go binary; kislyuk/yq Python wrapper)
+# accept the `tag` filter; the latter may return slightly different tag
+# names — we accept the canonical `!!str` only.
+model_name_tag="$(yq -r '.model_name | tag // "!!null"' "$voter_config" 2>/dev/null || echo "!!error")"
+if [ "$model_name_tag" != "!!str" ]; then
+    echo "FAIL: voter-config $voter_config missing or malformed (model_name must be a string scalar; got YAML tag $model_name_tag)" >&2
+    exit 4
+fi
+
+model_name="$(yq -r '.model_name' "$voter_config" 2>/dev/null || echo "")"
 # Strip any surrounding whitespace just in case.
 model_name="${model_name#"${model_name%%[![:space:]]*}"}"
 model_name="${model_name%"${model_name##*[![:space:]]}"}"
 
-if [ -z "$model_name" ] || [ "$model_name" = "null" ]; then
-    echo "FAIL: voter-config $voter_config missing or malformed (no model_name key or empty)" >&2
+if [ -z "$model_name" ]; then
+    echo "FAIL: voter-config $voter_config missing or malformed (model_name is empty string)" >&2
     exit 4
 fi
 
