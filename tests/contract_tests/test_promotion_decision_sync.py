@@ -41,8 +41,13 @@ RUNBOOK_PATH = REPO_ROOT / "docs" / "stage1-vendor-identity" / "runbook-gpu-mvp-
 # the appendix-recording contract bolds the field label but the runbook
 # may emit either. Value captures everything until the next newline or
 # `(` (for the "_(placeholder — ...)_" sentinel) or `_` (italic marker).
+#
+# Multi-agent-review MED-2 fix: regex now actually matches both forms (the
+# prior pattern only matched bold form, contradicting the docstring above).
+# Anchored to start-of-line / start-of-`**` to avoid matching mid-sentence
+# `decision:` strings in prose (e.g., "the team's promotion decision:").
 _DECISION_RE = re.compile(
-    r"\*\*Decision\*\*\s*:\s*([^\n_()]+?)(?:\s*[_(]|\s*$)",
+    r"^(?:\*\*Decision\*\*|Decision)\s*:\s*([^\n_()]+?)(?:\s*[_(]|\s*$)",
     re.MULTILINE,
 )
 

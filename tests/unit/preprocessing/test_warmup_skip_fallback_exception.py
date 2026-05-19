@@ -30,13 +30,13 @@ from typing import Any
 import pytest
 
 from dartwing_ocr.preprocessing import pipeline as _pipeline_mod
-from tests.pipeline_tests.gpu_helpers import (
-    extract_run_summary,
-    find_doc_record,
-    invoke_pipeline,
-    phase_keys,
-    setup_scratch_corpus,
-)
+
+# Multi-agent-review MED-1 fix: `tests.pipeline_tests.gpu_helpers` is documented
+# at gpu_helpers.py module top as "imported by pytest.mark.gpu-marked tests only".
+# This file's 4 CPU mock tests do NOT need it. Importing it at module top would
+# violate the invariant and create a future-import-time-side-effect risk that
+# could break CPU collection. The 1 GPU test below imports the helpers inside
+# its function body so CPU collection never triggers the import path.
 
 
 class _Calls:
@@ -154,6 +154,17 @@ def test_warmup_forces_ppstructurev3_construction_under_skip_fallback_gpu(
 
     Skipped on CPU by the root-conftest gate.
     """
+    # Deferred import (MED-1): only imports gpu_helpers when this GPU test
+    # actually runs on a GPU host. CPU collection (root-conftest skip-gate)
+    # never reaches this point, so the import never fires on CPU.
+    from tests.pipeline_tests.gpu_helpers import (
+        extract_run_summary,
+        find_doc_record,
+        invoke_pipeline,
+        phase_keys,
+        setup_scratch_corpus,
+    )
+
     doc_id = "inv_001_easy"
     documents_file, _ = setup_scratch_corpus(scratch_root=tmp_path, doc_ids=[doc_id])
 

@@ -4,12 +4,21 @@ Used by:
 - ``test_evidence_gate_skip_fallback.py`` (T009)
 - ``test_evidence_gate_skip_fallback_borderline.py`` (T010)
 - ``test_evidence_gate_all_suppressed_lazy_construction.py`` (T011)
-- ``test_warmup_skip_fallback_exception.py`` (T012 GPU variant)
+- ``test_warmup_skip_fallback_exception.py`` (T012 GPU variant — deferred
+  import inside the GPU test body per multi-agent-review MED-1)
 
 These helpers are imported by ``pytest.mark.gpu``-marked tests only; CPU
 CI skips the tests at collection time (root ``conftest.py`` skip-gate)
 and never imports this module. The helpers therefore assume a GPU-capable
 workstation is running them.
+
+**Import-time invariant (MED-1)**: this module MUST stay side-effect-free
+at import time. No print, no logging-config, no Paddle import, no Ollama
+call. The CPU-only sibling tests in `tests/unit/preprocessing/` rely on
+this so they can co-exist alongside the GPU subprocess test in their
+file without dragging in import-time work. If you need to introduce a
+side effect here, move the affected code into a function body and import
+that function lazily from the GPU test bodies that use it.
 
 The module name does not start with ``test_`` so pytest's
 ``python_files = ["test_*.py"]`` filter does not collect it.

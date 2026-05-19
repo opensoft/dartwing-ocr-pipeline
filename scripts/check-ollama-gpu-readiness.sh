@@ -32,16 +32,24 @@ base_url="http://localhost:11434"
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --voter-config)
-            voter_config="${2:-}"
-            shift 2 || true
+            if [ "$#" -lt 2 ]; then
+                echo "FAIL: voter-config <unset> missing or malformed (--voter-config requires a value)" >&2
+                exit 4
+            fi
+            voter_config="$2"
+            shift 2
             ;;
         --voter-config=*)
             voter_config="${1#--voter-config=}"
             shift
             ;;
         --base-url)
-            base_url="${2:-}"
-            shift 2 || true
+            if [ "$#" -lt 2 ]; then
+                echo "FAIL: voter-config ${voter_config:-<unset>} missing or malformed (--base-url requires a value)" >&2
+                exit 4
+            fi
+            base_url="$2"
+            shift 2
             ;;
         --base-url=*)
             base_url="${1#--base-url=}"

@@ -224,3 +224,33 @@ def test_fail_no_voter_config_flag():
     assert result.stdout == ""
     assert "--voter-config" in result.stderr
     assert "missing or malformed" in result.stderr
+
+
+# Regression tests for the multi-agent-review HIGH-1 bug
+# (commit ${HEAD} 2026-05-19): truncated flag (last argv with no value
+# following) used to drive an infinite loop because `shift 2 || true`
+# masked `shift`'s failure when only 1 positional remained. Now exits 4
+# with a named-prerequisite stderr template per FR-004 / SC-002.
+
+
+def test_fail_voter_config_flag_truncated(tmp_path):
+    """`--voter-config` as the last argv with no value following MUST exit 4
+    fast (HIGH-1 regression) — not hang in an infinite loop."""
+    result = _run_helper("--voter-config")
+
+    assert result.returncode == 4
+    assert result.stdout == ""
+    assert "missing or malformed" in result.stderr
+    assert "--voter-config requires a value" in result.stderr
+
+
+def test_fail_base_url_flag_truncated(tmp_path):
+    """`--base-url` as the last argv with no value following MUST exit 4
+    fast (HIGH-1 regression)."""
+    voter_config = _write_voter_config(tmp_path, MODEL_LOADED)
+    result = _run_helper("--voter-config", str(voter_config), "--base-url")
+
+    assert result.returncode == 4
+    assert result.stdout == ""
+    assert "missing or malformed" in result.stderr
+    assert "--base-url requires a value" in result.stderr
