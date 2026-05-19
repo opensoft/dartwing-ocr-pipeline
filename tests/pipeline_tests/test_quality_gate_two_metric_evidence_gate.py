@@ -131,7 +131,7 @@ def _extract_metric_b_field_accuracy(summary: dict) -> float:
     return float(accuracy)
 
 
-def test_quality_gate_two_metric_evidence_gate_gpu(tmp_path: Path) -> None:
+def test_quality_gate_two_metric_evidence_gate_gpu() -> None:
     """GPU two-metric verdict: compare legacy and candidate
     ``evaluation_run_summary.json`` files; assert candidate >= legacy on
     BOTH the aggregate vendor-identity pass rate AND the corpus field-

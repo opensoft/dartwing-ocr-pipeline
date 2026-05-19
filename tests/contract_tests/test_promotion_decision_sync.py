@@ -160,10 +160,18 @@ def _extract_gating_verdict(path: Path) -> tuple[str, str] | None:
     verdict.
     """
     text = path.read_text(encoding="utf-8")
-    line_match = _GATING_VERDICT_LINE_RE.search(text)
-    if line_match is None:
+    line_matches = _GATING_VERDICT_LINE_RE.findall(text)
+    if not line_matches:
         return None
-    line = line_match.group(0)
+    # Round-5 fix (adversarial-regex stress test, case 18): mirror the
+    # Decision extractor's `findall(...)[-1]` pattern so "current entry"
+    # semantics stay symmetric across both extractors. If a file ever
+    # records a history of multiple Promotion Decisions, the LAST
+    # Gating-verdict line is the current one (matches the LAST
+    # Decision line in `_extract_decision`). `.search()` returned the
+    # FIRST match (oldest), which would silently compare today's
+    # Decision against an ancestor's Gating-verdict reference.
+    line = line_matches[-1]
     # Strip the literal "YYYY-MM-DD" placeholder so it can't accidentally
     # match _RECORDED_VERDICT_REFERENCE_RE.
     sanitized = line.replace("YYYY-MM-DD", "")
@@ -285,6 +293,37 @@ def test_gating_verdict_partial_fill_returns_none(tmp_path: Path) -> None:
         f"MUST extract as None (unrecorded), got {result!r}. The regex "
         f"sanitization must reject lines containing the literal "
         f"placeholder list inside parens."
+    )
+
+
+def test_gating_verdict_multi_entry_history_returns_current(tmp_path: Path) -> None:
+    """Round-5 fix (adversarial-regex case 18): if a file accumulates a
+    history of multiple `**Gating verdict**:` lines, `_extract_gating_verdict`
+    MUST return the LAST entry (the current one), mirroring the
+    Decision extractor's `findall(...)[-1]` semantics. Using `.search()`
+    would return the FIRST match (the oldest), silently comparing
+    today's Decision against an ancestor's Gating-verdict reference.
+    """
+    history = (
+        "# Test fixture\n\n"
+        "## Promotion Decision (2026-05-01)\n\n"
+        "**Decision**: stay opt-in\n\n"
+        "**Gating verdict**: see §Quality-Gate Verdict 2026-05-01 (FAIL) above. "
+        "FR-027 — if FAIL or BLOCKED, the decision MUST be `stay opt-in`.\n\n"
+        "## Promotion Decision (2026-05-19)\n\n"
+        "**Decision**: promote to default\n\n"
+        "**Gating verdict**: see §Quality-Gate Verdict 2026-05-19 (PASS) above. "
+        "FR-027 — if FAIL or BLOCKED, the decision MUST be `stay opt-in`.\n"
+    )
+    fake = tmp_path / "history.md"
+    fake.write_text(history, encoding="utf-8")
+
+    result = _extract_gating_verdict(fake)
+    assert result == ("2026-05-19", "PASS"), (
+        f"multi-entry history regression: the LAST Gating-verdict entry "
+        f"is the current one; got {result!r}. The extractor MUST use "
+        f"`findall(...)[-1]` (mirroring _extract_decision), not `.search()` "
+        f"which returns the oldest."
     )
 
 
