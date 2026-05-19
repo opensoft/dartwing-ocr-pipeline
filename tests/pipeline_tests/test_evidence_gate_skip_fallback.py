@@ -26,7 +26,8 @@ import pytest
 
 from tests.pipeline_tests.gpu_helpers import (
     extract_run_summary,
-    find_doc_record,
+    find_evidence_gate_record,
+    find_per_document_record,
     invoke_pipeline,
     phase_keys,
     setup_scratch_corpus,
@@ -51,14 +52,15 @@ def test_skip_fallback_sufficient_suppresses_ppstructurev3_gpu(tmp_path: Path) -
     )
 
     summary = extract_run_summary(result.stdout)
-    doc = find_doc_record(summary, doc_id)
+    gate_doc = find_evidence_gate_record(summary, doc_id)
+    per_doc = find_per_document_record(summary, doc_id)
 
     # Precondition for the FR-006 scenario: the document MUST be classified
     # `sufficient`. If this fails, the corpus labeling has drifted; that is
     # a feature-020 / feature-006 concern, not an FR-006 failure.
-    assert doc.get("decision") == "sufficient", (
+    assert gate_doc.get("decision") == "sufficient", (
         f"corpus precondition failed: {doc_id} decision="
-        f"{doc.get('decision')!r}, expected 'sufficient'. "
+        f"{gate_doc.get('decision')!r}, expected 'sufficient'. "
         f"Skip-fallback semantics only apply to `sufficient` documents."
     )
 
@@ -72,7 +74,7 @@ def test_skip_fallback_sufficient_suppresses_ppstructurev3_gpu(tmp_path: Path) -
     # FR-008 corollary on a single-doc all-sufficient run: PPStructureV3
     # is lazily unconstructed (no engine_init, no warmup) when skip-fallback
     # suppresses the only document AND --gpu-warmup is NOT passed.
-    keys = phase_keys(doc)
+    keys = phase_keys(per_doc)
     assert "engine_init" not in keys, (
         f"FR-008 violation: phase_timings.engine_init present on a "
         f"suppressed-document run without --gpu-warmup; got phase keys "

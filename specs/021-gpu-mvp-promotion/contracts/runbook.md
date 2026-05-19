@@ -104,8 +104,8 @@ The runbook MUST NOT show a `ppstructurev3@cpu` alternative, an `ollama@cpu` alt
 The demo emits a single `kind: "run_summary"` JSON line on stdout (feature 015 lineage). The runbook explains each of the seven required observability fields with operator-facing reading guidance:
 
 - `schema_version` — must be `0.1.7` (feature 020 baseline).
-- `preprocess_lane` — must be `gpu` (audit signal; FR-003 interpreter-path verification).
-- `preprocess_strategy_id` — must be `ppstructurev3@gpu`.
+- `preprocess_lane` — must be `gpu0` (the lane suffix is the device index; CPU lanes emit `cpu`; audit signal per FR-003 interpreter-path verification — anything other than a `gpu*` value means the demo silently fell back to the CPU interpreter).
+- `preprocess_strategy_id` — must be `ocr-only-v1` (matches the `--preprocess-strategy ocr-only-v1` flag the canonical command passes; the `--preprocess-profile ppstructurev3@gpu` flag selects the preprocess lane / engine, not the strategy).
 - `evidence_gate_id` — should match the active preset (feature 020 `header-default-v1` or operator's chosen preset).
 - `evidence_gate_state_counts` — distribution of `sufficient` / `borderline` / `insufficient` across the processed documents.
 - `evidence_gate_documents` — per-document table of decisions; cross-check against scratch outputs.

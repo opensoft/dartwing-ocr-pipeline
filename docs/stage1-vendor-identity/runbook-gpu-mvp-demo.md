@@ -103,8 +103,8 @@ Optional flags for documented variants:
 The demo emits a single `kind: "run_summary"` JSON line on stdout (feature 015 lineage). The runbook explains each of the seven required FR-025(d) observability fields:
 
 - **`schema_version`** — feature 020 `RunSummary.SCHEMA_VERSION` (currently `0.1.7`). Audit signal: confirms the demo is running on the feature-020 baseline.
-- **`preprocess_lane`** — `gpu` for this demo. If this field reads `cpu`, something has gone wrong; STOP and re-run Step 1.
-- **`preprocess_strategy_id`** — `ppstructurev3@gpu` (matches the flag passed in Step 2b).
+- **`preprocess_lane`** — `gpu0` for this demo (the lane suffix is the device index; CPU lanes emit `cpu`). If this field reads `cpu`, something has gone wrong; STOP and re-run Step 1.
+- **`preprocess_strategy_id`** — `ocr-only-v1` (matches the `--preprocess-strategy ocr-only-v1` flag passed in Step 2b; the `--preprocess-profile ppstructurev3@gpu` flag selects the lane, not the strategy).
 - **`evidence_gate_id`** — the active preset (feature 020 `header-default-v1` or the chosen preset).
 - **`evidence_gate_state_counts`** — distribution of `sufficient` / `borderline` / `insufficient` across the processed documents. Reads as a per-state count map.
 - **`evidence_gate_documents`** — per-document table of decisions; cross-check against scratch outputs at `/tmp/021-bench/demo/<doc>/`.

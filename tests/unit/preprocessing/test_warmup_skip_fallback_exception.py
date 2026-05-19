@@ -159,7 +159,8 @@ def test_warmup_forces_ppstructurev3_construction_under_skip_fallback_gpu(
     # never reaches this point, so the import never fires on CPU.
     from tests.pipeline_tests.gpu_helpers import (
         extract_run_summary,
-        find_doc_record,
+        find_evidence_gate_record,
+        find_per_document_record,
         invoke_pipeline,
         phase_keys,
         setup_scratch_corpus,
@@ -178,13 +179,14 @@ def test_warmup_forces_ppstructurev3_construction_under_skip_fallback_gpu(
     )
 
     summary = extract_run_summary(result.stdout)
-    doc = find_doc_record(summary, doc_id)
+    gate_doc = find_evidence_gate_record(summary, doc_id)
+    per_doc = find_per_document_record(summary, doc_id)
 
     # Precondition: the doc IS sufficient (otherwise skip-fallback wouldn't
     # suppress; the test scenario would still hold trivially but the
     # operator should know).
-    assert doc.get("decision") == "sufficient", (
-        f"corpus precondition: {doc_id} decision={doc.get('decision')!r}, "
+    assert gate_doc.get("decision") == "sufficient", (
+        f"corpus precondition: {doc_id} decision={gate_doc.get('decision')!r}, "
         f"expected 'sufficient'. Test scenario is FR-009 (warmup with all-"
         f"sufficient skip-fallback)."
     )
@@ -200,7 +202,7 @@ def test_warmup_forces_ppstructurev3_construction_under_skip_fallback_gpu(
     # Core FR-009 assertion: warmup phase key MUST appear despite the doc
     # being suppressed — `--gpu-warmup` is the explicit operator trade-off
     # that constructs PPStructureV3 unconditionally on the lane.
-    keys = phase_keys(doc)
+    keys = phase_keys(per_doc)
     assert "warmup" in keys, (
         f"FR-009 violation: `--gpu-warmup` was passed alongside "
         f"`--evidence-gate-skip-fallback`, but phase_timings.warmup is absent "

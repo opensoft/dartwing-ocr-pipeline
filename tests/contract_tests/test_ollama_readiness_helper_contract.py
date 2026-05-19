@@ -24,8 +24,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 HELPER = REPO_ROOT / "scripts" / "check-ollama-gpu-readiness.sh"
 FIXTURES_DIR = REPO_ROOT / "tests" / "contract_tests" / "fixtures"
 
-# The pass / partial / cpu_only fixtures all load this model name.
-MODEL_LOADED = "qwen2.5vl:7b"
+# The pass / partial / cpu_only fixtures all load this model name. Must
+# match `configs/voter/ollama-gpu.yaml` `model_name`, which is pinned to
+# what the `ollama@gpu` extraction profile binds (gemma-edge.yaml ollama.model_tag).
+MODEL_LOADED = "gemma4:e4b"
 # The missing fixture loads `gemma2:9b` instead; querying MODEL_LOADED returns
 # "not loaded" because the matched-name lookup fails.
 

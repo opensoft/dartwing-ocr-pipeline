@@ -1,8 +1,8 @@
 {
   "models": [
     {
-      "name": "qwen2.5vl:7b",
-      "model": "qwen2.5vl:7b",
+      "name": "gemma4:e4b",
+      "model": "gemma4:e4b",
       "size": 5120000000,
       "size_vram": 5120000000,
       "processor": "100% GPU",

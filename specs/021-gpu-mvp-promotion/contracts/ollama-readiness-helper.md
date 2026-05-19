@@ -6,6 +6,8 @@
 
 This contract defines the shell helper invoked by the readiness gate (FR-001 covers Paddle preflight; this helper covers FR-002 Ollama placement). The helper is implemented in POSIX-compatible shell using `curl` + `jq` + `yq` (system tools), with no Python dependency.
 
+**Tool prerequisites**: `curl`, `jq`, and `mikefarah/yq v4+` (Go binary; the apt-packaged kislyuk/python-yq variant works for the simple `.model_name` expression the helper uses, but the Go binary is what the workstation host and devcontainer install). The devcontainer Dockerfile installs all three; on bare-metal workstations operators must ensure they are on `$PATH`. Missing prereqs exit `3` (curl/jq) or `4` (yq) with a named-cause stderr line.
+
 ## Invocation
 
 ```bash
@@ -26,7 +28,7 @@ scripts/check-ollama-gpu-readiness.sh \
 
 - No interactive prompts.
 - No model loading (`POST /api/generate`, `POST /api/pull`, etc.) — strictly read-only against Ollama (R-021.6).
-- No writes to disk.
+- No persistent writes to disk. The helper creates exactly one ephemeral file via `mktemp(1)` to hold the HTTP response body for `jq` parsing; the file is unlinked on EXIT/INT/TERM via a `trap` cleanup handler. No user-visible state survives the process. (This is the only filesystem side effect; the surrounding contract continues to treat the helper as read-only with respect to persistent state.)
 - No retries or wait loops.
 
 ## Exit codes
@@ -74,7 +76,7 @@ No stdout is emitted on FAIL. Stderr templates MUST name the unmet prerequisite 
 4. **JSON parse**: pipe response through `jq -e --arg n "<model_name>" '.models[] | select(.name == $n)'`; on no match → exit `2`.
 5. **Placement check**: extract `size` and `size_vram` from the matched entry; if `size_vram == 0 || size_vram < size` → exit `1`; else → exit `0`.
 6. **Stdout emission**: on exit `0` only, emit the PASS JSON line (above).
-7. **Determinism**: given identical voter-config + identical `/api/ps` response, the helper MUST produce identical stdout/stderr/exit-code (Constitution §III).
+7. **Determinism**: given identical voter-config + identical `/api/ps` response, the helper MUST produce an identical exit code and an identical structural stdout JSON (same keys, same values) on PASS, or an identical stderr line on FAIL (Constitution §III). The `timestamp_utc` field in the PASS JSON is provenance metadata captured at invocation time (`date -u +%Y-%m-%dT%H:%M:%SZ`) and is the only field that varies across otherwise-identical invocations — it is NOT part of the placement-check determinism contract, only of the audit trail. Callers MUST NOT key cache lookups, signature checks, or equality assertions on `timestamp_utc`.
 
 ## Integration contract
 

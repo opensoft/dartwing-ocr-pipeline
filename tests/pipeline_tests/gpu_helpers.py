@@ -121,8 +121,14 @@ def extract_run_summary(stdout: str) -> dict[str, Any]:
     )
 
 
-def find_doc_record(run_summary: dict[str, Any], doc_id: str) -> dict[str, Any]:
+def find_evidence_gate_record(
+    run_summary: dict[str, Any], doc_id: str
+) -> dict[str, Any]:
     """Find a per-document record in ``run_summary["evidence_gate_documents"]``.
+
+    Use this for gate-state assertions (``decision``, ``signals``). The
+    gate records do NOT carry ``phase_timings``; use
+    :func:`find_per_document_record` for timing assertions.
 
     Raises ``AssertionError`` if the document is missing — every benchmarked
     document MUST appear in the per-doc table (FR-017).
@@ -137,8 +143,42 @@ def find_doc_record(run_summary: dict[str, Any], doc_id: str) -> dict[str, Any]:
     )
 
 
+def find_per_document_record(
+    run_summary: dict[str, Any], doc_id: str
+) -> dict[str, Any]:
+    """Find a per-document record in ``run_summary["per_document"]``.
+
+    Use this for timing assertions (``phase_timings``,
+    ``per_page_inference``). Gate state (``decision``) is NOT on these
+    records; use :func:`find_evidence_gate_record` for that.
+
+    Multi-agent-review P1-1 (verification round): split out from the
+    former single ``find_doc_record`` helper, which always queried
+    ``evidence_gate_documents`` and therefore returned records without
+    ``phase_timings``. Presence checks (``"warmup" in keys``) silently
+    failed; absence checks passed trivially. The two distinct lookup
+    paths reflect the run_summary's actual shape — per-doc timing lives
+    on ``per_document[]``, per-doc gate state lives on
+    ``evidence_gate_documents[]``.
+
+    Raises ``AssertionError`` if the document is missing.
+    """
+    docs = run_summary.get("per_document", [])
+    for record in docs:
+        if isinstance(record, dict) and record.get("document_id") == doc_id:
+            return record
+    raise AssertionError(
+        f"document_id={doc_id!r} not found in per_document "
+        f"(have: {[r.get('document_id') for r in docs]!r})"
+    )
+
+
 def phase_keys(doc_record: dict[str, Any]) -> set[str]:
     """Return the set of ``phase_timings`` keys present on a per-doc record.
+
+    Caller MUST pass a record from :func:`find_per_document_record` —
+    ``phase_timings`` does NOT exist on ``evidence_gate_documents[]``
+    entries.
 
     A key is "absent" iff it is not in this set (FR-014 "when present"
     semantics; absence is itself observable per data-model.md §2 + plan.md

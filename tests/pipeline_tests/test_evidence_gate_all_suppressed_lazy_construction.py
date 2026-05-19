@@ -33,7 +33,8 @@ from dartwing_ocr.preprocessing.pipeline import (
 )
 from tests.pipeline_tests.gpu_helpers import (
     extract_run_summary,
-    find_doc_record,
+    find_evidence_gate_record,
+    find_per_document_record,
     invoke_pipeline,
     phase_keys,
     setup_scratch_corpus,
@@ -111,10 +112,10 @@ def test_lazy_no_warmup(tmp_path: Path) -> None:
     # Precondition: every doc is `sufficient`. If not, this scenario does
     # not apply; the corpus has drifted and needs re-labeling.
     for doc_id in doc_ids:
-        doc = find_doc_record(summary, doc_id)
-        assert doc.get("decision") == "sufficient", (
+        gate_doc = find_evidence_gate_record(summary, doc_id)
+        assert gate_doc.get("decision") == "sufficient", (
             f"corpus precondition failed: {doc_id} decision="
-            f"{doc.get('decision')!r}, expected 'sufficient'."
+            f"{gate_doc.get('decision')!r}, expected 'sufficient'."
         )
 
     # FR-008: every doc suppressed.
@@ -127,8 +128,8 @@ def test_lazy_no_warmup(tmp_path: Path) -> None:
     # FR-008 core assertion: engine_init AND warmup absent on EVERY per-doc
     # record (PPStructureV3 was never constructed for this run).
     for doc_id in doc_ids:
-        doc = find_doc_record(summary, doc_id)
-        keys = phase_keys(doc)
+        per_doc = find_per_document_record(summary, doc_id)
+        keys = phase_keys(per_doc)
         assert "engine_init" not in keys, (
             f"FR-008 violation: phase_timings.engine_init present on {doc_id} "
             f"during an all-suppressed run without `--gpu-warmup`; "
@@ -162,10 +163,10 @@ def test_forced_construction_with_warmup(tmp_path: Path) -> None:
 
     # Precondition: every doc is `sufficient` (mirrors test_lazy_no_warmup).
     for doc_id in doc_ids:
-        doc = find_doc_record(summary, doc_id)
-        assert doc.get("decision") == "sufficient", (
+        gate_doc = find_evidence_gate_record(summary, doc_id)
+        assert gate_doc.get("decision") == "sufficient", (
             f"corpus precondition failed: {doc_id} decision="
-            f"{doc.get('decision')!r}, expected 'sufficient'."
+            f"{gate_doc.get('decision')!r}, expected 'sufficient'."
         )
 
     # FR-009: every doc still suppressed (skip-fallback is independent of
@@ -183,8 +184,8 @@ def test_forced_construction_with_warmup(tmp_path: Path) -> None:
     saw_warmup = False
     saw_engine_init = False
     for doc_id in doc_ids:
-        doc = find_doc_record(summary, doc_id)
-        keys = phase_keys(doc)
+        per_doc = find_per_document_record(summary, doc_id)
+        keys = phase_keys(per_doc)
         if "warmup" in keys:
             saw_warmup = True
         if "engine_init" in keys:

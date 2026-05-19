@@ -224,19 +224,24 @@ The Appendix B subsection is the source of truth; the runbook section is a deriv
 
 ---
 
-## R-021.13: Aggregate vendor-identity score formula (feature-007 evaluator surface)
+## R-021.13: FR-019 two-metric quality-gate formula (feature-007 evaluator surface)
 
-**Decision**: The FR-019 "aggregate vendor-identity score" is the **sum** of feature-007's per-document `evaluation_document.json` `vendor_identity_score` field across the five benchmark documents. The "per-document pass count" is the **count** of documents whose per-document `vendor_identity_pass` flag is `true` across the same five. Both metrics are read directly from feature-007 outputs without aggregation in this feature; no new metric is introduced.
+**Decision (verification-round revision, 2026-05-19)**: FR-019's two metrics are read directly from `evaluation_run_summary.json`'s `overall_metrics` block, which the feature-007 evaluator persists unchanged:
 
-The feature-007 outputs are produced by running the existing evaluator harness with the per-lane benchmark roots: `evaluator <CORPUS_ROOT>=/tmp/021-bench/legacy/run2/` and `evaluator <CORPUS_ROOT>=/tmp/021-bench/candidate/run2/`. The harness emits `evaluation_document.json` per per-document folder and `evaluation_run_summary.json` at the corpus root. Appendix B records the per-document score + pass flag tables from these files, plus the sum + count computed inline.
+- **Metric A** — `overall_metrics.vendor_identity_pass_rate` (mean of the per-document boolean `vendor_identity_passed` flag across the corpus; range `[0.0, 1.0]`).
+- **Metric B** — `overall_metrics.field_accuracy` (mean of the per-document field-level match rate across the corpus; range `[0.0, 1.0]`).
 
-**Rationale**: (a) Sum-and-count are the simplest non-trivial aggregations the feature-007 evaluator's outputs support without modification (FR-032). (b) Sum (rather than mean) preserves the magnitude signal in the per-document score regression case (a 10% drop on one document is more visible in the sum). (c) Count (rather than rate) gives integer-comparable numbers across lanes — "candidate had 4 passing documents vs. legacy's 5" is more legible than "0.8 vs. 1.0". (d) Reusing feature-007 unchanged preserves the "use as-is" boundary (Assumptions clarification).
+PASS verdict requires `candidate >= legacy` on BOTH metrics (FR-020 strict conjunction). The feature-007 outputs are produced by running the existing evaluator harness with the per-lane benchmark roots: `evaluator <CORPUS_ROOT>=/tmp/021-bench/legacy/run2/` and `evaluator <CORPUS_ROOT>=/tmp/021-bench/candidate/run2/`. The harness emits `evaluation_document.json` per per-document folder and `evaluation_run_summary.json` at the corpus root. Appendix B records the two `overall_metrics` aggregates per lane plus the per-document `overall_passed` / `field_accuracy` table from each `evaluation_run_summary.json`'s `documents[]` array.
+
+**Rationale**: (a) Both metrics are aggregates that the feature-007 evaluator already persists in `overall_metrics`, so no new metric is introduced (FR-032 — no new product behavior in `dartwing_ocr`). (b) The two metrics are **mathematically independent** on a fixed-N corpus: a document can clear the boolean vendor-identity threshold (Metric A) while showing variable field-level accuracy across the other fields (Metric B). A regression in Metric B catches subtle quality dips that Metric A would not. (c) Reusing the existing aggregates preserves the "feature-007 as-is" boundary (Assumptions clarification).
+
+**Why the original draft was wrong**: The original decision named "sum of per-document `vendor_identity_score`" for Metric A and "count of per-document `vendor_identity_pass` flags" for Metric B. Inspection of `src/dartwing_ocr/evaluator/corpus.py::to_persistable_dict` showed (a) no per-document `vendor_identity_score` numeric field exists in the feature-007 schema; the schema has a per-document `document_pass_fail.vendor_identity_passed` boolean only, and that boolean lives in `evaluation_document.json` (per-doc), not in the run summary; (b) `evaluation_run_summary.json`'s `documents[]` array persists only `{document_id, overall_passed, field_accuracy}` per document — no `document_pass_fail` sub-object; (c) on a fixed-N corpus, `vendor_identity_pass_rate` and "per-document pass count" are monotonically equivalent (`rate = count / N`), so using both as the FR-020 conjunction collapses to a single check. Switching Metric B to `overall_metrics.field_accuracy` restores genuine independence while preserving FR-032 (no schema change, no new aggregator).
 
 **Alternatives considered**:
 
-- **Mean per-document score**. Rejected: dampens the regression signal; loses the magnitude.
-- **Pass rate (count / N)**. Rejected: integer count is clearer for a fixed N=5 subset.
-- **Weighted sum (per difficulty tier)**. Rejected: introduces a new metric; FR-032 violation.
+- **Reading per-document `evaluation_document.json` files for `vendor_identity_passed` booleans**. Rejected: forces the test to walk the corpus folder per lane and parse N files instead of one aggregate; adds I/O without changing the verdict logic, since the same boolean is already aggregated into `vendor_identity_pass_rate`.
+- **Adding a new aggregate (e.g., sum of vendor-identity scores)**. Rejected: would require adding a new field to feature-007's `overall_metrics`, violating FR-032's "no new product behavior" rule.
+- **Keeping Metric B as "per-document pass count"** by computing it from `documents[i].overall_passed`. Rejected: still collapses with Metric A on fixed N (count = pass_rate × N).
 
 **Affected requirements**: FR-019 (two-metric quality gate), FR-020 (PASS conjunction), Assumptions §"feature-007 evaluator used as-is", checklist `quality-gate.md` CHK005, CHK025.
 

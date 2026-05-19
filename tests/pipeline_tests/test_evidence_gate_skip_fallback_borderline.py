@@ -28,7 +28,8 @@ import pytest
 
 from tests.pipeline_tests.gpu_helpers import (
     extract_run_summary,
-    find_doc_record,
+    find_evidence_gate_record,
+    find_per_document_record,
     invoke_pipeline,
     phase_keys,
     setup_scratch_corpus,
@@ -60,13 +61,14 @@ def test_skip_fallback_borderline_runs_fallback_gpu(tmp_path: Path) -> None:
     )
 
     summary = extract_run_summary(result.stdout)
-    doc = find_doc_record(summary, doc_id)
+    gate_doc = find_evidence_gate_record(summary, doc_id)
+    per_doc = find_per_document_record(summary, doc_id)
 
     # Precondition for the FR-007 scenario: the document MUST be classified
     # `borderline` or `insufficient`. If it's `sufficient`, this test is
     # exercising the wrong scenario; swap the doc_id rather than weakening
     # the assertion.
-    decision = doc.get("decision")
+    decision = gate_doc.get("decision")
     assert decision in {"borderline", "insufficient"}, (
         f"corpus precondition failed: {doc_id} decision={decision!r}, "
         f"expected 'borderline' or 'insufficient'. "
@@ -83,7 +85,7 @@ def test_skip_fallback_borderline_runs_fallback_gpu(tmp_path: Path) -> None:
 
     # FR-007 corollary: PPStructureV3 fallback IS executed, observable via
     # phase_timings.engine_init (or warmup) presence on the per-doc record.
-    keys = phase_keys(doc)
+    keys = phase_keys(per_doc)
     assert "engine_init" in keys or "warmup" in keys, (
         f"FR-007 violation: PPStructureV3 was not constructed for a "
         f"{decision!r} document (expected fallback execution). "

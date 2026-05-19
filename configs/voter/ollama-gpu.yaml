@@ -12,8 +12,16 @@
 # `model_name: string (non-empty)`. The model name MUST match the entry name
 # Ollama reports in `/api/ps` for the loaded extraction model.
 #
-# At landing time the operator pins `model_name` to whichever model is loaded
-# on the workstation's host Ollama (e.g., `qwen2.5vl:7b`, `gemma2:9b`, etc.).
-# Update this file in lockstep with `ollama pull <model>` operations.
+# Pinned to match the model the `ollama@gpu` extraction profile actually
+# binds. The profile is wired in `src/dartwing_ocr/pipeline/stages.py`
+# (`_ollama_extract_factory`) to load the on-disk voter config
+# `src/dartwing_ocr/extract/voters/configs/gemma-edge.yaml`, whose
+# `ollama.model_tag` is `gemma4:e4b`. Readiness MUST check the same model
+# the extractor will bind, otherwise the helper can PASS while extraction
+# fails on the wrong model. If the demo binds a different voter config
+# (e.g., a future `ollama@gpu` variant), update both files in the same
+# commit. A CPU-safe contract test
+# (`tests/contract_tests/test_voter_config_model_alignment.py`) enforces
+# the match.
 
-model_name: "qwen2.5vl:7b"
+model_name: "gemma4:e4b"

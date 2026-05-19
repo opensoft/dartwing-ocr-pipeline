@@ -6,13 +6,13 @@ feature-007 evaluator (run by the operator as T020 against
 ``/tmp/021-bench/{legacy,candidate}/run2/``) and asserts the FR-020 PASS
 conjunction:
 
-- **Metric (a) — aggregate vendor-identity pass rate** (FR-019(a),
-  research.md §R-021.13 in spirit): `overall_metrics.vendor_identity_pass_rate`
-  from each lane's run summary. PASS iff `candidate >= legacy`.
+- **Metric (a) — aggregate vendor-identity pass rate** (FR-019(a)):
+  `overall_metrics.vendor_identity_pass_rate` from each lane's run
+  summary. PASS iff `candidate >= legacy`.
 
-- **Metric (b) — per-document pass count** (FR-019(b)): the count of
-  `documents[i].document_pass_fail.vendor_identity_passed == True` in
-  each lane's run summary. PASS iff `candidate >= legacy`.
+- **Metric (b) — corpus field-level accuracy** (FR-019(b)):
+  `overall_metrics.field_accuracy` from each lane's run summary. PASS
+  iff `candidate >= legacy`.
 
 Both metrics MUST be non-regressing for the verdict to be PASS (FR-020
 strict conjunction; one-sided gains do not compensate). If either
@@ -26,14 +26,35 @@ per research.md §R-021.16) the test is BLOCKED, surfaced via
 silent skip — the xfail reason is captured in pytest output and the
 operator can find it.
 
-Implementation note on R-021.13: the research decision describes the
-aggregate as "sum of per-document vendor_identity_score". feature-007
-does NOT emit a per-document `vendor_identity_score` numeric (the
-schema has `document_pass_fail.vendor_identity_passed` boolean only),
-so this test uses the equivalent `overall_metrics.vendor_identity_pass_rate`
-which IS emitted. The two are mathematically equivalent for a fixed-
-size subset (`pass_rate = pass_count / count`), and the schema-emitted
-field is the auditable choice.
+Implementation note on R-021.13 (verification-round revision): the
+original research decision named "sum of per-document
+`vendor_identity_score`" for metric A and "count of per-document
+`vendor_identity_pass` flags" for metric B. Feature-007 emits neither
+field at the run-summary level — its `evaluation_run_summary.json`
+persists ``documents[i] = {document_id, overall_passed, field_accuracy}``
+only (see ``src/dartwing_ocr/evaluator/corpus.py::to_persistable_dict``).
+The per-document ``document_pass_fail.vendor_identity_passed`` boolean
+exists, but it lives in the per-doc ``evaluation_document.json``, not
+in the aggregate run summary.
+
+Additionally, on a fixed-N corpus, ``vendor_identity_pass_rate`` and
+"per-document pass count" are monotonically equivalent
+(``rate = count / N``), so using both collapses the FR-020 conjunction
+into a single check.
+
+To restore an independent two-metric conjunction without changing the
+feature-007 schema (FR-032 — no new product behavior in `dartwing_ocr`),
+this test reads two persisted aggregates from the run summary:
+
+  Metric A: ``overall_metrics.vendor_identity_pass_rate``
+            (boolean-aggregated, vendor-identity-only signal)
+  Metric B: ``overall_metrics.field_accuracy``
+            (continuous, mean per-document field-level match rate)
+
+These are mathematically independent — a document can clear the
+vendor-identity boolean threshold while showing variable field-level
+accuracy across the other extracted fields. A regression in metric B
+catches subtle quality dips that metric A would not.
 
 Skipped on CPU by the root-conftest ``pytest_collection_modifyitems``
 gate (state != ppstructurev3_init_succeeded).
@@ -90,33 +111,31 @@ def _extract_metric_a_pass_rate(summary: dict) -> float:
     return float(rate)
 
 
-def _extract_metric_b_pass_count(summary: dict) -> int:
-    """FR-019(b) Metric: per-document pass count.
+def _extract_metric_b_field_accuracy(summary: dict) -> float:
+    """FR-019(b) Metric: corpus field-level accuracy.
 
-    Sums the per-document `document_pass_fail.vendor_identity_passed`
-    booleans across the corpus.
+    Reads ``overall_metrics.field_accuracy``, the mean per-document
+    field-level match rate across the benchmark corpus. Independent of
+    metric A (vendor-identity pass rate) per the module docstring's
+    R-021.13 revision rationale.
     """
-    documents = summary.get("documents", [])
-    if not isinstance(documents, list):
+    metrics = summary.get("overall_metrics", {})
+    accuracy = metrics.get("field_accuracy")
+    if not isinstance(accuracy, (int, float)):
         raise AssertionError(
-            f"evaluation_run_summary.json `documents` field is not a list; "
-            f"got {type(documents).__name__}. Feature-007 evaluator schema drift."
+            f"evaluation_run_summary.json missing overall_metrics."
+            f"field_accuracy or non-numeric; got {accuracy!r}. "
+            f"Feature-007 evaluator schema drift — this is a corpus / "
+            f"contract issue, not an FR-019 finding."
         )
-    count = 0
-    for doc in documents:
-        if not isinstance(doc, dict):
-            continue
-        pass_fail = doc.get("document_pass_fail") or {}
-        if pass_fail.get("vendor_identity_passed") is True:
-            count += 1
-    return count
+    return float(accuracy)
 
 
 def test_quality_gate_two_metric_evidence_gate_gpu(tmp_path: Path) -> None:
     """GPU two-metric verdict: compare legacy and candidate
     ``evaluation_run_summary.json`` files; assert candidate >= legacy on
-    BOTH the per-corpus aggregate vendor-identity pass rate AND the
-    per-document pass count (FR-020 strict conjunction).
+    BOTH the aggregate vendor-identity pass rate AND the corpus field-
+    level accuracy (FR-020 strict conjunction).
 
     Failure (NOT skip) on regression is intentional per SC-008.
     BLOCKED via xfail when either lane's summary is missing or malformed
@@ -128,8 +147,8 @@ def test_quality_gate_two_metric_evidence_gate_gpu(tmp_path: Path) -> None:
     legacy_pass_rate = _extract_metric_a_pass_rate(legacy)
     candidate_pass_rate = _extract_metric_a_pass_rate(candidate)
 
-    legacy_pass_count = _extract_metric_b_pass_count(legacy)
-    candidate_pass_count = _extract_metric_b_pass_count(candidate)
+    legacy_field_accuracy = _extract_metric_b_field_accuracy(legacy)
+    candidate_field_accuracy = _extract_metric_b_field_accuracy(candidate)
 
     # FR-019(a) — aggregate non-regression.
     assert candidate_pass_rate >= legacy_pass_rate, (
@@ -139,10 +158,10 @@ def test_quality_gate_two_metric_evidence_gate_gpu(tmp_path: Path) -> None:
         f"FR-021 / FR-027."
     )
 
-    # FR-019(b) — per-document pass count non-regression.
-    assert candidate_pass_count >= legacy_pass_count, (
-        f"FR-020 violation: candidate per-document pass count "
-        f"{candidate_pass_count} < legacy {legacy_pass_count} "
+    # FR-019(b) — corpus field-level accuracy non-regression.
+    assert candidate_field_accuracy >= legacy_field_accuracy, (
+        f"FR-020 violation: candidate corpus field accuracy "
+        f"{candidate_field_accuracy:.4f} < legacy {legacy_field_accuracy:.4f} "
         f"(metric B regression). Skip-fallback MUST remain opt-in per "
         f"FR-021 / FR-027."
     )

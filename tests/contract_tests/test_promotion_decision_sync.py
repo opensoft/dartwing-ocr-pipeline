@@ -11,11 +11,17 @@ The Promotion Decision is recorded in TWO places (per FR-026):
    audience can see the operational posture without leaving the
    runbook.
 
-R-021.11 requires the two media to **agree on the binary `Decision:` literal**
-(`stay opt-in` or `promote to default`). This contract test extracts the
-`Decision:` line from each file via regex and asserts the two literals
-match exactly. Rationale-text agreement is NOT enforced (the mirror is a
-summary, not a verbatim copy).
+R-021.11 / `appendix-recording.md §Promotion-decision synchronization
+contract` requires the two media to **agree on BOTH**:
+
+1. The binary `Decision:` literal (`stay opt-in` or `promote to default`).
+2. The `Gating verdict:` reference (a back-pointer of the form
+   `see §Quality-Gate Verdict YYYY-MM-DD (PASS / FAIL / BLOCKED)` per
+   appendix-recording.md §Promotion Decision schema).
+
+This contract test extracts both fields from each file via regex and
+asserts the pairs match. Rationale-text agreement is NOT enforced (the
+mirror is a summary, not a verbatim copy).
 
 When the Promotion Decision has not yet been recorded (initial landing
 state — both files contain `_(placeholder — populate ...)_` for the
@@ -49,6 +55,29 @@ RUNBOOK_PATH = REPO_ROOT / "docs" / "stage1-vendor-identity" / "runbook-gpu-mvp-
 _DECISION_RE = re.compile(
     r"^(?:\*\*Decision\*\*|Decision)\s*:\s*([^\n_()]+?)(?:\s*[_(]|\s*$)",
     re.MULTILINE,
+)
+
+# Match a `Gating verdict:` line (bold or plain form). The reference value
+# is captured as a (date, verdict) tuple drawn from the line — a real
+# recorded reference looks like
+#   `see §Quality-Gate Verdict 2026-05-19 (PASS) above`
+# and contains both a concrete `YYYY-MM-DD` date AND a verdict literal
+# from {PASS, FAIL, BLOCKED}. Templated placeholder text (literal
+# `YYYY-MM-DD`, or no concrete verdict) returns None.
+#
+# Multi-agent-review verification round (P2-3): the appendix-recording
+# contract requires the mirror to agree on BOTH the decision literal AND
+# the gating-verdict reference; the test previously only checked the
+# decision. Cross-document references can legitimately use different
+# wording (intra-doc anchor in Appendix B vs. inter-doc link in the
+# runbook), so the test compares the extracted (date, verdict) pair
+# rather than the raw line text.
+_GATING_VERDICT_LINE_RE = re.compile(
+    r"^(?:\*\*Gating verdict\*\*|Gating verdict)\s*:.*$",
+    re.MULTILINE,
+)
+_RECORDED_VERDICT_REFERENCE_RE = re.compile(
+    r"(\d{4}-\d{2}-\d{2}).*?\b(PASS|FAIL|BLOCKED)\b"
 )
 
 
@@ -113,6 +142,34 @@ def _extract_decision(path: Path) -> str | None:
     return normalized
 
 
+def _extract_gating_verdict(path: Path) -> tuple[str, str] | None:
+    """Extract the (date, verdict) reference from a Gating-verdict line.
+
+    Returns a `(YYYY-MM-DD, "PASS"/"FAIL"/"BLOCKED")` tuple on a recorded
+    Promotion Decision; returns None for templated / unrecorded state
+    (e.g., the line still contains the literal `YYYY-MM-DD` placeholder,
+    or no concrete verdict token).
+
+    Compared this way (extracted tuple, not raw line text) so the two
+    files can legitimately differ in wording — Appendix B uses an
+    intra-doc anchor reference; the runbook uses an inter-doc markdown
+    link — while still being verified as pointing at the same recorded
+    verdict.
+    """
+    text = path.read_text(encoding="utf-8")
+    line_match = _GATING_VERDICT_LINE_RE.search(text)
+    if line_match is None:
+        return None
+    line = line_match.group(0)
+    # Strip the literal "YYYY-MM-DD" placeholder so it can't accidentally
+    # match _RECORDED_VERDICT_REFERENCE_RE.
+    sanitized = line.replace("YYYY-MM-DD", "")
+    ref_match = _RECORDED_VERDICT_REFERENCE_RE.search(sanitized)
+    if ref_match is None:
+        return None
+    return ref_match.group(1), ref_match.group(2)
+
+
 def test_appendix_b_exists() -> None:
     """Sanity: the Appendix B source file is present."""
     assert APPENDIX_B_PATH.is_file(), (
@@ -152,3 +209,28 @@ def test_promotion_decision_appendix_b_and_runbook_agree() -> None:
             f"{_VALID_DECISIONS!r}; got {appendix_b_decision!r}. "
             f"Allowed binary values are 'stay opt-in' or 'promote to default'."
         )
+
+
+def test_promotion_gating_verdict_reference_agrees() -> None:
+    """Multi-agent review P2-3 / appendix-recording.md §Promotion-decision
+    synchronization contract: Appendix B (authoritative) and runbook
+    (mirror) MUST also agree on the `Gating verdict:` reference.
+
+    The reference is encoded as a (date, verdict) tuple
+    (`YYYY-MM-DD`, `PASS`/`FAIL`/`BLOCKED`). Templated placeholder text
+    (literal `YYYY-MM-DD` with no concrete verdict) is treated as
+    unrecorded — both files agreeing on "no reference yet" satisfies
+    the contract.
+    """
+    appendix_b_verdict = _extract_gating_verdict(APPENDIX_B_PATH)
+    runbook_verdict = _extract_gating_verdict(RUNBOOK_PATH)
+
+    assert appendix_b_verdict == runbook_verdict, (
+        f"Promotion Gating-verdict reference sync violation (P2-3):\n"
+        f"  Appendix B (date, verdict): {appendix_b_verdict!r}\n"
+        f"  Runbook    (date, verdict): {runbook_verdict!r}\n"
+        f"The two files MUST point at the same recorded verdict per "
+        f"appendix-recording.md §Promotion-decision synchronization "
+        f"contract. The Appendix B subsection is authoritative; update "
+        f"the runbook mirror to match."
+    )
