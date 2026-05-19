@@ -408,7 +408,7 @@ The legacy section "Deferred GPU verification (filled at landing or in `tasks.md
 
 ### Promotion Decision (YYYY-MM-DD) — SKELETON
 
-**Decision**: `stay opt-in` / `promote to default` (binary; no third option)
+**Decision**: _(placeholder — populate with `stay opt-in` or `promote to default` per FR-026; binary, no third option. Default at landing: `stay opt-in`.)_
 
 **Gating verdict**: see §Quality-Gate Verdict YYYY-MM-DD (`PASS` / `FAIL` / `BLOCKED`) above. FR-027 — if the gating verdict is FAIL or BLOCKED, the decision MUST be `stay opt-in`; promotion is not a permitted option.
 
