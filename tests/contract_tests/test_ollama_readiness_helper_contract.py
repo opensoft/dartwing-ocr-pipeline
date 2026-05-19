@@ -74,12 +74,21 @@ def serve_fixture():
         assert path.exists(), f"fixture not found: {path}"
         body = path.read_bytes()
         handler = _make_handler(body)
+        # PR #43 SonarCloud Security Hotspot fix (python:S5332,
+        # "Clear-text HTTP"): the server is bound to the loopback
+        # literal "127.0.0.1" two lines up, but the yielded URL
+        # previously used the `host` value from `server.server_address`.
+        # Sonar's static analyzer cannot prove the address tuple is
+        # loopback, so it flagged the f-string. Yielding the literal
+        # "127.0.0.1" instead makes the loopback discipline obvious to
+        # both human readers and Sonar's clear-text HTTP rule (which
+        # has an explicit carve-out for localhost / 127.0.0.1).
         server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-        host, port = server.server_address
+        _, port = server.server_address
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            yield f"http://{host}:{port}"
+            yield f"http://127.0.0.1:{port}"
         finally:
             server.shutdown()
             server.server_close()
