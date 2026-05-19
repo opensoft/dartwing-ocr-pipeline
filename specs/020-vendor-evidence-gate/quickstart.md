@@ -248,26 +248,190 @@ All seven of these MUST pass before merge per FR-024 / R-020.15:
 
 ---
 
-## Appendix A — Benchmark numbers (filled at landing)
+## Appendix A — Benchmark numbers (skeleton; filled by feature 021 / T013–T018 operator runs)
 
-This appendix is intentionally empty in the planning phase. At landing, the FR-015 / R-020.13 benchmark — the legacy default vs. the skip-fallback opt-in candidate, on the same fixed 5-doc subset features 017 / 018 / 019 used — records:
+Feature 021 (`specs/021-gpu-mvp-promotion/`) is the landing slice for this Appendix. The skeleton below follows the structural contract pinned in [feature-021 `contracts/appendix-recording.md` §Appendix A](../021-gpu-mvp-promotion/contracts/appendix-recording.md) — six required subsections in fixed order. The operator runs the four-run benchmark (warmup ×1, legacy ×2, candidate ×2) per [feature-021 `quickstart.md` Path 3](../021-gpu-mvp-promotion/quickstart.md) and transcribes the run-2 values from each lane's stdout `run_summary` JSON line into the tables below.
 
-```
-| document_id | legacy elapsed (s) | candidate elapsed (s) | legacy decision | candidate decision | suppressed? |
-|---|---|---|---|---|---|
-| inv_001_easy | ... | ... | ... | ... | yes/no |
-| inv_002_easy | ... | ... | ... | ... | yes/no |
-| inv_006_layout_table | ... | ... | ... | ... | yes/no |
-| (subset doc 4) | ... | ... | ... | ... | yes/no |
-| (subset doc 5) | ... | ... | ... | ... | yes/no |
-| TOTAL | ... | ... | sufficient: N, borderline: N, insufficient: N | sufficient: N, ... | total suppressions: N |
-```
+Each Appendix-A entry is appended as a new dated subsection (`### Run YYYY-MM-DD (operator: <handle>)`); prior entries are preserved in chronological order. Partial runs (R-021.12) are prefixed `### Partial Run YYYY-MM-DD (K/5 documents — blocker: <named cause>)` and excluded from verdict computation. Invalidation rules (`### Invalidation rules` in the contract): if any field in §1 Environment fingerprint differs between two entries, the prior entry is no longer comparison-valid; a fresh four-run sequence is required.
 
-Per-document `evidence_gate_documents` records, the aggregate `evidence_gate_state_counts`, and the per-document `evidence_gate_suppressed_fallback_count` increments are captured directly from the `run_summary` line of each benchmark run.
+The numbers in Appendix A are produced for the **promotion-decision reviewer audience** (internal pipeline engineers + reviewers). They are NOT marketing latency claims.
 
-**T056 deferral note (US7 landing, CPU-only runner)**: FR-015 benchmark numbers deferred per R-020.15. Cross-reference: `tasks.md` T058 — surveillance follow-up captures the deferred GPU runs. The `test_evidence_gate_benchmark.py` skeleton is present in `tests/pipeline_tests/` with the four-run discipline assertions written out; it activates once workstation GPU hardware is available.
+---
 
-## Appendix B — Deferred GPU verification (filled at landing or in `tasks.md`)
+### Run YYYY-MM-DD (operator: <handle>) — SKELETON
+
+#### §1. Environment fingerprint
+
+Recorded once per benchmark sequence. All fields MUST be the actual runtime values (no operator-typed approximations).
+
+- **GPU readiness verdict**: PASS / FAIL / BLOCKED — composed of:
+  - Paddle preflight state: `ppstructurev3_init_succeeded` (or named failure)
+  - Ollama readiness: PASS JSON from `scripts/check-ollama-gpu-readiness.sh` (model entry, `size_vram`, `size`)
+- **Interpreter path** (FR-003 forensic): `.venv-paddle-rocm/bin/python` (or equivalent)
+- **ROCm version**: `<rocm-smi --version output>`
+- **Paddle wheel version**: `<pip show paddlepaddle-dcu | grep Version>`
+- **Ollama version**: `<ollama --version>`
+- **Voter-config path + model_name**: `configs/voter/ollama-gpu.yaml` → `model_name: "<name>"`
+- **Workstation host fingerprint**: `<uname -a output>`
+
+#### §2. Document subset confirmation
+
+The fixed FR-011 subset (re-confirmed at the start of every run):
+
+- `inv_001_easy`
+- `inv_002_easy`
+- `inv_006_medium`
+- `inv_011_hard`
+- `inv_012_hard`
+
+If any document was relabeled or removed since a prior entry, the comparison against that prior entry is invalid (see Invalidation rules).
+
+#### §3. Four-run timeline
+
+| Lane      | Run index | Start (UTC)         | End (UTC)           | Exit | Scratch path                          |
+|-----------|-----------|---------------------|---------------------|-----:|---------------------------------------|
+| warmup    | 1         | YYYY-MM-DDThh:mm:ssZ | YYYY-MM-DDThh:mm:ssZ |    0 | `/tmp/021-bench/warmup/run1/`         |
+| legacy    | 1         | YYYY-MM-DDThh:mm:ssZ | YYYY-MM-DDThh:mm:ssZ |    0 | `/tmp/021-bench/legacy/run1/`         |
+| legacy    | 2         | YYYY-MM-DDThh:mm:ssZ | YYYY-MM-DDThh:mm:ssZ |    0 | `/tmp/021-bench/legacy/run2/`         |
+| candidate | 1         | YYYY-MM-DDThh:mm:ssZ | YYYY-MM-DDThh:mm:ssZ |    0 | `/tmp/021-bench/candidate/run1/`      |
+| candidate | 2         | YYYY-MM-DDThh:mm:ssZ | YYYY-MM-DDThh:mm:ssZ |    0 | `/tmp/021-bench/candidate/run2/`      |
+
+#### §4. Per-document phase-key tables
+
+One table per document. Threshold formula: `max(|legacy_run2 − legacy_run1|, |candidate_run2 − candidate_run1|)` (Q1 clarification 2026-05-18 / FR-015). Material rule: `|candidate_run2 − legacy_run2| > threshold` (strict greater-than; direction-symmetric per R-021.4). Values in seconds, 3 decimals (R-021.2). When `threshold == 0`, append inline note "threshold=0 (no measured jitter); any delta material" (R-021.3).
+
+##### `inv_001_easy`
+
+| Phase key            | legacy run1 | legacy run2 | candidate run1 | candidate run2 | legacy spread | candidate spread | threshold | Δ (cand_run2 − leg_run2) | Material? |
+|----------------------|------------:|------------:|---------------:|---------------:|--------------:|-----------------:|----------:|--------------------------:|:---------:|
+| `paddle_import`      |             |             |                |                |               |                  |           |                           |           |
+| `gpu_bind_probe`     |             |             |                |                |               |                  |           |                           |           |
+| `engine_init`        |             |             |                |                |               |                  |           |                           |           |
+| `warmup`             |             |             |                |                |               |                  |           |                           |           |
+| `rasterization`      |             |             |                |                |               |                  |           |                           |           |
+| `per_page_inference` |             |             |                |                |               |                  |           |                           |           |
+| `artifact_write`     |             |             |                |                |               |                  |           |                           |           |
+| `total`              |             |             |                |                |               |                  |           |                           |           |
+
+`Material?` vocabulary (closed set): `YES` / `NO` / `YES ↓ ✓` (permitted material decrease on `per_page_inference` or `total` for suppressed docs per FR-016) / `YES ↑ ⚠` (material increase, a finding) / `LAZY` (phase key absent — lazy construction confirmed for that lane).
+
+##### `inv_002_easy`
+
+(same column structure as above)
+
+##### `inv_006_medium`
+
+(same)
+
+##### `inv_011_hard`
+
+(same)
+
+##### `inv_012_hard`
+
+(same)
+
+#### §5. Per-document `run_summary` observability table (run-2 values only)
+
+| Document         | Lane      | gate_decision | evidence_gate_state_counts                  | evidence_gate_suppressed_fallback_count | ocr_only_fallback_count | preprocess_strategy_id |
+|------------------|-----------|---------------|----------------------------------------------|----------------------------------------:|------------------------:|------------------------|
+| `inv_001_easy`   | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_001_easy`   | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_002_easy`   | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_002_easy`   | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_006_medium` | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_006_medium` | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_011_hard`   | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_011_hard`   | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_012_hard`   | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_012_hard`   | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+
+#### §6. Findings
+
+Bulleted list of every cell marked `YES ↑ ⚠` (material increase, regardless of phase key) and every `YES` cell on a non-permitted phase key (FR-016 finding). Also: any other anomaly (lane lengths differ, document missing from one lane, recorded value out of unit range). Each finding cites the (document, phase_key, lane) triple.
+
+- _(none recorded yet; this list grows as the operator transcribes T016/T018 values)_
+
+## Appendix B — Quality-Gate Verdict + Promotion Decision (skeleton; filled by feature 021 / T019–T030)
+
+Feature 021 lands this appendix's evidence: the two-metric quality-gate verdict (T022) and the binary promotion decision (T028). The skeleton below follows the structural contract pinned in [feature-021 `contracts/appendix-recording.md` §Appendix B](../021-gpu-mvp-promotion/contracts/appendix-recording.md) — two required subsections (Quality-Gate Verdict, Promotion Decision), each appended as a new dated entry; prior entries are preserved as history.
+
+The legacy section "Deferred GPU verification (filled at landing or in `tasks.md`)" follows after the new feature-021 subsections — it is preserved for historical context (feature-020 R-020.15 deferrals) and the checkbox states are updated as the corresponding feature-021 tasks land.
+
+---
+
+### Quality-Gate Verdict (YYYY-MM-DD) — SKELETON
+
+**Verdict literal**: `PASS` / `FAIL` / `BLOCKED` (single value, no compound)
+
+**Underlying inputs**: see Appendix A `### Run YYYY-MM-DD` subsection that produced these numbers.
+
+#### Per-document score + pass table (run-2 only)
+
+| Document         | legacy pass rate | candidate pass rate | legacy passed? | candidate passed? |
+|------------------|-----------------:|--------------------:|:--------------:|:-----------------:|
+| `inv_001_easy`   |                  |                     |                |                   |
+| `inv_002_easy`   |                  |                     |                |                   |
+| `inv_006_medium` |                  |                     |                |                   |
+| `inv_011_hard`   |                  |                     |                |                   |
+| `inv_012_hard`   |                  |                     |                |                   |
+
+(`passed?` columns transcribe each lane's `documents[i].document_pass_fail.vendor_identity_passed` boolean from `evaluation_run_summary.json`.)
+
+#### Aggregate metrics
+
+- **Metric (a) — `overall_metrics.vendor_identity_pass_rate`**:
+  - legacy: _<float 0.0–1.0>_
+  - candidate: _<float 0.0–1.0>_
+  - Δ (candidate − legacy): _<signed float>_
+  - non-regression: candidate ≥ legacy → ✓ / ✗
+
+- **Metric (b) — per-document pass count** (sum of `vendor_identity_passed` booleans):
+  - legacy: _<int 0–5>_
+  - candidate: _<int 0–5>_
+  - Δ (candidate − legacy): _<signed int>_
+  - non-regression: candidate ≥ legacy → ✓ / ✗
+
+#### Verdict-specific content (populate one block only, per the verdict literal above)
+
+- **PASS** (both metrics non-regressing): the verdict permits — but does NOT perform — promote-to-default (FR-029). The team's recorded Promotion Decision below cites this verdict.
+- **FAIL** (at least one metric regresses):
+  - regressing_metric: `aggregate` / `pass_count` / `both`
+  - regression_magnitude (aggregate Δ): _<signed float>_
+  - regression_magnitude (pass_count Δ): _<signed int>_
+  - Skip-fallback MUST remain opt-in (FR-021 / FR-027). Promotion is not a permitted option.
+- **BLOCKED** (verdict could not be computed):
+  - blocked_cause: _<named hardware/runtime cause, e.g., "missing expected.json for inv_006_medium" (R-021.16), "ROCm SDMA path unavailable on this kernel" (R-021.6)>_
+  - Skip-fallback MUST remain opt-in (FR-022 / FR-027). Promotion is not a permitted option.
+
+---
+
+### Promotion Decision (YYYY-MM-DD) — SKELETON
+
+**Decision**: `stay opt-in` / `promote to default` (binary; no third option)
+
+**Gating verdict**: see §Quality-Gate Verdict YYYY-MM-DD (`PASS` / `FAIL` / `BLOCKED`) above. FR-027 — if the gating verdict is FAIL or BLOCKED, the decision MUST be `stay opt-in`; promotion is not a permitted option.
+
+**Decided by**: _<team identifier, e.g., "Dartwing OCR pipeline team">_
+
+**Decided at**: YYYY-MM-DD
+
+**Rationale**: _<2–4 sentences. For `stay opt-in`: why the team is keeping current posture (e.g., insufficient runtime evidence, fragility concerns, ops-readiness). For `promote to default`: why the team is changing the default (e.g., consistent PASS over multiple runs, operator-time savings rationale, validated rollback path).>_
+
+**Promotion artifacts** (populate ONLY if Decision is `promote to default`; leave blank / "null" for `stay opt-in`):
+
+- **Inverted default location**: `<file:lineref>` (e.g., `src/dartwing_ocr/preprocessing/evidence_gate_optin.py:42`) — the single line where the `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK` env-var default is flipped from OFF to ON. Same env var, same CLI flag — only the default changes.
+- **Explicit-off CLI flag**: `--evidence-gate-skip-fallback` remains the explicit-on flag; the absence-of-flag path becomes the new ON default. (No new CLI flag introduced.)
+- **Explicit-off env var**: `DARTWING_EVIDENCE_GATE_SKIP_FALLBACK=0` becomes the legacy-on path (was: unset/`""`/`0` = OFF). Same name; inverted default.
+- **Legacy-path test**: `tests/unit/preprocessing/test_skip_fallback_explicit_off_legacy.py` (created by feature-021 T030; CPU-safe; MUST pass deterministically per SC-009).
+
+The Promotion Decision is mirrored in [`docs/stage1-vendor-identity/runbook-gpu-mvp-demo.md`](../../docs/stage1-vendor-identity/runbook-gpu-mvp-demo.md) `## Promotion Decision` section per R-021.11. Synchronization is verified by the CPU-safe contract test at `tests/contract_tests/test_promotion_decision_sync.py` (also a feature-021 deliverable).
+
+A future demotion (promote-to-default → stay-opt-in) appends a NEW dated Promotion Decision subsection; the prior promote-to-default entry is retained as history (data-model.md §5 Demotion path). The inverted-default code change is reverted atomically with the demotion record (same PR).
+
+---
+
+### Deferred GPU verification — feature-020 R-020.15 carry-forward
 
 Per R-020.15 / FR-026, the following GPU-marked tests / benchmarks MAY be deferred if workstation GPU hardware is unavailable at landing time:
 
