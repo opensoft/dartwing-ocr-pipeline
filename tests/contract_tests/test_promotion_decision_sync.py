@@ -69,8 +69,18 @@ RUNBOOK_PATH = REPO_ROOT / "docs" / "stage1-vendor-identity" / "runbook-gpu-mvp-
 # prior pattern only matched bold form, contradicting the docstring above).
 # Anchored to start-of-line / start-of-`**` to avoid matching mid-sentence
 # `decision:` strings in prose (e.g., "the team's promotion decision:").
+#
+# PR #43 SonarCloud maintainability hardening: alternation is explicitly
+# grouped (already was) and the reluctant `+?` quantifier has been
+# replaced with a greedy `+` followed by a trailing-context anchor. The
+# capture's character class already excludes `_`, `(`, and `\n`, so the
+# greedy form stops at exactly the same boundary the lazy form did; the
+# only behavioral difference is trailing whitespace, which the
+# `_normalize` helper strips downstream. The new form is simpler to
+# audit and avoids the "lazy quantifier with flexible-trailing-context"
+# pattern Sonar flags.
 _DECISION_RE = re.compile(
-    r"^(?:\*\*Decision\*\*|Decision)\s*:\s*([^\n_()]+?)(?:\s*[_(]|\s*$)",
+    r"^(?:\*\*Decision\*\*|Decision)\s*:\s*([^\n_()]+)",
     re.MULTILINE,
 )
 

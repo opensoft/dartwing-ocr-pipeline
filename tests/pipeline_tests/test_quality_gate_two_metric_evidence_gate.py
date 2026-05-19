@@ -63,14 +63,25 @@ gate (state != ppstructurev3_init_succeeded).
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
 pytestmark = pytest.mark.gpu
 
-LEGACY_RUN2 = Path("/tmp/021-bench/legacy/run2/evaluation_run_summary.json")
-CANDIDATE_RUN2 = Path("/tmp/021-bench/candidate/run2/evaluation_run_summary.json")
+# PR #43 SonarCloud security hotspot fix: hardcoded `/tmp/021-bench/...`
+# paths were flagged as "publicly writable directories used unsafely"
+# (Sonar S5443 / S2245 family). Make the bench root configurable via an
+# env var with a non-public-writable default; GPU operators preserve the
+# canonical `/tmp` workflow with one extra env-var export:
+#   DARTWING_021_BENCH_ROOT=/tmp/021-bench pytest -m gpu ...
+# CI defaults to a relative path so no public-writable directory appears
+# in the analyzed source.
+_DEFAULT_BENCH_ROOT = ".bench/021-bench"
+BENCH_ROOT = Path(os.environ.get("DARTWING_021_BENCH_ROOT", _DEFAULT_BENCH_ROOT))
+LEGACY_RUN2 = BENCH_ROOT / "legacy" / "run2" / "evaluation_run_summary.json"
+CANDIDATE_RUN2 = BENCH_ROOT / "candidate" / "run2" / "evaluation_run_summary.json"
 
 # FR-011 fixed five-document benchmark subset (research.md R-021.13 +
 # R-020.13 fallback list). The quality-gate verdict MUST be computed over

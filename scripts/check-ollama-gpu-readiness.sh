@@ -51,10 +51,10 @@ set -o pipefail
 voter_config=""
 base_url="http://localhost:11434"
 
-while [ "$#" -gt 0 ]; do
+while (( $# > 0 )); do
     case "$1" in
         --voter-config)
-            if [ "$#" -lt 2 ]; then
+            if (( $# < 2 )); then
                 echo "FAIL: voter-config <unset> missing or malformed (--voter-config requires a value)" >&2
                 exit 4
             fi
@@ -64,17 +64,17 @@ while [ "$#" -gt 0 ]; do
         --voter-config=*)
             voter_config="${1#--voter-config=}"
             # PR #43 Copilot review: reject `--voter-config=` with an
-            # empty value; otherwise downstream `if [ ! -f "" ]` would
+            # empty value; otherwise downstream `if [[ ! -f "" ]]` would
             # exit 4 with a confusing "file not found" message. Classify
             # as a config error up-front.
-            if [ -z "$voter_config" ]; then
+            if [[ -z "$voter_config" ]]; then
                 echo "FAIL: voter-config <unset> missing or malformed (--voter-config= requires a value)" >&2
                 exit 4
             fi
             shift
             ;;
         --base-url)
-            if [ "$#" -lt 2 ]; then
+            if (( $# < 2 )); then
                 echo "FAIL: voter-config ${voter_config:-<unset>} missing or malformed (--base-url requires a value)" >&2
                 exit 4
             fi
@@ -88,7 +88,7 @@ while [ "$#" -gt 0 ]; do
             # sending operators down the wrong remediation path. An
             # empty base URL is a typo, not a network issue — classify
             # as config error (exit 4) here.
-            if [ -z "$base_url" ]; then
+            if [[ -z "$base_url" ]]; then
                 echo "FAIL: voter-config ${voter_config:-<unset>} missing or malformed (--base-url= requires a value)" >&2
                 exit 4
             fi
@@ -101,7 +101,7 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-if [ -z "$voter_config" ]; then
+if [[ -z "$voter_config" ]]; then
     echo "FAIL: voter-config <unset> missing or malformed (--voter-config <PATH> is required)" >&2
     exit 4
 fi
@@ -115,7 +115,7 @@ base_url="${base_url%/}"
 # ----------------------------------------------------------------------------
 # Voter-config read: extract `model_name` via yq.
 # ----------------------------------------------------------------------------
-if [ ! -f "$voter_config" ]; then
+if [[ ! -f "$voter_config" ]]; then
     echo "FAIL: voter-config $voter_config missing or malformed (file not found)" >&2
     exit 4
 fi
@@ -136,18 +136,28 @@ fi
 # Both yq variants (mikefarah/yq v4 Go binary; kislyuk/yq Python wrapper)
 # accept the `tag` filter; the latter may return slightly different tag
 # names — we accept the canonical `!!str` only.
-model_name_tag="$(yq -r '.model_name | tag // "!!null"' "$voter_config" 2>/dev/null || echo "!!error")"
-if [ "$model_name_tag" != "!!str" ]; then
+#
+# PR #43 SonarCloud reliability hardening: use an explicit `if !` block
+# instead of the in-string `|| echo "!!error"` fallback so pipefail and
+# the determinism contract stay legible.
+if ! model_name_tag="$(yq -r '.model_name | tag // "!!null"' "$voter_config" 2>/dev/null)"; then
+    model_name_tag="!!error"
+fi
+
+if [[ "$model_name_tag" != "!!str" ]]; then
     echo "FAIL: voter-config $voter_config missing or malformed (model_name must be a string scalar; got YAML tag $model_name_tag)" >&2
     exit 4
 fi
 
-model_name="$(yq -r '.model_name' "$voter_config" 2>/dev/null || echo "")"
+if ! model_name="$(yq -r '.model_name' "$voter_config" 2>/dev/null)"; then
+    model_name=""
+fi
+
 # Strip any surrounding whitespace just in case.
 model_name="${model_name#"${model_name%%[![:space:]]*}"}"
 model_name="${model_name%"${model_name##*[![:space:]]}"}"
 
-if [ -z "$model_name" ]; then
+if [[ -z "$model_name" ]]; then
     echo "FAIL: voter-config $voter_config missing or malformed (model_name is empty string)" >&2
     exit 4
 fi
@@ -184,7 +194,7 @@ fi
 # ----------------------------------------------------------------------------
 matched="$(jq -c --arg n "$model_name" '(.models // []) | map(select(.name == $n)) | .[0] // empty' "$response_file" 2>/dev/null)"
 
-if [ -z "$matched" ] || [ "$matched" = "null" ]; then
+if [[ -z "$matched" || "$matched" == "null" ]]; then
     echo "FAIL: extraction model \"$model_name\" not loaded in Ollama at $api_url" >&2
     exit 2
 fi
@@ -199,11 +209,22 @@ size_vram="$(echo "$matched" | jq -r '.size_vram // 0')"
 size="${size%.*}"
 size_vram="${size_vram%.*}"
 
-# Reject non-numeric (yq/jq emitted "null" or text).
-case "$size" in ''|*[!0-9]*) size=0 ;; esac
-case "$size_vram" in ''|*[!0-9]*) size_vram=0 ;; esac
+# Reject non-numeric (yq/jq emitted "null" or text). PR #43 SonarCloud
+# reliability hardening: explicit `*) ;;` default case so the closed set
+# of branches is auditable at a glance.
+case "$size" in
+    ''|*[!0-9]*) size=0 ;;
+    *) ;;
+esac
+case "$size_vram" in
+    ''|*[!0-9]*) size_vram=0 ;;
+    *) ;;
+esac
 
-if [ "$size_vram" -le 0 ] || [ "$size_vram" -ne "$size" ]; then
+# PR #43 SonarCloud reliability hardening: numeric comparison via `(( ))`
+# arithmetic context — clearer than chained `-le` / `-ne` and reads as
+# math, which matches Sonar's preferred bash style for integer logic.
+if (( size_vram <= 0 || size_vram != size )); then
     echo "FAIL: extraction model \"$model_name\" partially on GPU at $api_url (size_vram=$size_vram, size=$size)" >&2
     exit 1
 fi
