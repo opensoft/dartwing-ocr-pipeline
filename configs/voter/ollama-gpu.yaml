@@ -1,12 +1,20 @@
-# Canonical voter config for the GPU MVP demo (feature 021 R-021.7).
+# Canonical voter config for the GPU MVP demo readiness check
+# (feature 021 R-021.7).
 #
-# Consumed by:
-#   - scripts/check-ollama-gpu-readiness.sh (FR-002 readiness helper) — reads
-#     `model_name` to look up the matched entry in Ollama's GET /api/ps response
-#     and assert `size_vram > 0 AND size_vram == size`.
-#   - The demo runbook's extraction lane (FR-025) — the operator runs the
-#     `dartwing-extract` extractor against this config, which selects the
-#     `ollama@gpu` profile and the named model.
+# Consumed by `scripts/check-ollama-gpu-readiness.sh` ONLY (FR-002
+# readiness helper). The script reads `model_name` to look up the
+# matched entry in Ollama's GET /api/ps response and assert
+# `size_vram > 0 AND size_vram == size`.
+#
+# This file is NOT a pipeline CLI argument. The demo command selects
+# the extraction model via `--extract-profile ollama@gpu`, which
+# `src/dartwing_ocr/pipeline/stages.py::_ollama_extract_factory`
+# resolves to `src/dartwing_ocr/extract/voters/configs/gemma-edge.yaml`
+# and reads `ollama.model_tag` from. The CPU-safe contract test
+# `tests/contract_tests/test_voter_config_model_alignment.py` is the
+# bridge — it asserts `configs/voter/ollama-gpu.yaml::model_name ==
+# gemma-edge.yaml::ollama.model_tag` so the readiness check and the
+# extractor cannot drift apart.
 #
 # Schema: feature 005 voter-config schema. Single required top-level key
 # `model_name: string (non-empty)`. The model name MUST match the entry name
