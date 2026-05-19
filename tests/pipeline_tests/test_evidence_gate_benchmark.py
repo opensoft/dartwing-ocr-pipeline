@@ -167,7 +167,16 @@ def test_evidence_gate_benchmark_four_run_per_key_deltas_gpu(
         _ALLOWED_DECREASE_KEYS,
         _DEFAULT_5_DOC_SUBSET,
     )
-    pytest.fail(
+    # PR #43 Copilot review (commit b1b032f): `pytest.fail(...)` here
+    # would hard-fail on GPU hosts and block the rest of the `-m gpu`
+    # suite (the converted end-to-end tests from US2). Operators want
+    # to run the full GPU suite even while this specific benchmark is
+    # still deferred. Switched to `pytest.skip(...)` so the deferral
+    # is reported as a clear skip (not a failure) — the test still
+    # appears in the GPU summary with its named cause, and the suite
+    # continues past this file. When the benchmark body lands per
+    # R-020.15, replace this `skip` with the real four-run loop.
+    pytest.skip(
         "GPU benchmark deferred per R-020.15; wire the four-run loop "
         "(warmup × 1, legacy × 2, candidate × 2; per-key change "
         "assertion per FR-015 / Clarifications Q1 Option A) when the "

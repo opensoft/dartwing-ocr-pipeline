@@ -83,11 +83,27 @@ def test_readiness_helper_voter_config_present() -> None:
 def test_extractor_voter_config_present() -> None:
     """The gemma-edge extractor config exists and exposes `ollama.model_tag`."""
     data = _load_yaml(EXTRACTOR_VOTER_CONFIG)
-    ollama_section = data.get("ollama") or {}
+    ollama_section = data.get("ollama")
+    # PR #43 Copilot review (commit b1b032f): `data.get("ollama") or {}`
+    # masked the case where `ollama` is present but a non-mapping
+    # (e.g., string/list), which would later raise `TypeError` /
+    # `KeyError` on `extractor["ollama"]["model_tag"]` instead of a
+    # named-cause assertion failure. Assert the section is a mapping
+    # AND contains the required key with a non-empty string value.
+    assert isinstance(ollama_section, dict), (
+        f"{EXTRACTOR_VOTER_CONFIG}: `ollama` section must be a YAML "
+        f"mapping; got {type(ollama_section).__name__}. The "
+        f"`ollama@gpu` extraction profile expects `ollama.model_tag`."
+    )
     assert "model_tag" in ollama_section, (
         f"{EXTRACTOR_VOTER_CONFIG} missing `ollama.model_tag`; the "
         f"`ollama@gpu` extraction profile relies on this field via "
         f"`stages._ollama_extract_factory`."
+    )
+    model_tag = ollama_section["model_tag"]
+    assert isinstance(model_tag, str) and model_tag, (
+        f"{EXTRACTOR_VOTER_CONFIG} `ollama.model_tag` must be a non-empty "
+        f"string; got {model_tag!r} ({type(model_tag).__name__})."
     )
 
 
@@ -98,8 +114,18 @@ def test_readiness_and_extractor_agree_on_model_tag() -> None:
     readiness = _load_yaml(READINESS_VOTER_CONFIG)
     extractor = _load_yaml(EXTRACTOR_VOTER_CONFIG)
 
+    # PR #43 Copilot review: re-assert the `ollama` section is a mapping
+    # before indexing into it — even though `test_extractor_voter_config_present`
+    # asserts the same thing, tests can run in any order and depend on each
+    # other's preconditions only via shared fixtures. Inline assertion
+    # keeps this test's failure mode actionable on its own.
+    extractor_ollama = extractor.get("ollama")
+    assert isinstance(extractor_ollama, dict), (
+        f"{EXTRACTOR_VOTER_CONFIG}: `ollama` section must be a mapping; "
+        f"got {type(extractor_ollama).__name__}."
+    )
     readiness_model = readiness["model_name"]
-    extractor_model = extractor["ollama"]["model_tag"]
+    extractor_model = extractor_ollama["model_tag"]
 
     assert readiness_model == extractor_model, (
         f"Voter-config model drift (P1-1):\n"

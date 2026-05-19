@@ -168,9 +168,11 @@ Explicitly out of scope:
 3. The benchmark MUST capture per-document gate decisions,
    `evidence_gate_state_counts`, `evidence_gate_suppressed_fallback_count`,
    `ocr_only_fallback_count`, and `preprocess_strategy_id`.
-4. For suppressed documents, only `phase_timings.per_page_inference` and
-   `phase_timings.total` are expected to decrease materially. Other phase keys
-   should be constant within the measured jitter band.
+4. For suppressed documents, only `per_page_inference` (the top-level per-doc
+   sibling of `phase_timings` on each `per_document[i]` record, NOT a
+   `phase_timings.*` child key) and `phase_timings.total` are expected to
+   decrease materially. Other `phase_timings.*` keys should stay constant
+   within the measured jitter band.
 5. When skip-fallback suppresses every document in a run and `--gpu-warmup` is
    not set, PPStructureV3 SHOULD remain lazily unconstructed for that run.
 6. When `--gpu-warmup` is set, PPStructureV3 MAY be constructed even if every
