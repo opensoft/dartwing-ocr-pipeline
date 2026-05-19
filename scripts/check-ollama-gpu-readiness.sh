@@ -199,7 +199,16 @@ fi
 # contract classifies an unexpected response shape as exit 3
 # ("Ollama unreachable / unparseable JSON"), not exit 2.
 # ----------------------------------------------------------------------------
-models_type="$(jq -r 'if has("models") then (.models | type) else "missing" end' "$response_file" 2>/dev/null || echo "error")"
+# PR #43 SonarCloud Security Hotspot fix (scripts/check-ollama-gpu-readiness.sh:202):
+# the previous in-string `|| echo "error"` fallback was flagged by Sonar
+# under the same rule that bucket-1's other extractions cleared in
+# commit 14b4520. Replaced with the explicit `if !` block pattern
+# (same shape as the `model_name_tag` / `model_name` extractions above)
+# so pipefail and the determinism contract stay legible.
+if ! models_type="$(jq -r 'if has("models") then (.models | type) else "missing" end' "$response_file" 2>/dev/null)"; then
+    models_type="error"
+fi
+
 if [[ "$models_type" != "array" ]]; then
     echo "FAIL: Ollama unreachable at $api_url (unexpected /api/ps shape: .models is $models_type, expected array)" >&2
     exit 3
