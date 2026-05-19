@@ -3,11 +3,26 @@
 #
 # Contract: specs/021-gpu-mvp-promotion/contracts/ollama-readiness-helper.md
 # Constitution: §I (outside dartwing_ocr package; no new product behavior in
-# pipeline code), §III (deterministic check).
+# pipeline code), §III (deterministic placement check; see disk + stdout
+# carve-outs below).
 #
 # Asserts that the extraction model named by an active voter config (feature
 # 005 voter-config schema) is fully GPU-placed in host Ollama. Read-only
-# against Ollama — no model loading, no retries, no disk writes.
+# against Ollama — no model loading, no retries.
+#
+# Disk carve-out: the helper creates ONE ephemeral tmpfile via mktemp(1) to
+# hold the /api/ps response body for jq parsing; the file is unlinked on
+# EXIT/INT/TERM via a trap handler. No persistent state is written. The
+# contract's "no writes to disk" clause is read as "no persistent writes" —
+# the trap-cleaned ephemeral tmpfile is documented as an allowed side
+# effect (see contracts/ollama-readiness-helper.md §Disallowed surfaces).
+#
+# Stdout carve-out: the PASS-JSON line includes a `timestamp_utc` field
+# captured at invocation time (date -u +%Y-%m-%dT%H:%M:%SZ). The placement
+# check itself is deterministic — given identical voter-config + identical
+# /api/ps response, the exit code and the structural stdout JSON keys are
+# identical; only `timestamp_utc` varies as provenance metadata. Callers
+# MUST NOT key cache lookups or equality assertions on `timestamp_utc`.
 #
 # Exit codes (one-to-one with status literals):
 #   0 — PASS (size_vram > 0 AND size_vram == size)

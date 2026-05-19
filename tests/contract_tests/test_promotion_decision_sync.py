@@ -28,6 +28,25 @@ state — both files contain `_(placeholder — populate ...)_` for the
 Decision field), the test treats both as "unrecorded" and PASSES (the
 contract is "both files agree", and they agree on the unrecorded state).
 
+**Placeholder-passing is intentional at landing time.** Feature 021's
+US6 / T028 records the Promotion Decision AFTER the PR merges, once
+the operator has run the four-run GPU benchmark and the team has
+reviewed the Appendix A + B evidence. At PR-landing time both files
+are in the placeholder state by design (T021 / T026 placed the
+skeletons; T022 / T028 will populate them on the workstation
+post-merge). This test enforces "both files agree on the same state"
+in BOTH directions — both unrecorded, or both recorded with matching
+literals. It does NOT enforce "must be recorded" because requiring a
+recorded decision pre-merge would be a chicken-and-egg violation of
+FR-029 (promotion is an explicit team decision; the PR is the
+infrastructure to enable that decision, not the decision itself).
+
+If a future feature wants to require recorded state as a release-gate
+check, it should add a SEPARATE test (e.g., `test_promotion_decision_
+must_be_recorded.py`) that explicitly asserts not-None on both
+extractors — and gate it behind a `RELEASE_GATE=1` env var or similar
+so the landing PR is not blocked.
+
 Runs under ``pytest -m 'not gpu'`` (no GPU required).
 """
 

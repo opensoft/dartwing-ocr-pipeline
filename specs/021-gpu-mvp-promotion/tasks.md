@@ -28,7 +28,7 @@ Single-project Python package (`src/dartwing_ocr/`) + harness (`tests/`) + docs 
 **Purpose**: Register the `gpu` pytest marker and create the canonical voter-config file the readiness helper will read.
 
 - [X] T001 [P] Register `gpu` pytest marker in `pyproject.toml` under `[tool.pytest.ini_options].markers` with description `"gpu: requires AMD ROCm + paddlepaddle-dcu + host Ollama on GPU (workstation only; CPU CI skips)"` per [contracts/gpu-test-marker.md](./contracts/gpu-test-marker.md) §Marker registration. File: `pyproject.toml`.
-- [X] T002 [P] Create voter-config file `configs/voter/ollama-gpu.yaml` with single top-level key `model_name: "<value>"` (operator pins value to the loaded Ollama extraction model identifier; e.g., `qwen2.5vl:7b`) per [research.md §R-021.7](./research.md). File: `configs/voter/ollama-gpu.yaml`.
+- [X] T002 [P] Create voter-config file `configs/voter/ollama-gpu.yaml` with single top-level key `model_name: "<value>"` — pinned to match the model `--extract-profile ollama@gpu` binds (resolved by `stages._ollama_extract_factory` → `src/dartwing_ocr/extract/voters/configs/gemma-edge.yaml::ollama.model_tag`; canonical value at landing: `gemma4:e4b`). The new CPU-safe contract test `tests/contract_tests/test_voter_config_model_alignment.py` enforces the equality. Per [research.md §R-021.7](./research.md). File: `configs/voter/ollama-gpu.yaml`.
 
 **Checkpoint**: pytest collection now recognizes the `gpu` marker without `PytestUnknownMarkWarning`; the readiness helper has a canonical voter-config to read.
 

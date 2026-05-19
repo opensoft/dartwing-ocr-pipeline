@@ -10,9 +10,9 @@ This walk-through is for a pipeline developer or workstation operator validating
 
 - `.venv-paddle-rocm` with `paddlepaddle-dcu` installed (features 014–019 conventions).
 - Host Ollama running via `scripts/start-host-ollama-rocm-wsl.sh` (WSL) or the native Linux equivalent.
-- `configs/voter/ollama-gpu.yaml` exists with a non-empty `model_name` matching the loaded Ollama extraction model (R-021.7). If missing, create it as a single-line YAML:
+- `configs/voter/ollama-gpu.yaml` exists with a non-empty `model_name` (R-021.7). The pinned value MUST match the model the demo command's `--extract-profile ollama@gpu` binds (resolved by `src/dartwing_ocr/pipeline/stages.py::_ollama_extract_factory` → `src/dartwing_ocr/extract/voters/configs/gemma-edge.yaml::ollama.model_tag`). A CPU-safe contract test (`tests/contract_tests/test_voter_config_model_alignment.py`) enforces the match. At landing the canonical value is:
   ```yaml
-  model_name: "qwen2.5vl:7b"   # or whichever model is loaded on this workstation's Ollama
+  model_name: "gemma4:e4b"  # MUST match gemma-edge.yaml ollama.model_tag (the model `--extract-profile ollama@gpu` binds)
   ```
 - `jq` and `yq` available on PATH (system packages).
 - A clean `/tmp/021-bench/` (or accept that prior runs will be overwritten by lane/run identity).

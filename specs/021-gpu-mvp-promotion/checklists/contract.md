@@ -20,7 +20,7 @@ This checklist tests the *contracts as written* (requirements-quality of the con
 - [X] CHK005 Is the helper's path `scripts/check-ollama-gpu-readiness.sh` named identically in the contract, in the runbook contract, and in quickstart.md? [Consistency, contracts/ollama-readiness-helper.md]
 - [X] CHK006 Is the `--voter-config <PATH>` flag's requiredness explicit (no default)? [Clarity, contracts/ollama-readiness-helper.md]
 - [X] CHK007 Is the `--base-url <URL>` flag's optional-ness explicit with a pinned default (`http://localhost:11434`)? [Clarity, contracts/ollama-readiness-helper.md]
-- [X] CHK008 Are the "disallowed surfaces" (no interactive prompts, no model loading, no disk writes) enumerated as a closed list, so a reviewer can spot a violation? [Completeness, contracts/ollama-readiness-helper.md]
+- [X] CHK008 Are the "disallowed surfaces" (no interactive prompts, no model loading, no PERSISTENT disk writes — an ephemeral trap-cleaned `mktemp` tmpfile for the curl response body is explicitly carved out and documented) enumerated as a closed list, so a reviewer can spot a violation? [Completeness, contracts/ollama-readiness-helper.md]
 
 ### Exit-Code Contract
 
@@ -38,7 +38,7 @@ This checklist tests the *contracts as written* (requirements-quality of the con
 
 - [X] CHK015 Are the seven behavioral steps (argument parsing → voter-config read → HTTP fetch → JSON parse → placement check → stdout emission → determinism) enumerated in execution order? [Completeness, contracts/ollama-readiness-helper.md]
 - [X] CHK016 Is the curl invocation's flag list pinned (`--silent --show-error --fail --max-time 10`)? [Clarity, contracts/ollama-readiness-helper.md]
-- [X] CHK017 Is the determinism guarantee ("given identical voter-config + identical `/api/ps` response, the helper MUST produce identical stdout/stderr/exit-code") stated explicitly? [Clarity, Determinism, contracts/ollama-readiness-helper.md]
+- [X] CHK017 Is the determinism guarantee stated explicitly — "given identical voter-config + identical `/api/ps` response, the helper MUST produce identical exit code AND identical structural stdout JSON keys; `timestamp_utc` is the one carved-out non-deterministic field (provenance metadata captured at invocation time) and MUST NOT be used as a cache key"? [Clarity, Determinism, contracts/ollama-readiness-helper.md]
 
 ### Integration & Testability
 

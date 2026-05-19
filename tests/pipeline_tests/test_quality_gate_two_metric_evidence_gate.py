@@ -72,6 +72,91 @@ pytestmark = pytest.mark.gpu
 LEGACY_RUN2 = Path("/tmp/021-bench/legacy/run2/evaluation_run_summary.json")
 CANDIDATE_RUN2 = Path("/tmp/021-bench/candidate/run2/evaluation_run_summary.json")
 
+# FR-011 fixed five-document benchmark subset (research.md R-021.13 +
+# R-020.13 fallback list). The quality-gate verdict MUST be computed over
+# this exact subset on both lanes; same-subset is FR-013's hard rule.
+_EXPECTED_BENCHMARK_SUBSET: frozenset[str] = frozenset({
+    "inv_001_easy",
+    "inv_002_easy",
+    "inv_006_medium",
+    "inv_011_hard",
+    "inv_012_hard",
+})
+
+# Required keys on `evaluation_run_summary.json.overall_metrics` (feature-007
+# evaluator schema). Both Metric A (`vendor_identity_pass_rate`) and Metric B
+# (`field_accuracy`) MUST be present.
+_REQUIRED_OVERALL_METRICS_KEYS: frozenset[str] = frozenset({
+    "vendor_identity_pass_rate",
+    "field_accuracy",
+})
+
+
+def _assert_summary_shape(summary: dict, lane_name: str) -> None:
+    """Assert the run-summary shape feature-021 quality-gate depends on.
+
+    Cross-walks the feature-007 evaluator's `evaluation_run_summary.json`
+    schema and fails fast with a named cause if any contract assumption
+    is broken — schema drift in feature 007 will surface as a clear
+    shape-violation message here rather than a confusing AssertionError
+    in the metric extraction below.
+    """
+    assert isinstance(summary, dict), (
+        f"{lane_name}: evaluation_run_summary.json root is not a dict; "
+        f"got {type(summary).__name__}. Feature-007 evaluator schema drift."
+    )
+
+    # Per-corpus aggregate metrics (Metric A + Metric B both live here).
+    overall_metrics = summary.get("overall_metrics")
+    assert isinstance(overall_metrics, dict), (
+        f"{lane_name}: evaluation_run_summary.json `overall_metrics` is "
+        f"not a dict; got {type(overall_metrics).__name__}. "
+        f"Feature-007 evaluator schema drift."
+    )
+    missing_keys = _REQUIRED_OVERALL_METRICS_KEYS - overall_metrics.keys()
+    assert not missing_keys, (
+        f"{lane_name}: `overall_metrics` missing required keys "
+        f"{sorted(missing_keys)!r}. Feature-021 R-021.13 requires both "
+        f"`vendor_identity_pass_rate` (Metric A) and `field_accuracy` "
+        f"(Metric B) to be persisted by the feature-007 evaluator."
+    )
+
+    # Per-document table — FR-011 fixed-5 subset on each lane.
+    documents = summary.get("documents")
+    assert isinstance(documents, list), (
+        f"{lane_name}: `documents` field is not a list; "
+        f"got {type(documents).__name__}. Feature-007 evaluator schema drift."
+    )
+    assert len(documents) == 5, (
+        f"{lane_name}: expected {len(_EXPECTED_BENCHMARK_SUBSET)} "
+        f"benchmarked documents (FR-011 fixed subset), got "
+        f"{len(documents)}. FR-013 same-subset rule means BOTH lanes "
+        f"MUST evaluate exactly the FR-011 subset; a different count "
+        f"means a corpus drift that invalidates the verdict."
+    )
+
+    summary_doc_count = summary.get("document_count")
+    assert summary_doc_count == 5, (
+        f"{lane_name}: `document_count` reports {summary_doc_count!r}; "
+        f"expected 5 (FR-011 fixed subset)."
+    )
+
+    actual_doc_ids = {
+        doc.get("document_id") for doc in documents if isinstance(doc, dict)
+    }
+    missing_docs = _EXPECTED_BENCHMARK_SUBSET - actual_doc_ids
+    extra_docs = actual_doc_ids - _EXPECTED_BENCHMARK_SUBSET
+    assert not missing_docs and not extra_docs, (
+        f"{lane_name}: benchmark subset drift detected.\n"
+        f"  expected (FR-011): {sorted(_EXPECTED_BENCHMARK_SUBSET)!r}\n"
+        f"  actual:            {sorted(actual_doc_ids)!r}\n"
+        f"  missing from this lane: {sorted(missing_docs)!r}\n"
+        f"  unexpected on this lane: {sorted(extra_docs)!r}\n"
+        f"FR-013 requires both lanes to evaluate exactly the FR-011 "
+        f"fixed subset. A corpus drift invalidates the verdict; "
+        f"re-pin the subset and re-run the benchmark."
+    )
+
 
 def _load_summary(path: Path) -> dict:
     """Load and return the parsed JSON; xfail with named cause if missing."""
@@ -143,6 +228,13 @@ def test_quality_gate_two_metric_evidence_gate_gpu() -> None:
     """
     legacy = _load_summary(LEGACY_RUN2)
     candidate = _load_summary(CANDIDATE_RUN2)
+
+    # Shape + subset validation BEFORE metric extraction — fails fast with
+    # a named-cause AssertionError on feature-007 schema drift or
+    # corpus-subset drift, instead of a confusing TypeError inside the
+    # metric extractor.
+    _assert_summary_shape(legacy, lane_name="legacy")
+    _assert_summary_shape(candidate, lane_name="candidate")
 
     legacy_pass_rate = _extract_metric_a_pass_rate(legacy)
     candidate_pass_rate = _extract_metric_a_pass_rate(candidate)

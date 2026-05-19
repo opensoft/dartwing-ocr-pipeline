@@ -19,21 +19,22 @@ This contract pins the structural shape of Appendix A (benchmark numbers) and Ap
 3. **Four-run timeline** — one row per run, in execution order:
    - `warmup`, `legacy/run1`, `legacy/run2`, `candidate/run1`, `candidate/run2`.
    - Each row: lane, run_index, start_utc, end_utc, exit code, scratch_path.
-4. **Per-document phase-key tables** — five tables (one per document), each containing all emitted `phase_timings.*` keys:
+4. **Per-document timing tables** — five tables (one per document), each containing all emitted `phase_timings.*` keys PLUS the `per_page_inference` top-level sibling field. `phase_timings.*` keys are nested under `per_document[i].phase_timings` (where present); `per_page_inference` is a sibling of `phase_timings` on the same `per_document[i]` record (see `src/dartwing_ocr/pipeline/timing.py::build_per_document_success`). The two layers share the table for readability but resolve to different run-summary paths:
 
-   | Phase key            | legacy run1 | legacy run2 | candidate run1 | candidate run2 | legacy spread | candidate spread | threshold | Δ (cand_run2 − leg_run2) | Material? |
-   |----------------------|------------:|------------:|---------------:|---------------:|--------------:|-----------------:|----------:|--------------------------:|:---------:|
-   | `paddle_import`      | 0.842       | 0.840       | 0.841          | 0.843          | 0.002         | 0.002            | 0.002     | +0.003                    | YES       |
-   | `gpu_bind_probe`     | …           | …           | …              | …              | …             | …                | …         | …                         | …         |
-   | `engine_init`        | …           | …           | (absent)       | (absent)       | …             | n/a              | n/a       | n/a                       | LAZY      |
-   | `warmup`             | …           | …           | (absent)       | (absent)       | …             | n/a              | n/a       | n/a                       | LAZY      |
-   | `rasterization`      | …           | …           | …              | …              | …             | …                | …         | …                         | …         |
-   | `per_page_inference` | 1.420       | 1.415       | 0.612          | 0.609          | 0.005         | 0.003            | 0.005     | −0.806                    | YES ↓ ✓   |
-   | `artifact_write`     | …           | …           | …              | …              | …             | …                | …         | …                         | …         |
-   | `total`              | 3.110       | 3.098       | 1.882          | 1.878          | 0.012         | 0.004            | 0.012     | −1.220                    | YES ↓ ✓   |
+   | Timing key                         | legacy run1 | legacy run2 | candidate run1 | candidate run2 | legacy spread | candidate spread | threshold | Δ (cand_run2 − leg_run2) | Material? |
+   |------------------------------------|------------:|------------:|---------------:|---------------:|--------------:|-----------------:|----------:|--------------------------:|:---------:|
+   | `phase_timings.paddle_import`      | 0.842       | 0.840       | 0.841          | 0.843          | 0.002         | 0.002            | 0.002     | +0.003                    | YES       |
+   | `phase_timings.gpu_bind_probe`     | …           | …           | …              | …              | …             | …                | …         | …                         | …         |
+   | `phase_timings.engine_init`        | …           | …           | (absent)       | (absent)       | …             | n/a              | n/a       | n/a                       | LAZY      |
+   | `phase_timings.warmup`             | …           | …           | (absent)       | (absent)       | …             | n/a              | n/a       | n/a                       | LAZY      |
+   | `phase_timings.rasterization`      | …           | …           | …              | …              | …             | …                | …         | …                         | …         |
+   | `per_page_inference` (sibling)     | 1.420       | 1.415       | 0.612          | 0.609          | 0.005         | 0.003            | 0.005     | −0.806                    | YES ↓ ✓   |
+   | `phase_timings.artifact_write`     | …           | …           | …              | …              | …             | …                | …         | …                         | …         |
+   | `phase_timings.total`              | 3.110       | 3.098       | 1.882          | 1.878          | 0.012         | 0.004            | 0.012     | −1.220                    | YES ↓ ✓   |
 
    - Values: seconds, 3 decimals (R-021.2).
-   - `Material?` column: `YES` / `NO` / `YES ↓ ✓` (material decrease in the *permitted* direction for `per_page_inference` and `total` on suppressed documents) / `YES ↑ ⚠` (material increase, a finding regardless of phase key) / `LAZY` (phase key absent — lazy construction confirmed for that lane).
+   - `Material?` column: `YES` / `NO` / `YES ↓ ✓` (material decrease in the *permitted* direction for `per_page_inference` (sibling) and `phase_timings.total` on suppressed documents) / `YES ↑ ⚠` (material increase, a finding regardless of timing key) / `LAZY` (timing key absent — lazy construction confirmed for that lane).
+   - `phase_timings.warmup` is conditionally present: it only appears on runs that pass `--gpu-warmup` (R-021's benchmark discipline DOES pass it once at session start). If a benchmark variant chooses to omit `--gpu-warmup`, the `phase_timings.warmup` row reads `LAZY` for both lanes and is NOT a finding.
    - Threshold formula: `threshold = max(legacy spread, candidate spread)` (Q1 clarification).
    - Material rule: `|Δ| > threshold` (strict greater-than, direction-symmetric per R-021.4).
    - When `threshold == 0` AND `|Δ| > 0`, append inline note "threshold=0; any delta material" (R-021.3).
@@ -42,8 +43,8 @@ This contract pins the structural shape of Appendix A (benchmark numbers) and Ap
 
    | Document     | Lane      | gate_decision | evidence_gate_state_counts                  | evidence_gate_suppressed_fallback_count | ocr_only_fallback_count | preprocess_strategy_id |
    |--------------|-----------|---------------|----------------------------------------------|----------------------------------------:|------------------------:|-----------------------|
-   | `inv_001_easy` | legacy   | sufficient    | {sufficient: 1}                              | 0                                       | 1                       | `ppstructurev3@gpu`   |
-   | `inv_001_easy` | candidate | sufficient    | {sufficient: 1}                              | 1                                       | 1                       | `ppstructurev3@gpu`   |
+   | `inv_001_easy` | legacy   | sufficient    | {sufficient: 1}                              | 0                                       | 1                       | `ocr-only-v1`         |
+   | `inv_001_easy` | candidate | sufficient    | {sufficient: 1}                              | 1                                       | 1                       | `ocr-only-v1`         |
    | …            | …         | …             | …                                            | …                                       | …                       | …                     |
 
 6. **Findings** — bulleted list of every cell marked `YES ↑ ⚠` (material increase) and every other anomaly (e.g., lane lengths differ, document missing from a lane). Each finding cites the (document, phase key, lane) triple.

@@ -302,18 +302,18 @@ One table per document. Threshold formula: `max(|legacy_run2 − legacy_run1|, |
 
 ##### `inv_001_easy`
 
-| Phase key            | legacy run1 | legacy run2 | candidate run1 | candidate run2 | legacy spread | candidate spread | threshold | Δ (cand_run2 − leg_run2) | Material? |
-|----------------------|------------:|------------:|---------------:|---------------:|--------------:|-----------------:|----------:|--------------------------:|:---------:|
-| `paddle_import`      |             |             |                |                |               |                  |           |                           |           |
-| `gpu_bind_probe`     |             |             |                |                |               |                  |           |                           |           |
-| `engine_init`        |             |             |                |                |               |                  |           |                           |           |
-| `warmup`             |             |             |                |                |               |                  |           |                           |           |
-| `rasterization`      |             |             |                |                |               |                  |           |                           |           |
-| `per_page_inference` |             |             |                |                |               |                  |           |                           |           |
-| `artifact_write`     |             |             |                |                |               |                  |           |                           |           |
-| `total`              |             |             |                |                |               |                  |           |                           |           |
+| Timing key                         | legacy run1 | legacy run2 | candidate run1 | candidate run2 | legacy spread | candidate spread | threshold | Δ (cand_run2 − leg_run2) | Material? |
+|------------------------------------|------------:|------------:|---------------:|---------------:|--------------:|-----------------:|----------:|--------------------------:|:---------:|
+| `phase_timings.paddle_import`      |             |             |                |                |               |                  |           |                           |           |
+| `phase_timings.gpu_bind_probe`     |             |             |                |                |               |                  |           |                           |           |
+| `phase_timings.engine_init`        |             |             |                |                |               |                  |           |                           |           |
+| `phase_timings.warmup`             |             |             |                |                |               |                  |           |                           |           |
+| `phase_timings.rasterization`      |             |             |                |                |               |                  |           |                           |           |
+| `per_page_inference` (sibling)     |             |             |                |                |               |                  |           |                           |           |
+| `phase_timings.artifact_write`     |             |             |                |                |               |                  |           |                           |           |
+| `phase_timings.total`              |             |             |                |                |               |                  |           |                           |           |
 
-`Material?` vocabulary (closed set): `YES` / `NO` / `YES ↓ ✓` (permitted material decrease on `per_page_inference` or `total` for suppressed docs per FR-016) / `YES ↑ ⚠` (material increase, a finding) / `LAZY` (phase key absent — lazy construction confirmed for that lane).
+`per_page_inference` is a top-level sibling of `phase_timings` on `per_document[i]` (see `src/dartwing_ocr/pipeline/timing.py::build_per_document_success`); the other rows are `phase_timings.*` children. `phase_timings.warmup` is conditionally present — it only appears when the run passes `--gpu-warmup`. `Material?` vocabulary (closed set): `YES` / `NO` / `YES ↓ ✓` (permitted material decrease on `per_page_inference` (sibling) or `phase_timings.total` for suppressed docs per FR-016) / `YES ↑ ⚠` (material increase, a finding) / `LAZY` (timing key absent — lazy construction confirmed for that lane).
 
 ##### `inv_002_easy`
 
@@ -335,16 +335,16 @@ One table per document. Threshold formula: `max(|legacy_run2 − legacy_run1|, |
 
 | Document         | Lane      | gate_decision | evidence_gate_state_counts                  | evidence_gate_suppressed_fallback_count | ocr_only_fallback_count | preprocess_strategy_id |
 |------------------|-----------|---------------|----------------------------------------------|----------------------------------------:|------------------------:|------------------------|
-| `inv_001_easy`   | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
-| `inv_001_easy`   | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
-| `inv_002_easy`   | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
-| `inv_002_easy`   | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
-| `inv_006_medium` | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
-| `inv_006_medium` | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
-| `inv_011_hard`   | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
-| `inv_011_hard`   | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
-| `inv_012_hard`   | legacy    |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
-| `inv_012_hard`   | candidate |               |                                              |                                         |                         | `ppstructurev3@gpu`    |
+| `inv_001_easy`   | legacy    |               |                                              |                                         |                         | `ocr-only-v1`          |
+| `inv_001_easy`   | candidate |               |                                              |                                         |                         | `ocr-only-v1`          |
+| `inv_002_easy`   | legacy    |               |                                              |                                         |                         | `ocr-only-v1`          |
+| `inv_002_easy`   | candidate |               |                                              |                                         |                         | `ocr-only-v1`          |
+| `inv_006_medium` | legacy    |               |                                              |                                         |                         | `ocr-only-v1`          |
+| `inv_006_medium` | candidate |               |                                              |                                         |                         | `ocr-only-v1`          |
+| `inv_011_hard`   | legacy    |               |                                              |                                         |                         | `ocr-only-v1`          |
+| `inv_011_hard`   | candidate |               |                                              |                                         |                         | `ocr-only-v1`          |
+| `inv_012_hard`   | legacy    |               |                                              |                                         |                         | `ocr-only-v1`          |
+| `inv_012_hard`   | candidate |               |                                              |                                         |                         | `ocr-only-v1`          |
 
 #### §6. Findings
 
@@ -440,7 +440,7 @@ Per R-020.15 / FR-026, the following GPU-marked tests / benchmarks MAY be deferr
 - [ ] `test_evidence_gate_all_suppressed_lazy_construction.py::test_lazy_no_warmup @gpu` (US4 / T033a) — verifies the FR-007 lazy-construction clause: all-suppressed corpus + no `--gpu-warmup` ⇒ PPStructureV3 never constructed, `phase_timings.warmup` for PPStructureV3 == `0`.
 - [ ] `test_evidence_gate_all_suppressed_lazy_construction.py::test_forced_construction_with_warmup @gpu` (US4 / T033a) — verifies the FR-007 `--gpu-warmup` exception clause: all-suppressed + `--gpu-warmup` ⇒ PPStructureV3 IS constructed (operator-opt-in trade-off); suppression counter still equals doc count.
 - [ ] `test_evidence_gate_benchmark.py @gpu` (US7 / T053) — runs the FR-015 four-run benchmark discipline (warmup once, legacy×2 + candidate×2, discard run 1 each); produces Appendix A numbers; asserts per-key change pattern (only `per_page_inference` + `total` decrease on suppressed docs; others within jitter band).
-- [ ] `test_quality_gate_two_metric_evidence_gate.py @gpu` (US7 / T054) — produces the FR-016 / R-020.14 two-metric promotion-gate verdict (aggregate vendor-identity field score + per-document pass count, both ≥ legacy on the 5-doc subset).
+- [ ] `test_quality_gate_two_metric_evidence_gate.py @gpu` (US7 / T054) — produces the FR-016 / R-020.14 two-metric promotion-gate verdict (`overall_metrics.vendor_identity_pass_rate` + `overall_metrics.field_accuracy`, both candidate ≥ legacy on the 5-doc subset; feature-021 R-021.13 verification-round revision).
 - [ ] FR-015 corpus benchmark run on workstation GPU.
 - [ ] FR-016 quality-gate evidence in `research.md` Appendix B.
 
