@@ -76,7 +76,11 @@ def serve_fixture():
         finally:
             server.shutdown()
             server.server_close()
-            thread.join(timeout=2)
+            # Multi-agent-review LOW-7 fix: 2s join can flake on slow CI runners
+            # under load (the serve_forever loop sometimes takes >2s to notice the
+            # shutdown flag and unwind). 5s is a generous upper bound that still
+            # surfaces a stuck-thread bug fast in local runs.
+            thread.join(timeout=5)
 
     return _serve
 

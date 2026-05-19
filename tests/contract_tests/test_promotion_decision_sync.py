@@ -61,8 +61,17 @@ def _normalize(decision_text: str) -> str:
     return text
 
 
-# The closed set of allowed decision values (FR-026). The "unrecorded"
-# state is also valid — both files agree on "no decision yet".
+# The closed set of allowed decision values (FR-026).
+#
+# Source of truth: ``specs/021-gpu-mvp-promotion/spec.md`` FR-026 (binary
+# decision literal: "stay opt-in" or "promote to default") and
+# ``specs/021-gpu-mvp-promotion/data-model.md`` §5 (Promotion Decision Record
+# entity). If FR-026 ever broadens the vocabulary (e.g., a "demote to opt-in"
+# literal is added per the §5 Demotion path subsection), update BOTH the spec
+# and this set in the same commit — the LOW-8 review note flagged this as a
+# documentation-coupling risk worth surfacing inline.
+#
+# The "unrecorded" state is also valid — both files agree on "no decision yet".
 _VALID_DECISIONS = {"stay opt-in", "promote to default"}
 _UNRECORDED_MARKERS = {
     "placeholder",

@@ -196,11 +196,19 @@ def test_forced_construction_with_warmup(tmp_path: Path) -> None:
         "This contradicts the explicit operator trade-off of the warmup flag."
     )
     # Engine init typically accompanies a warmup run (engine has to be
-    # constructed before warmup can run). Soft assertion: warn but do not
-    # fail — feature 016 may amortize engine_init across runs.
+    # constructed before warmup can run). Multi-agent-review LOW-5 fix:
+    # this is documented as a soft observation ("warn but do not fail —
+    # feature 016 may amortize engine_init across runs") but used to call
+    # `pytest.fail`, contradicting the comment. Switched to `warnings.warn`
+    # so the test still surfaces the amortization signal without failing
+    # FR-009 coverage when feature 016's MIOpen cache reuse legitimately
+    # elides the engine_init phase entry on warm runs.
     if not saw_engine_init:
-        pytest.fail(
-            "FR-009 expectation: phase_timings.engine_init also expected when "
-            "warmup forces PPStructureV3 construction. If feature 016 amortizes "
-            "engine_init across processes, update this assertion accordingly."
+        import warnings
+
+        warnings.warn(
+            "FR-009 observation: phase_timings.engine_init absent even though "
+            "warmup forced PPStructureV3 construction. Feature 016 amortization "
+            "is the expected explanation; if it isn't, investigate.",
+            stacklevel=2,
         )

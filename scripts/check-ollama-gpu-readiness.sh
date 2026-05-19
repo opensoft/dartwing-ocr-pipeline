@@ -67,6 +67,12 @@ if [ -z "$voter_config" ]; then
     exit 4
 fi
 
+# Multi-agent-review LOW-4 fix: strip a trailing slash from --base-url so the
+# helper emits `http://localhost:11434/api/ps`, not `...//api/ps`. Ollama
+# tolerates both but the doubled-slash leaks into the PASS-JSON `base_url`
+# echo and the stderr FAIL templates.
+base_url="${base_url%/}"
+
 # ----------------------------------------------------------------------------
 # Voter-config read: extract `model_name` via yq.
 # ----------------------------------------------------------------------------

@@ -5,6 +5,8 @@
       "model": "qwen2.5vl:7b",
       "size": 5120000000,
       "size_vram": 0,
+      "processor": "100% CPU",
+      "context_length": 8192,
       "digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "details": {
         "parent_model": "",

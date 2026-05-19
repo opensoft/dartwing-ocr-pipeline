@@ -5,6 +5,8 @@
       "model": "gemma2:9b",
       "size": 5443328000,
       "size_vram": 5443328000,
+      "processor": "100% GPU",
+      "context_length": 8192,
       "digest": "sha256:fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
       "details": {
         "parent_model": "",
