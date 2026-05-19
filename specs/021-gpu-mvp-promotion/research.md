@@ -280,9 +280,9 @@ PASS verdict requires `candidate >= legacy` on BOTH metrics (FR-020 strict conju
 
 ## R-021.16: Quality-gate BLOCKED on missing `expected.json`
 
-**Decision**: If any document in the FR-011 benchmark subset lacks an `expected.json` at the time the FR-019 quality gate runs, the gate's verdict is **BLOCKED** with named cause `"missing expected.json for <document_id>"` (one named cause per missing document, joined if multiple). Skip-fallback remains opt-in per FR-027 (BLOCKED → stay opt-in). The aggregate score and per-document pass count fields in the Quality-Gate Verdict entity are `null` per data-model.md §4 BLOCKED-state validation.
+**Decision**: If any document in the FR-011 benchmark subset lacks an `expected.json` at the time the FR-019 quality gate runs, the gate's verdict is **BLOCKED** with named cause `"missing expected.json for <document_id>"` (one named cause per missing document, joined if multiple). Skip-fallback remains opt-in per FR-027 (BLOCKED → stay opt-in). The `legacy_pass_rate` / `candidate_pass_rate` / `legacy_field_accuracy` / `candidate_field_accuracy` fields in the Quality-Gate Verdict entity are all `null` per data-model.md §4 BLOCKED-state validation (verification-round revision per R-021.13).
 
-**Rationale**: (a) Per-document pass count is undefined when there's no truth file to compare against; the feature-007 evaluator returns a missing-expected error rather than guessing. (b) Treating missing-expected as BLOCKED (not FAIL) is correct because it's a corpus-state issue, not a candidate-regression issue. (c) The named cause includes the offending document_id so the operator knows which `expected.json` to add or restore before re-running.
+**Rationale**: (a) Both metrics are undefined when any truth file is missing; the feature-007 evaluator returns a missing-expected error rather than guessing. (b) Treating missing-expected as BLOCKED (not FAIL) is correct because it's a corpus-state issue, not a candidate-regression issue. (c) The named cause includes the offending document_id so the operator knows which `expected.json` to add or restore before re-running.
 
 **Alternatives considered**:
 

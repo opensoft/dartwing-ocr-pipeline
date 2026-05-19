@@ -105,9 +105,9 @@ Single-project Python package (`src/dartwing_ocr/`) + harness (`tests/`) + docs 
 
 ## Phase 6: User Story 4 — Recorded Two-Metric Quality-Gate Verdict in Appendix B (Priority: P3)
 
-**Goal**: Run the two-metric quality gate (aggregate vendor-identity sum + per-document pass count, candidate ≥ legacy) on the same scratch outputs from US3, and record the PASS / FAIL / BLOCKED verdict in Appendix B.
+**Goal**: Run the two-metric quality gate (`overall_metrics.vendor_identity_pass_rate` + `overall_metrics.field_accuracy`, candidate ≥ legacy on BOTH per R-021.13 verification-round revision) on the same scratch outputs from US3, and record the PASS / FAIL / BLOCKED verdict in Appendix B.
 
-**Independent Test**: `tests/pipeline_tests/test_quality_gate_two_metric_evidence_gate.py` runs under `pytest -m gpu` and produces a deterministic verdict against the same `/tmp/021-bench/<lane>/run2/` scratch tree US3 produced. Appendix B in `specs/020-vendor-evidence-gate/quickstart.md` contains the verdict literal + per-document score/pass table + aggregate + pass count + (if FAIL) regressing_metric + magnitude + (if BLOCKED) named blocker.
+**Independent Test**: `tests/pipeline_tests/test_quality_gate_two_metric_evidence_gate.py` runs under `pytest -m gpu` and produces a deterministic verdict against the same `/tmp/021-bench/<lane>/run2/` scratch tree US3 produced. Appendix B in `specs/020-vendor-evidence-gate/quickstart.md` contains the verdict literal + per-document field-accuracy/pass table + aggregate vendor-identity pass rate + corpus field-level accuracy + (if FAIL) regressing_metric + magnitude + (if BLOCKED) named blocker.
 
 > **Reads**: T019 can start in parallel with US2 / US3 tasks (different file). T020 depends on T014 (US3 scratch tree exists). T021–T022 depend on T020.
 

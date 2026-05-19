@@ -77,6 +77,11 @@ _GATING_VERDICT_LINE_RE = re.compile(
 _RECORDED_VERDICT_REFERENCE_RE = re.compile(
     r"(\d{4}-\d{2}-\d{2}).*?\b(PASS|FAIL|BLOCKED)\b"
 )
+# Match any parenthetical substring; used to scope the placeholder-list
+# check below to "inside parens" so trailing FR-027 prose (which contains
+# the literal words FAIL and BLOCKED) does NOT poison the unrecorded
+# detection. Round-4 fix per agent B's critical false-negative finding.
+_PARENTHETICAL_RE = re.compile(r"\(([^)]*)\)")
 
 
 # Canonical-form normalization: lowercase, strip whitespace and backticks.
@@ -162,14 +167,19 @@ def _extract_gating_verdict(path: Path) -> tuple[str, str] | None:
     # Strip the literal "YYYY-MM-DD" placeholder so it can't accidentally
     # match _RECORDED_VERDICT_REFERENCE_RE.
     sanitized = line.replace("YYYY-MM-DD", "")
-    # Multi-agent-review verification round (P2-3, agent 4 audit): also
-    # reject lines that still carry the bracketed placeholder list
-    # `(PASS / FAIL / BLOCKED)` — a partially-filled mirror (operator
-    # dated the line but left the verdict tokens as the literal
-    # placeholder list) would otherwise match `(date, "PASS")` because
-    # `PASS` is the first verdict token in the placeholder.
-    if all(token in sanitized for token in ("PASS", "FAIL", "BLOCKED")):
-        return None
+    # Round-4 fix per agent B's critical false-negative finding: reject
+    # any line where a PARENTHETICAL substring contains all three verdict
+    # tokens (the literal `(PASS / FAIL / BLOCKED)` placeholder list).
+    # Scoping to "inside parens" is essential — the real placeholder
+    # strings in feature-020 quickstart.md:413 and runbook-gpu-mvp-demo.md
+    # both end with trailing FR-027 prose like "FR-027 — if the gating
+    # verdict is FAIL or BLOCKED, ..." that contains the words FAIL and
+    # BLOCKED in plain text. The previous whole-line check would falsely
+    # reject a fully-recorded `(PASS)` line because its surrounding prose
+    # still mentions FAIL/BLOCKED.
+    for paren_content in _PARENTHETICAL_RE.findall(sanitized):
+        if all(token in paren_content for token in ("PASS", "FAIL", "BLOCKED")):
+            return None
     ref_match = _RECORDED_VERDICT_REFERENCE_RE.search(sanitized)
     if ref_match is None:
         return None
@@ -249,13 +259,22 @@ def test_gating_verdict_partial_fill_returns_none(tmp_path: Path) -> None:
     `_extract_gating_verdict` MUST return None (treat as unrecorded) —
     NOT extract `('YYYY-MM-DD-stripped-date', 'PASS')` as if a real
     verdict were recorded.
+
+    Fixture mirrors the REAL placeholder text including FR-027 trailing
+    prose (verified against `specs/020-vendor-evidence-gate/quickstart.md`
+    Appendix B and `docs/stage1-vendor-identity/runbook-gpu-mvp-demo.md`).
     """
     # Operator dated the line but kept the placeholder verdict list.
+    # Trailing FR-027 prose mentions FAIL and BLOCKED — the sanitization
+    # must NOT be fooled by that into thinking the placeholder list is
+    # present outside the parens.
     partial_fill = (
         "# Test fixture\n\n"
         "**Decision**: _(placeholder)_\n\n"
         "**Gating verdict**: see §Quality-Gate Verdict 2026-05-19 "
-        "(`PASS` / `FAIL` / `BLOCKED`) above.\n"
+        "(`PASS` / `FAIL` / `BLOCKED`) above. FR-027 — if the gating "
+        "verdict is FAIL or BLOCKED, the decision MUST be `stay opt-in`; "
+        "promotion is not a permitted option.\n"
     )
     fake = tmp_path / "partial.md"
     fake.write_text(partial_fill, encoding="utf-8")
@@ -265,21 +284,32 @@ def test_gating_verdict_partial_fill_returns_none(tmp_path: Path) -> None:
         f"partial-fill regression: a date+placeholder-verdict-list line "
         f"MUST extract as None (unrecorded), got {result!r}. The regex "
         f"sanitization must reject lines containing the literal "
-        f"placeholder list."
+        f"placeholder list inside parens."
     )
 
 
 def test_gating_verdict_fully_recorded_extracts_tuple(tmp_path: Path) -> None:
-    """Positive case: a Gating-verdict line with a concrete date AND a
-    single concrete verdict literal extracts as `(date, verdict)`.
+    """Positive case (round-4 agent B critical regression): a fully-
+    recorded Gating-verdict line whose surrounding prose ALSO mentions
+    FAIL and BLOCKED (via the FR-027 trailing clause) MUST still extract
+    as `(date, verdict)`. The whole-line placeholder check would falsely
+    reject this; the parenthetical-scoped check correctly accepts it.
     """
+    # Realistic recorded form including FR-027 trailing prose — this is
+    # the exact false-negative case agent B caught in round-4.
     recorded = (
-        "**Gating verdict**: see §Quality-Gate Verdict 2026-05-19 (PASS) above.\n"
+        "**Gating verdict**: see §Quality-Gate Verdict 2026-05-19 (PASS) "
+        "above. FR-027 — if the gating verdict is FAIL or BLOCKED, the "
+        "decision MUST be `stay opt-in`; promotion is not a permitted "
+        "option.\n"
     )
     fake = tmp_path / "recorded.md"
     fake.write_text(recorded, encoding="utf-8")
 
     result = _extract_gating_verdict(fake)
     assert result == ("2026-05-19", "PASS"), (
-        f"recorded reference should extract as ('2026-05-19', 'PASS'); got {result!r}"
+        f"recorded reference should extract as ('2026-05-19', 'PASS') "
+        f"even when surrounding FR-027 prose mentions FAIL / BLOCKED; "
+        f"got {result!r}. The placeholder-list check MUST be scoped to "
+        f"inside parens, not the whole line."
     )

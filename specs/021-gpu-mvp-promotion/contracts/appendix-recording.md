@@ -67,19 +67,19 @@ This contract pins the structural shape of Appendix A (benchmark numbers) and Ap
 1. **Quality-Gate Verdict (YYYY-MM-DD)**:
    - Verdict literal: `PASS` / `FAIL` / `BLOCKED`.
    - Underlying inputs reference: link to the Appendix A `### Run YYYY-MM-DD` subsection that produced this verdict.
-   - Per-document score + pass table (the QualityGateVerdict.per_document list shape; see data-model §4):
+   - Per-document field-accuracy + pass table (the QualityGateVerdict.per_document list shape; see data-model §4 — verification-round revision per R-021.13):
 
-     | Document         | legacy score | candidate score | legacy pass | candidate pass |
-     |------------------|-------------:|----------------:|:-----------:|:--------------:|
-     | `inv_001_easy`   | 0.95         | 0.95            | ✓           | ✓              |
-     | `inv_002_easy`   | 0.92         | 0.92            | ✓           | ✓              |
-     | `inv_006_medium` | 0.81         | 0.83            | ✓           | ✓              |
-     | `inv_011_hard`   | 0.67         | 0.65            | ✓           | ✓              |
-     | `inv_012_hard`   | 0.58         | 0.60            | ✗           | ✓              |
+     | Document         | legacy field_accuracy | candidate field_accuracy | legacy pass | candidate pass |
+     |------------------|----------------------:|-------------------------:|:-----------:|:--------------:|
+     | `inv_001_easy`   | 0.95                  | 0.95                     | ✓           | ✓              |
+     | `inv_002_easy`   | 0.92                  | 0.92                     | ✓           | ✓              |
+     | `inv_006_medium` | 0.81                  | 0.83                     | ✓           | ✓              |
+     | `inv_011_hard`   | 0.67                  | 0.65                     | ✓           | ✓              |
+     | `inv_012_hard`   | 0.58                  | 0.60                     | ✗           | ✓              |
 
-   - Aggregate score: legacy `<sum>`, candidate `<sum>`, Δ = `<candidate − legacy>` (R-021.13).
-   - Per-document pass count: legacy `<count>`, candidate `<count>`, Δ = `<candidate − legacy>` (R-021.13).
-   - FAIL only: `regressing_metric` (`aggregate` / `pass_count` / `both`) + `regression_magnitude` numbers.
+   - Aggregate vendor-identity pass rate (`overall_metrics.vendor_identity_pass_rate`): legacy `<float>`, candidate `<float>`, Δ = `<candidate − legacy>` (R-021.13 Metric A).
+   - Corpus field-level accuracy (`overall_metrics.field_accuracy`): legacy `<float>`, candidate `<float>`, Δ = `<candidate − legacy>` (R-021.13 Metric B).
+   - FAIL only: `regressing_metric` (`pass_rate` / `field_accuracy` / `both`) + `regression_magnitude` numbers.
    - BLOCKED only: `blocked_cause` (named hardware/runtime cause; per FR-022, R-021.6).
 
 2. **Promotion Decision (YYYY-MM-DD)**:
@@ -107,7 +107,7 @@ A CPU-safe contract test (`tests/contract_tests/test_promotion_decision_sync.py`
 Appendix A + Appendix B together MUST be **sufficient for a third party to re-derive the promotion verdict without re-running**. Specifically:
 
 - Every value in the Appendix A jitter/material tables MUST be computable from the raw `phase_timings.*` numbers in the same row (no implicit rounding, no hidden adjustment).
-- The Appendix B verdict MUST be computable from the Appendix B per-document score + pass table (no implicit aggregation rule beyond R-021.13 sum/count).
+- The Appendix B verdict MUST be computable from the Appendix B per-document field-accuracy + pass table together with the two recorded `overall_metrics.*` aggregates (no implicit aggregation rule beyond what R-021.13 prescribes: candidate ≥ legacy on both Metric A `vendor_identity_pass_rate` and Metric B `field_accuracy`).
 - The promotion decision's gating-verdict reference MUST resolve to a verdict in the same Appendix B (no out-of-document reference).
 
 ## What this contract does NOT cover
