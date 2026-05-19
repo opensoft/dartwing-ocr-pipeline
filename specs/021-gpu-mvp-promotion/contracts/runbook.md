@@ -99,7 +99,7 @@ Optional flags for documented variants:
 
 The runbook MUST NOT show a `ppstructurev3@cpu` alternative, an `ollama@cpu` alternative, a `stub` voter alternative, an `--output-dir` flag (it is not honored in warm-corpus mode), or any inline "if GPU fails, try …" degraded path.
 
-### 5. `## Step 3 — Read the `run_summary` Line`
+### 5. ``## Step 3 — Read the `run_summary` Line``
 
 The demo emits a single `kind: "run_summary"` JSON line on stdout (feature 015 lineage). The runbook explains each of the seven required observability fields with operator-facing reading guidance:
 
