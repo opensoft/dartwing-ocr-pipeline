@@ -25,3 +25,8 @@ The legacy prototype script still exists for reference — treat it as scaffoldi
 
 ```bash
 python step2_ocr_ensemble.py --input test_invoices/your_invoice.pdf
+```
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.

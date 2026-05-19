@@ -7,6 +7,10 @@ name = "dartwing-ocr"
 version = "0.1.0"
 description = "Dartwing Stage 1 OCR pipeline: contracts and validator for vendor-identity artifacts."
 requires-python = ">=3.12"
+license = {file = "LICENSE"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+]
 dependencies = [
     "jsonschema>=4.22,<5",
     "pydantic>=2.7,<3",
