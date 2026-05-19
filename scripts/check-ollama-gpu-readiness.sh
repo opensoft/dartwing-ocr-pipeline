@@ -37,6 +37,13 @@
 #   stderr (FAIL only): one human-readable line beginning with "FAIL:".
 
 set -u
+# SonarCloud security/reliability hardening (PR #43): -o pipefail ensures
+# a non-zero exit from any pipe stage (e.g., yq segfault piped to head)
+# propagates as the pipe's exit code instead of being masked by the
+# rightmost stage's success. The script's explicit `if ! ...` blocks
+# retain control of the determinism contract; pipefail just removes the
+# silent-failure surface.
+set -o pipefail
 
 # ----------------------------------------------------------------------------
 # Argument parsing

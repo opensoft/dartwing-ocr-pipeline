@@ -135,7 +135,7 @@ Compare the two `run_summary` lines:
 
 - The candidate run's `evidence_gate_suppressed_fallback_count` MUST be > 0 (one increment per `sufficient` document).
 - The candidate run's per-doc `phase_timings.engine_init` and `phase_timings.warmup` keys MUST be absent on suppressed documents (lazy construction; FR-008).
-- Default-lane `phase_timings.engine_init` and `phase_timings.warmup` keys MUST be present (PPStructureV3 fallback ran for every doc).
+- Default-lane: at least one document's `phase_timings.engine_init` key is present (PPStructureV3 fallback ran, and the one-time engine-init timing attaches to the FIRST per-doc record that constructs the engine per feature 016 amortization — later docs in the same run do NOT carry their own `engine_init` entry). `phase_timings.warmup` is conditional on this demo invoking `--gpu-warmup`; the canonical demo command above does NOT pass it, so `warmup` is legitimately absent from every record. If the operator added `--gpu-warmup` to the command, `warmup` would appear on the first record. Use the absence of `warmup` to confirm the canonical (no-warmup) invocation, not to suspect a broken run.
 
 ## Scratch Discipline
 

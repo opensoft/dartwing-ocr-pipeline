@@ -31,14 +31,17 @@ import pytest
 from dartwing_ocr.preprocessing.pipeline import (
     decide_ocr_only_fallback_disposition,
 )
-from tests.pipeline_tests.gpu_helpers import (
-    extract_run_summary,
-    find_evidence_gate_record,
-    find_per_document_record,
-    invoke_pipeline,
-    phase_keys,
-    setup_scratch_corpus,
-)
+
+# Copilot review fix (PR #43): `gpu_helpers` is imported lazily inside each
+# @pytest.mark.gpu test below — NOT at module top. This file mixes one CPU
+# seam test (`test_all_sufficient_corpus_disposes_as_suppress`) with two GPU
+# subprocess tests, and pytest imports the whole module during collection
+# regardless of marker filters. Module-top import would drag `gpu_helpers`
+# onto CPU collection paths, contradicting `gpu_helpers`'s "GPU tests only"
+# assumption. The two GPU tests below each do their own local import,
+# matching the deferred-import pattern already used in
+# `tests/unit/preprocessing/test_warmup_skip_fallback_exception.py`
+# (multi-agent-review MED-1).
 
 
 def _sufficient_pages() -> list[dict[str, Any]]:
@@ -93,6 +96,16 @@ def test_all_sufficient_corpus_disposes_as_suppress() -> None:
 def test_lazy_no_warmup(tmp_path: Path) -> None:
     """FR-008: all-sufficient corpus + no `--gpu-warmup` keeps PPStructureV3
     unconstructed for every document."""
+    # Deferred import: see module docstring + Copilot fix note above.
+    from tests.pipeline_tests.gpu_helpers import (
+        extract_run_summary,
+        find_evidence_gate_record,
+        find_per_document_record,
+        invoke_pipeline,
+        phase_keys,
+        setup_scratch_corpus,
+    )
+
     # inv_001_easy and inv_002_easy are the two easy-tier documents that
     # the FR-011 benchmark subset uses as `sufficient` representatives.
     doc_ids = ["inv_001_easy", "inv_002_easy"]
@@ -147,6 +160,16 @@ def test_forced_construction_with_warmup(tmp_path: Path) -> None:
     """FR-009: same all-sufficient corpus + `--gpu-warmup` set forces
     PPStructureV3 construction (warmup phase key present), even though
     every document is later suppressed."""
+    # Deferred import: see module docstring + Copilot fix note above.
+    from tests.pipeline_tests.gpu_helpers import (
+        extract_run_summary,
+        find_evidence_gate_record,
+        find_per_document_record,
+        invoke_pipeline,
+        phase_keys,
+        setup_scratch_corpus,
+    )
+
     doc_ids = ["inv_001_easy", "inv_002_easy"]
     documents_file, _ = setup_scratch_corpus(scratch_root=tmp_path, doc_ids=doc_ids)
 

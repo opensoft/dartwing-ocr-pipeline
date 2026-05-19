@@ -7,18 +7,25 @@ Used by:
 - ``test_warmup_skip_fallback_exception.py`` (T012 GPU variant — deferred
   import inside the GPU test body per multi-agent-review MED-1)
 
-These helpers are imported by ``pytest.mark.gpu``-marked tests only; CPU
-CI skips the tests at collection time (root ``conftest.py`` skip-gate)
-and never imports this module. The helpers therefore assume a GPU-capable
-workstation is running them.
+These helpers are intended for use by ``pytest.mark.gpu``-marked tests.
+At the pytest layer, the root ``conftest.py`` skip-gate prevents the
+GPU tests themselves from RUNNING on CPU CI, and pytest's ``-m 'not
+gpu'`` filter deselects them. But pytest still IMPORTS each test
+module (and any module it imports) during collection regardless of
+marker filters — so this module IS imported on CPU collection paths
+whenever a test file that references it is collected.
 
-**Import-time invariant (MED-1)**: this module MUST stay side-effect-free
-at import time. No print, no logging-config, no Paddle import, no Ollama
-call. The CPU-only sibling tests in `tests/unit/preprocessing/` rely on
-this so they can co-exist alongside the GPU subprocess test in their
-file without dragging in import-time work. If you need to introduce a
-side effect here, move the affected code into a function body and import
-that function lazily from the GPU test bodies that use it.
+**Import-time invariant (MED-1, hardened per Copilot review on PR #43)**:
+this module MUST stay side-effect-free at import time. No print, no
+logging-config, no Paddle import, no Ollama call, no filesystem reads
+outside the stdlib `pathlib` constants below. Files that mix CPU tests
+with GPU tests in the same module (e.g.,
+``test_evidence_gate_all_suppressed_lazy_construction.py``) defer the
+import of these helpers into the GPU test function body itself so the
+import path doesn't fire on CPU collection. New side effects added
+here would break CPU collection in those files; if you need a side
+effect, put it in a function body and import that function lazily
+from the GPU test bodies that use it.
 
 The module name does not start with ``test_`` so pytest's
 ``python_files = ["test_*.py"]`` filter does not collect it.
