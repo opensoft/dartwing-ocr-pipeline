@@ -70,6 +70,7 @@ No stdout is emitted on FAIL. Stderr templates MUST name the unmet prerequisite 
 
 ## Behavior contract
 
+0. **Shell options**: the script runs under `set -u` (undefined-variable references abort) AND `set -o pipefail` (the rightmost non-zero exit status of any pipe propagates as the pipe's exit code, instead of being masked by the rightmost stage's success). `set -e` (errexit) is deliberately NOT enabled — the script controls every failure path explicitly via `if ! …` blocks so the exit-code-to-status-literal mapping in §Exit codes is the only source of truth. Adding `set -e` would conflict with that mapping.
 1. **Argument parsing**: missing or unrecognized flags → exit `4` with stderr template `FAIL: voter-config <path> missing or malformed (usage error)`. The helper does NOT print a usage banner to stderr beyond the FAIL line.
 2. **Voter-config read**: read `--voter-config` PATH; parse as YAML via `yq -r '.model_name'`; require non-empty string; on any failure → exit `4`.
 3. **HTTP fetch**: `curl --silent --show-error --fail --max-time 10 <base_url>/api/ps`; on curl non-zero or non-200 → exit `3`.
