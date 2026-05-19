@@ -42,12 +42,24 @@ Four-run benchmark discipline (R-020.16):
 Per-key change assertion (FR-015 / Clarifications Session 2026-05-16 Q1
 Option A): for each *suppressed* document (one with
 ``evidence_gate_suppressed_fallback_count`` incrementing on that doc),
-assert ONLY ``phase_timings.per_page_inference`` and ``phase_timings.total``
-decrease vs. legacy run 2; assert ``paddle_import``, ``gpu_bind_probe``,
-``engine_init``, ``warmup``, ``rasterization``, ``artifact_write`` stay
-within the per-key jitter band. For *unsuppressed* documents (candidate
-gate decision was ``borderline`` or ``insufficient`` and the fallback
-ran), assert all keys stay within their respective jitter bands.
+assert ONLY the top-level sibling ``per_page_inference`` AND
+``phase_timings.total`` decrease vs. legacy run 2; assert
+``phase_timings.paddle_import``, ``phase_timings.gpu_bind_probe``,
+``phase_timings.engine_init``, ``phase_timings.rasterization``, and
+``phase_timings.artifact_write`` stay within the per-key jitter band.
+``phase_timings.warmup`` is conditionally present — it appears only
+when the benchmark invocation passes ``--gpu-warmup`` (the R-020.16
+discipline calls for ``--gpu-warmup`` ONCE at session start; the warmup
+key then appears on the first benchmarked document only per feature 016
+amortization). Assertions over ``warmup`` MUST be guarded by
+"if key present" and MUST NOT require warmup on every per-doc record.
+``per_page_inference`` is a sibling, not a ``phase_timings.*`` child;
+the test reads it from ``per_document[i].per_page_inference``, not from
+``per_document[i].phase_timings.per_page_inference``.
+
+For *unsuppressed* documents (candidate gate decision was ``borderline``
+or ``insufficient`` and the fallback ran), assert all timing keys stay
+within their respective jitter bands.
 
 5-doc subset lookup procedure (R-020.13):
 
@@ -76,25 +88,39 @@ import pytest
 
 pytestmark = pytest.mark.gpu
 
-# Phase-timing keys emitted by the GPU lane per feature 014/015/016 timing
-# surface. Of these, ONLY `per_page_inference` and `total` are allowed to
-# decrease on a suppressed document; every other key must stay within the
-# host's per-key jitter band.
-_GPU_PHASE_KEYS: tuple[str, ...] = (
-    "paddle_import",
-    "gpu_bind_probe",
-    "engine_init",
-    "warmup",
-    "rasterization",
-    "per_page_inference",
-    "artifact_write",
-    "total",
+# Timing keys observed on the GPU lane per feature 014/015/016 timing
+# surface. Tuple form: (key_name, location). `location` is "phase_timings"
+# for `phase_timings.<key>` children and "sibling" for `per_page_inference`
+# which is a top-level sibling of `phase_timings` on `per_document[i]`
+# (see `src/dartwing_ocr/pipeline/timing.py::build_per_document_success`).
+# Of these, ONLY `per_page_inference` (sibling) and `phase_timings.total`
+# are allowed to decrease on a suppressed document; every other key must
+# stay within the host's per-key jitter band. `phase_timings.warmup` is
+# conditionally present — only when `--gpu-warmup` is passed and only on
+# the first benchmarked document per feature 016 amortization; assertions
+# over `warmup` MUST be guarded by "if key present".
+_GPU_TIMING_KEYS: tuple[tuple[str, str], ...] = (
+    ("paddle_import", "phase_timings"),
+    ("gpu_bind_probe", "phase_timings"),
+    ("engine_init", "phase_timings"),
+    ("warmup", "phase_timings"),  # conditional: only when --gpu-warmup passed
+    ("rasterization", "phase_timings"),
+    ("per_page_inference", "sibling"),
+    ("artifact_write", "phase_timings"),
+    ("total", "phase_timings"),
 )
+_CONDITIONAL_KEYS: frozenset[str] = frozenset({"warmup"})
 _ALLOWED_DECREASE_KEYS: frozenset[str] = frozenset({"per_page_inference", "total"})
 
 # R-020.13 / R-017.11 default subset — fallback when 017/019 quickstart
 # tables are still TBD. The benchmark MUST record which list was used in
 # ``quickstart.md`` Appendix A.
+#
+# Cross-file invariant: this MUST match
+# ``tests/pipeline_tests/test_quality_gate_two_metric_evidence_gate.py::
+# _EXPECTED_BENCHMARK_SUBSET`` (the FR-011 fixed five-document subset).
+# Both are derived from `specs/021-gpu-mvp-promotion/spec.md` Assumptions /
+# FR-011. If you change one, change the other in the same commit.
 _DEFAULT_5_DOC_SUBSET: tuple[str, ...] = (
     "inv_001_easy",
     "inv_002_easy",
@@ -134,8 +160,23 @@ def test_evidence_gate_benchmark_four_run_per_key_deltas_gpu(
     # GPU run replaces this body with the real four-run benchmark loop
     # and updates `specs/020-vendor-evidence-gate/quickstart.md`
     # Appendix A + `research.md` Appendix B with the recorded numbers.
-    _ = tmp_path, _GPU_PHASE_KEYS, _ALLOWED_DECREASE_KEYS, _DEFAULT_5_DOC_SUBSET
-    pytest.fail(
+    _ = (
+        tmp_path,
+        _GPU_TIMING_KEYS,
+        _CONDITIONAL_KEYS,
+        _ALLOWED_DECREASE_KEYS,
+        _DEFAULT_5_DOC_SUBSET,
+    )
+    # PR #43 Copilot review (commit b1b032f): `pytest.fail(...)` here
+    # would hard-fail on GPU hosts and block the rest of the `-m gpu`
+    # suite (the converted end-to-end tests from US2). Operators want
+    # to run the full GPU suite even while this specific benchmark is
+    # still deferred. Switched to `pytest.skip(...)` so the deferral
+    # is reported as a clear skip (not a failure) — the test still
+    # appears in the GPU summary with its named cause, and the suite
+    # continues past this file. When the benchmark body lands per
+    # R-020.15, replace this `skip` with the real four-run loop.
+    pytest.skip(
         "GPU benchmark deferred per R-020.15; wire the four-run loop "
         "(warmup × 1, legacy × 2, candidate × 2; per-key change "
         "assertion per FR-015 / Clarifications Q1 Option A) when the "

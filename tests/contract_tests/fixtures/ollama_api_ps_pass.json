@@ -1,0 +1,22 @@
+{
+  "models": [
+    {
+      "name": "gemma4:e4b",
+      "model": "gemma4:e4b",
+      "size": 5120000000,
+      "size_vram": 5120000000,
+      "processor": "100% GPU",
+      "context_length": 8192,
+      "digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gemma3",
+        "families": ["gemma3"],
+        "parameter_size": "4B",
+        "quantization_level": "Q4_K_M"
+      },
+      "expires_at": "2030-01-01T00:00:00Z"
+    }
+  ]
+}

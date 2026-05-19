@@ -1,0 +1,35 @@
+# Canonical voter config for the GPU MVP demo readiness check
+# (feature 021 R-021.7).
+#
+# Consumed by `scripts/check-ollama-gpu-readiness.sh` ONLY (FR-002
+# readiness helper). The script reads `model_name` to look up the
+# matched entry in Ollama's GET /api/ps response and assert
+# `size_vram > 0 AND size_vram == size`.
+#
+# This file is NOT a pipeline CLI argument. The demo command selects
+# the extraction model via `--extract-profile ollama@gpu`, which
+# `src/dartwing_ocr/pipeline/stages.py::_ollama_extract_factory`
+# resolves to `src/dartwing_ocr/extract/voters/configs/gemma-edge.yaml`
+# and reads `ollama.model_tag` from. The CPU-safe contract test
+# `tests/contract_tests/test_voter_config_model_alignment.py` is the
+# bridge — it asserts `configs/voter/ollama-gpu.yaml::model_name ==
+# gemma-edge.yaml::ollama.model_tag` so the readiness check and the
+# extractor cannot drift apart.
+#
+# Schema: feature 005 voter-config schema. Single required top-level key
+# `model_name: string (non-empty)`. The model name MUST match the entry name
+# Ollama reports in `/api/ps` for the loaded extraction model.
+#
+# Pinned to match the model the `ollama@gpu` extraction profile actually
+# binds. The profile is wired in `src/dartwing_ocr/pipeline/stages.py`
+# (`_ollama_extract_factory`) to load the on-disk voter config
+# `src/dartwing_ocr/extract/voters/configs/gemma-edge.yaml`, whose
+# `ollama.model_tag` is `gemma4:e4b`. Readiness MUST check the same model
+# the extractor will bind, otherwise the helper can PASS while extraction
+# fails on the wrong model. If the demo binds a different voter config
+# (e.g., a future `ollama@gpu` variant), update both files in the same
+# commit. A CPU-safe contract test
+# (`tests/contract_tests/test_voter_config_model_alignment.py`) enforces
+# the match.
+
+model_name: "gemma4:e4b"
