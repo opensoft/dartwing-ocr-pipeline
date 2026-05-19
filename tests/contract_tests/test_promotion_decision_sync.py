@@ -36,8 +36,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 APPENDIX_B_PATH = REPO_ROOT / "specs" / "020-vendor-evidence-gate" / "quickstart.md"
 RUNBOOK_PATH = REPO_ROOT / "docs" / "stage1-vendor-identity" / "runbook-gpu-mvp-demo.md"
@@ -164,6 +162,14 @@ def _extract_gating_verdict(path: Path) -> tuple[str, str] | None:
     # Strip the literal "YYYY-MM-DD" placeholder so it can't accidentally
     # match _RECORDED_VERDICT_REFERENCE_RE.
     sanitized = line.replace("YYYY-MM-DD", "")
+    # Multi-agent-review verification round (P2-3, agent 4 audit): also
+    # reject lines that still carry the bracketed placeholder list
+    # `(PASS / FAIL / BLOCKED)` — a partially-filled mirror (operator
+    # dated the line but left the verdict tokens as the literal
+    # placeholder list) would otherwise match `(date, "PASS")` because
+    # `PASS` is the first verdict token in the placeholder.
+    if all(token in sanitized for token in ("PASS", "FAIL", "BLOCKED")):
+        return None
     ref_match = _RECORDED_VERDICT_REFERENCE_RE.search(sanitized)
     if ref_match is None:
         return None
@@ -233,4 +239,47 @@ def test_promotion_gating_verdict_reference_agrees() -> None:
         f"appendix-recording.md §Promotion-decision synchronization "
         f"contract. The Appendix B subsection is authoritative; update "
         f"the runbook mirror to match."
+    )
+
+
+def test_gating_verdict_partial_fill_returns_none(tmp_path: Path) -> None:
+    """Multi-agent review verification round (P2-3, agent 4 audit):
+    if the operator dates the Gating-verdict line but leaves the verdict
+    tokens as the literal `(PASS / FAIL / BLOCKED)` placeholder list,
+    `_extract_gating_verdict` MUST return None (treat as unrecorded) —
+    NOT extract `('YYYY-MM-DD-stripped-date', 'PASS')` as if a real
+    verdict were recorded.
+    """
+    # Operator dated the line but kept the placeholder verdict list.
+    partial_fill = (
+        "# Test fixture\n\n"
+        "**Decision**: _(placeholder)_\n\n"
+        "**Gating verdict**: see §Quality-Gate Verdict 2026-05-19 "
+        "(`PASS` / `FAIL` / `BLOCKED`) above.\n"
+    )
+    fake = tmp_path / "partial.md"
+    fake.write_text(partial_fill, encoding="utf-8")
+
+    result = _extract_gating_verdict(fake)
+    assert result is None, (
+        f"partial-fill regression: a date+placeholder-verdict-list line "
+        f"MUST extract as None (unrecorded), got {result!r}. The regex "
+        f"sanitization must reject lines containing the literal "
+        f"placeholder list."
+    )
+
+
+def test_gating_verdict_fully_recorded_extracts_tuple(tmp_path: Path) -> None:
+    """Positive case: a Gating-verdict line with a concrete date AND a
+    single concrete verdict literal extracts as `(date, verdict)`.
+    """
+    recorded = (
+        "**Gating verdict**: see §Quality-Gate Verdict 2026-05-19 (PASS) above.\n"
+    )
+    fake = tmp_path / "recorded.md"
+    fake.write_text(recorded, encoding="utf-8")
+
+    result = _extract_gating_verdict(fake)
+    assert result == ("2026-05-19", "PASS"), (
+        f"recorded reference should extract as ('2026-05-19', 'PASS'); got {result!r}"
     )

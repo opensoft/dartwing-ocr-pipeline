@@ -366,39 +366,39 @@ The legacy section "Deferred GPU verification (filled at landing or in `tasks.md
 
 **Underlying inputs**: see Appendix A `### Run YYYY-MM-DD` subsection that produced these numbers.
 
-#### Per-document score + pass table (run-2 only)
+#### Per-document field-accuracy + pass table (run-2 only)
 
-| Document         | legacy pass rate | candidate pass rate | legacy passed? | candidate passed? |
-|------------------|-----------------:|--------------------:|:--------------:|:-----------------:|
-| `inv_001_easy`   |                  |                     |                |                   |
-| `inv_002_easy`   |                  |                     |                |                   |
-| `inv_006_medium` |                  |                     |                |                   |
-| `inv_011_hard`   |                  |                     |                |                   |
-| `inv_012_hard`   |                  |                     |                |                   |
+| Document         | legacy field_accuracy | candidate field_accuracy | legacy passed? | candidate passed? |
+|------------------|----------------------:|-------------------------:|:--------------:|:-----------------:|
+| `inv_001_easy`   |                       |                          |                |                   |
+| `inv_002_easy`   |                       |                          |                |                   |
+| `inv_006_medium` |                       |                          |                |                   |
+| `inv_011_hard`   |                       |                          |                |                   |
+| `inv_012_hard`   |                       |                          |                |                   |
 
-(`passed?` columns transcribe each lane's `documents[i].document_pass_fail.vendor_identity_passed` boolean from `evaluation_run_summary.json`.)
+(`field_accuracy` columns transcribe each lane's `documents[i].field_accuracy` from `evaluation_run_summary.json`. `passed?` columns transcribe each lane's `documents[i].document_pass_fail.vendor_identity_passed` boolean from the per-doc `evaluation_document.json`.)
 
-#### Aggregate metrics
+#### Aggregate metrics (feature-021 R-021.13 verification-round revision)
 
-- **Metric (a) — `overall_metrics.vendor_identity_pass_rate`**:
+- **Metric (a) — `overall_metrics.vendor_identity_pass_rate`** (boolean-aggregated, vendor-identity-only signal):
   - legacy: _<float 0.0–1.0>_
   - candidate: _<float 0.0–1.0>_
   - Δ (candidate − legacy): _<signed float>_
   - non-regression: candidate ≥ legacy → ✓ / ✗
 
-- **Metric (b) — per-document pass count** (sum of `vendor_identity_passed` booleans):
-  - legacy: _<int 0–5>_
-  - candidate: _<int 0–5>_
-  - Δ (candidate − legacy): _<signed int>_
+- **Metric (b) — `overall_metrics.field_accuracy`** (continuous, mean per-document field-level match rate; independent of Metric A per R-021.13):
+  - legacy: _<float 0.0–1.0>_
+  - candidate: _<float 0.0–1.0>_
+  - Δ (candidate − legacy): _<signed float>_
   - non-regression: candidate ≥ legacy → ✓ / ✗
 
 #### Verdict-specific content (populate one block only, per the verdict literal above)
 
 - **PASS** (both metrics non-regressing): the verdict permits — but does NOT perform — promote-to-default (FR-029). The team's recorded Promotion Decision below cites this verdict.
 - **FAIL** (at least one metric regresses):
-  - regressing_metric: `aggregate` / `pass_count` / `both`
-  - regression_magnitude (aggregate Δ): _<signed float>_
-  - regression_magnitude (pass_count Δ): _<signed int>_
+  - regressing_metric: `pass_rate` / `field_accuracy` / `both`
+  - regression_magnitude (pass_rate Δ): _<signed float>_
+  - regression_magnitude (field_accuracy Δ): _<signed float>_
   - Skip-fallback MUST remain opt-in (FR-021 / FR-027). Promotion is not a permitted option.
 - **BLOCKED** (verdict could not be computed):
   - blocked_cause: _<named hardware/runtime cause, e.g., "missing expected.json for inv_006_medium" (R-021.16), "ROCm SDMA path unavailable on this kernel" (R-021.6)>_

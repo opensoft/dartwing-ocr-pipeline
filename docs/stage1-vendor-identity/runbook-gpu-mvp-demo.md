@@ -105,7 +105,7 @@ The demo emits a single `kind: "run_summary"` JSON line on stdout (feature 015 l
 - **`schema_version`** — feature 020 `RunSummary.SCHEMA_VERSION` (currently `0.1.7`). Audit signal: confirms the demo is running on the feature-020 baseline.
 - **`preprocess_lane`** — `gpu0` for this demo (the lane suffix is the device index; CPU lanes emit `cpu`). If this field reads `cpu`, something has gone wrong; STOP and re-run Step 1.
 - **`preprocess_strategy_id`** — `ocr-only-v1` (matches the `--preprocess-strategy ocr-only-v1` flag passed in Step 2b; the `--preprocess-profile ppstructurev3@gpu` flag selects the lane, not the strategy).
-- **`evidence_gate_id`** — the active preset (feature 020 `header-default-v1` or the chosen preset).
+- **`evidence_gate_id`** — must be `"v1"` (the closed vocabulary at landing per feature 020 R-020.2). Anything other than `"v1"` means either a future preset has been added or the serializer is buggy; STOP and investigate.
 - **`evidence_gate_state_counts`** — distribution of `sufficient` / `borderline` / `insufficient` across the processed documents. Reads as a per-state count map.
 - **`evidence_gate_documents`** — per-document table of decisions; cross-check against scratch outputs at `/tmp/021-bench/demo/<doc>/`.
 - **`evidence_gate_suppressed_fallback_count`** — non-zero iff at least one `sufficient` document was suppressed (i.e., the demo was run with `--evidence-gate-skip-fallback` or its default-on equivalent if promote-to-default is the recorded posture; see §Promotion Decision below).
@@ -166,7 +166,7 @@ Concise table of common failure paths with named-cause remediation:
 | Symptom                                                  | Likely cause                          | Remediation                                                                              |
 |----------------------------------------------------------|----------------------------------------|------------------------------------------------------------------------------------------|
 | Paddle preflight returns a non-success state             | Wrong interpreter, missing ROCm, …    | Read `readiness-paddle.log`; fix the named blocker; re-run Step 1a.                       |
-| `check-ollama-gpu-readiness.sh` exits non-zero           | See Step 1b remediation table.         | …                                                                                        |
+| `check-ollama-gpu-readiness.sh` exits non-zero           | See Step 1b remediation table.         | Read the script's `FAIL:` stderr line; apply the Step 1b remediation table row matching that named cause; re-run Step 1b. |
 | Demo command exits non-zero                              | Likely a missed readiness step.        | Re-run Step 1; if Step 1 passes, capture the demo stderr and escalate.                    |
 | `evidence_gate_suppressed_fallback_count` is unexpectedly 0 on a `sufficient` document | Skip-fallback not enabled. | Either pass `--evidence-gate-skip-fallback` (stay-opt-in operational mode) or confirm the runbook reflects the current promotion decision. |
 | Demo wall-time exceeds 5× expected (Step 2b > ~10 min)   | GPU contention, cache cold, ROCm drift | Verify exclusive GPU access (no other process consuming `rocm-smi`-reported VRAM); re-run; if persistent, raise a workstation finding. |

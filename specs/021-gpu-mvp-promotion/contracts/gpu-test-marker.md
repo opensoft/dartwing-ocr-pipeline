@@ -83,8 +83,8 @@ Each converted test MUST satisfy the acceptance criteria already captured in spe
 
 - **Given**: legacy and candidate runs on the FR-011 five-document subset produced via the GPU lane.
 - **When**: feature-007 evaluator runs on each lane's scratch root.
-- **Then**: the test computes the FR-019 aggregate score sum and per-document pass count for each lane (R-021.13) and asserts the verdict resolution:
-  - `candidate_aggregate >= legacy_aggregate AND candidate_pass_count >= legacy_pass_count` → PASS
+- **Then**: the test reads the FR-019 aggregate vendor-identity pass rate (`overall_metrics.vendor_identity_pass_rate`) and corpus field-level accuracy (`overall_metrics.field_accuracy`) for each lane (R-021.13, verification-round revision) and asserts the verdict resolution:
+  - `candidate_pass_rate >= legacy_pass_rate AND candidate_field_accuracy >= legacy_field_accuracy` → PASS
   - At least one regression → FAIL with the specific metric named
   - Unable to compute due to hardware/runtime cause → BLOCKED (test marks itself BLOCKED via a `pytest.xfail(strict=False)` with the named cause); the BLOCKED verdict is NOT treated as test failure but IS recorded in Appendix B per FR-022.
 

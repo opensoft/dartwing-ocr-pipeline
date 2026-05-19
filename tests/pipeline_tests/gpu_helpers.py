@@ -106,11 +106,11 @@ def extract_run_summary(stdout: str) -> dict[str, Any]:
     found or if it is malformed.
     """
     for line in stdout.splitlines():
-        line = line.strip()
-        if not line.startswith("{"):
+        stripped = line.strip()
+        if not stripped.startswith("{"):
             continue
         try:
-            obj = json.loads(line)
+            obj = json.loads(stripped)
         except json.JSONDecodeError:
             continue
         if isinstance(obj, dict) and obj.get("kind") == "run_summary":

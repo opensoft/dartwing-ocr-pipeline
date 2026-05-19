@@ -24,11 +24,16 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 HELPER = REPO_ROOT / "scripts" / "check-ollama-gpu-readiness.sh"
 FIXTURES_DIR = REPO_ROOT / "tests" / "contract_tests" / "fixtures"
 
-# The pass / partial / cpu_only fixtures all load this model name. Must
-# match `configs/voter/ollama-gpu.yaml` `model_name`, which is pinned to
-# what the `ollama@gpu` extraction profile binds (gemma-edge.yaml ollama.model_tag).
-MODEL_LOADED = "gemma4:e4b"
-# The missing fixture loads `gemma2:9b` instead; querying MODEL_LOADED returns
+# The pass / partial / cpu_only fixtures all load this model name. Derived
+# from the pass fixture at module load time so changing the fixture and
+# leaving this constant stale is impossible (multi-agent-review P1-1 +
+# code-quality MED-3 hardening). Must match `configs/voter/ollama-gpu.yaml`
+# `model_name` — the CPU-safe `test_voter_config_model_alignment.py`
+# enforces THAT side of the chain.
+MODEL_LOADED = json.loads(
+    (FIXTURES_DIR / "ollama_api_ps_pass.json").read_text(encoding="utf-8")
+)["models"][0]["name"]
+# The missing fixture loads a different model; querying MODEL_LOADED returns
 # "not loaded" because the matched-name lookup fails.
 
 
@@ -239,7 +244,7 @@ def test_fail_no_voter_config_flag():
 # with a named-prerequisite stderr template per FR-004 / SC-002.
 
 
-def test_fail_voter_config_flag_truncated(tmp_path):
+def test_fail_voter_config_flag_truncated():
     """`--voter-config` as the last argv with no value following MUST exit 4
     fast (HIGH-1 regression) — not hang in an infinite loop."""
     result = _run_helper("--voter-config")

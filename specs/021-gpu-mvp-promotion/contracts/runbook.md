@@ -106,7 +106,7 @@ The demo emits a single `kind: "run_summary"` JSON line on stdout (feature 015 l
 - `schema_version` — must be `0.1.7` (feature 020 baseline).
 - `preprocess_lane` — must be `gpu0` (the lane suffix is the device index; CPU lanes emit `cpu`; audit signal per FR-003 interpreter-path verification — anything other than a `gpu*` value means the demo silently fell back to the CPU interpreter).
 - `preprocess_strategy_id` — must be `ocr-only-v1` (matches the `--preprocess-strategy ocr-only-v1` flag the canonical command passes; the `--preprocess-profile ppstructurev3@gpu` flag selects the preprocess lane / engine, not the strategy).
-- `evidence_gate_id` — should match the active preset (feature 020 `header-default-v1` or operator's chosen preset).
+- `evidence_gate_id` — must be `"v1"` (the closed vocabulary at landing per R-020.2; `_EVIDENCE_GATE_ID_VOCAB = frozenset({"v1"})` in `src/dartwing_ocr/pipeline/timing.py`). Future presets grow the closed set via additive code change; until then, anything other than `"v1"` is either a future code state or a serializer bug.
 - `evidence_gate_state_counts` — distribution of `sufficient` / `borderline` / `insufficient` across the processed documents.
 - `evidence_gate_documents` — per-document table of decisions; cross-check against scratch outputs.
 - `evidence_gate_suppressed_fallback_count` — non-zero iff at least one `sufficient` document was suppressed (i.e., demo was run with `--evidence-gate-skip-fallback` or its default-on equivalent if promote-to-default landed).
@@ -151,8 +151,8 @@ Concise table of common failure paths with named-cause remediation:
 
 - [feature-020 quickstart Appendix A](../../specs/020-vendor-evidence-gate/quickstart.md) — recorded benchmark numbers.
 - [feature-020 quickstart Appendix B](../../specs/020-vendor-evidence-gate/quickstart.md) — quality-gate verdict + promotion decision authority.
-- [docs/stage1-vendor-identity/ollama-runtime.md](./ollama-runtime.md) — host Ollama setup, WSL caveats.
-- [docs/stage1-vendor-identity/gpu-warmup-and-cache.md](./gpu-warmup-and-cache.md) — `MIOPEN_FIND_MODE=2`, warmup behavior, cache locations.
+- [docs/stage1-vendor-identity/ollama-runtime.md](../../../docs/stage1-vendor-identity/ollama-runtime.md) — host Ollama setup, WSL caveats.
+- [docs/stage1-vendor-identity/gpu-warmup-and-cache.md](../../../docs/stage1-vendor-identity/gpu-warmup-and-cache.md) — `MIOPEN_FIND_MODE=2`, warmup behavior, cache locations.
 
 ## Runbook update lifecycle
 

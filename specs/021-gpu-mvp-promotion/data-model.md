@@ -125,32 +125,32 @@ JitterBand {
 ```text
 QualityGateVerdict {
     verdict: enum{"PASS", "FAIL", "BLOCKED"}
-    legacy_aggregate_score: float | null                  # sum of legacy run-2 per-doc vendor_identity_score (R-021.13)
-    candidate_aggregate_score: float | null               # sum of candidate run-2 per-doc vendor_identity_score
-    legacy_pass_count: int | null                         # count of legacy run-2 documents with vendor_identity_pass == true
-    candidate_pass_count: int | null                      # count of candidate run-2 documents with vendor_identity_pass == true
+    legacy_pass_rate: float | null                        # legacy run-2 overall_metrics.vendor_identity_pass_rate (R-021.13)
+    candidate_pass_rate: float | null                     # candidate run-2 overall_metrics.vendor_identity_pass_rate
+    legacy_field_accuracy: float | null                   # legacy run-2 overall_metrics.field_accuracy (R-021.13)
+    candidate_field_accuracy: float | null                # candidate run-2 overall_metrics.field_accuracy
     per_document: list<{
         document_id: str
-        legacy_score: float
-        candidate_score: float
-        legacy_pass: bool
+        legacy_field_accuracy: float                       # per-doc field_accuracy from legacy evaluation_run_summary
+        candidate_field_accuracy: float                    # per-doc field_accuracy from candidate evaluation_run_summary
+        legacy_pass: bool                                  # per-doc vendor_identity_passed (from evaluation_document.json)
         candidate_pass: bool
     }>
-    regressing_metric: enum{"aggregate", "pass_count", "both", "none"} | null      # populated only on FAIL
+    regressing_metric: enum{"pass_rate", "field_accuracy", "both", "none"} | null  # populated only on FAIL
     regression_magnitude: {
-        aggregate_delta: float | null                     # candidate - legacy (negative ⇒ regression)
-        pass_count_delta: int | null                      # candidate - legacy (negative ⇒ regression)
-    } | null                                               # populated only on FAIL
-    blocked_cause: str | null                             # named cause; populated only on BLOCKED
-    recorded_at: str                                       # ISO-8601 date
+        pass_rate_delta: float | null                      # candidate - legacy (negative ⇒ regression)
+        field_accuracy_delta: float | null                 # candidate - legacy (negative ⇒ regression)
+    } | null                                                # populated only on FAIL
+    blocked_cause: str | null                              # named cause; populated only on BLOCKED
+    recorded_at: str                                        # ISO-8601 date
 }
 ```
 
 **Validation**:
 
-- PASS requires `candidate_aggregate_score >= legacy_aggregate_score AND candidate_pass_count >= legacy_pass_count` (FR-020 strict conjunction).
+- PASS requires `candidate_pass_rate >= legacy_pass_rate AND candidate_field_accuracy >= legacy_field_accuracy` (FR-020 strict conjunction). The two metrics are mathematically independent on a fixed-N corpus per R-021.13.
 - FAIL requires at least one metric strictly less than legacy. `regressing_metric` and `regression_magnitude` MUST be populated.
-- BLOCKED requires `legacy_aggregate_score`, `candidate_aggregate_score`, `legacy_pass_count`, `candidate_pass_count`, and `per_document` to be `null`. `blocked_cause` MUST be a non-empty string naming a specific hardware/runtime cause (FR-022, R-021.6).
+- BLOCKED requires `legacy_pass_rate`, `candidate_pass_rate`, `legacy_field_accuracy`, `candidate_field_accuracy`, and `per_document` to be `null`. `blocked_cause` MUST be a non-empty string naming a specific hardware/runtime cause (FR-022, R-021.6).
 - `per_document` length MUST equal 5 (the FR-011 subset) on PASS / FAIL; `null` on BLOCKED.
 
 **State transitions**: A verdict is immutable once recorded; a re-evaluation produces a new dated record.

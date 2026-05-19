@@ -116,7 +116,6 @@ fi
 response_file="$(mktemp)"
 trap 'rm -f "$response_file"' EXIT INT TERM
 
-curl_err=""
 if ! curl_err="$(curl --silent --show-error --fail --max-time 10 "$api_url" -o "$response_file" 2>&1)"; then
     echo "FAIL: Ollama unreachable at $api_url (${curl_err:-curl non-zero})" >&2
     exit 3

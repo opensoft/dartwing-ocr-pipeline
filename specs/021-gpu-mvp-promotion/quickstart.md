@@ -146,7 +146,11 @@ Then extract the run-2 `phase_timings.*` per document per lane from the `run_sum
     /tmp/021-bench/candidate/run2/
 
 # Each command writes `evaluation_document.json` into every per-doc folder under <root> and
-# `evaluation_run_summary.json` at <root>. Then compute the verdict per FR-020 (PASS = candidate >= legacy on BOTH metrics):
+# `evaluation_run_summary.json` at <root>. The two FR-019 metrics read directly from each lane's run summary
+# (verification-round revision per R-021.13):
+#   - Metric A: overall_metrics.vendor_identity_pass_rate    (boolean-aggregated; range [0.0, 1.0])
+#   - Metric B: overall_metrics.field_accuracy               (continuous; mean per-doc field-level match rate)
+# Then compute the verdict per FR-020 (PASS = candidate >= legacy on BOTH metrics):
 .venv-paddle-rocm/bin/python -m pytest -m gpu tests/pipeline_tests/test_quality_gate_two_metric_evidence_gate.py -v
 ```
 
@@ -220,7 +224,7 @@ grep -E '@cpu|stub-voter' docs/stage1-vendor-identity/runbook-gpu-mvp-demo.md &&
 
 - [spec.md](./spec.md) — feature spec + Clarifications 2026-05-18.
 - [plan.md](./plan.md) — this feature's implementation plan.
-- [research.md](./research.md) — R-021.1 through R-021.14 planning decisions.
+- [research.md](./research.md) — R-021.1 through R-021.16 planning decisions.
 - [data-model.md](./data-model.md) — entity shapes for verdicts, run records, jitter band, promotion decision.
 - [contracts/ollama-readiness-helper.md](./contracts/ollama-readiness-helper.md) — shell helper invocation contract.
 - [contracts/gpu-test-marker.md](./contracts/gpu-test-marker.md) — pytest marker + test-conversion contract.
