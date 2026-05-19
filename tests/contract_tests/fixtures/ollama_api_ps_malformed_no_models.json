@@ -1,0 +1,4 @@
+{
+  "schema_version": "0.99.0-fictional",
+  "note": "Valid JSON but missing the `models` key entirely. Tests the PR #43 Copilot finding (`scripts/check-ollama-gpu-readiness.sh:195`): a structurally-malformed /api/ps response MUST exit 3 (unreachable/unexpected shape) and NOT exit 2 (model not loaded)."
+}

@@ -191,8 +191,21 @@ fi
 
 # ----------------------------------------------------------------------------
 # JSON parse: find the matched-model entry in `.models[]`.
+#
+# PR #43 Copilot review: validate that `.models` exists AND is an array
+# BEFORE the name match. The previous `(.models // [])` defaulted a
+# missing/non-array `.models` to an empty list — the script then exited
+# 2 ("model not loaded") for a structurally-malformed response. The
+# contract classifies an unexpected response shape as exit 3
+# ("Ollama unreachable / unparseable JSON"), not exit 2.
 # ----------------------------------------------------------------------------
-matched="$(jq -c --arg n "$model_name" '(.models // []) | map(select(.name == $n)) | .[0] // empty' "$response_file" 2>/dev/null)"
+models_type="$(jq -r 'if has("models") then (.models | type) else "missing" end' "$response_file" 2>/dev/null || echo "error")"
+if [[ "$models_type" != "array" ]]; then
+    echo "FAIL: Ollama unreachable at $api_url (unexpected /api/ps shape: .models is $models_type, expected array)" >&2
+    exit 3
+fi
+
+matched="$(jq -c --arg n "$model_name" '.models | map(select(.name == $n)) | .[0] // empty' "$response_file" 2>/dev/null)"
 
 if [[ -z "$matched" || "$matched" == "null" ]]; then
     echo "FAIL: extraction model \"$model_name\" not loaded in Ollama at $api_url" >&2

@@ -165,6 +165,42 @@ def test_fail_cpu_only(tmp_path, serve_fixture):
 
 
 # ---------------------------------------------------------------------------
+# Exit 3 — malformed /api/ps response shape (PR #43 Copilot finding)
+# ---------------------------------------------------------------------------
+
+
+def test_fail_malformed_no_models_key(tmp_path, serve_fixture):
+    """PR #43 Copilot finding: an /api/ps response missing the `models`
+    key entirely MUST exit 3 (unreachable / unexpected shape), NOT
+    exit 2 (model not loaded). The contract classifies structural
+    malformation as exit 3 — see §Exit codes."""
+    voter_config = _write_voter_config(tmp_path, MODEL_LOADED)
+    with serve_fixture("ollama_api_ps_malformed_no_models.json") as url:
+        result = _run_helper("--voter-config", str(voter_config), "--base-url", url)
+
+    assert result.returncode == 3, (
+        f"expected exit 3 (malformed shape), got {result.returncode}; "
+        f"stderr={result.stderr!r}"
+    )
+    assert result.stdout == ""
+    assert "unexpected /api/ps shape" in result.stderr
+    assert "missing" in result.stderr  # .models reported as "missing"
+
+
+def test_fail_malformed_models_not_array(tmp_path, serve_fixture):
+    """PR #43 Copilot finding: an /api/ps response where `.models` is
+    not an array (e.g., an object) MUST exit 3, NOT exit 2."""
+    voter_config = _write_voter_config(tmp_path, MODEL_LOADED)
+    with serve_fixture("ollama_api_ps_malformed_models_object.json") as url:
+        result = _run_helper("--voter-config", str(voter_config), "--base-url", url)
+
+    assert result.returncode == 3
+    assert result.stdout == ""
+    assert "unexpected /api/ps shape" in result.stderr
+    assert "object" in result.stderr  # jq's type literal for a JSON object
+
+
+# ---------------------------------------------------------------------------
 # Exit 2 — model not loaded
 # ---------------------------------------------------------------------------
 

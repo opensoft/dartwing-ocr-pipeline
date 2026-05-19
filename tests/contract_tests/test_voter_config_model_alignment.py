@@ -42,8 +42,29 @@ EXTRACTOR_VOTER_CONFIG = (
 
 
 def _load_yaml(path: Path) -> dict:
+    """Load a YAML file and assert its root is a mapping.
+
+    PR #43 Copilot review: `yaml.safe_load(...)` can legally return a
+    non-mapping (list, string, scalar) for valid-but-not-a-mapping YAML
+    input. Both voter-config schemas this contract test loads
+    (`configs/voter/ollama-gpu.yaml`, `gemma-edge.yaml`) require a
+    top-level mapping; rejecting non-mapping input here keeps the
+    failure trace actionable instead of erroring downstream with
+    `AttributeError: 'list' object has no attribute 'get'`.
+    """
     assert path.is_file(), f"required voter config not found: {path}"
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if loaded is None:
+        # Empty file is treated as an empty mapping for the alignment
+        # check; downstream key lookups will fail with the actionable
+        # "missing top-level key" message rather than an AttributeError.
+        return {}
+    assert isinstance(loaded, dict), (
+        f"{path}: expected a YAML mapping at the document root; got "
+        f"{type(loaded).__name__} ({loaded!r:.120}). Voter configs MUST "
+        f"be a mapping per feature-005 schema."
+    )
+    return loaded
 
 
 def test_readiness_helper_voter_config_present() -> None:

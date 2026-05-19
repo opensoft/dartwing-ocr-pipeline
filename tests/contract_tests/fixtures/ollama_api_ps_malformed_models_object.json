@@ -1,0 +1,6 @@
+{
+  "models": {
+    "note": "models should be an array, not an object — tests the PR #43 Copilot finding that a non-array `.models` MUST exit 3, not exit 2",
+    "actual_models": []
+  }
+}
