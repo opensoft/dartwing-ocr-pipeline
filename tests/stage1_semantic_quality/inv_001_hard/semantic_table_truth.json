@@ -1,0 +1,70 @@
+{
+  "document_id": "inv_001_hard",
+  "schema_version": "1.3.0",
+  "rows": [
+    {
+      "row_id": "row-1",
+      "required_row_text_tokens": ["Widget", "Basic"],
+      "quantity": "2",
+      "description": "Widget A Basic",
+      "unit_price": "10.00",
+      "amount": "20.00"
+    },
+    {
+      "row_id": "row-2",
+      "required_row_text_tokens": ["Premium", "Service"],
+      "quantity": "3",
+      "description": "Premium Service",
+      "unit_price": "21.00",
+      "amount": "63.00"
+    },
+    {
+      "row_id": "row-3",
+      "required_row_text_tokens": ["Deluxe", "Package"],
+      "quantity": "44",
+      "description": "Deluxe Package",
+      "unit_price": "50.00",
+      "amount": "2200.00"
+    },
+    {
+      "row_id": "row-4",
+      "required_row_text_tokens": ["Annual", "Maintenance", "Service"],
+      "quantity": "5",
+      "description": "Annual Maintenance",
+      "unit_price": "5.00",
+      "amount": "25.00"
+    },
+    {
+      "row_id": "row-5",
+      "required_row_text_tokens": ["Standard", "Kit"],
+      "quantity": "7",
+      "description": "Standard Kit",
+      "unit_price": "11.00",
+      "amount": "99.00"
+    },
+    {
+      "row_id": "row-6",
+      "required_row_text_tokens": ["Inverted", "Row"],
+      "quantity": "1",
+      "description": "Inverted Row",
+      "unit_price": "200.00",
+      "amount": "400.00"
+    },
+    {
+      "row_id": "row-7",
+      "required_row_text_tokens": ["Bulk", "Order"],
+      "quantity": "8",
+      "description": "Bulk Order",
+      "unit_price": "33.00",
+      "amount": "264.00"
+    },
+    {
+      "row_id": "row-8",
+      "required_row_text_tokens": ["Final", "Item"],
+      "quantity": "6",
+      "description": "Final Item",
+      "unit_price": "15.00",
+      "amount": "90.00"
+    }
+  ]
+}

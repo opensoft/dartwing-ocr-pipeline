@@ -1,0 +1,95 @@
+{
+  "contract_set_version": "1.3.0",
+  "pipeline_version": "feature-022-synthetic-v1",
+  "document_id": "inv_001_hard",
+  "source_type": "pdf",
+  "source_file": "inv_001_hard.synthetic",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 2550,
+      "height": 1000,
+      "rotation_detected": 0,
+      "blocks": [],
+      "raw_ocr_lines": [
+        {
+          "line_id": "p1_l1",
+          "bbox": [200, 100, 1200, 150],
+          "text": "Acme Corporation Invoice",
+          "confidence": 0.99
+        },
+        {
+          "line_id": "p1_l2",
+          "bbox": [200, 300, 2200, 340],
+          "text": "Widget A Basic qty 2 unit $10.00 total $20.00",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l3",
+          "bbox": [200, 350, 2200, 390],
+          "text": "Premium Service qty 3 unit $21:00 total $63.00",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l4",
+          "bbox": [200, 400, 2200, 440],
+          "text": "Deluxe Package unit $50.00 total $2,200.00",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l5",
+          "bbox": [200, 450, 2200, 490],
+          "text": "Maintenance Service qty 5 unit $5.00 total $25.00",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l6",
+          "bbox": [200, 500, 2200, 540],
+          "text": "Standard Kit qty 7 unit $11.00 total $77.00",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l7",
+          "bbox": [200, 550, 2200, 590],
+          "text": "Inverted Row total $400.00 qty 1 unit $200.00",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l8",
+          "bbox": [200, 600, 2200, 640],
+          "text": "Bulk Order qty 8 unit $33:00 total $264.00",
+          "confidence": 0.97
+        },
+        {
+          "line_id": "p1_l9",
+          "bbox": [200, 650, 2200, 690],
+          "text": "Final Item qty 6 unit $15.00 total $90.00",
+          "confidence": 0.97
+        }
+      ]
+    }
+  ],
+  "document_text": "Acme Corporation Invoice Widget A Basic qty 2 unit $10.00 total $20.00 Premium Service qty 3 unit $21:00 total $63.00 Deluxe Package unit $50.00 total $2,200.00 Maintenance Service qty 5 unit $5.00 total $25.00 Standard Kit qty 7 unit $11.00 total $77.00 Inverted Row total $400.00 qty 1 unit $200.00 Bulk Order qty 8 unit $33:00 total $264.00 Final Item qty 6 unit $15.00 total $90.00",
+  "tables": [],
+  "quality": {
+    "scan_quality": "fair",
+    "skew_detected": false,
+    "noise_level": "medium"
+  },
+  "ingestion_sources": {
+    "paddleocr_vl": {
+      "enabled": true,
+      "status": "success"
+    },
+    "falcon_ocr": {
+      "enabled": false,
+      "status": "not_implemented"
+    },
+    "falcon_perception": {
+      "enabled": false,
+      "status": "not_implemented"
+    }
+  },
+  "warnings": []
+}
