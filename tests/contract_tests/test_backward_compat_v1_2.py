@@ -244,20 +244,20 @@ def test_previous_contract_set_is_still_loadable() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_writer_pinned_to_v1_2_omits_semantic_fields() -> None:
-    """Per Codex P1 on PR #47: writer with contract_set_version='1.2.0' must
-    NOT emit semantic_table_quality / semantic_table_quality_passed.
+def _build_evaluation_for_version_test(
+    *,
+    contract_set_version: str,
+    semantic_status: str,
+    folder_path: Path,
+):
+    """Build a minimal DocumentEvaluation for the version-guard tests.
 
-    This preserves the v1.2.0 schema's byte-identity (MI-22) for callers
-    that explicitly pin the older contract version. The new fields are
-    additive in v1.3.0+ only; emitting them on a v1.2.0-pinned doc would
-    cause the older schema validator to fail.
+    Extracted as a helper to reduce duplication between the v1.2.0 and
+    v1.3.0 writer-gating tests (Sonar python:S4144 — duplicate code)
+    and to scope the noisy import block to one place.
     """
-    from dartwing_ocr.evaluator.document import (
-        DocumentEvaluation,
-        supports_semantic_quality_fields,
-    )
     from dartwing_ocr.evaluator.compare import FieldResult
+    from dartwing_ocr.evaluator.document import DocumentEvaluation
     from dartwing_ocr.evaluator.gates import DocumentPassFail
     from dartwing_ocr.evaluator.scoring import (
         ComparisonSummary,
@@ -269,10 +269,6 @@ def test_writer_pinned_to_v1_2_omits_semantic_fields() -> None:
         SupportingEvidence,
     )
 
-    # Sanity: helper says v1.2.0 does NOT support semantic fields.
-    assert supports_semantic_quality_fields("1.2.0") is False
-    assert supports_semantic_quality_fields("1.3.0") is True
-
     field_results = tuple(
         FieldResult(
             field_name=name,
@@ -282,10 +278,8 @@ def test_writer_pinned_to_v1_2_omits_semantic_fields() -> None:
         )
         for name in SCORED_FIELDS
     )
-    # Build a v1.2.0-pinned evaluation with a populated semantic result —
-    # the writer should STILL skip the semantic keys.
-    evaluation = DocumentEvaluation(
-        contract_set_version="1.2.0",
+    return DocumentEvaluation(
+        contract_set_version=contract_set_version,
         document_id="inv_001_easy",
         difficulty="easy",
         challenge_tags=(),
@@ -305,9 +299,9 @@ def test_writer_pinned_to_v1_2_omits_semantic_fields() -> None:
         field_results=field_results,
         notes=(),
         document_score=1.0,
-        folder_path=Path("/tmp/inv_001_easy"),
+        folder_path=folder_path,
         semantic_quality_result=SemanticQualityResult(
-            status="failed",
+            status=semantic_status,
             failed_checks=[],
             row_reasons=None,
             supporting_evidence=SupportingEvidence(
@@ -320,6 +314,33 @@ def test_writer_pinned_to_v1_2_omits_semantic_fields() -> None:
             cause=None,
             cause_detail=None,
         ),
+    )
+
+
+def test_writer_pinned_to_v1_2_omits_semantic_fields(tmp_path: Path) -> None:
+    """Per Codex P1 on PR #47: writer with contract_set_version='1.2.0' must
+    NOT emit semantic_table_quality / semantic_table_quality_passed.
+
+    This preserves the v1.2.0 schema's byte-identity (MI-22) for callers
+    that explicitly pin the older contract version. The new fields are
+    additive in v1.3.0+ only; emitting them on a v1.2.0-pinned doc would
+    cause the older schema validator to fail.
+
+    Uses pytest's tmp_path fixture (NOT a hardcoded /tmp/... path) to
+    satisfy Sonar python:S5443 — publicly-writable directory.
+    """
+    from dartwing_ocr.evaluator.document import supports_semantic_quality_fields
+
+    # Sanity: helper says v1.2.0 does NOT support semantic fields.
+    assert supports_semantic_quality_fields("1.2.0") is False
+    assert supports_semantic_quality_fields("1.3.0") is True
+
+    # Build a v1.2.0-pinned evaluation with a populated semantic result —
+    # the writer should STILL skip the semantic keys.
+    evaluation = _build_evaluation_for_version_test(
+        contract_set_version="1.2.0",
+        semantic_status="failed",
+        folder_path=tmp_path / "inv_001_easy",
     )
     out = evaluation.to_persistable_dict()
     # v1.2.0 writer must NOT emit either semantic key.
@@ -336,70 +357,19 @@ def test_writer_pinned_to_v1_2_omits_semantic_fields() -> None:
     assert not errors, f"v1.2.0-pinned output failed v1.2.0 schema: {errors}"
 
 
-def test_writer_pinned_to_v1_3_emits_semantic_fields() -> None:
+def test_writer_pinned_to_v1_3_emits_semantic_fields(tmp_path: Path) -> None:
     """Per Codex P1 PR #47: v1.3.0-pinned writer DOES emit semantic fields.
 
     Symmetric check that the version-guard helper isn't accidentally
     suppressing emission for the current pinned version.
-    """
-    from dartwing_ocr.evaluator.document import DocumentEvaluation
-    from dartwing_ocr.evaluator.compare import FieldResult
-    from dartwing_ocr.evaluator.gates import DocumentPassFail
-    from dartwing_ocr.evaluator.scoring import (
-        ComparisonSummary,
-        ResultLabel,
-        SCORED_FIELDS,
-    )
-    from dartwing_ocr.evaluator.semantic_quality_report import (
-        SemanticQualityResult,
-        SupportingEvidence,
-    )
 
-    field_results = tuple(
-        FieldResult(
-            field_name=name,
-            expected=None,
-            actual=None,
-            result=ResultLabel.NOT_APPLICABLE,
-        )
-        for name in SCORED_FIELDS
-    )
-    evaluation = DocumentEvaluation(
+    Uses pytest's tmp_path fixture (NOT a hardcoded /tmp/... path) to
+    satisfy Sonar python:S5443 — publicly-writable directory.
+    """
+    evaluation = _build_evaluation_for_version_test(
         contract_set_version="1.3.0",
-        document_id="inv_001_easy",
-        difficulty="easy",
-        challenge_tags=(),
-        comparison_summary=ComparisonSummary(
-            applicable_field_count=0,
-            matched_field_count=0,
-            mismatched_field_count=0,
-            missing_prediction_count=0,
-            unexpected_prediction_count=0,
-            field_accuracy=0.0,
-        ),
-        document_pass_fail=DocumentPassFail(
-            vendor_identity_passed=False,
-            review_routing_passed=False,
-            overall_passed=False,
-        ),
-        field_results=field_results,
-        notes=(),
-        document_score=1.0,
-        folder_path=Path("/tmp/inv_001_easy"),
-        semantic_quality_result=SemanticQualityResult(
-            status="passed",
-            failed_checks=[],
-            row_reasons=None,
-            supporting_evidence=SupportingEvidence(
-                body_confidence_mean=0.9,
-                body_confidence_min=0.9,
-                body_line_count=1,
-                body_token_count=1,
-                header_band_excluded=False,
-            ),
-            cause=None,
-            cause_detail=None,
-        ),
+        semantic_status="passed",
+        folder_path=tmp_path / "inv_001_easy",
     )
     out = evaluation.to_persistable_dict()
     assert "semantic_table_quality" in out
