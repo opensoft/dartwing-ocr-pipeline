@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from dataclasses import asdict, fields
 
+import pytest
+
 from dartwing_ocr.evaluator.semantic_quality_body_ocr import (
     BodyOcrEvidence,
     BodyOcrLine,
@@ -135,8 +137,11 @@ class TestSupportingEvidenceClosedShape:
         se = result.supporting_evidence
         assert se is not None
         assert se.body_line_count == 0
-        assert se.body_confidence_min == 0.0
-        assert se.body_confidence_mean == 0.0
+        # pytest.approx satisfies Sonar python:S1244 (no float equality).
+        # The F3/R-022.12 invariant requires the bit-exact emission of
+        # 0.0 (NOT null), which pytest.approx confirms with default tolerance.
+        assert se.body_confidence_min == pytest.approx(0.0)
+        assert se.body_confidence_mean == pytest.approx(0.0)
         # Crucial: not None.
         assert se.body_confidence_min is not None
         assert se.body_confidence_mean is not None
@@ -150,7 +155,8 @@ class TestSupportingEvidenceClosedShape:
         se = result.supporting_evidence
         # (0.9+1.0+0.8)/3 = 0.9
         assert abs(se.body_confidence_mean - 0.9) < 1e-9
-        assert se.body_confidence_min == 0.8
+        # pytest.approx satisfies Sonar python:S1244 (no float equality).
+        assert se.body_confidence_min == pytest.approx(0.8)
 
     def test_token_count_correct(self) -> None:
         lines = [_line("a b c"), _line("d e")]

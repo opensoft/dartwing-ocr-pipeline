@@ -14,6 +14,8 @@ OCR-only and PPStructureV3 outputs.
 
 from __future__ import annotations
 
+import pytest
+
 from dartwing_ocr.evaluator.semantic_quality_body_ocr import (
     EVIDENCE_GATE_Y_THRESHOLD_FRACTION,
     BodyOcrEvidence,
@@ -67,8 +69,12 @@ def _preprocess(pages: list[dict]) -> dict:
 class TestMiSevenImportedConstant:
     def test_y_threshold_re_exported_from_evidence_gate(self) -> None:
         """MI-7: constant comes from preprocessing.evidence_gate, not local."""
+        # `is` would also work since both names bind to the same Python
+        # float literal, but `==` keeps the test readable. The second
+        # check uses pytest.approx to satisfy Sonar python:S1244 (no
+        # float equality) without changing the test semantics.
         assert EVIDENCE_GATE_Y_THRESHOLD_FRACTION == _eg.Y_THRESHOLD_FRACTION
-        assert EVIDENCE_GATE_Y_THRESHOLD_FRACTION == 0.25
+        assert EVIDENCE_GATE_Y_THRESHOLD_FRACTION == pytest.approx(0.25)
 
 
 class TestHeaderBandExclusion:
