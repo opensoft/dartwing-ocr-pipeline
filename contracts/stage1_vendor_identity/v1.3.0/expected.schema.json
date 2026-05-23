@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.0.0/expected.schema.json",
+  "title": "expected",
+  "description": "Hand-labeled truth for one stage 1 document. No predictions, no confidence, no evaluation outcomes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_set_version",
+    "document_id",
+    "difficulty",
+    "challenge_tags",
+    "expected_review",
+    "expected_vendor_candidate"
+  ],
+  "properties": {
+    "contract_set_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "document_id": { "type": "string", "minLength": 1 },
+    "difficulty": {
+      "type": "string",
+      "enum": ["easy", "medium", "hard", "missing_name"]
+    },
+    "challenge_tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "explicit_company_name",
+          "missing_company_name",
+          "logo_only",
+          "footer_only",
+          "address_only",
+          "website_present",
+          "email_domain_present",
+          "ein_present",
+          "state_tax_id_present",
+          "vat_id_present",
+          "other_tax_id_present",
+          "multi_entity_page",
+          "remit_to_differs_from_vendor",
+          "low_quality_scan",
+          "rotated_scan",
+          "dense_header",
+          "portal_cover_page",
+          "faint_text"
+        ]
+      }
+    },
+    "expected_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manual_review_required", "review_reason"],
+      "properties": {
+        "manual_review_required": { "type": "boolean" },
+        "review_reason": { "type": ["string", "null"] }
+      }
+    },
+    "expected_vendor_candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "company_name",
+        "address",
+        "tax_ids",
+        "website",
+        "phone",
+        "email"
+      ],
+      "properties": {
+        "company_name": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "present", "inferred"],
+          "properties": {
+            "value": { "type": ["string", "null"] },
+            "present": { "type": "boolean" },
+            "inferred": { "type": "boolean" }
+          }
+        },
+        "address": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["street_1", "street_2", "city", "state", "postal_code", "country"],
+          "properties": {
+            "street_1": { "type": ["string", "null"] },
+            "street_2": { "type": ["string", "null"] },
+            "city": { "type": ["string", "null"] },
+            "state": { "type": ["string", "null"] },
+            "postal_code": { "type": ["string", "null"] },
+            "country": { "type": ["string", "null"] }
+          }
+        },
+        "tax_ids": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ein", "state_tax_id", "vat_id", "other_tax_id"],
+          "properties": {
+            "ein": { "type": ["string", "null"] },
+            "state_tax_id": { "type": ["string", "null"] },
+            "vat_id": { "type": ["string", "null"] },
+            "other_tax_id": { "type": ["string", "null"] }
+          }
+        },
+        "website": { "type": ["string", "null"] },
+        "phone": { "type": ["string", "null"] },
+        "email": { "type": ["string", "null"] }
+      }
+    },
+    "notes": { "type": ["string", "null"] }
+  }
+}
