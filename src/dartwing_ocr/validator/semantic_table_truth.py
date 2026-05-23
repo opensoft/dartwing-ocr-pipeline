@@ -234,9 +234,7 @@ def _missing_row_id_message(index: int) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _check_row_uniqueness(
-    rows: list[Any], sidecar_path: Path
-) -> list[SidecarError]:
+def _check_row_uniqueness(rows: list[Any]) -> list[SidecarError]:
     """Return a ROW_VIOLATION error for every duplicate ``row_id`` encountered.
 
     Iterates rows in declaration order; the first occurrence is the
@@ -419,7 +417,7 @@ def validate_sidecar(
     # (Q41 / validator-cli-contract.md §Error message content).
     rows = doc.get("rows") if isinstance(doc, dict) else None
     if isinstance(rows, list):
-        errors.extend(_check_row_uniqueness(rows, sidecar_path))
+        errors.extend(_check_row_uniqueness(rows))
         errors.extend(_check_per_row_cell_shapes(rows))
 
     return SemanticTruthValidationResult(

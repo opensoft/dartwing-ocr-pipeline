@@ -266,6 +266,19 @@ def test_t_row_id_exceeds_max_length_rejected(
     assert not _is_valid(validator, doc)
 
 
+def test_t2_document_id_exceeds_max_length_rejected(
+    validator: Draft202012Validator,
+) -> None:
+    # Per Sourcery review PR #46 2026-05-23: row_id has explicit maxLength
+    # coverage in test_t but document_id (same Q-SEC-2/B safety rule)
+    # lacks parallel coverage. Closes that gap.
+    doc = {
+        "document_id": "a" * 65,
+        "rows": [{"row_id": "row-1", "required_row_text_tokens": ["x"]}],
+    }
+    assert not _is_valid(validator, doc)
+
+
 def test_u_row_id_with_internal_whitespace_rejected(
     validator: Draft202012Validator,
 ) -> None:

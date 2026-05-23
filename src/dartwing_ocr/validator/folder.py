@@ -161,7 +161,12 @@ _SIDECAR_KIND_TO_CODE: dict[SidecarErrorKind, str] = {
     SidecarErrorKind.ROW_VIOLATION: ViolationCode.SIDECAR_ROW_VIOLATION,
     SidecarErrorKind.SCHEMA_INVALID: ViolationCode.SIDECAR_SCHEMA_INVALID,
     SidecarErrorKind.JSON_INVALID: ViolationCode.SIDECAR_JSON_INVALID,
-    SidecarErrorKind.MISSING_SIDECAR: ViolationCode.SIDECAR_ROW_VIOLATION,
+    # Note: SidecarErrorKind.MISSING_SIDECAR is intentionally NOT
+    # mapped. _sidecar_violations returns early (no error emitted) when
+    # the sidecar file is absent, so a mapping here would be dead code.
+    # The validate-semantic-truth CLI subcommand handles missing-file as
+    # a separate exit-code-4 case at the CLI layer. Removed per Sourcery
+    # review on PR #46 (2026-05-23).
 }
 
 

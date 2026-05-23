@@ -103,7 +103,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Validate the optional semantic_table_truth.json sidecar in a folder.",
     )
     sem.add_argument("path", type=Path)
-    sem.add_argument("--contract-set-version", dest="version", default=None)
+    # Note: no --contract-set-version flag here. The sidecar always
+    # validates against the active contract set's
+    # semantic_table_truth.schema.json; there is no per-call version
+    # override surface. (Sourcery review PR #46 2026-05-23: the previous
+    # flag was parsed but never threaded through to validate_sidecar,
+    # which always uses the active schema — removed to avoid a
+    # misleading CLI option.)
     _add_output_flags(sem)
 
     show = sub.add_parser("show", help="Inspect contract-set metadata.")
