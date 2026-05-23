@@ -40,6 +40,10 @@ AMENDED_SCHEMAS = frozenset({
 })
 
 # Schemas carried byte-identical from v1.2.0 to v1.3.0 (R-022.5).
+# README.md is intentionally NOT in this set — its header and
+# version-history paragraph legitimately differ between versions (the
+# v1.3.0 README mentions the v1.3.0 amendment). README accuracy is
+# verified separately by test_v1_3_readme_mentions_v1_3_0.
 CARRIED_SCHEMAS = frozenset({
     "preprocess_output.schema.json",
     "edge_extraction_output.schema.json",
@@ -47,7 +51,6 @@ CARRIED_SCHEMAS = frozenset({
     "final_structured_payload.schema.json",
     "evidence_packet.schema.json",
     "expected.schema.json",
-    "README.md",
 })
 
 
@@ -148,3 +151,19 @@ def test_amended_schemas_present_at_v1_3() -> None:
         assert (V1_3_DIR / schema_name).is_file(), (
             f"v1.3.0 amended schema missing: {schema_name}"
         )
+
+
+def test_v1_3_readme_mentions_v1_3_0() -> None:
+    """README.md header + version-history paragraph reference v1.3.0.
+
+    Per Copilot review on PR #44 (2026-05-23): the v1.3.0 README was
+    initially copied from v1.2.0 without updating the header. This
+    test guards against the regression returning.
+    """
+    readme = (V1_3_DIR / "README.md").read_text(encoding="utf-8")
+    # Header points at v1.3.0, not v1.2.0
+    assert "# contracts/stage1_vendor_identity/v1.3.0/" in readme
+    assert "# contracts/stage1_vendor_identity/v1.2.0/" not in readme
+    # Version-history paragraph mentions v1.3.0 + feature 022
+    assert "v1.3.0" in readme
+    assert "feature 022" in readme or "022" in readme
