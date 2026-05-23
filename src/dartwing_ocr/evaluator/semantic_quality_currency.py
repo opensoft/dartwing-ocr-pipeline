@@ -5,8 +5,13 @@ Module-level compiled constant:
     CANONICAL_MONEY_REGEX = r"^\$?\d{1,3}(,\d{3})*\.\d{2}$"
 
 Applied to the RAW observed OCR token text BEFORE FR-009 normalization
-(Q16 / MI-8). Accepts ``$21.00``, ``21.00``, ``$1,234.56``, ``1234.56``;
-rejects colon-for-decimal (``$21:00``) and truncated values (``$22:``).
+(Q16 / MI-8). Accepts ``$21.00``, ``21.00``, ``$1,234.56``; rejects
+colon-for-decimal (``$21:00``), truncated values (``$22:``), and
+ungrouped 4+ digit values (``1234.56`` / ``$1234.56`` — the ``\d{1,3}``
+quantifier caps the leading digit run at 3 before the optional comma
+group; data-model §9 line 257 originally claimed the inverse but
+contradicts the regex literal — clarified per Copilot review on PR #45
+2026-05-23).
 
 ``locate_currency_token`` implements per-field digit-sequence matching
 (Q35 / MI-9): scan raw tokens in serialization order and return the
@@ -30,14 +35,17 @@ CANONICAL_MONEY_REGEX: Final[re.Pattern[str]] = re.compile(
 Accepts:
 - ``21.00`` / ``$21.00``
 - ``1,234.56`` / ``$1,234.56``
-- ``1234.56`` / ``$1234.56`` (missing comma grouping is allowed — only
-  colon-for-decimal and truncated-cents are targeted defects)
 
 Rejects:
 - ``$21:00`` (colon-for-decimal)
 - ``$22:`` (truncated)
 - ``21.0`` (one cents digit)
 - ``$1,23.00`` (malformed comma grouping)
+- ``1234.56`` / ``$1234.56`` (ungrouped 4+ digit values — the
+  ``\d{1,3}`` quantifier caps the leading digit run at 3 before the
+  optional comma group; data-model §9 line 257 originally claimed
+  ungrouped values were accepted, contradicting the regex literal —
+  the regex is authoritative)
 """
 
 

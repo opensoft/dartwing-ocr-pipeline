@@ -77,17 +77,25 @@ def _anchor_one_row(
     if not lines:
         return None
 
-    best: tuple[int, int, int] | None = None  # (count, start, end_neg) for tie-break
-    # We minimize a sort key for tie-break:
-    #   primary  : negative count   (max count wins)
-    #   secondary: start index      (earliest start wins)
-    #   tertiary : end - start      (shortest span wins on equal start+count)
+    # Per data-model §12 / Q24 the tie-break is:
+    #   primary  : negative count   (max matched-token count wins)
+    #   secondary: start index      (earliest serialization-order start wins)
+    # Q24's "further ties broken by sidecar declaration order" rule
+    # applies BETWEEN rows, not within a single row's spans. For two
+    # equal-count-equal-start spans within one row, the iteration order
+    # below — `for end in range(start, n)` reaches smallest `end` first
+    # — deterministically resolves the remaining ambiguity via the
+    # strict `<` comparator: the first span encountered wins. This
+    # matches Q24 without adding the unspecified `end - start` tertiary
+    # rule Copilot review flagged on PR #45 (2026-05-23).
+    best: tuple[int, int] | None = None  # (-count, start)
+    best_span: tuple[int, int] | None = None
     n = len(lines)
     for start in range(n):
         for end in range(start, n):
             span_text = _normalized_span_text(lines, start, end)
             count = _count_tokens_present(span_text, required_tokens)
-            key = (-count, start, end - start)
+            key = (-count, start)
             if best is None or key < best:
                 best = key
                 best_span = (start, end)

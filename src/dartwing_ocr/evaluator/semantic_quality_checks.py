@@ -83,7 +83,7 @@ def evaluate_currency_shape(
     row: Any,
     anchor: RowAnchor | None,
     evidence: BodyOcrEvidence,
-) -> tuple[list[FailedCheck], set[int]]:
+) -> tuple[list[FailedCheck], set[str]]:
     """Evaluate currency-shape for each declared currency field.
 
     Per Q35 / MI-9: scan tokens in the anchored span in serialization
@@ -96,16 +96,19 @@ def evaluate_currency_shape(
     predicate), NOT ``malformed-currency-shape``.
 
     Returns:
-        Tuple of (failed checks for this row, indices already matched
-        within ``span_tokens``). The indices are returned so the
-        downstream missing-content predicate can know not to also flag
-        a currency field as missing when the raw token WAS found (just
-        malformed).
+        Tuple of (failed checks for this row, set of field names for
+        which a malformed-currency-shape failure was emitted). The
+        field-name set is consumed by
+        :func:`evaluate_missing_required_content` to suppress
+        double-flagging a found-but-malformed currency field as ALSO
+        missing-required-content — fixes the bug-risk identified by
+        Sourcery review on PR #45 (2026-05-23).
     """
     row_id = _get(row, "row_id")
     span_tokens, _ = _span_raw_tokens(evidence, anchor)
     failures: list[FailedCheck] = []
     already_matched: set[int] = set()
+    malformed_fields: set[str] = set()
 
     for field_name in _CURRENCY_FIELDS:
         expected = _get(row, field_name)
@@ -132,7 +135,8 @@ def evaluate_currency_shape(
                     position_index=0,  # set by orchestrator
                 )
             )
-    return failures, already_matched
+            malformed_fields.add(field_name)
+    return failures, malformed_fields
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +145,9 @@ def evaluate_currency_shape(
 
 
 def evaluate_missing_required_content(
-    row: Any, evidence: BodyOcrEvidence
+    row: Any,
+    evidence: BodyOcrEvidence,
+    suppress_currency_fields: frozenset[str] | set[str] = frozenset(),
 ) -> list[FailedCheck]:
     """Evaluate normalized exact containment for each declared cell field.
 
@@ -149,11 +155,26 @@ def evaluate_missing_required_content(
     single ``evidence.normalized_search_string``. Each declared cell
     value is normalized via :func:`normalize` and checked for substring
     presence.
+
+    Args:
+        row: Sidecar row truth object (dict or dataclass with the cell
+            fields as attrs/keys).
+        evidence: The document's :class:`BodyOcrEvidence`.
+        suppress_currency_fields: Currency field names (subset of
+            ``{"unit_price", "amount"}``) for which
+            :func:`evaluate_currency_shape` already emitted a
+            ``malformed-currency-shape`` failure. These fields are
+            skipped here to avoid double-flagging the same field as
+            both malformed AND missing — per Q35 / MI-9, the two
+            categories are mutually exclusive when a candidate token
+            WAS located (Sourcery review fix, PR #45 2026-05-23).
     """
     row_id = _get(row, "row_id")
     haystack = evidence.normalized_search_string
     failures: list[FailedCheck] = []
     for field_name in _CELL_FIELDS:
+        if field_name in suppress_currency_fields:
+            continue
         expected = _get(row, field_name)
         if expected is None:
             continue
@@ -223,7 +244,6 @@ def evaluate_row_alignment(
     row: Any,
     anchor: RowAnchor | None,
     evidence: BodyOcrEvidence,
-    currency_match_state: set[int],
 ) -> list[FailedCheck]:
     """Verify required values appear in order within the anchored span.
 
@@ -304,18 +324,20 @@ def evaluate_all_rows(
         row_id = _get(row, "row_id")
         anchor = anchors.get(row_id)
 
-        # 1. malformed-currency-shape (returns already-matched indices for downstream)
-        currency_failures, currency_matched = evaluate_currency_shape(
+        # 1. malformed-currency-shape (returns set of field names that
+        #    emitted a malformed failure, for downstream suppression).
+        currency_failures, currency_malformed_fields = evaluate_currency_shape(
             row, anchor, evidence
         )
-        # 2. missing-required-content
-        missing_failures = evaluate_missing_required_content(row, evidence)
+        # 2. missing-required-content — skip currency fields whose token
+        #    was located-but-malformed (Q35 / Sourcery PR #45 fix).
+        missing_failures = evaluate_missing_required_content(
+            row, evidence, currency_malformed_fields
+        )
         # 3. row-text-coverage-gap
         coverage_failures = evaluate_row_text_coverage(row, evidence)
         # 4. row-alignment-failure
-        alignment_failures = evaluate_row_alignment(
-            row, anchor, evidence, currency_matched
-        )
+        alignment_failures = evaluate_row_alignment(row, anchor, evidence)
 
         # Emit in fixed Q17 order:
         for fc in currency_failures:

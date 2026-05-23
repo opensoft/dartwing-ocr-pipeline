@@ -201,10 +201,36 @@ class TestEmptyAndEdgeCases:
         assert ev.normalized_search_string == ""
         assert ev.header_band_excluded is False
 
-    def test_zero_height_page_no_lines_included(self) -> None:
-        # Zero/missing height → cannot compute threshold; the gate should
-        # fail closed (treat all page-1 lines as excluded). For pages 2..N
-        # there's no filter so they're still included.
-        page = _page(1, 1000, [])
+    def test_zero_height_page_one_lines_fail_closed(self) -> None:
+        # Per Sourcery review on PR #45 (2026-05-23): the previous
+        # version of this test used height=1000 with no lines, which
+        # actually exercised the empty-pages path. This rewrite uses
+        # height=0 with one body line to cover the zero-height
+        # fail-closed branch in build_body_ocr_evidence: when the page-1
+        # threshold cannot be computed, every page-1 line is excluded
+        # and header_band_excluded is True.
+        page = _page(1, 0, [_line("p1_l1", 10, 100, 200, 130, "body text", 0.97)])
         ev = build_body_ocr_evidence(_preprocess([page]))
         assert list(ev.included_lines) == []
+        assert ev.excluded_line_count == 1
+        assert ev.header_band_excluded is True
+
+    def test_malformed_page1_bbox_fail_closed(self) -> None:
+        # Per Sourcery review on PR #45 (2026-05-23): bbox values that
+        # are not a 4-element numeric list (e.g. wrong length, NaN coords)
+        # must be excluded from body OCR on page 1 with header_band_excluded
+        # set to True — verifies the fail-closed paths in _line_top_y /
+        # build_body_ocr_evidence.
+        bad_lines = [
+            # wrong length
+            {"line_id": "p1_l1", "bbox": [10, 100, 200], "text": "trunc", "confidence": 0.95},
+            # not a list
+            {"line_id": "p1_l2", "bbox": "not-a-list", "text": "wrong-type", "confidence": 0.95},
+            # bool coords (numeric-looking but disallowed)
+            {"line_id": "p1_l3", "bbox": [True, False, True, False], "text": "bools", "confidence": 0.95},
+        ]
+        page = _page(1, 1000, bad_lines)
+        ev = build_body_ocr_evidence(_preprocess([page]))
+        assert list(ev.included_lines) == []
+        assert ev.excluded_line_count == 3
+        assert ev.header_band_excluded is True
