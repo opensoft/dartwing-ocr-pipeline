@@ -39,6 +39,7 @@ from typing import Optional
 
 
 SCHEMA_VERSION = "0.1.0"
+_GPU_DEVICE = "gpu:0"
 
 
 class PreflightState(str, Enum):

@@ -11,8 +11,15 @@ from dartwing_ocr.validator.loader import (
 )
 from dartwing_ocr.validator.version import InvalidSemverError, parse_semver
 
-ACTIVE_CONTRACT_SET_VERSION = "1.2.0"
+ACTIVE_CONTRACT_SET_VERSION = "1.3.0"
 STAGE1_CONTRACT_MAJOR = 1
+
+# Pre-feature-022 contract set version. Retained so backward-compat readers
+# (per feature 022 FR-019 / Q43 / R-022.9) can still load pre-1.3.0
+# evaluation_document.json / evaluation_run_summary.json artifacts via
+# load_contract_set("1.2.0"). Newly written semantic-aware artifacts MUST
+# be stamped ACTIVE_CONTRACT_SET_VERSION (1.3.0).
+PREVIOUS_CONTRACT_SET_VERSION = "1.2.0"
 
 
 class ContractVersionError(ValueError):

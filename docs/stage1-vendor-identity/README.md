@@ -27,6 +27,8 @@ Stage 1 is intentionally narrow:
   - product requirements for the post-feature-020 promotion checkpoint that closes deferred GPU verification, records benchmark and quality-gate evidence, and updates the MVP demo path to require GPU profiles without removing CPU/stub CI safety
 - `gpu-warmup-and-cache.md`
   - operator guide for feature 016: GPU warmup activation, MIOpen/COMGR cache locations and clearing, cold-vs-warm timing interpretation, and workspace-warning guidance
+- `amd-ryzen-ai-max-395-rocm-setup.md`
+  - workstation bring-up runbook for installing ROCm on Ryzen AI Max+ 395 / Radeon 8060S class machines and validating the Paddle + Ollama GPU path
 - `ollama-runtime.md`
   - how host Ollama and optional containerized Ollama fit into the stage 1 architecture
 - `../../docker/compose.ollama-rocm-linux.yml`
