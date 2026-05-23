@@ -15,7 +15,7 @@ This document formalizes the 8 entities the feature 022 semantic quality gate ma
 
 | Field | JSON type | Required | Constraints | Source |
 |---|---|---|---|---|
-| `document_id` | string | Yes | MUST match the containing per-document folder's basename exactly | FR-003, Q27 |
+| `document_id` | string | Yes | MUST match the containing per-document folder's basename exactly; MUST match safety pattern `^[A-Za-z0-9_-]{1,64}$` (canonical fixture pattern is a strict subset) | FR-003, Q27, security-clarify Q-SEC-2/B |
 | `rows` | array | Yes | Non-empty; each item is a Semantic Table Row Truth (§2) | FR-002, Q27 |
 | `schema_version` | string | No | e.g. `"1.3.0"`; when absent, the governed contract set is authoritative | Q27 |
 
@@ -37,7 +37,7 @@ This document formalizes the 8 entities the feature 022 semantic quality gate ma
 
 | Field | JSON type | Required | Constraints | Source |
 |---|---|---|---|---|
-| `row_id` | string | Yes | Non-empty; MUST be unique within the sidecar | Q11, FR-002 |
+| `row_id` | string | Yes | Non-empty; MUST be unique within the sidecar; MUST match safety pattern `^[A-Za-z0-9_-]{1,64}$` (rejects path-traversal, control characters, whitespace, runaway lengths) | Q11, FR-002, security-clarify Q-SEC-2/B |
 | `required_row_text_tokens` | array of string | Yes | Non-empty array; each element a non-empty string; drives FR-011 binary row-text-coverage check | Q28, FR-002 |
 | `quantity` | string | No | Optional; when present, becomes a required-content check (FR-009) | Q8, FR-002 |
 | `description` | string | No | Optional; when present, becomes a required-content check (FR-009) | Q8, FR-002 |
@@ -257,6 +257,7 @@ Pin these as module-level compiled `re.Pattern` constants at module load time. A
 | `CANONICAL_MONEY_REGEX` | `evaluator/semantic_quality_currency.py` | `r"^\$?\d{1,3}(,\d{3})*\.\d{2}$"` | Anchored canonical money regex. Applied to the RAW observed OCR token before FR-009 punctuation stripping (Q16). Accepts `$21.00`, `21.00`, `$1,234.56`; rejects `$21:00`, `$22:`, `21.0`, `$1234.00` (missing comma grouping is accepted — only colon-for-decimal and truncated-cents are the targeted defects). | Q10, FR-010 |
 | `EXPECTED_CELL_DECIMAL_REGEX` | `validator/semantic_table_truth.py` | `r"^\d+\.\d{2}$"` | Validates sidecar-author `unit_price`/`amount` fields at validation time. Rejects symbol-prefixed or malformed authored values. | Q9, FR-002 |
 | `CANONICAL_FOLDER_PATTERN` | `validator/corpus_pattern.py` | `r"^inv_\d{3}_(easy\|medium\|hard)$"` | Canonical scored-corpus folder allowlist. Shared by `validate corpus` subcommand and `semantic_quality_metrics.py` calibration exclusion logic. Default-exclude: any non-matching name is calibration/test-fixture material. | Q23, FR-027 |
+| `IDENTIFIER_SAFETY_REGEX` | `validator/semantic_table_truth.py` | `r"^[A-Za-z0-9_-]{1,64}$"` | Safety pattern applied to `document_id` and `row_id` in the sidecar (per security-clarify Q-SEC-2/B / FR-002 / FR-003). Alphanumeric + dash/underscore, ≤64 chars. Rejects path-traversal sequences, control characters, whitespace, punctuation-heavy PII-style labels, and runaway lengths. Canonical `CANONICAL_FOLDER_PATTERN` is a strict subset, so existing fixture names pass unchanged. | security-clarify Q-SEC-2/B, FR-002, FR-003 |
 
 ---
 

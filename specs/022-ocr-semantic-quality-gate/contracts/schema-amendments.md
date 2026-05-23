@@ -23,7 +23,9 @@ Full JSON Schema (Draft 2020-12) for the optional per-document sidecar file. Gov
     "document_id": {
       "type": "string",
       "minLength": 1,
-      "description": "Must match the per-document folder basename exactly (e.g. 'inv_001_hard'). Enforced at validator layer."
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "description": "Must match the per-document folder basename exactly (e.g. 'inv_001_hard'). Folder-basename match is enforced at validator layer. Safety pattern ^[A-Za-z0-9_-]{1,64}$ added per security-clarify Q-SEC-2/B; the canonical fixture pattern ^inv_\\d{3}_(easy|medium|hard)$ is a strict subset."
     },
     "schema_version": {
       "type": "string",
@@ -46,7 +48,9 @@ Full JSON Schema (Draft 2020-12) for the optional per-document sidecar file. Gov
         "row_id": {
           "type": "string",
           "minLength": 1,
-          "description": "Non-empty string, unique within the sidecar."
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "description": "Non-empty string, unique within the sidecar. Uniqueness enforced at validator layer. Safety pattern ^[A-Za-z0-9_-]{1,64}$ added per security-clarify Q-SEC-2/B; rejects path-traversal, control characters, whitespace, and runaway lengths."
         },
         "required_row_text_tokens": {
           "type": "array",

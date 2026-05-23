@@ -63,8 +63,8 @@
 
 ## FR ↔ Task ↔ Test Coverage (SC-010 / FR-032)
 
-- [ ] CHK032 Is every functional requirement FR-001 through FR-033 mentioned by at least one implementation task in tasks.md (per `/speckit.analyze` Coverage Summary)? [Coverage, FR-032]
-- [ ] CHK033 Is every functional requirement FR-001 through FR-033 mentioned by at least one test task in tasks.md? [Coverage, FR-032]
+- [ ] CHK032 Is every functional requirement FR-001 through FR-034 (FR-034 added 2026-05-23 per security-clarify Q-SEC-7/B) mentioned by at least one implementation task in tasks.md (per `/speckit.analyze` Coverage Summary)? [Coverage, FR-032]
+- [ ] CHK033 Is every functional requirement FR-001 through FR-034 (FR-034 added 2026-05-23 per security-clarify Q-SEC-7/B) mentioned by at least one test task in tasks.md? [Coverage, FR-032]
 - [ ] CHK034 Is every Success Criterion SC-001 through SC-010 mapped to at least one task in tasks.md? [Coverage]
 - [ ] CHK035 Is FR-006 (`expected.json` shape immutability) now covered by an EXPLICIT byte-identity test (post-F9), not just implicit via T018 AS5? [Coverage, Post-Fix F9]
 - [ ] CHK036 Is FR-030 (no line-item extraction) now covered by an EXPLICIT negative assertion (post-F8) instead of implicit absence? [Coverage, Post-Fix F8]
@@ -214,7 +214,7 @@
 
 ## Cross-Cutting: Completeness
 
-- [ ] CHK107 Does every active functional requirement FR-001 through FR-033 have a corresponding entry in the FR↔task↔test coverage matrix (planned via T070)? [Completeness, FR-032 / SC-010]
+- [ ] CHK107 Does every active functional requirement FR-001 through FR-034 (FR-034 added 2026-05-23 per security-clarify Q-SEC-7/B) have a corresponding entry in the FR↔task↔test coverage matrix (planned via T070)? [Completeness, FR-032 / SC-010]
 - [ ] CHK108 Does spec.md document EVERY edge case from the bulleted "Edge Cases" section with at least one corresponding task or test? [Completeness]
 - [ ] CHK109 Is every claim in the spec.md §Assumptions section either (a) verifiable, (b) testable, or (c) explicitly out-of-scope? [Completeness]
 - [ ] CHK110 Does plan.md Constitution Check explicitly address all 5 Principles AND all 7 Quality Gates with PASS/PASS-WITH-DOCS/FAIL? [Completeness, Constitution]
