@@ -330,3 +330,65 @@ def test_pass_rate_is_python_float_not_decimal() -> None:
     metrics = build_metrics_namespace(per_doc)
     rate = metrics["semantic_table_quality_pass_rate"]
     assert rate is None or isinstance(rate, float)
+
+
+# ---------------------------------------------------------------------------
+# Codex P2 PR #47 review fix (2026-05-23) — closed MI-12 category set
+# ---------------------------------------------------------------------------
+
+
+def test_unknown_failed_check_category_raises_value_error() -> None:
+    """MI-12 closed kebab-case set: aggregator MUST raise on unknown categories.
+
+    Per Sourcery + Copilot + Codex P2 review on PR #47: silently dropping
+    unknown categories would mask upstream contract drift and undercount
+    failures. The aggregator now raises ValueError citing the offending
+    category, folder, and the closed-set inventory.
+    """
+    bad_check = _failed_check("not-a-real-category")
+    bad_result = _failed_result_with_check(bad_check)
+    per_doc = [("inv_001_hard", bad_result)]
+    with pytest.raises(ValueError) as excinfo:
+        build_metrics_namespace(per_doc)
+    msg = str(excinfo.value)
+    assert "unknown failed-check category" in msg
+    assert "not-a-real-category" in msg
+    assert "inv_001_hard" in msg
+
+
+def _failed_check(category: str):
+    """Build a FailedCheck stand-in with an arbitrary category string."""
+    from dartwing_ocr.evaluator.semantic_quality_report import FailedCheck
+
+    return FailedCheck(
+        category=category,
+        row_id="row-1",
+        field="unit_price",
+        expected="1.00",
+        observed=None,
+        predicate="test-only",
+        position_index=0,
+    )
+
+
+def _failed_result_with_check(check):
+    """Build a SemanticQualityResult with status=failed and the given check."""
+    from dartwing_ocr.evaluator.semantic_quality_report import (
+        SemanticQualityResult,
+        SupportingEvidence,
+    )
+
+    return SemanticQualityResult(
+        status="failed",
+        failed_checks=[check],
+        row_reasons={"row-1": {"categories": [check.category], "reason": "test"}},
+        supporting_evidence=SupportingEvidence(
+            body_confidence_mean=0.9,
+            body_confidence_min=0.9,
+            body_line_count=1,
+            body_token_count=1,
+            header_band_excluded=False,
+        ),
+        cause=None,
+        cause_detail=None,
+    )

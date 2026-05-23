@@ -90,9 +90,19 @@ def build_metrics_namespace(
         elif status == "failed":
             failed += 1
             # Sum per-category failed-check counts from this document.
+            # MI-12 — closed kebab-case category set. Aggregator MUST
+            # raise on unknown categories rather than silently drop them
+            # (silent drop would mask upstream contract drift; per
+            # Sourcery + Copilot + Codex P2 review on PR #47 2026-05-23).
             for fc in result.failed_checks or ():
-                if fc.category in failed_check_counts:
-                    failed_check_counts[fc.category] += 1
+                if fc.category not in failed_check_counts:
+                    raise ValueError(
+                        f"build_metrics_namespace: unknown failed-check "
+                        f"category {fc.category!r} for folder "
+                        f"{folder_basename!r} (closed MI-12 set is "
+                        f"{sorted(failed_check_counts)})"
+                    )
+                failed_check_counts[fc.category] += 1
         elif status == "unevaluable":
             unevaluable += 1
         else:

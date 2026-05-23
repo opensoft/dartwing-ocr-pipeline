@@ -95,7 +95,8 @@
       "properties": {
         "status": {
           "type": "string",
-          "enum": ["passed", "failed", "not_applicable", "unevaluable"]
+          "enum": ["passed", "failed", "unevaluable"],
+          "description": "Closed enum within the semantic_table_quality object. The fourth canonical status, 'not_applicable', is intentionally excluded here: per data-model §7 the whole semantic_table_quality object MUST be ABSENT when status is not_applicable (signaled instead by document_pass_fail.semantic_table_quality_passed == null). The full four-value enum applies only to evaluation_run_summary.json's semantic_document_statuses entries. Tightened per Copilot + Codex P2 review on PR #47 2026-05-23."
         },
         "failed_checks": {
           "type": "array",

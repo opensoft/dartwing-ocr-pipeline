@@ -415,3 +415,76 @@ def test_semantic_table_quality_passed_rejects_integer(
     doc = _base_doc()
     doc["document_pass_fail"]["semantic_table_quality_passed"] = 1
     assert not _is_valid(validator, doc)
+
+
+# ---------------------------------------------------------------------------
+# Copilot + Codex P2 PR #47 review fix (2026-05-23) — schema tightening
+# ---------------------------------------------------------------------------
+
+
+def test_semantic_table_quality_status_rejects_not_applicable(
+    validator: Draft202012Validator,
+) -> None:
+    """Per Copilot + Codex P2 review on PR #47: the schema's inner
+    semantic_table_quality.status enum must NOT include 'not_applicable'.
+
+    Per data-model §7, the whole semantic_table_quality object MUST be
+    ABSENT when status is not_applicable (signaled instead by
+    document_pass_fail.semantic_table_quality_passed == null). The
+    four-value canonical status set applies only to the per-document
+    entries in evaluation_run_summary.json::semantic_document_statuses.
+    """
+    doc = _base_doc()
+    doc["semantic_table_quality"] = {
+        "status": "not_applicable",
+        "failed_checks": [],
+        "supporting_evidence": {
+            "body_confidence_mean": 0.0,
+            "body_confidence_min": 0.0,
+            "body_line_count": 0,
+            "body_token_count": 0,
+            "header_band_excluded": False,
+        },
+    }
+    assert not _is_valid(validator, doc)
+
+
+def test_semantic_table_quality_status_accepts_three_valid_values(
+    validator: Draft202012Validator,
+) -> None:
+    """passed / failed / unevaluable remain valid in the inner enum."""
+    for status in ("passed", "failed", "unevaluable"):
+        doc = _base_doc()
+        obj = {
+            "status": status,
+            "failed_checks": [],
+            "supporting_evidence": {
+                "body_confidence_mean": 0.0,
+                "body_confidence_min": 0.0,
+                "body_line_count": 0,
+                "body_token_count": 0,
+                "header_band_excluded": False,
+            },
+        }
+        if status == "failed":
+            # failed_checks must be non-empty when status == failed
+            obj["failed_checks"] = [
+                {
+                    "category": "missing-required-content",
+                    "row_id": "row-1",
+                    "field": "unit_price",
+                    "expected": "1.00",
+                    "observed": None,
+                    "predicate": "test",
+                    "position_index": 0,
+                }
+            ]
+            obj["row_reasons"] = {
+                "row-1": {"categories": ["missing-required-content"], "reason": "test"}
+            }
+        if status == "unevaluable":
+            obj["cause"] = "preprocess_output_missing"
+        doc["semantic_table_quality"] = obj
+        assert _is_valid(validator, doc), (
+            f"status={status!r} should be accepted in semantic_table_quality"
+        )

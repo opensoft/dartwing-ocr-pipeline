@@ -69,6 +69,23 @@ _SEMANTIC_PASSED_VALUE_DOMAIN: dict[str, bool | None] = {
 }
 
 
+def supports_semantic_quality_fields(contract_set_version: str) -> bool:
+    """Return True iff the contract set is v1.3.0 or above (semantic fields present).
+
+    Per Codex P1 review on PR #47 (2026-05-23): the v1.3.0 schemas added
+    ``semantic_table_quality``, ``document_pass_fail.semantic_table_quality_passed``,
+    ``semantic_table_quality_metrics`` and ``semantic_document_statuses``. A
+    writer pinned to v1.2.0 (or earlier) MUST NOT emit these fields —
+    otherwise (a) the older schema's validation fails on the unexpected
+    keys and (b) MI-22's byte-identity guarantee for vendor-identity flows
+    breaks. This helper is the single source of truth for that gate, used
+    by both :meth:`DocumentEvaluation.to_persistable_dict` (this module)
+    and :meth:`RunSummary.to_persistable_dict` (in :mod:`corpus`).
+    """
+    major, minor, _ = (int(p) for p in contract_set_version.split("."))
+    return (major, minor) >= (1, 3)
+
+
 def _semantic_quality_passed_value(status: str) -> bool | None:
     """Map a SemanticQualityResult.status to the writer field value (MI-17 / Q20).
 
@@ -208,16 +225,21 @@ class DocumentEvaluation:
             "overall_passed": self.document_pass_fail.overall_passed,
         }
 
-        # Semantic verdict — always include the additive
-        # `semantic_table_quality_passed` field per MI-17 / Q20 / FR-017.
-        if self.semantic_quality_result is not None:
-            document_pass_fail["semantic_table_quality_passed"] = (
-                _semantic_quality_passed_value(self.semantic_quality_result.status)
-            )
-        else:
-            # Defensive default — should not occur on the writer path
-            # since evaluate_document always populates this field.
-            document_pass_fail["semantic_table_quality_passed"] = None
+        # Semantic verdict — emit the additive
+        # `semantic_table_quality_passed` field per MI-17 / Q20 / FR-017
+        # ONLY when the pinned contract set is v1.3.0+. For pinned v1.2.0
+        # or earlier, omit (otherwise the older schema validation fails
+        # and MI-22 byte-identity is broken — Codex P1 PR #47 2026-05-23).
+        emit_semantic_fields = supports_semantic_quality_fields(self.contract_set_version)
+        if emit_semantic_fields:
+            if self.semantic_quality_result is not None:
+                document_pass_fail["semantic_table_quality_passed"] = (
+                    _semantic_quality_passed_value(self.semantic_quality_result.status)
+                )
+            else:
+                # Defensive default — should not occur on the writer path
+                # since evaluate_document always populates this field.
+                document_pass_fail["semantic_table_quality_passed"] = None
 
         out: dict[str, object] = {
             "contract_set_version": self.contract_set_version,
@@ -246,7 +268,8 @@ class DocumentEvaluation:
 
         # semantic_table_quality object — present only when sidecar found
         # or status == unevaluable (data-model §7 / evaluator-output-contract.md).
-        if self.semantic_quality_result is not None:
+        # Gated on v1.3.0+ contract per Codex P1 PR #47 2026-05-23.
+        if emit_semantic_fields and self.semantic_quality_result is not None:
             stq = _semantic_quality_result_to_persistable(
                 self.semantic_quality_result
             )

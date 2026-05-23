@@ -205,20 +205,27 @@ class RunSummary:
 
         # Feature 022 (v1.3.0 additive) — top-level sibling keys, NOT nested
         # inside any vendor-identity block (per F6 resolution / Q36 / MI-22).
-        # Always emit on newly-written run summaries (FR-018), even when the
-        # per-document list is empty (yields a zeroed metrics namespace and
-        # an empty statuses array — both valid under the v1.3.0 schema).
-        out["semantic_table_quality_metrics"] = build_metrics_namespace(
-            self.semantic_per_document
-        )
-        out["semantic_document_statuses"] = [
-            {
-                "document_id": entry.document_id,
-                "semantic_table_quality_status": entry.semantic_table_quality_status,
-                "semantic_table_quality_passed": entry.semantic_table_quality_passed,
-            }
-            for entry in _build_semantic_document_statuses(self.semantic_per_document)
-        ]
+        # Emit semantic fields on newly-written v1.3.0+ run summaries
+        # (FR-018), even when the per-document list is empty (yields a
+        # zeroed metrics namespace and an empty statuses array — both
+        # valid under the v1.3.0 schema). Per Codex P1 PR #47 2026-05-23:
+        # gate on v1.3.0+ so callers pinned to v1.2.0 produce a
+        # vendor-identity-only run summary (preserves MI-22 byte-identity
+        # for legacy pinned runs).
+        from dartwing_ocr.evaluator.document import supports_semantic_quality_fields
+
+        if supports_semantic_quality_fields(self.contract_set_version):
+            out["semantic_table_quality_metrics"] = build_metrics_namespace(
+                self.semantic_per_document
+            )
+            out["semantic_document_statuses"] = [
+                {
+                    "document_id": entry.document_id,
+                    "semantic_table_quality_status": entry.semantic_table_quality_status,
+                    "semantic_table_quality_passed": entry.semantic_table_quality_passed,
+                }
+                for entry in _build_semantic_document_statuses(self.semantic_per_document)
+            ]
         return out
 
 
