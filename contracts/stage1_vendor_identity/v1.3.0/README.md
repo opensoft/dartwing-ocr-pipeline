@@ -1,6 +1,6 @@
-# contracts/stage1_vendor_identity/v1.2.0/
+# contracts/stage1_vendor_identity/v1.3.0/
 
-Machine-readable layer of the stage 1 vendor-identity contract set. v1.0.0 frozen 2026-04-12; v1.1.0 amended 2026-04-21 (adds `evidence_packet`); v1.2.0 amended 2026-04-23 (preprocess_output and mirrored evidence-packet structural confidence fields permit `null` when the engine omits or cannot provide a schema-valid score — see `AMENDMENTS.md`).
+Machine-readable layer of the stage 1 vendor-identity contract set. v1.0.0 frozen 2026-04-12; v1.1.0 amended 2026-04-21 (adds `evidence_packet`); v1.2.0 amended 2026-04-23 (preprocess_output and mirrored evidence-packet structural confidence fields permit `null` when the engine omits or cannot provide a schema-valid score); v1.3.0 amended 2026-05-23 (adds the optional per-document `semantic_table_truth.json` sidecar contract and additive semantic-quality fields on the two evaluation report schemas, per feature 022 — see `../AMENDMENTS.md` and `specs/022-ocr-semantic-quality-gate/contracts/schema-amendments.md`).
 
 This directory is the *executable* representation consumed by `ledgerlinc_ocr.validator`. The *canonical* meaning of each artifact lives in the human-facing documentation layer:
 

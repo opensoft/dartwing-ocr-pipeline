@@ -137,7 +137,7 @@ python -m dartwing_ocr.evaluator evaluate-document \
     },
     "supporting_evidence": {
       "body_confidence_mean": 0.970142,
-      "body_confidence_min": 0.941200,
+      "body_confidence_min": 0.9412,
       "body_line_count": 24,
       "body_token_count": 112,
       "header_band_excluded": true
@@ -152,6 +152,7 @@ Key invariants to verify:
 - `supporting_evidence.body_confidence_mean ≈ 0.97` — high confidence does not make a failing row pass (FR-013).
 - `failed_checks` is ordered: `malformed-currency-shape` before `missing-required-content` (Clarifications Q17).
 - `row_reasons` is a per-row aggregation derived from `failed_checks`, not an independent source of truth (Clarifications Q29).
+- **Float precision note** (per Copilot review on PR #44 2026-05-23): confidence values are rounded to 6 decimal places of *precision* using ROUND_HALF_EVEN, then emitted via Python's stdlib JSON encoder. Trailing zeros may be elided in the output (e.g. the Decimal value `0.941200` round-trips through `float` to JSON `0.9412`). The SC-007 byte-identical guarantee holds because the same input always produces the same Python float and therefore the same JSON repr.
 
 **Verify SC-007 byte-identical reproducibility**:
 

@@ -11,10 +11,17 @@ two evaluator runs on identical inputs produce byte-identical output files
 * A single trailing newline at EOF; no trailing whitespace on any line.
 * Derived ratios and confidence values (e.g.
   ``semantic_table_quality_pass_rate``, ``body_confidence_mean``,
-  ``body_confidence_min``) emitted as **JSON numbers** (NOT strings) with
-  6 decimal places using ``decimal.ROUND_HALF_EVEN``. This is the post-fix F3
-  pinning: even when ``body_line_count == 0`` both confidence fields emit
-  as ``0.0`` (never ``null``).
+  ``body_confidence_min``) emitted as **JSON numbers** (NOT strings),
+  rounded internally to **6 decimal places of precision** using
+  ``decimal.ROUND_HALF_EVEN`` and then handed to the stdlib JSON encoder
+  via ``float()``. The JSON encoder MAY elide trailing zeros (so the
+  Decimal ``0.940000`` round-trips through ``float`` as ``0.94`` in the
+  output), but the rounded value is byte-identical across re-runs on
+  identical inputs — which is the property Q34/SC-007/MI-2 actually
+  require. Spec wording ("fixed-precision") refers to the precision of
+  the rounding step, not to a fixed display width. This is the post-fix
+  F3 pinning: even when ``body_line_count == 0`` both confidence fields
+  emit as ``0.0`` (never ``null``).
 * Integer counts pass through as JSON integers via the standard encoder.
 
 Callers pass ordinary Python objects with ``decimal.Decimal`` instances for
@@ -83,9 +90,13 @@ def dump_stable(obj: Any, path: Path) -> None:
     exactly one trailing newline at EOF; no trailing whitespace; Decimal
     values rounded to 6 dp with ROUND_HALF_EVEN and emitted as JSON numbers.
 
-    The function performs a single ``write_text`` call so the file is created
-    or replaced atomically from the caller's perspective; partial-write
-    interruption windows match Python's ``Path.write_text`` semantics.
+    The function performs a single ``write_text`` call. This is NOT an
+    atomic filesystem write — ``Path.write_text`` truncates the existing
+    file in place and writes in one syscall; readers observing the file
+    mid-write would see a partial state. Callers needing crash-safe
+    atomic semantics should write to a sibling temp file and rename.
+    (Per Copilot review on PR #44 2026-05-23, the previous docstring
+    incorrectly claimed atomicity — corrected here.)
 
     Args:
         obj: A JSON-serializable Python object. ``Decimal`` instances at any
