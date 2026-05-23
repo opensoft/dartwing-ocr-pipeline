@@ -84,25 +84,15 @@ _DIFFICULTY_KEYS: tuple[str, ...] = ("easy", "medium", "hard", "missing_name")
 
 
 # MI-17 / Q20 value-domain mapping for `semantic_table_quality_passed`
-# (mirrors the per-document writer in document.py).
-_SEMANTIC_PASSED_VALUE_DOMAIN: dict[str, bool | None] = {
-    "passed": True,
-    "failed": False,
-    "unevaluable": False,
-    "not_applicable": None,
-}
-
-
-def _semantic_quality_passed_value(status: str) -> bool | None:
-    """Map a SemanticQualityResult.status → run-summary status entry's
-    ``semantic_table_quality_passed`` value (MI-17 / Q20)."""
-    try:
-        return _SEMANTIC_PASSED_VALUE_DOMAIN[status]
-    except KeyError as exc:
-        raise ValueError(
-            f"semantic_table_quality.status {status!r} is not in the closed "
-            f"Q26 enum {sorted(_SEMANTIC_PASSED_VALUE_DOMAIN)}"
-        ) from exc
+# Imported from document.py rather than re-declared (deduped per Sourcery +
+# Copilot review on PR #47 2026-05-23 — single source of truth for MI-17/Q20
+# value-domain mapping prevents drift if the status enum changes).
+from dartwing_ocr.evaluator.document import (
+    _SEMANTIC_PASSED_VALUE_DOMAIN,
+    _SEMANTIC_TABLE_TRUTH_FILENAME,
+    _PREPROCESS_OUTPUT_FILENAME,
+    _semantic_quality_passed_value,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -308,8 +298,8 @@ def _hydrate_document_evaluation(
         for name in SCORED_FIELDS
     )
     # Re-run the gate to populate semantic_quality_result on hydration.
-    sidecar_path = folder / "semantic_table_truth.json"
-    preprocess_path = folder / "preprocess_output.json"
+    sidecar_path = folder / _SEMANTIC_TABLE_TRUTH_FILENAME
+    preprocess_path = folder / _PREPROCESS_OUTPUT_FILENAME
     semantic_result = run_semantic_quality_gate(
         preprocess_output_path=preprocess_path if preprocess_path.is_file() else None,
         sidecar_path=sidecar_path if sidecar_path.is_file() else None,
