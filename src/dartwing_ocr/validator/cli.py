@@ -1,10 +1,27 @@
 """argparse CLI for `python -m dartwing_ocr.validator`.
 
-Exit codes:
+Exit codes for the original subcommands (artifact / folder / corpus / show):
   0  pass (no error-severity violations; warnings allowed)
   1  validation failed (one or more error-severity violations)
   2  usage error
-  3  internal error
+
+Sidecar-aware exit codes added at v1.3.0 (feature 022 / US1) per
+``specs/022-ocr-semantic-quality-gate/contracts/validator-cli-contract.md``:
+  3  semantic_table_truth.json present but ``document_id`` mismatch
+  4  semantic_table_truth.json present but row-violation
+     (missing sidecar / non-unique row_id / row fails row-truth contract)
+  5  semantic_table_truth.json present but JSON parse or schema-validation failure
+
+These codes apply to BOTH the new ``validate semantic-truth <folder>`` subcommand
+AND the existing ``validate folder`` / ``validate corpus`` subcommands when
+they encounter sidecar-class errors. The exit-code selection rule is
+lowest-non-zero: when more than one error class is present, the lowest
+non-zero code among them is returned.
+
+Note: the original codes 1 / 2 are unchanged. Pre-v1.3.0 internal-error code 3
+on the original subcommands is preserved at code 3 below for parity — sidecar
+exit code 3 only fires when the validator successfully runs and finds a
+``document_id`` mismatch, never as a generic internal error.
 """
 from __future__ import annotations
 
@@ -24,8 +41,23 @@ from dartwing_ocr.validator.loader import (
 from dartwing_ocr.validator.report import (
     ArtifactName,
     ValidationOutcome,
+    ViolationCode,
     render_text,
 )
+from dartwing_ocr.validator.semantic_table_truth import (
+    SemanticTruthValidationResult,
+    SidecarErrorKind,
+    validate_sidecar,
+)
+
+# Mapping from sidecar-validation ViolationCode → CLI exit code per
+# validator-cli-contract.md. Lower codes win when multiple are present.
+_SIDECAR_VIOLATION_TO_EXIT_CODE: dict[str, int] = {
+    ViolationCode.SIDECAR_DOCUMENT_ID_MISMATCH: 3,
+    ViolationCode.SIDECAR_ROW_VIOLATION: 4,
+    ViolationCode.SIDECAR_SCHEMA_INVALID: 5,
+    ViolationCode.SIDECAR_JSON_INVALID: 5,
+}
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -62,6 +94,24 @@ def _build_parser() -> argparse.ArgumentParser:
     cor.add_argument("--fail-fast", action="store_true")
     _add_output_flags(cor)
 
+    # Feature 022 / US1 — validate the optional semantic_table_truth.json
+    # sidecar in a per-document folder, in isolation, for fixture-author
+    # workflows. See specs/022-ocr-semantic-quality-gate/contracts/
+    # validator-cli-contract.md §`validate semantic-truth`.
+    sem = vsub.add_parser(
+        "semantic-truth",
+        help="Validate the optional semantic_table_truth.json sidecar in a folder.",
+    )
+    sem.add_argument("path", type=Path)
+    # Note: no --contract-set-version flag here. The sidecar always
+    # validates against the active contract set's
+    # semantic_table_truth.schema.json; there is no per-call version
+    # override surface. (Sourcery review PR #46 2026-05-23: the previous
+    # flag was parsed but never threaded through to validate_sidecar,
+    # which always uses the active schema — removed to avoid a
+    # misleading CLI option.)
+    _add_output_flags(sem)
+
     show = sub.add_parser("show", help="Inspect contract-set metadata.")
     shsub = show.add_subparsers(dest="subcommand", required=True)
     sc = shsub.add_parser("contract-set", help="Show the loaded contract-set metadata.")
@@ -81,6 +131,79 @@ def _format(outcome: ValidationOutcome, *, json_output: bool) -> str:
     if json_output:
         return json.dumps(outcome.to_json(), indent=2, sort_keys=False)
     return render_text(outcome)
+
+
+def _walk_violations(outcome: ValidationOutcome):
+    """Yield every Violation in ``outcome`` and its sub-reports recursively."""
+    yield from outcome.violations
+    for sub in outcome.sub_reports:
+        yield from _walk_violations(sub)
+
+
+def _folder_or_corpus_exit_code(outcome: ValidationOutcome) -> int:
+    """Exit code for ``validate folder`` / ``validate corpus``.
+
+    Returns the lowest non-zero code among encountered sidecar-class
+    failures; otherwise returns 0 on pass or 1 on any other failure
+    (validator-cli-contract.md §`validate folder` and §`validate corpus`).
+    """
+    if outcome.passed:
+        return 0
+    sidecar_codes: set[int] = set()
+    for v in _walk_violations(outcome):
+        mapped = _SIDECAR_VIOLATION_TO_EXIT_CODE.get(v.violation_code)
+        if mapped is not None:
+            sidecar_codes.add(mapped)
+    if sidecar_codes:
+        return min(sidecar_codes)
+    return 1
+
+
+def _semantic_truth_exit_code(result: SemanticTruthValidationResult) -> int:
+    """Exit code for ``validate semantic-truth``.
+
+    Lowest non-zero among encountered error classes; 0 when accepted
+    (validator-cli-contract.md §`validate semantic-truth`).
+    """
+    return result.exit_code()
+
+
+def _render_semantic_truth(
+    result: SemanticTruthValidationResult, *, json_output: bool
+) -> str:
+    if json_output:
+        payload = {
+            "folder": str(result.folder),
+            "sidecar": str(result.sidecar_path),
+            "passed": result.passed,
+            "errors": [
+                {
+                    "kind": e.kind.value,
+                    "message": e.message,
+                    "row_id": e.row_id,
+                    "row_index": e.row_index,
+                    "field": e.field,
+                }
+                for e in result.errors
+            ],
+        }
+        return json.dumps(payload, indent=2, sort_keys=False)
+    if result.passed:
+        return (
+            f"Sidecar: {result.sidecar_path}\n"
+            f"Result: PASS\n"
+            f"  semantic_table_truth.json accepted for folder "
+            f"'{result.folder.name}'."
+        )
+    lines = [
+        f"Sidecar: {result.sidecar_path}",
+        f"Result: FAIL ({len(result.errors)} error(s))",
+        "",
+    ]
+    for e in result.errors:
+        lines.append(f"  {e.kind.value}")
+        lines.append(f"    {e.message}")
+    return "\n".join(lines)
 
 
 def _render_contract_set(cs: ContractSet, *, json_output: bool) -> str:
@@ -146,7 +269,7 @@ def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — validator C
             from dartwing_ocr.validator.folder import validate_folder
             outcome = validate_folder(args.path, version=args.version)
             print(_format(outcome, json_output=json_output))
-            return 0 if outcome.passed else 1
+            return _folder_or_corpus_exit_code(outcome)
 
         if args.command == "validate" and args.subcommand == "corpus":
             from dartwing_ocr.validator.corpus import validate_corpus
@@ -154,7 +277,20 @@ def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — validator C
                 args.path, version=args.version, fail_fast=args.fail_fast
             )
             print(_format(outcome, json_output=json_output))
-            return 0 if outcome.passed else 1
+            return _folder_or_corpus_exit_code(outcome)
+
+        if args.command == "validate" and args.subcommand == "semantic-truth":
+            # Feature 022 / US1 — validate the optional sidecar in isolation
+            # per validator-cli-contract.md §`validate semantic-truth`.
+            if not args.path.is_dir():
+                print(
+                    f"usage error: folder does not exist: {args.path}",
+                    file=sys.stderr,
+                )
+                return 2
+            result = validate_sidecar(args.path)
+            print(_render_semantic_truth(result, json_output=json_output))
+            return _semantic_truth_exit_code(result)
 
         if args.command == "show" and args.subcommand == "contract-set":
             cs = load_contract_set(args.version)
