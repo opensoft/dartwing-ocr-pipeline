@@ -173,8 +173,11 @@ def test_zero_line_count_emits_floats_not_null(tmp_path: Path) -> None:
     text = target.read_text(encoding="utf-8")
     assert "null" not in text  # No null sneaks in for empty-band confidence.
     parsed = json.loads(text)
-    assert parsed["body_confidence_mean"] == 0.0
-    assert parsed["body_confidence_min"] == 0.0
+    # Use pytest.approx (Sonar python:S1244 — no float equality). The
+    # round-tripped value is bit-exact 0.0; approx with default tolerance
+    # accepts it and satisfies the rule. Per Sonar fix on PR #44.
+    assert parsed["body_confidence_mean"] == pytest.approx(0.0)
+    assert parsed["body_confidence_min"] == pytest.approx(0.0)
     assert isinstance(parsed["body_confidence_mean"], (int, float))
     assert isinstance(parsed["body_confidence_min"], (int, float))
 
