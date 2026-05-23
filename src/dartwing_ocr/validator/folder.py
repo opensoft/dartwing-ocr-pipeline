@@ -37,6 +37,11 @@ from dartwing_ocr.validator.report import (
     Violation,
     ViolationCode,
 )
+from dartwing_ocr.validator.semantic_table_truth import (
+    SIDECAR_FILENAME,
+    SidecarErrorKind,
+    validate_sidecar,
+)
 
 _EXPECTED_FILENAME = "expected.json"
 _SOURCE_PDF_FIELD_PATH = "/source.pdf"
@@ -149,6 +154,46 @@ def _check_source_pdf_readable(path: Path, *, target: str) -> list[Violation]:
             )
         ]
     return []
+
+
+_SIDECAR_KIND_TO_CODE: dict[SidecarErrorKind, str] = {
+    SidecarErrorKind.DOCUMENT_ID_MISMATCH: ViolationCode.SIDECAR_DOCUMENT_ID_MISMATCH,
+    SidecarErrorKind.ROW_VIOLATION: ViolationCode.SIDECAR_ROW_VIOLATION,
+    SidecarErrorKind.SCHEMA_INVALID: ViolationCode.SIDECAR_SCHEMA_INVALID,
+    SidecarErrorKind.JSON_INVALID: ViolationCode.SIDECAR_JSON_INVALID,
+    SidecarErrorKind.MISSING_SIDECAR: ViolationCode.SIDECAR_ROW_VIOLATION,
+}
+
+
+def _sidecar_violations(folder: Path, target: str) -> list[Violation]:
+    """Validate the optional semantic_table_truth.json sidecar (feature 022 / US1).
+
+    When the file is absent, behavior is identical to v1.2.0 (FR-005). When
+    present, every sidecar error is surfaced as a folder-level Violation with
+    the appropriate ViolationCode so the existing ValidationOutcome machinery
+    routes the error through the standard reporter.
+    """
+    sidecar_path = folder / SIDECAR_FILENAME
+    if not sidecar_path.is_file():
+        return []
+    result = validate_sidecar(folder)
+    out: list[Violation] = []
+    for err in result.errors:
+        code = _SIDECAR_KIND_TO_CODE.get(
+            err.kind, ViolationCode.SIDECAR_ROW_VIOLATION
+        )
+        out.append(
+            Violation(
+                severity=Severity.ERROR,
+                target=target,
+                field_path=f"/{SIDECAR_FILENAME}",
+                violation_code=code,
+                reason=err.message,
+                expected="FR-002 / FR-003 / FR-004 semantic_table_truth.json contract",
+                source_file=str(sidecar_path),
+            )
+        )
+    return out
 
 
 def _looks_pipeline_generated(  # NOSONAR S3776 — pipeline-generated detection — flat conditions across each artifact stamp.
@@ -351,6 +396,13 @@ def validate_folder(
                 source_file=str(path),
             )
         )
+
+    # Optional semantic_table_truth.json sidecar (feature 022 / US1).
+    # When absent: behavior identical to v1.2.0 (FR-005). When present:
+    # every sidecar error is surfaced as a folder-level Violation with the
+    # appropriate ViolationCode mapping (validator-cli-contract.md exit
+    # codes 3 / 4 / 5).
+    findings.extend(_sidecar_violations(folder, target))
 
     # Cross-artifact rules across whatever is present
     if len(present_artifacts) >= 2:

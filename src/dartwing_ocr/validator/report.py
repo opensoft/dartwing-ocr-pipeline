@@ -27,6 +27,10 @@ class ArtifactName(str, Enum):
     EVALUATION_DOCUMENT = "evaluation_document"
     EVALUATION_RUN_SUMMARY = "evaluation_run_summary"
     EVIDENCE_PACKET = "evidence_packet"
+    # Added at v1.3.0 (feature 022) — optional per-document sidecar consumed
+    # by the semantic quality gate. The artifact has no `pipeline_version` or
+    # `contract_set_version` stamp; it is hand-authored by a fixture author.
+    SEMANTIC_TABLE_TRUTH = "semantic_table_truth"
 
 
 class ViolationCode:
@@ -71,6 +75,12 @@ class ViolationCode:
     FOLDER_NAME_INVALID = "FOLDER_NAME_INVALID"
     FOLDER_RESERVED_FILENAME_COLLISION = "FOLDER_RESERVED_FILENAME_COLLISION"
     FOLDER_SOURCE_PDF_UNREADABLE = "FOLDER_SOURCE_PDF_UNREADABLE"
+
+    # Semantic table truth sidecar (feature 022 / US1)
+    SIDECAR_DOCUMENT_ID_MISMATCH = "SIDECAR_DOCUMENT_ID_MISMATCH"
+    SIDECAR_ROW_VIOLATION = "SIDECAR_ROW_VIOLATION"
+    SIDECAR_SCHEMA_INVALID = "SIDECAR_SCHEMA_INVALID"
+    SIDECAR_JSON_INVALID = "SIDECAR_JSON_INVALID"
 
 
 _ALL_VIOLATION_CODES: frozenset[str] = frozenset(
