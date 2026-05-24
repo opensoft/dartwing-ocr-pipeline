@@ -2,7 +2,7 @@
 
 Machine-readable layer of the stage 1 vendor-identity contract set. v1.0.0 frozen 2026-04-12; v1.1.0 amended 2026-04-21 (adds `evidence_packet`); v1.2.0 amended 2026-04-23 (preprocess_output and mirrored evidence-packet structural confidence fields permit `null` when the engine omits or cannot provide a schema-valid score); v1.3.0 amended 2026-05-23 (adds the optional per-document `semantic_table_truth.json` sidecar contract and additive semantic-quality fields on the two evaluation report schemas, per feature 022 — see `../AMENDMENTS.md` and `specs/022-ocr-semantic-quality-gate/contracts/schema-amendments.md`).
 
-This directory is the *executable* representation consumed by `ledgerlinc_ocr.validator`. The *canonical* meaning of each artifact lives in the human-facing documentation layer:
+This directory is the *executable* representation consumed by `dartwing_ocr.validator`. The *canonical* meaning of each artifact lives in the human-facing documentation layer:
 
 - `docs/stage1-vendor-identity/schemas.md`
 - `docs/stage1-vendor-identity/dataset-layout.md`
@@ -29,7 +29,7 @@ The two layers are updated together. When they disagree, the documentation layer
 
 ## Cross-artifact rules
 
-The JSON Schema files enforce per-artifact rules. Rules that span multiple files — the company-name provenance triad and the evidence-reference integrity check — are implemented in `src/ledgerlinc_ocr/validator/cross_artifact.py`. `contract_set.json.cross_artifact_rules` names the active set.
+The JSON Schema files enforce per-artifact rules. Rules that span multiple files — the company-name provenance triad and the evidence-reference integrity check — are implemented in `src/dartwing_ocr/validator/cross_artifact.py`. `contract_set.json.cross_artifact_rules` names the active set.
 
 ## Amending this contract set
 
@@ -42,8 +42,8 @@ For the v1.3.0 amendment narrative — what changed, why, and what stayed byte-i
 From repo root:
 
 ```bash
-python -m ledgerlinc_ocr.validator show contract-set --version 1.0.0
-python -m ledgerlinc_ocr.validator validate artifact <path> --contract <name>
-python -m ledgerlinc_ocr.validator validate folder <path>
-python -m ledgerlinc_ocr.validator validate corpus tests/stage1_vendor_identity
+python -m dartwing_ocr.validator show contract-set --version 1.0.0
+python -m dartwing_ocr.validator validate artifact <path> --contract <name>
+python -m dartwing_ocr.validator validate folder <path>
+python -m dartwing_ocr.validator validate corpus tests/stage1_vendor_identity
 ```

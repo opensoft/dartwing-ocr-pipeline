@@ -33,11 +33,11 @@ Operator-facing environment variables owned by this project SHALL use the `DARTW
 - **THEN** the active variable is `DARTWING_GPU_WARMUP`
 
 ### Requirement: Active Workflow Paths
-Maintained local workflow instructions SHALL use the Dartwing repository directory name (`dartwing-ocr-pipeline`) for the checkout and SHALL place Speckit worktrees in a sibling `dartwing-ocr-pipeline-worktrees` directory next to that checkout. The absolute parent path is operator-specific; concrete absolute paths MAY appear in maintained workflow docs (e.g. `.specify/README.md`) as illustrative examples for the maintainer's environment.
+Maintained local workflow instructions SHALL use the Dartwing repository directory name (`dartwing-ocr-pipeline`) for the checkout and SHALL place Speckit worktrees in the sibling directory configured by `.specify/extensions/git/git-config.yml` (currently `../ocr-pipeline-worktrees`). The absolute parent path is operator-specific; concrete absolute paths MAY appear in maintained workflow docs (e.g. `.specify/README.md`) as illustrative examples for the maintainer's environment.
 
 #### Scenario: Speckit creates a new worktree
 - **WHEN** the Speckit git extension creates a feature worktree
-- **THEN** the configured worktree root is `../dartwing-ocr-pipeline-worktrees` relative to the checkout directory
+- **THEN** the configured worktree root is `../ocr-pipeline-worktrees` relative to the checkout directory, matching `.specify/extensions/git/git-config.yml`'s `worktree_root` value
 
 ### Requirement: Active Quality Tooling Identity
 SonarCloud configuration SHALL use `opensoft_dartwing-ocr-pipeline` as the project key and `dartwing-ocr-pipeline` as the project display name when referenced.
@@ -52,4 +52,15 @@ Frozen JSON Schema `$id` values in existing contract versions SHALL remain uncha
 #### Scenario: v1.2.0 schema IDs are validated
 - **WHEN** contract tests inspect existing v1.2.0 `$id` values
 - **THEN** the historical `$id` values remain valid for that contract version
+
+### Requirement: Historical and In-Flight Leakage Is Documented, Not Forbidden
+Historical artifacts that pre-date the rename (frozen contract version READMEs and `folder.schema.json` files under `contracts/stage1_vendor_identity/v1.0.0/`, `v1.1.0/`, `v1.2.0/`, change-archive narratives, and historical run logs) MAY retain `ledgerlinc_ocr`/`ledgerlinc-*` references. The active contract-set README (currently `v1.3.0/README.md`) and other actively-maintained operator guidance SHALL use the Dartwing identifiers.
+
+#### Scenario: Reviewer encounters legacy identifier in a frozen artifact
+- **WHEN** a reviewer sees `ledgerlinc_ocr` in a frozen contract-version README or in `contracts/stage1_vendor_identity/AMENDMENTS.md` historical entries
+- **THEN** the legacy identifier is preserved as a historical record, not rewritten retroactively
+
+#### Scenario: Reviewer encounters legacy identifier in active maintained guidance
+- **WHEN** a reviewer sees `ledgerlinc_ocr` in the active contract-set README, a current operator-facing doc, or maintained source code
+- **THEN** the occurrence is treated as pending rename cleanup and tracked as follow-up work
 
