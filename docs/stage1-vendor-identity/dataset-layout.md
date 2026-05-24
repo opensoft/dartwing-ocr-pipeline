@@ -49,7 +49,7 @@ tests/stage1_semantic_quality/
   ...
 ```
 
-Both roots follow the SAME canonical subfolder pattern: `^inv_\d{3}_(easy|medium|hard)$` (Clarifications Q40). The closed difficulty vocabulary (`easy` / `medium` / `hard`) is the same as the vendor-identity baseline. The same §2 pre-inclusion PII / license screening from `labeling-guide.md` applies identically to fixtures under `tests/stage1_semantic_quality/` (Clarifications Q44 — see `labeling-guide.md` §2.1).
+Both roots follow the SAME canonical SCORED-CORPUS subfolder pattern: `^inv_\d{3}_(easy|medium|hard)$` (Clarifications Q40 — implemented as `dartwing_ocr.validator.corpus_pattern.CANONICAL_FOLDER_PATTERN`). Note that the underlying `folder.schema.json` accepts a broader pattern that ALSO matches the `missing_name` difficulty suffix; folders matching that broader pattern but NOT the Q40 scored pattern (i.e. `inv_XXX_missing_name`) are treated as CALIBRATION material per MI-20 / MI-21 / Q39 and excluded from scored aggregation under the validator's default-exclude rule (Q23). The closed scored-difficulty vocabulary (`easy` / `medium` / `hard`) is the scored-aggregation gate; the `missing_name` suffix is a folder-schema accepted form that is intentionally excluded from scored aggregation per the canonical pattern. The same §2 pre-inclusion PII / license screening from `labeling-guide.md` applies identically to fixtures under `tests/stage1_semantic_quality/` (Clarifications Q44 — see `labeling-guide.md` §2.1).
 
 `tests/stage1_vendor_identity/` MUST remain the stable 20-document vendor-identity MVP baseline and MUST NOT be extended with degraded-body / semantic-quality fixtures (FR-026).
 

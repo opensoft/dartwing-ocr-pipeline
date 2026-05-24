@@ -1,6 +1,6 @@
 # Stage 1 Vendor-Identity Labeling Guide
 
-**Contract set**: `1.0.0` · **Applies to**: `tests/stage1_vendor_identity/inv_XXX_*/expected.json` and `notes.md`, AND every committed fixture under `tests/stage1_semantic_quality/inv_XXX_*/` (added by feature 022 — see §2.1).
+**Contract set**: `1.3.0` (active per feature 022; v1.0.0 was the initial ratification — see `contracts/stage1_vendor_identity/AMENDMENTS.md` for the v1.0.0 → v1.1.0 → v1.2.0 → v1.3.0 trail) · **Applies to**: `tests/stage1_vendor_identity/inv_XXX_*/expected.json` and `notes.md`, AND every committed fixture under `tests/stage1_semantic_quality/inv_XXX_*/` (added by feature 022 — see §2.1).
 
 ---
 

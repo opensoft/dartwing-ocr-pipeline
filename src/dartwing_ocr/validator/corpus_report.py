@@ -119,6 +119,12 @@ class CorpusReport:
     root_missing: bool
     contract_set_version: str
     entries: tuple[FolderEntry, ...] = field(default_factory=tuple)
+    # Per Codex P1 review on PR #50 (2026-05-24): the pre-US5
+    # validate_corpus() validated a root-level evaluation_run_summary.json
+    # if present and appended it as a sub-report. Restore that behavior
+    # here so corpus runs continue to surface schema-invalid run summaries
+    # at the root level (regression guard for the pre-US5 contract).
+    root_eval_run_summary: ValidationOutcome | None = None
 
     @property
     def scored_entries(self) -> tuple[FolderEntry, ...]:
@@ -175,28 +181,68 @@ def _sidecar_was_rejected(outcome: ValidationOutcome) -> bool:
     return False
 
 
-def _strip_folder_name_violations(outcome: ValidationOutcome) -> ValidationOutcome:
-    """Return a copy of ``outcome`` with FOLDER_NAME_INVALID violations
-    suppressed.
+def _is_folder_basename_pattern_violation(violation: Violation) -> bool:
+    """True iff the violation is specifically about the folder basename
+    failing the canonical folder-name pattern.
 
-    Calibration folders by definition violate the canonical folder-name
-    pattern enforced by ``folder.schema.json`` — that is precisely why
-    they land in the calibration partition (Q23 / MI-21). Reporting the
-    name-pattern violation against them would be a tautology that
-    obscures REAL validation issues (missing artifacts, schema-invalid
-    files, sidecar errors). The contract directs us to validate
-    mandatory artifacts on calibration folders, not to penalize them
-    for the basename that put them in the calibration partition in the
-    first place.
+    Per Codex P1 + Sourcery review on PR #50 (2026-05-24):
+    ``FOLDER_NAME_INVALID`` is OVERLOADED across three distinct conditions
+    in ``folder.py``:
+
+    1. Folder basename doesn't match the canonical pattern (``field_path
+       is None`` — emitted at the folder level)
+    2. ``expected.json`` ``document_id`` doesn't match folder basename
+       (``field_path == "/expected.json#/document_id"``)
+    3. ``expected.json`` ``difficulty`` doesn't match folder suffix
+       (``field_path == "/expected.json#/difficulty"``)
+
+    Only case (1) is tautological for calibration folders (the basename
+    is precisely what put them in the calibration partition). Cases (2)
+    and (3) are LEGITIMATE expected.json consistency issues that MUST
+    NOT be suppressed even on calibration folders. This helper
+    distinguishes (1) from (2)/(3) by inspecting ``field_path``.
+    """
+    if violation.violation_code != ViolationCode.FOLDER_NAME_INVALID:
+        return False
+    # Cases (2) and (3) carry a non-empty field_path that targets the
+    # expected.json artifact. Case (1) leaves field_path None (the
+    # folder-level violation, not an artifact-field violation).
+    return not violation.field_path
+
+
+def _strip_folder_name_violations(outcome: ValidationOutcome) -> ValidationOutcome:
+    """Return a copy of ``outcome`` with calibration-tautological
+    FOLDER_NAME_INVALID violations suppressed.
+
+    Calibration folders fall outside the canonical scored-corpus pattern
+    (Q23 / MI-21 — `^inv_\\d{3}_(easy|medium|hard)$`) but may match the
+    broader folder.schema.json pattern (which also allows `missing_name`
+    suffixes and previously generated the violation). Reporting the
+    name-pattern violation against a calibration folder is a tautology
+    that obscures REAL validation issues (missing artifacts, schema-
+    invalid files, sidecar errors).
+
+    Per Codex P1 review on PR #50 (2026-05-24): the strip is narrowed
+    via :func:`_is_folder_basename_pattern_violation` — only case (1)
+    folder-basename violations are dropped; expected.json document_id /
+    difficulty mismatches (cases 2 and 3, also coded
+    ``FOLDER_NAME_INVALID``) remain because they are NOT tautological
+    and they guard expected.json consistency on calibration folders.
+
+    Per Sourcery review on PR #50: the strip is applied RECURSIVELY to
+    ``sub_reports`` too, in case future sub-validators surface the same
+    violation code in nested artifact outcomes.
     """
     kept_errors = [
         v for v in outcome.violations
-        if v.violation_code != ViolationCode.FOLDER_NAME_INVALID
+        if not _is_folder_basename_pattern_violation(v)
     ]
     kept_warnings = list(outcome.warnings)
-    sub_has_error = any(not s.passed for s in outcome.sub_reports)
-    sub_error_count = sum(s.counts.error for s in outcome.sub_reports)
-    sub_warning_count = sum(s.counts.warning for s in outcome.sub_reports)
+    # Recursive strip across sub_reports (Sourcery PR #50 2026-05-24).
+    stripped_subs = [_strip_folder_name_violations(s) for s in outcome.sub_reports]
+    sub_has_error = any(not s.passed for s in stripped_subs)
+    sub_error_count = sum(s.counts.error for s in stripped_subs)
+    sub_warning_count = sum(s.counts.warning for s in stripped_subs)
     return ValidationOutcome(
         contract_set_version_checked=outcome.contract_set_version_checked,
         target_summary=outcome.target_summary,
@@ -207,7 +253,7 @@ def _strip_folder_name_violations(outcome: ValidationOutcome) -> ValidationOutco
             error=len(kept_errors) + sub_error_count,
             warning=len(kept_warnings) + sub_warning_count,
         ),
-        sub_reports=list(outcome.sub_reports),
+        sub_reports=stripped_subs,
     )
 
 
@@ -276,11 +322,31 @@ def build_corpus_report(
 
     subfolders = sorted(p for p in root_path.iterdir() if p.is_dir())
     entries = tuple(_build_entry(p, contract_set) for p in subfolders)
+
+    # Per Codex P1 review on PR #50 (2026-05-24): pre-US5 validate_corpus
+    # appended a root-level evaluation_run_summary.json validation as a
+    # sub-report. Restore that behavior so a schema-invalid run summary
+    # at the corpus root still surfaces as a corpus-level failure.
+    root_summary_path = root_path / "evaluation_run_summary.json"
+    root_eval_outcome: ValidationOutcome | None = None
+    if root_summary_path.is_file():
+        # Defer import to runtime; validate_artifact / ArtifactName live
+        # in sibling modules and the import path is heavy at module load.
+        from dartwing_ocr.validator.artifact import validate_artifact
+        from dartwing_ocr.validator.report import ArtifactName
+
+        root_eval_outcome = validate_artifact(
+            root_summary_path,
+            ArtifactName.EVALUATION_RUN_SUMMARY,
+            contract_set=contract_set,
+        )
+
     return CorpusReport(
         root=root_path,
         root_missing=False,
         contract_set_version=contract_set.version,
         entries=entries,
+        root_eval_run_summary=root_eval_outcome,
     )
 
 
@@ -307,6 +373,13 @@ def _collect_failure_codes(
     sidecar_codes: set[int] = set()
     has_any_failure = False
     has_non_sidecar_failure = False
+    # Per Codex P1 PR #50 (2026-05-24): a failing root-level
+    # evaluation_run_summary.json validation counts as a non-sidecar
+    # corpus-level failure (exit code 1) — same severity it had under
+    # the pre-US5 validate_corpus.
+    if report.root_eval_run_summary is not None and not report.root_eval_run_summary.passed:
+        has_any_failure = True
+        has_non_sidecar_failure = True
     for entry in report.entries:
         if entry.outcome.passed:
             continue
