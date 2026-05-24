@@ -33,16 +33,16 @@ The project SHALL document that feature 021 GPU promotion validates the vendor-i
 - **WHEN** GPU readiness, benchmark, and vendor-identity quality gates pass for feature 021
 - **THEN** the project may claim GPU-backed vendor-identity MVP readiness, but MUST NOT claim semantic table/body OCR quality from that evidence alone
 
-### Requirement: Future semantic quality fix is non-active until implemented
-The project SHALL document `022-ocr-semantic-quality-gate` as a future fix seed only. The current shipped code does not implement semantic/table OCR quality detection, and this amendment SHALL NOT be interpreted as adding that behavior.
+### Requirement: Semantic OCR/table quality detection lives in a separate capability
+Semantic table/body OCR quality detection is provided by the separate `ocr-semantic-quality-gate` capability (shipped via Speckit feature 022). This `ocr-semantic-quality-boundary` capability documents the limits of features 019/020/021 and the boundary the gate consumes; it does not itself implement detection and SHALL NOT be interpreted as adding that behavior to features 019/020/021.
 
-#### Scenario: Team starts semantic quality work
-- **WHEN** the team begins implementation of semantic/table OCR quality checks
-- **THEN** the work starts under a separate governed OpenSpec/Speckit change, not from this as-built boundary amendment
+#### Scenario: Team extends semantic quality work
+- **WHEN** the team extends or modifies semantic/table OCR quality checks
+- **THEN** the work proceeds under the `ocr-semantic-quality-gate` capability (and any future governed OpenSpec/Speckit change that amends it), not under this boundary capability
 
 #### Scenario: Gate affects runtime fallback
 - **WHEN** semantic/table OCR quality is proposed to affect runtime fallback, review routing, or skip-fallback suppression
-- **THEN** the future feature MUST explicitly define that behavior and its interaction with feature 019 and feature 020 before any code or runtime contract changes land
+- **THEN** the change MUST explicitly define that behavior and its interaction with feature 019 and feature 020 before any code or runtime contract changes land (feature 022 as shipped is harness/evaluator-scoped only and does not alter runtime)
 
 ### Requirement: Degraded table-body fixtures follow corpus governance
 The project SHALL require degraded table-body candidates to pass the normal labeling, folder-contract, and schema/evaluator amendment flow before they become canonical scored corpus data.

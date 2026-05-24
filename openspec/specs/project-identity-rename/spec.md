@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Records the coordinated rename of the OCR pipeline's project identity from LedgerLinc to Dartwing across the repository slug, the primary Python package (`ledgerlinc_ocr` → `dartwing_ocr`), console scripts (`ledgerlinc-*` → `dartwing-*`), the SonarQube project key, and runtime/container/tooling identifiers. Historical contract schema `$id`s in frozen contract versions are preserved as-is; only active operator and runtime guidance is rewritten.
+Records the coordinated rename of the OCR pipeline's project identity from LedgerLinc to Dartwing across the repository slug, the primary Python package (`ledgerlinc_ocr` → `dartwing_ocr`), console scripts (`ledgerlinc-*` → `dartwing-*`), the SonarCloud project key, and runtime/container/tooling identifiers. Historical contract schema `$id`s in frozen contract versions are preserved as-is; only active operator and runtime guidance is rewritten.
 ## Requirements
 ### Requirement: Active Repository Identity
 The repository SHALL use `dartwing-ocr-pipeline` as the active repository slug in maintained configuration, workflow documentation, and external-service examples.
@@ -33,16 +33,16 @@ Operator-facing environment variables owned by this project SHALL use the `DARTW
 - **THEN** the active variable is `DARTWING_GPU_WARMUP`
 
 ### Requirement: Active Workflow Paths
-Maintained local workflow instructions SHALL use `/home/brett/projects/dartwing/dartwing-ocr-pipeline` for the root checkout and `dartwing-ocr-pipeline-worktrees` for Speckit worktrees.
+Maintained local workflow instructions SHALL refer to the operator's checkout using the Dartwing repository directory name (`dartwing-ocr-pipeline`) and SHALL place Speckit worktrees in a sibling `dartwing-ocr-pipeline-worktrees` directory next to that checkout. The absolute parent path is operator-specific and is intentionally not specified here.
 
 #### Scenario: Speckit creates a new worktree
 - **WHEN** the Speckit git extension creates a feature worktree
-- **THEN** the configured worktree root is `../dartwing-ocr-pipeline-worktrees`
+- **THEN** the configured worktree root is `../dartwing-ocr-pipeline-worktrees` relative to the checkout directory
 
 ### Requirement: Active Quality Tooling Identity
-SonarQube configuration SHALL use `opensoft_dartwing-ocr-pipeline` as the project key and `dartwing-ocr-pipeline` as the project display name when referenced.
+SonarCloud configuration SHALL use `opensoft_dartwing-ocr-pipeline` as the project key and `dartwing-ocr-pipeline` as the project display name when referenced.
 
-#### Scenario: Manual Sonar analysis runs
+#### Scenario: Manual SonarCloud analysis runs
 - **WHEN** `scripts/sonarcloud-manual.sh` invokes `sonar-scanner`
 - **THEN** the scanner reads a `sonar.projectKey` of `opensoft_dartwing-ocr-pipeline`
 
