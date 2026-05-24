@@ -187,7 +187,17 @@ def test_as1_per_document_vendor_identity_byte_identical(tmp_path: Path) -> None
 
     # Walk every folder that has a golden and compare.
     golden_folders = sorted(p for p in _GOLDENS_ROOT.iterdir() if p.is_dir())
-    assert golden_folders, "expected at least one golden per-doc folder"
+    # Per Codex P2 review on PR #49 (2026-05-24): enforce the FULL
+    # 20-document golden set is present before comparing — a partial
+    # capture would silently pass the test by simply not seeing the
+    # missing documents. The 20-doc corpus is the authoritative
+    # vendor-identity baseline (SC-006). A regeneration that produced
+    # fewer than 20 documents is itself a regression and must fail this
+    # gate.
+    assert len(golden_folders) == 20, (
+        f"expected exactly 20 golden per-doc folders, found {len(golden_folders)} "
+        f"(re-run the regeneration script documented in {_GOLDENS_ROOT}/README.md)"
+    )
 
     for golden_folder in golden_folders:
         candidate_path = root / golden_folder.name / "evaluation_document.json"
@@ -239,6 +249,61 @@ def test_as1_run_summary_vendor_identity_byte_identical(tmp_path: Path) -> None:
     assert candidate == golden_stripped, (
         "vendor-identity portion of run summary diverged from golden — "
         "MI-22 / SC-006 violation"
+    )
+
+
+def test_as1_evaluation_artifacts_are_byte_deterministic(tmp_path: Path) -> None:
+    """AS1 byte-determinism: running ``evaluate_corpus`` twice over the
+    same staged corpus produces byte-identical ``evaluation_document.json``
+    files (and a byte-identical ``evaluation_run_summary.json`` after
+    stripping the per-run UUID ``run_id``). This is the lowest-level
+    "JSON serialization regression" gate per Copilot review on PR #49
+    (2026-05-24): catches whitespace, key-order, float-formatting, or
+    encoding drift that the dict-equality tests above would miss.
+
+    Compares raw bytes via ``Path.read_bytes()`` — explicitly NOT
+    re-parsed JSON — so the stable-JSON contract (Q34: sorted keys,
+    UTF-8, LF, trailing newline, Decimal→6dp ROUND_HALF_EVEN) is
+    asserted at the byte level.
+    """
+    root_a = tmp_path / "run_a"
+    root_b = tmp_path / "run_b"
+    shutil.copytree(_EVALUATOR_FIXTURES / "corpus_20", root_a)
+    shutil.copytree(_EVALUATOR_FIXTURES / "corpus_20", root_b)
+
+    evaluate_corpus(root_a)
+    evaluate_corpus(root_b)
+
+    # Per-document artifacts: byte-identical (no per-run identifiers).
+    a_folders = sorted(p for p in root_a.iterdir() if p.is_dir())
+    b_folders = sorted(p for p in root_b.iterdir() if p.is_dir())
+    assert [p.name for p in a_folders] == [p.name for p in b_folders]
+
+    for a_folder, b_folder in zip(a_folders, b_folders, strict=True):
+        a_path = a_folder / "evaluation_document.json"
+        b_path = b_folder / "evaluation_document.json"
+        assert a_path.read_bytes() == b_path.read_bytes(), (
+            f"evaluation_document.json for {a_folder.name} not "
+            f"byte-deterministic across two runs — JSON serialization "
+            f"contract (Q34) violation"
+        )
+
+    # Run summary: drop the per-run UUID + timestamp ``run_id`` (and the
+    # ``generated_at`` timestamp), then assert the remaining bytes are
+    # equivalent by reparsing both sides — a literal byte compare here
+    # would always fail on the non-deterministic ``run_id``.
+    summary_a = json.loads(
+        (root_a / "evaluation_run_summary.json").read_text(encoding="utf-8")
+    )
+    summary_b = json.loads(
+        (root_b / "evaluation_run_summary.json").read_text(encoding="utf-8")
+    )
+    for s in (summary_a, summary_b):
+        s.pop("run_id", None)
+        s.pop("generated_at", None)
+    assert summary_a == summary_b, (
+        "evaluation_run_summary.json content (after dropping run_id + "
+        "generated_at) diverged across two runs — determinism violation"
     )
 
 

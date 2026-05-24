@@ -179,6 +179,66 @@ def _files_changed_since(base_sha: str) -> set[str]:
     return {line.strip() for line in result.stdout.splitlines() if line.strip()}
 
 
+def _files_changed_by_feature_022_commits(base_sha: str) -> set[str]:
+    """Return file paths touched ONLY by commits whose subject contains
+    a feature-022 prefix (``feat(022)``, ``review(022)``, ``docs(022)``,
+    ``chore(022)``, etc.) since ``base_sha``.
+
+    Per Codex P1 review on PR #49 (2026-05-24): the previous
+    :func:`_files_changed_since` scope was too broad — it surfaced
+    EVERY file changed since merge-base, including unrelated changes
+    landed on the current branch by concurrent PRs (when feature 022 is
+    integrated as a stack on top of other open work). Scoping by commit
+    subject narrows the protected-subtree check to actual feature-022
+    work, eliminating false positives from cross-PR overlap.
+
+    Falls back to :func:`_files_changed_since` when ``git rev-list``
+    yields no commits (shallow CI checkouts) so the gate still runs.
+    """
+    # NOSONAR: local git command, static args, no shell-injection surface
+    rev_list = subprocess.run(
+        ["git", "rev-list", f"{base_sha}..HEAD"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    shas = [s for s in rev_list.stdout.strip().split("\n") if s]
+    if not shas:
+        return set()
+
+    feature_files: set[str] = set()
+    for sha in shas:
+        # NOSONAR: local git command, sha is a sha-hex literal from rev-list
+        subject_proc = subprocess.run(
+            ["git", "log", "-1", "--format=%s", sha],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        subject = subject_proc.stdout.strip()
+        # Match the conventional commit prefix pattern used by the
+        # feature-022 stack: feat(022), review(022), docs(022),
+        # chore(022). Cross-feature commits ((021), (020), etc.) are
+        # intentionally excluded.
+        if "(022)" not in subject:
+            continue
+        # NOSONAR: local git command, sha is a sha-hex literal
+        show_proc = subprocess.run(
+            ["git", "show", "--name-only", "--format=", sha],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        for line in show_proc.stdout.splitlines():
+            cleaned = line.strip()
+            if cleaned:
+                feature_files.add(cleaned)
+    return feature_files
+
+
 def test_no_protected_subtree_files_changed_by_feature_022() -> None:
     """No file under the five protected pipeline subtrees may appear in
     the git diff between the feature branch and its merge-base with main.
@@ -200,7 +260,17 @@ def test_no_protected_subtree_files_changed_by_feature_022() -> None:
     # the resolver, which we let propagate as the test failure.
     base = _git_merge_base_with_main()
 
-    changed = _files_changed_since(base)
+    # Per Codex P1 review on PR #49 (2026-05-24): scope the diff to
+    # commits that are actually part of feature 022 (subject contains
+    # "(022)"), not every commit since the merge-base. This eliminates
+    # false positives when feature-022 is stacked on top of concurrent
+    # PRs that legitimately touch protected subtrees as part of their
+    # own scope. Falls back to the broader merge-base diff when the
+    # commit-subject scope yields zero commits (defensive: a shallow
+    # checkout or a force-rebase that wiped commit subjects).
+    changed = _files_changed_by_feature_022_commits(base)
+    if not changed:
+        changed = _files_changed_since(base)
     violations: list[str] = []
     for path in sorted(changed):
         for protected in _PROTECTED_SUBTREES:
