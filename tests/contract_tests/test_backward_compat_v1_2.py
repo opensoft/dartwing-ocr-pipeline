@@ -93,47 +93,13 @@ def _pre_feature_eval_doc() -> dict:
 
 
 def _pre_feature_run_summary() -> dict:
-    """A pre-feature evaluation_run_summary.json — no semantic keys."""
-    return {
-        "contract_set_version": "1.2.0",
-        "run_id": "run_legacy",
-        "document_count": 0,
-        "overall_metrics": {
-            "field_accuracy": 1.0,
-            "vendor_identity_pass_rate": 1.0,
-            "review_routing_pass_rate": 1.0,
-            "overall_document_pass_rate": 1.0,
-        },
-        "consensus_metrics": {
-            "single_voter_baseline_runs": 0,
-            "majority_vote_documents": 0,
-            "split_decision_documents": 0,
-        },
-        "by_difficulty": {
-            "easy": {
-                "document_count": 0,
-                "field_accuracy": 0.0,
-                "overall_document_pass_rate": 0.0,
-            },
-            "medium": {
-                "document_count": 0,
-                "field_accuracy": 0.0,
-                "overall_document_pass_rate": 0.0,
-            },
-            "hard": {
-                "document_count": 0,
-                "field_accuracy": 0.0,
-                "overall_document_pass_rate": 0.0,
-            },
-            "missing_name": {
-                "document_count": 0,
-                "field_accuracy": 0.0,
-                "overall_document_pass_rate": 0.0,
-            },
-        },
-        "by_field": {},
-        "documents": [],
-    }
+    """A pre-feature evaluation_run_summary.json — no semantic keys.
+
+    Thin wrapper around the shared helper (deduped per Sonar duplication
+    finding on PR #47 2026-05-23).
+    """
+    from helpers.evaluation_artifacts import build_pre_feature_run_summary
+    return build_pre_feature_run_summary()
 
 
 # ---------------------------------------------------------------------------

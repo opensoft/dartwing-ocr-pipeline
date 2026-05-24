@@ -230,47 +230,14 @@ def test_as3_pre_feature_eval_doc_still_loads(tmp_path: Path) -> None:
 
 def test_as3_pre_feature_run_summary_still_loads() -> None:
     """The v1.3.0 schema accepts an evaluation_run_summary.json with no
-    semantic_table_quality_metrics and no semantic_document_statuses."""
-    pre_feature = {
-        "contract_set_version": "1.2.0",
-        "run_id": "run_legacy",
-        "document_count": 0,
-        "overall_metrics": {
-            "field_accuracy": 1.0,
-            "vendor_identity_pass_rate": 1.0,
-            "review_routing_pass_rate": 1.0,
-            "overall_document_pass_rate": 1.0,
-        },
-        "consensus_metrics": {
-            "single_voter_baseline_runs": 0,
-            "majority_vote_documents": 0,
-            "split_decision_documents": 0,
-        },
-        "by_difficulty": {
-            "easy": {
-                "document_count": 0,
-                "field_accuracy": 0.0,
-                "overall_document_pass_rate": 0.0,
-            },
-            "medium": {
-                "document_count": 0,
-                "field_accuracy": 0.0,
-                "overall_document_pass_rate": 0.0,
-            },
-            "hard": {
-                "document_count": 0,
-                "field_accuracy": 0.0,
-                "overall_document_pass_rate": 0.0,
-            },
-            "missing_name": {
-                "document_count": 0,
-                "field_accuracy": 0.0,
-                "overall_document_pass_rate": 0.0,
-            },
-        },
-        "by_field": {},
-        "documents": [],
-    }
+    semantic_table_quality_metrics and no semantic_document_statuses.
+
+    Pre-feature shell built via the shared helper (deduped per Sonar
+    duplication finding on PR #47 2026-05-23).
+    """
+    from helpers.evaluation_artifacts import build_pre_feature_run_summary
+
+    pre_feature = build_pre_feature_run_summary()
     Draft202012Validator(load_evaluation_run_summary_schema()).validate(pre_feature)
 
 

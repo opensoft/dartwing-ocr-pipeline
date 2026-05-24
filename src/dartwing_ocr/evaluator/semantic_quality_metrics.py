@@ -39,6 +39,42 @@ _FAILED_CHECK_CATEGORIES: Final[tuple[str, ...]] = (
 )
 
 
+def _count_failed_checks(
+    failed_checks,
+    failed_check_counts: dict[str, int],
+    folder_basename: str,
+) -> None:
+    """Increment per-category failed-check counts in-place; raise on unknown categories.
+
+    Extracted from :func:`build_metrics_namespace` to reduce cognitive
+    complexity per Sonar python:S3776 (was 20, threshold 15). Per
+    MI-12 the category set is closed — silent drop would mask upstream
+    contract drift, so unknown categories raise ValueError naming the
+    offending category, folder, and the closed-set inventory.
+    """
+    for fc in failed_checks or ():
+        if fc.category not in failed_check_counts:
+            raise ValueError(
+                f"build_metrics_namespace: unknown failed-check "
+                f"category {fc.category!r} for folder "
+                f"{folder_basename!r} (closed MI-12 set is "
+                f"{sorted(failed_check_counts)})"
+            )
+        failed_check_counts[fc.category] += 1
+
+
+def _semantic_pass_rate(passed: int, evaluable: int) -> float | None:
+    """Compute the semantic_table_quality_pass_rate (passed / evaluable).
+
+    Returns ``None`` when ``evaluable == 0`` (avoid division by zero per
+    spec). Otherwise returns a Python ``float`` rounded to 6 dp
+    ROUND_HALF_EVEN. Extracted per Sonar python:S3776.
+    """
+    if evaluable == 0:
+        return None
+    return round_half_even(Decimal(passed) / Decimal(evaluable))
+
+
 def build_metrics_namespace(
     per_document_results: Iterable[tuple[str, SemanticQualityResult]],
 ) -> dict:
@@ -89,20 +125,9 @@ def build_metrics_namespace(
             passed += 1
         elif status == "failed":
             failed += 1
-            # Sum per-category failed-check counts from this document.
-            # MI-12 — closed kebab-case category set. Aggregator MUST
-            # raise on unknown categories rather than silently drop them
-            # (silent drop would mask upstream contract drift; per
-            # Sourcery + Copilot + Codex P2 review on PR #47 2026-05-23).
-            for fc in result.failed_checks or ():
-                if fc.category not in failed_check_counts:
-                    raise ValueError(
-                        f"build_metrics_namespace: unknown failed-check "
-                        f"category {fc.category!r} for folder "
-                        f"{folder_basename!r} (closed MI-12 set is "
-                        f"{sorted(failed_check_counts)})"
-                    )
-                failed_check_counts[fc.category] += 1
+            _count_failed_checks(
+                result.failed_checks, failed_check_counts, folder_basename
+            )
         elif status == "unevaluable":
             unevaluable += 1
         else:
@@ -115,12 +140,7 @@ def build_metrics_namespace(
             )
 
     evaluable = passed + failed
-
-    # Pass rate: passed / evaluable, 6-dp ROUND_HALF_EVEN. null when evaluable == 0.
-    if evaluable == 0:
-        pass_rate: float | None = None
-    else:
-        pass_rate = round_half_even(Decimal(passed) / Decimal(evaluable))
+    pass_rate = _semantic_pass_rate(passed, evaluable)
 
     return {
         "semantic_applicable_document_count": applicable,
