@@ -269,11 +269,15 @@ def test_as1_vendor_identity_passed_values_byte_identical(tmp_path: Path) -> Non
 # ---------------------------------------------------------------------------
 
 
-def test_as2_passing_vendor_failing_semantic_are_independent(tmp_path: Path) -> None:
-    """AS2: When a document has sufficient vendor-identity evidence AND
-    a failing semantic verdict, the evaluator MUST report both verdicts
-    independently — vendor-identity passes, semantic fails. The two
-    booleans live as siblings on ``document_pass_fail`` (FR-025)."""
+def _stage_inv_001_hard_and_evaluate(tmp_path: Path) -> tuple[Path, dict, dict]:
+    """Set up an ``inv_001_hard`` folder from the ``all_match`` fixture,
+    stage the US2 semantic sidecar into it, run the evaluator, and return
+    ``(folder, evaluation_document, document_pass_fail)``.
+
+    Extracted per Sonar duplication finding on PR #49 (2026-05-24): the
+    AS2 and AS4 tests had identical 13-line setup blocks that pushed
+    duplicated-lines density above the 3% threshold.
+    """
     folder = tmp_path / "inv_001_hard"
     shutil.copytree(_EVALUATOR_FIXTURES / "all_match", folder)
     for fname in ("expected.json", "final_structured_payload.json"):
@@ -287,8 +291,15 @@ def test_as2_passing_vendor_failing_semantic_are_independent(tmp_path: Path) -> 
     eval_doc = json.loads(
         (folder / "evaluation_document.json").read_text(encoding="utf-8")
     )
+    return folder, eval_doc, eval_doc["document_pass_fail"]
 
-    pf = eval_doc["document_pass_fail"]
+
+def test_as2_passing_vendor_failing_semantic_are_independent(tmp_path: Path) -> None:
+    """AS2: When a document has sufficient vendor-identity evidence AND
+    a failing semantic verdict, the evaluator MUST report both verdicts
+    independently — vendor-identity passes, semantic fails. The two
+    booleans live as siblings on ``document_pass_fail`` (FR-025)."""
+    _folder, eval_doc, pf = _stage_inv_001_hard_and_evaluate(tmp_path)
     # Vendor-identity portion: "all_match" fixture is a pass.
     assert pf["vendor_identity_passed"] is True
     # The synthetic US2 fixture is designed to fail the gate.
@@ -358,22 +369,8 @@ def test_as4_failed_semantic_with_passing_vendor_marks_passed_false(
     """AS4 (FR-025): When semantic gate fails AND vendor identity passes,
     ``document_pass_fail.semantic_table_quality_passed`` is exactly
     ``False`` (boolean), NOT ``None``."""
-    folder = tmp_path / "inv_001_hard"
-    shutil.copytree(_EVALUATOR_FIXTURES / "all_match", folder)
-    for fname in ("expected.json", "final_structured_payload.json"):
-        p = folder / fname
-        doc = json.loads(p.read_text(encoding="utf-8"))
-        doc["document_id"] = "inv_001_hard"
-        p.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
-    _stage_semantic_sidecar_into(folder)
-
-    evaluate_document(folder)
-    eval_doc = json.loads(
-        (folder / "evaluation_document.json").read_text(encoding="utf-8")
-    )
-
+    _folder, _eval_doc, pf = _stage_inv_001_hard_and_evaluate(tmp_path)
     # The semantic_table_quality_passed field is present, type bool, value False.
-    pf = eval_doc["document_pass_fail"]
     assert "semantic_table_quality_passed" in pf
     assert pf["semantic_table_quality_passed"] is False
     assert isinstance(pf["semantic_table_quality_passed"], bool)

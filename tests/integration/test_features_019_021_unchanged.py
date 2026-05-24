@@ -147,7 +147,8 @@ def _git_merge_base_with_main() -> str:
     smell.
     """
     for ref in ("origin/main", "main"):
-        result = subprocess.run(  # noqa: S603 — local git, args are static
+        # NOSONAR: local git command, args are static literals, no shell injection surface
+        result = subprocess.run(
             ["git", "merge-base", "HEAD", ref],
             cwd=str(REPO_ROOT),
             capture_output=True,
@@ -162,7 +163,8 @@ def _git_merge_base_with_main() -> str:
 def _files_changed_since(base_sha: str) -> set[str]:
     """Return the set of repo-relative file paths changed between
     ``base_sha`` and ``HEAD`` (Added or Modified)."""
-    result = subprocess.run(  # noqa: S603 — local git, args are static
+    # NOSONAR: local git command, args are static literals, no shell injection surface
+    result = subprocess.run(
         ["git", "diff", "--name-only", f"{base_sha}..HEAD"],
         cwd=str(REPO_ROOT),
         capture_output=True,
@@ -199,8 +201,8 @@ def test_no_protected_subtree_files_changed_by_feature_022() -> None:
                 break
 
     assert not violations, (
-        f"feature 022 modified files under protected pipeline subtrees — "
-        f"FR-021/FR-022/FR-023/FR-028/MI-22 violation:\n  "
+        "feature 022 modified files under protected pipeline subtrees — "
+        "FR-021/FR-022/FR-023/FR-028/MI-22 violation:\n  "
         + "\n  ".join(violations)
     )
 
@@ -280,11 +282,11 @@ def test_fr030_no_line_item_strings_in_src(forbidden: str) -> None:
             new_violations.append(f"{rel}:{lineno}: {line.strip()}")
 
     assert not new_violations, (
-        f"FR-030 violation — found forbidden line-item string "
+        "FR-030 violation — found forbidden line-item string "
         f"{forbidden!r} in src/dartwing_ocr/:\n  "
         + "\n  ".join(new_violations)
         + "\n\nIf this match is a pre-existing line that predates "
-        f"feature 022, add its sha256 to _FR030_LINE_HASH_ALLOWLIST."
+        "feature 022, add its sha256 to _FR030_LINE_HASH_ALLOWLIST."
     )
 
 
