@@ -23,7 +23,7 @@ The two layers are updated together. When they disagree, the documentation layer
 | `final_structured_payload.schema.json` | JSON Schema 2020-12 | Clean downstream handoff; flattened `vendor_candidate`. |
 | `expected.schema.json` | JSON Schema 2020-12 | Hand-labeled truth for one document. `additionalProperties: false` everywhere — no predictions, no confidence. |
 | `evaluation_document.schema.json` | JSON Schema 2020-12 | Per-document comparison result. **v1.3.0 delta**: additive `semantic_table_quality` object and `document_pass_fail.semantic_table_quality_passed` field. |
-| `evaluation_run_summary.schema.json` | JSON Schema 2020-12 | Corpus-level aggregate. **v1.3.0 delta**: additive `semantic_table_quality_metrics` namespace (eight counters + 6-dp `ROUND_HALF_EVEN` pass-rate) and `semantic_document_statuses` array. |
+| `evaluation_run_summary.schema.json` | JSON Schema 2020-12 | Corpus-level aggregate. **v1.3.0 delta**: additive `semantic_table_quality_metrics` namespace (six per-status document counts, a nullable `semantic_table_quality_pass_rate` formatted as 6-dp `ROUND_HALF_EVEN`, and a nested `semantic_failed_check_counts` object with four per-category counters) and `semantic_document_statuses` array. |
 | `folder.schema.json` | JSON configuration | Describes the filesystem layout (folder name pattern, required files per difficulty, reserved generated filenames). **Not** a JSON Schema applied to a file. **v1.3.0 delta**: `semantic_table_truth.json` appended to `reserved_generated_filenames`. |
 | `semantic_table_truth.schema.json` | JSON Schema 2020-12 | **NEW in v1.3.0** — optional per-document truth sidecar for the semantic-table quality gate. `document_id` and `row_id` constrained to `^[A-Za-z0-9_-]{1,64}$` (Q-SEC-2/B). |
 

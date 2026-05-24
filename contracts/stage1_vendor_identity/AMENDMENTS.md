@@ -176,8 +176,14 @@ Test coverage for the new acceptance shape:
 **Branch**: `022-ocr-semantic-quality-gate` (stacked: PR #44 → #46 → #47 → #49 → #50).
 
 **Tier**: MINOR — additive only. All v1.0.0, v1.1.0, and v1.2.0 artifacts
-remain byte-identical and valid under v1.3.0; the four impacted schemas
-add only optional fields with `default`-equivalent absence semantics.
+remain byte-identical and valid under v1.3.0. The amendment introduces
+one wholly new artifact schema (`semantic_table_truth.schema.json`),
+extends two evaluation report schemas (`evaluation_document.schema.json`,
+`evaluation_run_summary.schema.json`) with new optional fields whose
+absence is well-formed, and appends `semantic_table_truth.json` to the
+`folder.schema.json` `reserved_generated_filenames` list — every change
+is strictly additive at the artifact level and forward-compatible at
+the read path.
 
 Summary: introduce a deterministic, pure-CPU semantic-table OCR quality
 gate that runs harness-side over the evaluator's existing artifacts.
@@ -211,10 +217,16 @@ What was added:
     (FR-025, MI-17, Q20).
 - **Run-summary delta** (`evaluation_run_summary.schema.json`):
   - New optional top-level namespace `semantic_table_quality_metrics`
-    with 8 aggregate counters: applicable / evaluable / passed /
-    failed / unevaluable document counts, the four per-check failure
-    counters, and `semantic_table_quality_pass_rate` (`null` when
-    `evaluable == 0`; otherwise 6-decimal `ROUND_HALF_EVEN` per Q34).
+    with eight fields: six per-status document counters (`semantic_applicable_document_count`,
+    `semantic_not_applicable_document_count`, `semantic_evaluable_document_count`,
+    `semantic_passed_document_count`, `semantic_failed_document_count`,
+    `semantic_unevaluable_document_count`), a nullable
+    `semantic_table_quality_pass_rate` (`null` when `evaluable == 0`;
+    otherwise 6-decimal `ROUND_HALF_EVEN` per Q34), and a nested
+    `semantic_failed_check_counts` object whose four per-category
+    integer counters cover `malformed-currency-shape`,
+    `missing-required-content`, `row-text-coverage-gap`, and
+    `row-alignment-failure`.
   - New optional top-level array `semantic_document_statuses` with one
     entry per evaluated folder (scored + calibration both included;
     only scored entries feed the aggregate counters per Q39 / MI-20 /

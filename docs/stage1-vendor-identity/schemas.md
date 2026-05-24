@@ -621,14 +621,21 @@ Two new optional fields:
 
 Two new optional top-level entries:
 
-- `semantic_table_quality_metrics` (object): eight aggregate counters —
-  applicable / evaluable / passed / failed / unevaluable document counts,
-  the four per-check failure counters, and
+- `semantic_table_quality_metrics` (object): eight fields — six
+  per-status document counters (`semantic_applicable_document_count`,
+  `semantic_not_applicable_document_count`,
+  `semantic_evaluable_document_count`,
+  `semantic_passed_document_count`,
+  `semantic_failed_document_count`,
+  `semantic_unevaluable_document_count`), a nullable
   `semantic_table_quality_pass_rate` (`null` when `evaluable == 0`;
-  otherwise 6-decimal `ROUND_HALF_EVEN` per Q34's stable-JSON contract).
-  Aggregate counters reflect SCORED folders only (Q39 / MI-20 / SC-009)
-  — calibration folders run the gate but do not pollute the scored
-  aggregation.
+  otherwise 6-decimal `ROUND_HALF_EVEN` per Q34's stable-JSON contract),
+  and a nested `semantic_failed_check_counts` object holding four
+  per-category integer counters (`malformed-currency-shape`,
+  `missing-required-content`, `row-text-coverage-gap`,
+  `row-alignment-failure`). Aggregate counters reflect SCORED folders
+  only (Q39 / MI-20 / SC-009) — calibration folders run the gate but
+  do not pollute the scored aggregation.
 - `semantic_document_statuses` (array): one entry per evaluated folder,
   in canonical-pattern sort order, with `document_id`,
   `semantic_table_quality_status`, `semantic_table_quality_passed`, and
