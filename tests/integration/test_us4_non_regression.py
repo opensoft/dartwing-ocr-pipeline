@@ -161,9 +161,22 @@ def _goldens_present() -> bool:
 
 def test_as1_per_document_vendor_identity_byte_identical(tmp_path: Path) -> None:
     """AS1 per-document: every per-document ``evaluation_document.json``
-    in the post-feature run, after stripping the additive v1.3.0
-    semantic fields, equals its golden counterpart exactly. This is the
-    MI-22 byte-identity gate at the per-document level."""
+    in the post-feature (v1.3.0) run, after **stripping the additive
+    v1.3.0 semantic fields**, equals its v1.2.0 golden counterpart
+    exactly. This is the MI-22 byte-identity gate at the per-document
+    level — the post-feature writer must produce identical
+    vendor-identity output to the pre-feature writer for every legacy
+    document.
+
+    Note (Codex P2 + Copilot review on PR #49 2026-05-24): the test
+    runs at the v1.3.0 default and then projects the output onto the
+    v1.2.0 schema by stripping the additive ``semantic_table_quality``
+    object and ``semantic_table_quality_passed`` field. The MEANINGFUL
+    invariant is "v1.3.0 output minus semantic fields == v1.2.0 output"
+    — not literal byte-identity of two v1.2.0 runs. Running both sides
+    at v1.2.0 would only verify writer determinism, not feature-022
+    non-regression.
+    """
     if not _goldens_present():
         pytest.skip(
             f"goldens at {_GOLDENS_ROOT} not populated — "

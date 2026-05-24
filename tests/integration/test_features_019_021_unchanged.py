@@ -37,6 +37,7 @@ writes (only reads). MI-1.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import re
@@ -115,9 +116,13 @@ def test_feature_021_pipeline_runner_module_imports() -> None:
 def test_feature_020_evidence_gate_module_imports() -> None:
     """Feature 020 vendor-identity evidence-gate module imports cleanly.
 
-    Feature 022's gate-side code reuses ``EVIDENCE_GATE_Y_THRESHOLD_FRACTION``
-    from this module (MI-7) — so a regression here would surface
-    immediately at gate-time as well. This is a cross-check that the
+    Feature 022's gate-side code reuses ``Y_THRESHOLD_FRACTION`` from
+    this module (the constant is bound locally in
+    ``preprocessing.evidence_gate`` and re-exported in
+    ``dartwing_ocr.evaluator.semantic_quality_body_ocr`` as
+    ``EVIDENCE_GATE_Y_THRESHOLD_FRACTION`` per MI-7) — so a regression
+    here would surface immediately at gate-time as well. This is a
+    cross-check that the
     canonical import path stays valid.
     """
     import importlib
@@ -187,10 +192,13 @@ def test_no_protected_subtree_files_changed_by_feature_022() -> None:
     resolved (e.g. a shallow CI checkout without ``main``) — failing
     spuriously on a CI infra issue would be worse than the gap.
     """
-    try:
-        base = _git_merge_base_with_main()
-    except (RuntimeError, subprocess.CalledProcessError) as exc:
-        pytest.skip(f"could not resolve merge-base with main: {exc}")
+    # Per Codex P2 review on PR #49 (2026-05-24): a CI environment that
+    # can't resolve origin/main OR main is a real misconfiguration that
+    # should FAIL the gate, not silently skip — otherwise FR-021/MI-22
+    # protected-subtree checks are dead in those environments. Only
+    # legitimate environment-skip path is the explicit RuntimeError from
+    # the resolver, which we let propagate as the test failure.
+    base = _git_merge_base_with_main()
 
     changed = _files_changed_since(base)
     violations: list[str] = []
@@ -225,19 +233,41 @@ def test_no_protected_subtree_files_changed_by_feature_022() -> None:
 # with the forbidden string ``extract_lines`` purely by coincidence
 # (PaddleOCR uses "line" to mean a horizontal text strip, not a table
 # line-item). Both hashes are pinned here.
-_FR030_LINE_HASH_ALLOWLIST: frozenset[str] = frozenset(
+# Per Codex P2 + Copilot review on PR #49 (2026-05-24): scope the
+# allowlist by (repo-relative path, sha256(stripped-line)) tuple rather
+# than by line-hash alone. Hash-alone allowlisting would auto-suppress a
+# NEW violation if the same stripped text happens to appear in a
+# different file. Path-scoped tuples force any new occurrence in a new
+# location to be re-adjudicated.
+_FR030_LINE_HASH_ALLOWLIST: frozenset[tuple[str, str]] = frozenset(
     {
         # src/dartwing_ocr/preprocessing/ocr.py:385 — `def _extract_lines(`
-        "e1b05a303d123ede79fa8aa7c71d15c56a94a0ed00d086c0544218359c77ad25",
+        # Hash = sha256(stripped-line) — kept identical to the pre-PR-49
+        # bare-hash form so the change is purely a key-tuple expansion.
+        (
+            "src/dartwing_ocr/preprocessing/ocr.py",
+            "e1b05a303d123ede79fa8aa7c71d15c56a94a0ed00d086c0544218359c77ad25",
+        ),
         # src/dartwing_ocr/preprocessing/ocr.py:680 — call site
-        "daec13bbe99041c0bfc8f8b2545ae2b691c33e5ef146dff15dfb2cbed14aa799",
+        (
+            "src/dartwing_ocr/preprocessing/ocr.py",
+            "daec13bbe99041c0bfc8f8b2545ae2b691c33e5ef146dff15dfb2cbed14aa799",
+        ),
     }
 )
 
 
-def _iter_source_lines() -> list[tuple[Path, int, str]]:
-    """Yield ``(path, lineno, line)`` for every ``.py`` file under
-    ``src/dartwing_ocr/``. Trims newline; preserves leading whitespace."""
+@functools.lru_cache(maxsize=1)
+def _iter_source_lines() -> tuple[tuple[Path, int, str], ...]:
+    """Return ``(path, lineno, line)`` triples for every ``.py`` file
+    under ``src/dartwing_ocr/``. Trims newline; preserves leading
+    whitespace.
+
+    Cached per-process via ``@lru_cache(maxsize=1)`` so the parametrized
+    FR-030 test (which iterates 4 forbidden strings) re-uses the same
+    file walk instead of re-reading every .py file four times. Per
+    Copilot review on PR #49 (2026-05-24) — perf nit.
+    """
     out: list[tuple[Path, int, str]] = []
     for path in sorted(SRC_ROOT.rglob("*.py")):
         # Skip __pycache__ entirely (defensive — rglob already excludes
@@ -251,13 +281,23 @@ def _iter_source_lines() -> list[tuple[Path, int, str]]:
             continue
         for lineno, line in enumerate(text.splitlines(), start=1):
             out.append((path, lineno, line))
-    return out
+    return tuple(out)
 
 
 def _hash_line(line: str) -> str:
     """SHA-256 of the line's UTF-8 bytes (no leading/trailing whitespace
     normalized so allowlist hashes are stable across formatting tweaks)."""
     return hashlib.sha256(line.strip().encode("utf-8")).hexdigest()
+
+
+def _rel_path(path: Path) -> str:
+    """Return the repo-relative POSIX path string for ``path``.
+
+    Used for the path-scoped FR-030 allowlist lookup (Codex P2 PR #49
+    2026-05-24) — every (path, hash) tuple is compared with this
+    canonical key form.
+    """
+    return path.relative_to(REPO_ROOT).as_posix()
 
 
 @pytest.mark.parametrize("forbidden", _FR030_FORBIDDEN_STRINGS)
@@ -270,13 +310,17 @@ def test_fr030_no_line_item_strings_in_src(forbidden: str) -> None:
     different concepts the gate may legitimately mention in passing
     docstrings. Adjust the allowlist (above) if pre-existing matches
     appear; do NOT weaken the forbidden list.
+
+    Allowlist lookup is (path, hash)-scoped (Codex P2 PR #49 2026-05-24
+    — hash-alone allowlisting would auto-suppress a NEW violation if
+    the same stripped text appears in a different file).
     """
     pattern = re.compile(re.escape(forbidden))
     new_violations: list[str] = []
     for path, lineno, line in _iter_source_lines():
         if pattern.search(line):
-            line_hash = _hash_line(line)
-            if line_hash in _FR030_LINE_HASH_ALLOWLIST:
+            key = (_rel_path(path), _hash_line(line))
+            if key in _FR030_LINE_HASH_ALLOWLIST:
                 continue
             rel = path.relative_to(REPO_ROOT)
             new_violations.append(f"{rel}:{lineno}: {line.strip()}")
@@ -286,7 +330,8 @@ def test_fr030_no_line_item_strings_in_src(forbidden: str) -> None:
         f"{forbidden!r} in src/dartwing_ocr/:\n  "
         + "\n  ".join(new_violations)
         + "\n\nIf this match is a pre-existing line that predates "
-        "feature 022, add its sha256 to _FR030_LINE_HASH_ALLOWLIST."
+        "feature 022, add its (rel_path, sha256) tuple to "
+        "_FR030_LINE_HASH_ALLOWLIST."
     )
 
 
