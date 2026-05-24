@@ -56,17 +56,37 @@ _PREFLIGHT_IS_SUCCESS_VALUE = "ppstructurev3_init_succeeded"
 
 
 def _load_preflight_readout() -> object:
-    """Load and cache the preflight classifier readout, with a defensive
-    fallback if `preflight.py` is missing or broken at import time.
+    """Load and cache the preflight classifier readout in a separate subprocess
+    to prevent the parent pytest process from holding a GPU context.
     """
+    import subprocess
+    import sys
+    import json
     try:
-        from dartwing_ocr.preprocessing.preflight import classify  # type: ignore[import-not-found]
-        return classify(attempt_ppstructurev3_init=True)
+        cmd = [sys.executable, "-m", "dartwing_ocr.preprocessing.preflight", "--quiet"]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=180.0)
+        if res.returncode in (0, 10, 11, 12, 13, 14):
+            # Parse the trailing JSON line from preflight CLI output
+            lines = [line.strip() for line in res.stdout.splitlines() if line.strip()]
+            for line in reversed(lines):
+                if line.startswith("{") and line.endswith("}"):
+                    obj = json.loads(line)
+                    if obj.get("kind") == "preflight_readout":
+                        return _SentinelReadout(
+                            state=_SentinelState(value=obj.get("state")),
+                            recommendation=obj.get("recommendation", ""),
+                        )
+            raise ValueError("no preflight_readout JSON line found in stdout")
+        else:
+            return _SentinelReadout(
+                state=_SentinelState(value="paddle_not_installed"),
+                recommendation=f"preflight subprocess exited with {res.returncode}: {res.stderr[:200].strip()}"
+            )
     except Exception as exc:  # noqa: BLE001 - intentional defensive scope; see RR15.
         return _SentinelReadout(
             state=_SentinelState(value="paddle_not_installed"),
             recommendation=(
-                f"preflight import failed: {type(exc).__name__}: {str(exc)[:200]}"
+                f"preflight subprocess failed: {type(exc).__name__}: {str(exc)[:200]}"
             ),
         )
 
@@ -104,6 +124,11 @@ def pytest_collection_modifyitems(
     """Skip-gate `@pytest.mark.gpu` items based on the cached preflight
     state. Skip reason traces back to the FR-001 state per FR-019.
     """
+    # Defensive optimization: only invoke preflight readout if at least one
+    # gpu-marked test was collected in this session.
+    if not any(item.get_closest_marker("gpu") is not None for item in items):
+        return
+
     readout = _cached_readout()
     state_value = getattr(readout.state, "value", str(readout.state))
     if state_value == _PREFLIGHT_IS_SUCCESS_VALUE:

@@ -340,7 +340,7 @@ class DetRecVariant:
 
     `det_model_name` and `rec_model_name` are passed through to
     `PPStructureV3(text_detection_model_name=..., text_recognition_model_name=...)`
-    when non-`None`. `legacy` / `cpu-default` / `stub-default` carry
+    when non-`None`. `cpu-default` / `stub-default` carry
     `None` for both — meaning "use PaddleOCR's default model selection
     for `lang='en'`" (R-017.4 Appendix A).
 
@@ -357,8 +357,8 @@ DET_REC_VARIANTS: Mapping[str, DetRecVariant] = MappingProxyType(
     {
         "legacy": DetRecVariant(
             name="legacy",
-            det_model_name=None,  # PaddleOCR picks PP-OCRv5 server default for lang="en"
-            rec_model_name=None,
+            det_model_name="PP-OCRv5_server_det",
+            rec_model_name="PP-OCRv5_server_rec",
         ),
         "ppocrv5-mobile": DetRecVariant(
             name="ppocrv5-mobile",

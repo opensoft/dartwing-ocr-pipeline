@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.2.0/semantic_table_truth.schema.json",
+  "title": "semantic_table_truth",
+  "description": "Labeled table/body truth for testing semantic quality gate on distressed invoices.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_set_version",
+    "document_id",
+    "rows"
+  ],
+  "properties": {
+    "contract_set_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "document_id": { "type": "string", "minLength": 1 },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "quantity",
+          "description",
+          "unit_price",
+          "amount"
+        ],
+        "properties": {
+          "quantity": { "type": ["number", "string", "null"] },
+          "description": { "type": "string" },
+          "unit_price": { "type": ["number", "string", "null"] },
+          "amount": { "type": ["number", "string", "null"] }
+        }
+      }
+    }
+  }
+}

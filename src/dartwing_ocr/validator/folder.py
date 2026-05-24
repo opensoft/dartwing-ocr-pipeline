@@ -50,6 +50,7 @@ _ARTIFACT_FILENAMES: dict[str, ArtifactName] = {
     EVAL_DOC_FILENAME: ArtifactName.EVALUATION_DOCUMENT,
     _EXPECTED_FILENAME: ArtifactName.EXPECTED,
     "evidence_packet.json": ArtifactName.EVIDENCE_PACKET,
+    "semantic_table_truth.json": ArtifactName.SEMANTIC_TABLE_TRUTH,
 }
 
 # Artifacts that carry `contract_set_version` but no `pipeline_version`

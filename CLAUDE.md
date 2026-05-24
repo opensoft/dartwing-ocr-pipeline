@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+<!-- OPENSPEC-SPECKIT-GLOBAL:START -->
+## Shared OpenSpec/Speckit Protocol
+
+This repo uses the user-global OpenSpec/Speckit workflow instead of duplicating
+process rules in every repository.
+
+- Global agent entrypoint: `/home/brett/.agents/AGENTS.md`
+- Workflow protocol: `/home/brett/.agents/protocols/openspec-speckit-workflow.md`
+- Bootstrap contract: `/home/brett/.agents/protocols/project-agent-bootstrap.md`
+
+Repo-local sections below remain authoritative for project-specific commands,
+runtime prerequisites, source-of-truth docs, tests, and deployment constraints.
+<!-- OPENSPEC-SPECKIT-GLOBAL:END -->
+
 ## Repository Purpose
 
 Step 2 of the Dartwing AP Clerk Agent: an OCR + field-extraction + structuring pipeline for invoice PDFs. The repo currently holds one prototype script (`step2_ocr_ensemble.py`) plus the full design docs, schemas, and PRDs for the real stage 1 implementation that has not been written yet. Most non-trivial work starts by reading `docs/stage1-vendor-identity/`, `.specify/memory/constitution.md`, and the active OpenSpec/Speckit artifacts, then translating those contracts into code.
@@ -43,7 +57,7 @@ There is no test suite, linter, or build system configured yet.
 
 Speckit worktree helper:
 ```bash
-source /home/brett/projects/dartwing/dartwing-ocr-pipeline/.specify/shell/ct.zsh
+source "$(git rev-parse --show-toplevel)/.specify/shell/ct.zsh"
 ```
 - After `/speckit.specify`, run `/ct` for the jump target or `/ctp` for full worktree details
 - Run `ct` to actually change the shell into that worktree
@@ -51,34 +65,10 @@ source /home/brett/projects/dartwing/dartwing-ocr-pipeline/.specify/shell/ct.zsh
 
 ## OpenSpec and Speckit Workflow
 
-Use OpenSpec as the change-governance layer and Speckit as the implementation layer.
-
-Use OpenSpec before implementation when work changes one of these boundaries:
-- stage 1 artifact schemas or folder contracts
-- runtime/container/model orchestration
-- consensus, routing, review, or escalation policy
-- Jetson/edge deployment constraints
-- the development workflow itself
-
-Use Speckit for feature worktrees, implementation planning, task breakdown, and code execution. Do not duplicate task lists between the two systems: an OpenSpec change should capture intent and design decisions, then hand off to exactly one Speckit feature under `specs/NNN-*` for implementation.
-
-Before running `/speckit.specify`, verify from the same shell/container with `git status -sb` and `git branch --show-current` that the checkout is on `main` with no unintended worktree changes. Never run `/speckit.specify` from a feature branch, cleanup branch, or existing Speckit worktree. If not on `main`, stop and switch to `main` only after preserving or committing any current work. This rule applies even when updating an existing feature spec.
-
-Do not pre-create Codex-prefixed branches for Speckit features. The normal Codex `codex/` branch prefix applies to ad hoc Codex work, but Speckit features must let the `/speckit.specify` `before_specify` hook create the feature branch/worktree using the canonical `NNN-feature-name` form.
-
-**Worktree-context enforcement (hard rule, applies every turn)**: `/speckit.specify` and `/speckit.constitution` are the ONLY Speckit commands that may run from `main`. Every other Speckit command — `/speckit.clarify`, `/speckit.checklist`, `/speckit.plan`, `/speckit.tasks`, `/speckit.analyze`, `/speckit.implement` — MUST run against the feature worktree, never against the main checkout. Before invoking any of those follow-on commands, Claude MUST:
-
-1. Determine the target feature directory (from `.specify/feature.json` in the worktree, or from the most recent `specs/NNN-*` the user is working on).
-2. Resolve the worktree path: typically `../<repo-name>-worktrees/<NNN-feature-name>/`. Verify it exists with `ls`.
-3. Run every Bash command for that Speckit invocation as `cd <worktree-path> && <command>` so prerequisite scripts, git operations, and file reads all target the worktree's working tree and branch — never the parent main checkout. Pass absolute paths under the worktree to Read/Edit/Write tools.
-4. Verify the target with `git -C <worktree-path> branch --show-current` matches the expected `NNN-feature-name` before any state-mutating step.
-5. If the worktree doesn't exist (e.g., the user invoked a follow-on command before `/speckit.specify` ran for this NNN), STOP and tell the user — do NOT silently fall back to main and do NOT create the worktree without explicit approval.
-
-The shell's apparent cwd (the user's terminal location) does NOT determine the target — the absolute worktree path does. A user sitting in the main checkout typing `/speckit.analyze` is a normal case, and the right response is for Claude to operate against the worktree's absolute paths, never against main's. The harness rule is enforced by Claude reading this CLAUDE.md every turn; if a future shell-script guard is added, it lives at `.specify/scripts/bash/check-feature-context.sh` and is invoked by each follow-on speckit skill — until then, this prose IS the enforcement.
+Use the shared protocol linked in the managed block near the top of this file:
+`/home/brett/.agents/protocols/openspec-speckit-workflow.md`.
 
 Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec` is on `PATH`. Do not add OpenSpec to the lightweight Dartwing project container; that container remains focused on the pipeline runtime and local validation path.
-
-Skip OpenSpec for small implementation-only fixes where an existing `specs/NNN-*` artifact already defines the behavior and no product or architecture decision is being made.
 
 ## Architecture
 

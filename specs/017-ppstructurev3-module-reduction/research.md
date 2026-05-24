@@ -100,7 +100,7 @@ The FR-001 live-path audit at landing time MUST confirm that on a stage 1 vendor
 
 | Value | Detection model | Recognition model | Notes |
 |---|---|---|---|
-| `legacy` | PaddleOCR's PPStructureV3 default detection model on `lang="en"` (PP-OCRv5 server-grade detector — whatever PPStructureV3 selects when `text_detection_model_name` is not set) | PaddleOCR's PPStructureV3 default recognition model on `lang="en"` (PP-OCRv5 server-grade recognizer) | The variant active on `main` at landing time of feature 016. Selecting `legacy` means the `text_detection_model_name` and `text_recognition_model_name` kwargs are NOT set — PaddleOCR picks its own server defaults. |
+| `legacy` | `PP-OCRv5_server_det` | `PP-OCRv5_server_rec` | The variant active on `main` at landing time of feature 016. Selecting `legacy` on GPU now explicitly passes these server-grade models to avoid hangs on gfx1151 WSL hosts. |
 | `ppocrv5-mobile` | `PP-OCRv5_mobile_det` | `PP-OCRv5_mobile_rec` | PP-OCRv5 mobile-grade detection + recognition pair. Same architecture family as `legacy`, materially smaller weights and faster per-page inference; comparable accuracy on clean printed Latin-script invoices. |
 | `ppocrv4-mobile` | `PP-OCRv4_mobile_det` | `PP-OCRv4_mobile_rec` | PP-OCRv4 mobile-grade detection + recognition pair. Earlier architecture; smaller still; included as a second comparison point so the benchmark covers two distinct architectures, not just two sizes within one. |
 
@@ -334,7 +334,7 @@ A flat reference table of the five `det_rec_variant_id` values across all profil
 
 | `det_rec_variant_id` | `text_detection_model_name` | `text_recognition_model_name` | Notes |
 |---|---|---|---|
-| `legacy` | (unset — PaddleOCR picks PP-OCRv5 server default for `lang="en"`) | (unset — PaddleOCR picks PP-OCRv5 server default for `lang="en"`) | Identical to feature 016's GPU defaults. |
+| `legacy` | `PP-OCRv5_server_det` | `PP-OCRv5_server_rec` | Explicit server-grade models used on the GPU lane to prevent hangs. |
 | `ppocrv5-mobile` | `PP-OCRv5_mobile_det` | `PP-OCRv5_mobile_rec` | Smaller than legacy; same architecture family. |
 | `ppocrv4-mobile` | `PP-OCRv4_mobile_det` | `PP-OCRv4_mobile_rec` | Earlier architecture; smallest of the three. |
 | `cpu-default` | (unset) | (unset) | Identity preset — does not modify the CPU constructor (R-017.6). |

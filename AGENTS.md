@@ -2,6 +2,20 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
+<!-- OPENSPEC-SPECKIT-GLOBAL:START -->
+## Shared OpenSpec/Speckit Protocol
+
+This repo uses the user-global OpenSpec/Speckit workflow instead of duplicating
+process rules in every repository.
+
+- Global agent entrypoint: `/home/brett/.agents/AGENTS.md`
+- Workflow protocol: `/home/brett/.agents/protocols/openspec-speckit-workflow.md`
+- Bootstrap contract: `/home/brett/.agents/protocols/project-agent-bootstrap.md`
+
+Repo-local sections below remain authoritative for project-specific commands,
+runtime prerequisites, source-of-truth docs, tests, and deployment constraints.
+<!-- OPENSPEC-SPECKIT-GLOBAL:END -->
+
 ## Repository Purpose
 
 Step 2 of the Dartwing AP Clerk Agent: an OCR + field-extraction + structuring pipeline for invoice PDFs. The repo currently holds one prototype script (`step2_ocr_ensemble.py`) plus the full design docs, schemas, and PRDs for the real stage 1 implementation that has not been written yet. Most non-trivial work starts by reading `docs/stage1-vendor-identity/`, `.specify/memory/constitution.md`, and the active OpenSpec/Speckit artifacts, then translating those contracts into code.
@@ -43,24 +57,10 @@ There is no test suite, linter, or build system configured yet.
 
 ## OpenSpec and Speckit Workflow
 
-Use OpenSpec as the change-governance layer and Speckit as the implementation layer.
-
-Use OpenSpec before implementation when work changes one of these boundaries:
-- stage 1 artifact schemas or folder contracts
-- runtime/container/model orchestration
-- consensus, routing, review, or escalation policy
-- Jetson/edge deployment constraints
-- the development workflow itself
-
-Use Speckit for feature worktrees, implementation planning, task breakdown, and code execution. Do not duplicate task lists between the two systems: an OpenSpec change should capture intent and design decisions, then hand off to exactly one Speckit feature under `specs/NNN-*` for implementation.
-
-Before running `/speckit.specify`, verify from the same shell/container with `git status -sb` and `git branch --show-current` that the checkout is on `main` with no unintended worktree changes. Never run `/speckit.specify` from a feature branch, cleanup branch, or existing Speckit worktree. If not on `main`, stop and switch to `main` only after preserving or committing any current work. This rule applies even when updating an existing feature spec.
-
-Do not pre-create Codex-prefixed branches for Speckit features. The normal Codex `codex/` branch prefix applies to ad hoc Codex work, but Speckit features must let the `/speckit.specify` `before_specify` hook create the feature branch/worktree using the canonical `NNN-feature-name` form. After specify creates that worktree, run follow-on Speckit commands (`/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`) from the generated worktree, not from `main` and not from an unrelated older worktree selected by `cta`.
+Use the shared protocol linked in the managed block near the top of this file:
+`/home/brett/.agents/protocols/openspec-speckit-workflow.md`.
 
 Run OpenSpec from the bench/workbench container (`py-bench`), where `openspec` is on `PATH`. Do not add OpenSpec to the lightweight Dartwing project container; that container remains focused on the pipeline runtime and local validation path.
-
-Skip OpenSpec for small implementation-only fixes where an existing `specs/NNN-*` artifact already defines the behavior and no product or architecture decision is being made.
 
 ## Architecture
 

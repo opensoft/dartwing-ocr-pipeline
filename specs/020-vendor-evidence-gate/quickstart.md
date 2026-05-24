@@ -460,6 +460,14 @@ Per the Q3 clarification, **over-time regression surveillance for `evidence_gate
 
 This entry persists in Appendix B even if all other GPU deferrals close — the surveillance question is a permanent follow-up, not a deferred verification.
 
+## Semantic OCR quality follow-up (post-GPU calibration, 2026-05-20)
+
+GPU calibration found a degraded-body invoice candidate where Paddle OCR emitted high-confidence table-body text that was materially wrong. The candidate did not trip feature 019 FR-005 because token count and mean detector confidence stayed high; it also does not contradict feature 020 because the evidence gate is intentionally vendor-identity scoped over page-1 header-band signals.
+
+- [ ] Semantic/table-body OCR quality gate: detect confidently wrong table rows, including missing quantities, malformed currency punctuation, row-alignment gaps, and table-body text mismatches — **DEFERRED to follow-up feature** `022-ocr-semantic-quality-gate`; see `docs/stage1-vendor-identity/prd-ocr-semantic-quality-gate.md`.
+
+This entry persists separately from GPU promotion. Vendor-identity-only acceptance may remain valid while whole-invoice/table-quality claims require the follow-up gate.
+
 CPU-safe floor that MUST pass before merge of PR #38 (MVP):
 - items 1–7 of "Smoke tests" above
 - the CPU-safe unit tests under `tests/unit/preprocessing/test_evidence_gate_*.py` (signals, decision, malformed-input, NFKC, rederivability, regex-negatives, registry, strategy-uniformity, y-threshold, module-safety, A-fixes)

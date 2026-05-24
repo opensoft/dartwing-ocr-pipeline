@@ -77,8 +77,9 @@ def test_cpu_default_det_rec_variant_uses_paddleocr_defaults() -> None:
     legacy = DET_REC_VARIANTS["legacy"]
     assert cpu.det_model_name is None and cpu.rec_model_name is None
     assert stub.det_model_name is None and stub.rec_model_name is None
-    # `legacy` also defers to PaddleOCR's defaults — R-017.4 Appendix A.
-    assert legacy.det_model_name is None and legacy.rec_model_name is None
+    # `legacy` carries explicit server model names to ensure consistency and avoid hangs.
+    assert legacy.det_model_name == "PP-OCRv5_server_det"
+    assert legacy.rec_model_name == "PP-OCRv5_server_rec"
 
 
 # ---------------------------------------------------------------------------

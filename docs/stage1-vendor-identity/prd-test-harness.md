@@ -80,6 +80,9 @@ Explicitly out of scope:
 - formal ML experiment tracking systems
 - production monitoring
 - latency benchmarking as a stage 1 requirement
+- table-body or line-item correctness as a stage 1 MVP gate; degraded-body
+  semantic OCR quality is tracked as a follow-up in
+  `prd-ocr-semantic-quality-gate.md`
 
 ## Dataset Requirements
 
@@ -151,6 +154,11 @@ The evaluator must score at minimum:
 - email
 - manual review required
 - review reason
+
+Future semantic/table OCR evaluation may add table-body checks for degraded
+fixtures, but those checks are separate from the current vendor-identity score.
+In particular, high OCR confidence on table rows must not be treated as proof
+that quantities, currency values, or row alignment are correct.
 
 ## Scoring Requirements
 

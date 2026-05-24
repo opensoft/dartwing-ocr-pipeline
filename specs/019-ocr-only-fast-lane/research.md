@@ -152,6 +152,12 @@ This document records the design decisions made at `/speckit.plan` time. The two
   - Make `--gpu-warmup` a no-op on `ocr-only-v1` — rejected because it would regress feature 016's warmup benefits on the OCR-only path itself (the OCR-only engine would always cold-start on the first document).
   - Lazy hybrid (warm OCR-only eagerly, warm PPStructureV3 just-in-time on first fallback) — rejected because it muddles `phase_timings.warmup` semantics (one engine's warmup is in `warmup`; the other's is folded into `per_page_inference`) and creates an inconsistent accounting story.
 
+## R-019.17 — Limitation: OCR confidence is not semantic correctness
+
+- **Decision**: Feature 019 does not expand FR-005 beyond the two lightweight signals it already owns: OCR token count and mean detector confidence. A later feature may add semantic/table-body quality checks, but that is not a retroactive change to `ocr-only-v1`.
+- **Rationale**: GPU calibration after feature 021 found a degraded-body candidate (`inv_024_hard_degraded_body`) where the header remained readable and Paddle OCR returned high confidence for table-body rows that were visibly and materially wrong. Quantities were missing, decimal money values were read with colons, and several descriptions diverged from labeled truth while the body confidence mean remained high. That finding proves detector confidence is not a correctness guarantee, but it does not invalidate FR-005's narrow purpose: detecting sparse or low-confidence OCR-only output before PPStructureV3 fallback.
+- **Follow-up**: The product requirement for the broader gate is recorded in `docs/stage1-vendor-identity/prd-ocr-semantic-quality-gate.md`, with calibration evidence in `docs/stage1-vendor-identity/ocr-semantic-quality-observations.md`.
+
 ## Appendix A — Benchmark numbers (filled at landing time)
 
 The FR-015 benchmark cells are: `ppstructurev3` baseline AND `ocr-only-v1` candidate, both on the fixed 5-doc subset (R-019.13). Per-document `phase_timings.rasterization`, `phase_timings.per_page_inference`, `phase_timings.total`, and per-doc evaluator metrics will be recorded here. (Verification deferred per FR-025 if workstation GPU is unavailable at merge; deferral captured in `tasks.md` and `quickstart.md` Appendix B.)

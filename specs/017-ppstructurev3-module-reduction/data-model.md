@@ -44,12 +44,12 @@ class DetRecVariant:
 | Field | Type | Source | Notes |
 |---|---|---|---|
 | name | `str` | one of `{"legacy", "ppocrv5-mobile", "ppocrv4-mobile", "cpu-default", "stub-default"}` | Closed vocabulary at landing. |
-| det_model_name | `str | None` | hard-coded per variant (R-017.4 Appendix A) | `None` for `legacy`, `cpu-default`, `stub-default` (PaddleOCR picks server default for `lang="en"`). |
-| rec_model_name | `str | None` | hard-coded per variant (R-017.4 Appendix A) | `None` for `legacy`, `cpu-default`, `stub-default`. |
+| det_model_name | `str | None` | hard-coded per variant (R-017.4 Appendix A) | `PP-OCRv5_server_det` for `legacy`, `None` for `cpu-default`, `stub-default` (PaddleOCR picks server default for `lang=\"en\"`). |
+| rec_model_name | `str | None` | hard-coded per variant (R-017.4 Appendix A) | `PP-OCRv5_server_rec` for `legacy`, `None` for `cpu-default`, `stub-default`. |
 
 **Registry invariants**:
 
-- `DET_REC_VARIANTS["legacy"].det_model_name is None` and `.rec_model_name is None` — explicit None means "PaddleOCR's default, do not override".
+- `DET_REC_VARIANTS["legacy"].det_model_name == "PP-OCRv5_server_det"` and `.rec_model_name == "PP-OCRv5_server_rec"` — explicit model names ensure consistency and prevent hangs on WSL gfx1151 hosts.
 - `DET_REC_VARIANTS["ppocrv5-mobile"]` and `["ppocrv4-mobile"]` carry the model names from R-017.4 Appendix A.
 - `DET_REC_VARIANTS["cpu-default"]` and `["stub-default"]` are identity presets (None / None), used only for the run_summary identifier surface.
 

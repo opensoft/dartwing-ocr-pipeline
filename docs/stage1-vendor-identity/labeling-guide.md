@@ -59,6 +59,11 @@ The `inv_NNN_<difficulty>` suffix is prescriptive — it declares up front what 
 | `hard` | At least one of: low-quality scan, faint text, rotated scan, multi-entity page, logo-only company name, parent/subsidiary ambiguity, or bank/financial-services statement with non-tax identifiers that look tax-ID-like. Name **is present** on the page in some form — just difficult to extract. |
 | `missing_name` | **No explicit company name** anywhere on the document — no header, no footer, no letterhead, no logo, no Bill-From block. Faint-but-present is `hard`, not `missing_name`. |
 
+Degraded table-body candidates are `hard` when the vendor name is still present.
+The current `expected.json` contract remains vendor-identity-only; table-row
+truth requires a future contract amendment or evaluator extension before it
+becomes scored corpus data.
+
 ---
 
 ## 5. `expected.json` — field-by-field walk-through

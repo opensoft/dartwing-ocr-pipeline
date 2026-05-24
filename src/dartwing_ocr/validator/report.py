@@ -27,6 +27,7 @@ class ArtifactName(str, Enum):
     EVALUATION_DOCUMENT = "evaluation_document"
     EVALUATION_RUN_SUMMARY = "evaluation_run_summary"
     EVIDENCE_PACKET = "evidence_packet"
+    SEMANTIC_TABLE_TRUTH = "semantic_table_truth"
 
 
 class ViolationCode:

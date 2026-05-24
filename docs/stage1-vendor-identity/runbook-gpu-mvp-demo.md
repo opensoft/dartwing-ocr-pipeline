@@ -6,7 +6,7 @@ This runbook is the canonical operator path for the stage-1 vendor-identity GPU-
 
 - AMD ROCm workstation (WSL or native Linux).
 - `paddlepaddle-dcu` installed in `.venv-paddle-rocm` (matching feature 014–019 conventions).
-- Host Ollama started via `scripts/start-host-ollama-rocm-wsl.sh` (WSL) or the equivalent native Linux path; the extraction model named by the demo's voter config is loaded with GPU placement.
+- Host Ollama started via `scripts/start-host-ollama-rocm-wsl.sh` (WSL) or the equivalent native Linux path; the extraction model named by the demo's voter config is loaded with GPU placement. On WSL, the wrapper defaults `OLLAMA_CONTEXT_LENGTH=2048`; do not start with plain `ollama serve`, which may auto-select a 262k context from VRAM and time out before the model runner is ready.
 - A scratch directory `/tmp/021-bench/` available (or another explicit scratch root).
 - The voter config at `configs/voter/ollama-gpu.yaml` (R-021.7) names the loaded extraction model.
 
@@ -39,6 +39,15 @@ Common blockers and remediation:
 
 ### Step 1b — Ollama placement (FR-002)
 
+First confirm the host service is reachable:
+
+```bash
+curl --silent --show-error --fail --max-time 5 http://localhost:11434/api/version
+```
+
+Then confirm the configured extraction model is currently loaded and fully
+GPU-placed:
+
 ```bash
 scripts/check-ollama-gpu-readiness.sh \
     --voter-config configs/voter/ollama-gpu.yaml \
@@ -51,10 +60,45 @@ Common remediation:
 
 | Helper exit | Likely cause                         | Operator action                                                                          |
 |------------:|--------------------------------------|------------------------------------------------------------------------------------------|
-| `1`         | Mixed CPU/GPU placement              | Restart Ollama with GPU env set; verify with `rocm-smi` that VRAM is available           |
-| `2`         | Model not loaded                     | Run `ollama run <model_name> ""` once to warm the model into Ollama, then re-check       |
+| `1`         | Mixed CPU/GPU placement              | Restart Ollama with GPU env set; verify by re-running the readiness helper and checking `size_vram == size` |
+| `2`         | Model not loaded                     | Load the active model with the JSON command below, then re-check                         |
 | `3`         | Ollama unreachable                   | Confirm `scripts/start-host-ollama-rocm-wsl.sh` is running; check port 11434 is open     |
 | `4`         | Voter config missing / malformed     | Confirm `configs/voter/ollama-gpu.yaml` exists and has a non-empty top-level `model_name` |
+
+Important distinction: `/api/tags` means a model exists on disk; `/api/ps`
+means a model is loaded in the running Ollama process. The readiness helper uses
+`/api/ps`, so a server can be reachable while still failing readiness because
+the model is not loaded.
+
+To load the configured model:
+
+```bash
+MODEL_NAME="$(yq -r '.model_name' configs/voter/ollama-gpu.yaml)"
+curl --silent --show-error --fail --max-time 180 \
+    http://localhost:11434/api/generate \
+    -H 'Content-Type: application/json' \
+    -d "$(jq -nc --arg model "$MODEL_NAME" '{
+        model: $model,
+        prompt: "Reply with OK only.",
+        stream: false,
+        keep_alive: "15m",
+        options: {num_predict: 1, num_ctx: 2048}
+    }')"
+```
+
+If the load command hangs or times out, read `/tmp/ollama-host-rocm-fixed.log`.
+If it shows the runner waiting to start and then canceling the load, restart
+host Ollama through the ROCm wrapper and retry:
+
+```bash
+scripts/start-host-ollama-rocm-wsl.sh
+```
+
+Do not use plain `ollama serve` on the WSL `gfx1151` workstation path. The
+script applies the HSA preload and SDMA settings required by this host. The
+`keep_alive` setting above is 15 minutes. The probe pins `num_ctx: 2048`
+because it only verifies readiness, not benchmark throughput. After a longer
+idle gap, repeat this load step before running the demo or benchmark.
 
 Only proceed to Step 2 when both Step 1a AND Step 1b PASS. Capture both `readiness-paddle.log` and the helper's stdout PASS JSON for the run record (see Step 5 / Appendix A environment fingerprint).
 
@@ -167,9 +211,11 @@ Concise table of common failure paths with named-cause remediation:
 |----------------------------------------------------------|----------------------------------------|------------------------------------------------------------------------------------------|
 | Paddle preflight returns a non-success state             | Wrong interpreter, missing ROCm, …    | Read `readiness-paddle.log`; fix the named blocker; re-run Step 1a.                       |
 | `check-ollama-gpu-readiness.sh` exits non-zero           | See Step 1b remediation table.         | Read the script's `FAIL:` stderr line; apply the Step 1b remediation table row matching that named cause; re-run Step 1b. |
+| `curl /api/version` passes but `/api/ps` is empty         | Ollama is running, but the extraction model is not loaded. | Load the configured model with the Step 1b JSON `api/generate` command; then re-run the readiness helper. |
+| Model load hangs while waiting for the llama runner       | Stale or wedged host Ollama process.   | Restart with `scripts/start-host-ollama-rocm-wsl.sh`, inspect `/tmp/ollama-host-rocm-fixed.log`, reload the model, and re-run readiness. |
 | Demo command exits non-zero                              | Likely a missed readiness step.        | Re-run Step 1; if Step 1 passes, capture the demo stderr and escalate.                    |
 | `evidence_gate_suppressed_fallback_count` is unexpectedly 0 on a `sufficient` document | Skip-fallback not enabled. | Either pass `--evidence-gate-skip-fallback` (stay-opt-in operational mode) or confirm the runbook reflects the current promotion decision. |
-| Demo wall-time exceeds 5× expected (Step 2b > ~10 min)   | GPU contention, cache cold, ROCm drift | Verify exclusive GPU access (no other process consuming `rocm-smi`-reported VRAM); re-run; if persistent, raise a workstation finding. |
+| Demo wall-time exceeds 5× expected (Step 2b > ~10 min)   | GPU contention, cache cold, ROCm drift | Confirm no competing OCR/Ollama process is running; re-run readiness and the model load; if persistent, raise a workstation finding. |
 
 **Abort path** (mid-demo cleanup): `Ctrl+C` interrupts the running pipeline command. After interrupt, the operator MAY `rm -rf /tmp/021-bench/` to clean up scratch outputs. Readiness state (Paddle preflight + Ollama placement) is unchanged by the interrupt — re-running the demo from Step 2 does not require re-running Step 1 unless Ollama state has changed (e.g., the model was unloaded).
 

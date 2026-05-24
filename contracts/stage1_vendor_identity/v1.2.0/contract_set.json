@@ -9,7 +9,8 @@
     "expected",
     "evaluation_document",
     "evaluation_run_summary",
-    "evidence_packet"
+    "evidence_packet",
+    "semantic_table_truth"
   ],
   "artifact_schemas": {
     "preprocess_output": "preprocess_output.schema.json",
@@ -19,7 +20,8 @@
     "expected": "expected.schema.json",
     "evaluation_document": "evaluation_document.schema.json",
     "evaluation_run_summary": "evaluation_run_summary.schema.json",
-    "evidence_packet": "evidence_packet.schema.json"
+    "evidence_packet": "evidence_packet.schema.json",
+    "semantic_table_truth": "semantic_table_truth.schema.json"
   },
   "folder_schema": "folder.schema.json",
   "pipeline_versioned_artifacts": [

@@ -159,6 +159,10 @@ This is true both for WSL and for a future Linux cloud host.
    Do not start this workstation's GPU lane with plain `ollama serve`.
    The `gfx1151` WSL ROCm path requires the host HSA runtime preload and
    SDMA workaround documented in `../ollama-rocm-wsl-gfx1151-fix.md`.
+   The wrapper also defaults `OLLAMA_CONTEXT_LENGTH=2048`. Without that
+   default, Ollama can auto-select a 262k context from available VRAM; pipeline
+   extraction requests that do not pass `num_ctx` then reload the model with
+   that oversized context and can time out before the runner becomes ready.
 
 2. Keep the default `OLLAMA_BASE_URL` when the container can reach the WSL
    host directly. When Docker Desktop cannot route to the WSL IP directly,
@@ -169,28 +173,67 @@ No compose override is needed for this path.
 
 ### Host Runtime Verification
 
-After startup, verify GPU placement before treating a benchmark or pipeline
-run as GPU-backed:
+After startup, verify two separate states before treating a benchmark or
+pipeline run as GPU-backed:
+
+1. the Ollama HTTP server is reachable
+2. the configured extraction model is loaded and fully GPU-placed
 
 ```bash
-curl -fsS http://127.0.0.1:11434/api/generate \
+curl --silent --show-error --fail --max-time 5 \
+  http://127.0.0.1:11434/api/version
+
+scripts/check-ollama-gpu-readiness.sh \
+  --voter-config configs/voter/ollama-gpu.yaml
+```
+
+Expected readiness signal: one JSON line with `"status":"pass"` and
+`size_vram == size`.
+
+`/api/tags` and `/api/ps` answer different questions. `/api/tags` means the
+model exists on disk. `/api/ps` means the model is currently loaded in the
+running Ollama process. The readiness helper intentionally uses `/api/ps`, so a
+reachable server with an empty `/api/ps` response is not ready for GPU tests.
+
+If the server is reachable but the helper reports that the model is not loaded,
+load the model named by the voter config and re-run the helper:
+
+```bash
+MODEL_NAME="$(yq -r '.model_name' configs/voter/ollama-gpu.yaml)"
+curl --silent --show-error --fail --max-time 180 \
+  http://127.0.0.1:11434/api/generate \
   -H 'Content-Type: application/json' \
-  -d '{"model":"llama3.2:1b","prompt":"Reply with OK only.","stream":false,"keep_alive":"5m","options":{"num_predict":2,"num_ctx":2048}}'
+  -d "$(jq -nc --arg model "$MODEL_NAME" '{
+      model: $model,
+      prompt: "Reply with OK only.",
+      stream: false,
+      keep_alive: "15m",
+      options: {num_predict: 1, num_ctx: 2048}
+  }')"
 
-ollama ps
+scripts/check-ollama-gpu-readiness.sh \
+  --voter-config configs/voter/ollama-gpu.yaml
 ```
 
-Expected `ollama ps` signal:
+If the load request hangs, times out, or
+`/tmp/ollama-host-rocm-fixed.log` shows the runner waiting to start and then
+canceling the load, restart with `scripts/start-host-ollama-rocm-wsl.sh` and
+repeat the load. A long-lived Ollama process can remain reachable while its
+model runner is stale or wedged.
 
-```text
-PROCESSOR    100% GPU
-```
+The load command above uses `keep_alive: "15m"` and pins `num_ctx: 2048`
+because it is only a readiness probe. After the model expires from memory,
+`/api/ps` will be empty again and the readiness helper will correctly fail
+until the model is reloaded.
 
 When validating from `py-bench`, query the network-reachable URL, for example:
 
 ```bash
 export OLLAMA_BASE_URL=http://192.168.1.131:11436
 curl -fsS "$OLLAMA_BASE_URL/api/ps"
+scripts/check-ollama-gpu-readiness.sh \
+  --voter-config configs/voter/ollama-gpu.yaml \
+  --base-url "$OLLAMA_BASE_URL"
 ```
 
 The `api/ps` response should report a non-zero `size_vram` for the loaded

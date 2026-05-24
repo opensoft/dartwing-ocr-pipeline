@@ -1,0 +1,1 @@
+/home/brett/projects/dartwing/ocr-pipeline/tests/stage1_vendor_identity/inv_001_easy

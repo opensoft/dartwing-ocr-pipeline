@@ -127,6 +127,17 @@ Requirements:
 - `company_name.inferred` must be `true`
 - `manual_review_required` must be `true`
 
+## Degraded Table-Body Candidates
+
+Some future hard fixtures may be designed so the vendor header remains readable
+but the invoice body or table rows are degraded. These belong in the `hard`
+bucket, not `missing_name`, when an explicit company name is still present.
+
+The current stage 1 corpus contract is vendor-identity-only, so table-body
+truth is not required in `expected.json`. If a future feature promotes degraded
+table-body quality into a scored gate, it must define where row truth lives and
+update the labeling guide and schemas through the normal amendment process.
+
 ## Ensemble Readiness
 
 The per-document folder layout should remain compatible with the future three-vote architecture.

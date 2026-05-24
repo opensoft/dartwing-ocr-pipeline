@@ -193,6 +193,10 @@ def run_warmup_if_active(
         return
     if not is_gpu_lane(preprocess_lane):
         return
+    if module_set_id is None:
+        module_set_id = "legacy"
+    if det_rec_variant_id is None:
+        det_rec_variant_id = "legacy"
     from dartwing_ocr.preprocessing.preflight import (
         ensure_gpu_ready as _ensure_gpu_ready,
     )
@@ -1181,6 +1185,13 @@ def _run_inner(invocation: Invocation, stage_timing: StageTiming) -> Path:  # NO
     invocation.region_strategy_fallback_fired = False
     invocation.ocr_only_fallback_fired = False
     invocation.evidence_gate_suppressed_fired = False
+
+    # Materialize GPU defaults to 'legacy' if they are None on a GPU lane
+    if is_gpu_lane(invocation.preprocess_lane):
+        if invocation.module_set_id is None:
+            invocation.module_set_id = "legacy"
+        if invocation.det_rec_variant_id is None:
+            invocation.det_rec_variant_id = "legacy"
 
     _resolved_preprocess_strategy = None
     _is_ocr_only = False

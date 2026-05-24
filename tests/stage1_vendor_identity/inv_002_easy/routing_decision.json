@@ -1,0 +1,35 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "stage1-routing-v0.1.0",
+  "policy_version": "stage1-baseline-v0",
+  "document_id": "inv_002_easy",
+  "processed_at": "2026-05-23T14:50:45Z",
+  "status": "success",
+  "decision": "edge_review_required",
+  "consensus_summary": {
+    "mode": "single_voter_baseline",
+    "agreement_level": "not_applicable"
+  },
+  "scores": {
+    "company_name_score": 1.0,
+    "address_score": 0.0,
+    "tax_id_score": 0.0,
+    "contact_score": 0.0,
+    "overall_vendor_identity_score": 0.25
+  },
+  "checks": {
+    "company_name_present": true,
+    "company_name_inferred": false,
+    "address_has_minimum_components": false,
+    "at_least_one_tax_id_present": false,
+    "website_or_email_present": false,
+    "post_extraction_spam_gate_passed": true
+  },
+  "review_status": {
+    "manual_review_required": true,
+    "review_reason": "secondary_identifiers_insufficient"
+  },
+  "reasons": [
+    "secondary_identifiers_insufficient"
+  ]
+}

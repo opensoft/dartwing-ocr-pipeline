@@ -9,7 +9,7 @@ This walk-through is for a pipeline developer or workstation operator validating
 ## Prerequisites (one-time)
 
 - `.venv-paddle-rocm` with `paddlepaddle-dcu` installed (features 014–019 conventions).
-- Host Ollama running via `scripts/start-host-ollama-rocm-wsl.sh` (WSL) or the native Linux equivalent.
+- Host Ollama running via `scripts/start-host-ollama-rocm-wsl.sh` (WSL) or the native Linux equivalent. The WSL wrapper defaults `OLLAMA_CONTEXT_LENGTH=2048` so pipeline extraction requests that do not send `num_ctx` do not trigger Ollama's VRAM-based 262k context auto-selection.
 - `configs/voter/ollama-gpu.yaml` exists with a non-empty `model_name` (R-021.7). The pinned value MUST match the model the demo command's `--extract-profile ollama@gpu` binds (resolved by `src/dartwing_ocr/pipeline/stages.py::_ollama_extract_factory` → `src/dartwing_ocr/extract/voters/configs/gemma-edge.yaml::ollama.model_tag`). A CPU-safe contract test (`tests/contract_tests/test_voter_config_model_alignment.py`) enforces the match. At landing the canonical value is:
   ```yaml
   model_name: "gemma4:e4b"  # MUST match gemma-edge.yaml ollama.model_tag (the model `--extract-profile ollama@gpu` binds)
@@ -24,14 +24,77 @@ This walk-through is for a pipeline developer or workstation operator validating
 .venv-paddle-rocm/bin/python -m dartwing_ocr.preprocessing.preflight 2>readiness-paddle.log
 # Expected: stdout shows state: ppstructurev3_init_succeeded; exit 0.
 
-# 1b. Ollama placement (FR-002, via the new shell helper)
+# 1b. Ollama server is reachable.
+curl --silent --show-error --fail --max-time 5 http://localhost:11434/api/version
+
+# 1c. Ollama placement (FR-002, via the new shell helper)
 scripts/check-ollama-gpu-readiness.sh \
     --voter-config configs/voter/ollama-gpu.yaml \
     2>readiness-ollama.log
 # Expected: exit 0 + a single JSON line on stdout with status:"pass".
 ```
 
-If either check fails, STOP. Read the corresponding `.log` for the named blocker. Do NOT proceed to Path 2.
+If any check fails, STOP. Read the corresponding `.log` for the named blocker. Do NOT proceed to Path 2.
+
+### Ollama readiness recovery
+
+Treat Ollama server startup and model placement as separate gates. A listening
+Ollama server is not enough for the GPU test protocol: `/api/tags` lists
+installed models, but `/api/ps` lists only currently loaded models. The FR-002
+readiness helper intentionally reads `/api/ps`, so exit `2` means the configured
+model is not currently loaded for inference. Confirm installation separately
+with `/api/tags` if needed.
+
+If Step 1b succeeds and Step 1c exits `2`, load the active extraction model and
+re-run the helper:
+
+```bash
+MODEL_NAME="$(yq -r '.model_name' configs/voter/ollama-gpu.yaml)"
+curl --silent --show-error --fail --max-time 180 \
+    http://localhost:11434/api/generate \
+    -H 'Content-Type: application/json' \
+    -d "$(jq -nc --arg model "$MODEL_NAME" '{
+        model: $model,
+        prompt: "Reply with OK only.",
+        stream: false,
+        keep_alive: "15m",
+        options: {num_predict: 1, num_ctx: 2048}
+    }')"
+
+scripts/check-ollama-gpu-readiness.sh \
+    --voter-config configs/voter/ollama-gpu.yaml \
+    2>readiness-ollama.log
+```
+
+If the load request hangs, times out, or the log at
+`/tmp/ollama-host-rocm-fixed.log` shows `waiting for llama runner to start`
+followed by a canceled load, restart the host service through the ROCm wrapper,
+then repeat the load and readiness helper:
+
+```bash
+scripts/start-host-ollama-rocm-wsl.sh
+MODEL_NAME="$(yq -r '.model_name' configs/voter/ollama-gpu.yaml)"
+curl --silent --show-error --fail --max-time 180 \
+    http://localhost:11434/api/generate \
+    -H 'Content-Type: application/json' \
+    -d "$(jq -nc --arg model "$MODEL_NAME" '{
+        model: $model,
+        prompt: "Reply with OK only.",
+        stream: false,
+        keep_alive: "15m",
+        options: {num_predict: 1, num_ctx: 2048}
+    }')"
+
+scripts/check-ollama-gpu-readiness.sh \
+    --voter-config configs/voter/ollama-gpu.yaml \
+    2>readiness-ollama.log
+```
+
+The pass condition remains the helper's JSON line with `size_vram == size`.
+The explicit load uses `keep_alive: "15m"` and pins `num_ctx: 2048` because this
+is a one-token readiness probe, not a benchmark workload. Re-run the helper and
+reload the model before benchmark/test sequences after idle gaps longer than the
+keep-alive window.
 
 Smoke test (CPU-safe, no live Ollama needed): the contract for the helper lives in [contracts/ollama-readiness-helper.md](./contracts/ollama-readiness-helper.md); the helper's exit-code taxonomy is the testable surface.
 

@@ -8,6 +8,7 @@ set -euo pipefail
 OLLAMA_BIN="${OLLAMA_BIN:-/usr/bin/ollama}"
 ROCM_ROOT="${ROCM_ROOT:-/opt/rocm-7.2.0}"
 OLLAMA_HOST_VALUE="${OLLAMA_HOST:-0.0.0.0:11434}"
+OLLAMA_CONTEXT_LENGTH_VALUE="${OLLAMA_CONTEXT_LENGTH:-2048}"
 OLLAMA_LOG="${OLLAMA_LOG:-/tmp/ollama-host-rocm-fixed.log}"
 STOP_EXISTING="${STOP_EXISTING:-1}"
 
@@ -40,6 +41,7 @@ rm -f "${OLLAMA_LOG}"
 
 setsid -f env \
   OLLAMA_HOST="${OLLAMA_HOST_VALUE}" \
+  OLLAMA_CONTEXT_LENGTH="${OLLAMA_CONTEXT_LENGTH_VALUE}" \
   OLLAMA_DEBUG="${OLLAMA_DEBUG:-1}" \
   HSA_ENABLE_DXG_DETECTION=1 \
   HSA_ENABLE_SDMA=0 \
@@ -54,6 +56,7 @@ for _ in $(seq 1 40); do
     echo "host Ollama ROCm service started"
     pgrep -af "^${OLLAMA_BIN} serve$" || true
     echo "host URL: http://127.0.0.1:11434"
+    echo "context length: ${OLLAMA_CONTEXT_LENGTH_VALUE}"
     echo "container URL: set OLLAMA_BASE_URL to the reachable host/relay URL"
     echo "log: ${OLLAMA_LOG}"
     exit 0

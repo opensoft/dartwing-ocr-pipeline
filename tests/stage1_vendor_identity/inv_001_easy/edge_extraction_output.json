@@ -1,0 +1,122 @@
+{
+  "contract_set_version": "1.2.0",
+  "pipeline_version": "0.1.0",
+  "document_id": "inv_001_easy",
+  "processed_at": "2026-05-23T14:50:11Z",
+  "model_runtime": {
+    "provider": "stub",
+    "model_name": "stub-extractor",
+    "model_version": "0.0.0",
+    "runtime": "stub"
+  },
+  "vote_metadata": {
+    "voter_id": "stub-voter-1",
+    "voter_role": "primary_extractor",
+    "consensus_mode": "single_voter_baseline"
+  },
+  "document_type": {
+    "value": "invoice",
+    "confidence": 0.9
+  },
+  "vendor_candidate": {
+    "company_name": {
+      "value": "Stub Vendor Co.",
+      "present": true,
+      "inferred": false,
+      "confidence": 0.9,
+      "evidence": [
+        "p1_b1"
+      ]
+    },
+    "address": {
+      "street_1": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "street_2": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "city": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "state": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "postal_code": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "country": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      }
+    },
+    "tax_ids": {
+      "ein": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "state_tax_id": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "vat_id": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      },
+      "other_tax_id": {
+        "value": null,
+        "confidence": 0.0,
+        "evidence": []
+      }
+    },
+    "website": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "phone": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "email": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    }
+  },
+  "invoice_header_fields": {
+    "invoice_number": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "invoice_date": {
+      "value": null,
+      "confidence": 0.0,
+      "evidence": []
+    },
+    "total_amount": {
+      "value": null,
+      "currency": null,
+      "confidence": 0.0,
+      "evidence": []
+    }
+  },
+  "extraction_notes": [],
+  "warnings": [],
+  "status": "success"
+}

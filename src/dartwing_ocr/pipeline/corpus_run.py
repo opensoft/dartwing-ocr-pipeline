@@ -325,6 +325,12 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
             sys.stderr.write(_preprocess_strategy_warn_019(_profile_for_warn_017) + "\n")
             _preprocess_strategy_threaded_019 = None
 
+    if _preprocess_in_slice_for_warn_017 and _is_gpu_lane_017(_warm_lane_017):
+        if _module_set_threaded_017 is None:
+            _module_set_threaded_017 = "legacy"
+        if _det_rec_threaded_017 is None:
+            _det_rec_threaded_017 = "legacy"
+
     try:
         _evidence_gate_skip_fallback_threaded = _apply_evidence_gate_skip_fallback_optin(
             cli_value=args.evidence_gate_skip_fallback,
@@ -352,6 +358,23 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
         if _det_rec_threaded_017 is not None:
             _det_rec_variant_obj_017 = _resolve_det_rec_variant_017(_det_rec_threaded_017)
 
+    _gpu_warmup_optin = is_warmup_optin_set(getattr(args, "gpu_warmup", False))
+    _preprocess_profile_raw = getattr(args, "preprocess_profile", None)
+    _preprocess_in_slice = "preprocess" in plan.slice_.stages_in_slice
+    _warm_preprocess_profile = plan.profiles.get("preprocess")
+    _warmup_lane = (
+        "gpu0"
+        if (
+            _warm_preprocess_profile is not None
+            and _warm_preprocess_profile.implementation == "ppstructurev3"
+            and _warm_preprocess_profile.lane == "gpu"
+        )
+        else "cpu"
+    )
+    _is_gpu_warmup_active = (
+        _gpu_warmup_optin and _preprocess_in_slice and is_gpu_lane(_warmup_lane)
+    )
+
     runner = runner if runner is not None else Runner()
     registry = WarmProfileRegistry.empty()
     _maybe_register_warm_preprocess(
@@ -361,6 +384,7 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
         det_rec_variant=_det_rec_variant_obj_017,
         preprocess_strategy_threaded=_preprocess_strategy_threaded_019,
         evidence_gate_skip_fallback_optin=_evidence_gate_skip_fallback_threaded,
+        gpu_warmup_active=_is_gpu_warmup_active,
     )
     # Feature 014 (Contracts §2 Pre-write GPU gate): warm-corpus GPU
     # preflight failures emit the FR-009 stderr form and exit with the
@@ -444,26 +468,12 @@ def run_warm_corpus(  # NOSONAR S3776 — legacy orchestrator; behavior-preservi
     # this run. On WarmupError we exit 15 with stderr
     # `error: warmup failed: <cause>` and emit NO run_summary at all
     # (SC-011 (c)).
-    _gpu_warmup_optin = is_warmup_optin_set(getattr(args, "gpu_warmup", False))
-    _preprocess_profile_raw = getattr(args, "preprocess_profile", None)
-    _preprocess_in_slice = "preprocess" in plan.slice_.stages_in_slice
     # Resolve the plan's preprocess profile to the same lane-string form the
     # single-doc CLI uses ("cpu" / "gpu0") so the activation check goes
     # through `is_gpu_lane()` — single source of truth shared with
     # preprocessing/cli.py per warmup_optin.is_gpu_lane.
-    _warm_preprocess_profile = plan.profiles.get("preprocess")
-    _warmup_lane = (
-        "gpu0"
-        if (
-            _warm_preprocess_profile is not None
-            and _warm_preprocess_profile.implementation == "ppstructurev3"
-            and _warm_preprocess_profile.lane == "gpu"
-        )
-        else "cpu"
-    )
-    _is_gpu_warmup_active = (
-        _gpu_warmup_optin and _preprocess_in_slice and is_gpu_lane(_warmup_lane)
-    )
+    # Timing and warmup checks consume the pre-resolved `_is_gpu_warmup_active`
+    # and related variables.
     if _gpu_warmup_optin and _preprocess_in_slice and not _is_gpu_warmup_active:
         # Warn-and-proceed: opt-in set but profile is not ppstructurev3@gpu.
         # Source the warning's profile name from the resolved plan
@@ -1100,6 +1110,7 @@ def _maybe_register_warm_preprocess(
     det_rec_variant: object | None = None,
     preprocess_strategy_threaded: str | None = None,
     evidence_gate_skip_fallback_optin: bool = False,
+    gpu_warmup_active: bool = False,
 ) -> None:
     """Register a warm-instance factory for the live preprocessing profile.
 
@@ -1152,6 +1163,16 @@ def _maybe_register_warm_preprocess(
 
     profile_is_gpu = profile.lane == "gpu"
     device_str = "gpu:0" if profile_is_gpu else "cpu"
+    if profile_is_gpu:
+        from dartwing_ocr.preprocessing.presets import (
+            resolve_module_set as _resolve_module_set_017,
+            resolve_det_rec_variant as _resolve_det_rec_variant_017,
+        )
+        if module_set is None:
+            module_set = _resolve_module_set_017("legacy")
+        if det_rec_variant is None:
+            det_rec_variant = _resolve_det_rec_variant_017("legacy")
+
     _is_ocr_only_strategy = False
     if preprocess_strategy_threaded is not None:
         from dartwing_ocr.preprocessing.preprocess_strategies import (
@@ -1183,7 +1204,7 @@ def _maybe_register_warm_preprocess(
                     text_detection_model_name=_text_det_name,
                     text_recognition_model_name=_text_rec_name,
                 )
-                if not evidence_gate_skip_fallback_optin:
+                if not gpu_warmup_active:
                     return
                 # FR-007 exception: also construct PPStructureV3 below so
                 # the fallback engine is pre-warmed.

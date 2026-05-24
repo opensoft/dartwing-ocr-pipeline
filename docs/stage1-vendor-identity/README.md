@@ -25,6 +25,10 @@ Stage 1 is intentionally narrow:
   - product requirements for feature 014: validating whether PPStructureV3 can run on the workstation GPU and, if viable, adding an explicit opt-in `ppstructurev3@gpu` preprocessing profile without replacing the CPU default
 - `prd-gpu-mvp-promotion.md`
   - product requirements for the post-feature-020 promotion checkpoint that closes deferred GPU verification, records benchmark and quality-gate evidence, and updates the MVP demo path to require GPU profiles without removing CPU/stub CI safety
+- `prd-ocr-semantic-quality-gate.md`
+  - product requirements for the follow-up semantic OCR/table-quality gate that detects confidently wrong table-body OCR without broadening the current vendor-identity MVP boundary
+- `ocr-semantic-quality-observations.md`
+  - calibration note from the degraded-body invoice candidate showing why OCR confidence alone is not sufficient proof of table/body correctness
 - `gpu-warmup-and-cache.md`
   - operator guide for feature 016: GPU warmup activation, MIOpen/COMGR cache locations and clearing, cold-vs-warm timing interpretation, and workspace-warning guidance
 - `amd-ryzen-ai-max-395-rocm-setup.md`

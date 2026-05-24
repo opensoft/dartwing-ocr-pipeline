@@ -201,6 +201,12 @@ Instead, track calibration metrics separately:
 
 This will help detect overconfidence.
 
+For degraded-body fixtures, OCR confidence is especially dangerous as a proxy
+for correctness. A row can carry high detector confidence while quantities are
+missing, currency punctuation is wrong, or table cells are shifted. Those
+semantic/table checks are outside the current vendor-identity score and are
+tracked as follow-up work in `prd-ocr-semantic-quality-gate.md`.
+
 ## Failure Categories
 
 Every mismatch should be assigned a failure category when possible.

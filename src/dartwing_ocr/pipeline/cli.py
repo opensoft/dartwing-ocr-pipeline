@@ -726,6 +726,13 @@ def _run_cold(  # NOSONAR S3776 — cold-mode CLI orchestrator — splits would 
             + "\n"
         )
         _preprocess_strategy_raw_019 = None
+
+    if _preprocess_in_slice and _preprocess_is_gpu:
+        if _module_set_raw_017 is None:
+            _module_set_raw_017 = "legacy"
+        if _det_rec_raw_017 is None:
+            _det_rec_raw_017 = "legacy"
+
     try:
         _evidence_gate_skip_fallback_threaded = _apply_evidence_gate_skip_fallback_optin(
             cli_value=args.evidence_gate_skip_fallback,

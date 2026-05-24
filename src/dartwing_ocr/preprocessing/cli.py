@@ -441,6 +441,12 @@ def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — CLI entry p
             print(_preprocess_strategy_warn(active_profile_name_017), file=sys.stderr)
             _preprocess_strategy_threaded = None
 
+    if _is_gpu_lane_017(preprocess_lane):
+        if _module_set_threaded is None:
+            _module_set_threaded = "legacy"
+        if _det_rec_threaded is None:
+            _det_rec_threaded = "legacy"
+
     try:
         _evidence_gate_skip_fallback_optin = _apply_evidence_gate_skip_fallback_optin(
             cli_value=args.evidence_gate_skip_fallback,
