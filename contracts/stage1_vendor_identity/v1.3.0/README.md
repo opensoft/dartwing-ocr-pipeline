@@ -35,7 +35,7 @@ The JSON Schema files enforce per-artifact rules. Rules that span multiple files
 
 Do not mutate files in a shipped version directory. Follow the checklist in `../AMENDMENTS.md` to land a new version.
 
-For the v1.3.0 amendment narrative — what changed, why, and what stayed byte-identical from v1.2.0 — see [`../AMENDMENTS.md#v130--2026-05-23`](../AMENDMENTS.md).
+For the v1.3.0 amendment narrative — what changed, why, and what stayed byte-identical from v1.2.0 — see [`../AMENDMENTS.md#v130--2026-05-23`](../AMENDMENTS.md#v130--2026-05-23).
 
 ## Using this contract set
 

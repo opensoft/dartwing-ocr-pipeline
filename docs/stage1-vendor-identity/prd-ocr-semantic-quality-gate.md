@@ -18,7 +18,7 @@ Key landed decisions (from the 44 Clarifications + 7 security-clarify questions)
 - **Q-SEC-2/B**: sidecar `document_id` and `row_id` constrained to `^[A-Za-z0-9_-]{1,64}$` (path-traversal / log-injection defense).
 - **Q-SEC-7/B / FR-034**: air-gapped operation is a named requirement; the gate, validator, and evaluator make no network calls.
 
-Phase 8 polish (T063-T070) also lands: AMENDMENTS.md v1.3.0 entry, schemas.md delta, this PRD promotion, v1.3.0/README.md update, CLAUDE.md verification, quickstart walkthrough, full pytest sweep, and the FR↔task↔test coverage matrix.
+Phase 8 polish (T063-T070) lands the documentation surface: AMENDMENTS.md v1.3.0 entry, schemas.md delta, this PRD promotion, v1.3.0/README.md update, CLAUDE.md cross-links, quickstart walkthrough validation, and the FR↔task↔test coverage matrix at `specs/022-ocr-semantic-quality-gate/coverage-fr-task-test.md`. T069 (full `pytest tests/contract_tests/ tests/unit/ tests/integration/` sweep) is gated by CI on the polish PR rather than recorded as completed in this PRD.
 
 ## Background (original problem statement)
 
