@@ -1,0 +1,160 @@
+{
+  "contract_set_version": "1.2.0",
+  "run_id": "run_2026-05-24T00:27:08.151917Z_1183ae65",
+  "document_count": 20,
+  "overall_metrics": {
+    "field_accuracy": 0.887363,
+    "vendor_identity_pass_rate": 0.8,
+    "review_routing_pass_rate": 0.9,
+    "overall_document_pass_rate": 0.7
+  },
+  "consensus_metrics": {
+    "single_voter_baseline_runs": 20,
+    "majority_vote_documents": 0,
+    "split_decision_documents": 0
+  },
+  "by_difficulty": {
+    "easy": {
+      "document_count": 5,
+      "field_accuracy": 1.0,
+      "overall_document_pass_rate": 1.0
+    },
+    "medium": {
+      "document_count": 5,
+      "field_accuracy": 0.923077,
+      "overall_document_pass_rate": 0.8
+    },
+    "hard": {
+      "document_count": 5,
+      "field_accuracy": 0.740659,
+      "overall_document_pass_rate": 0.4
+    },
+    "missing_name": {
+      "document_count": 5,
+      "field_accuracy": 0.885714,
+      "overall_document_pass_rate": 0.6
+    }
+  },
+  "by_field": {
+    "company_name.value": 0.85,
+    "company_name.present": 1.0,
+    "company_name.inferred": 1.0,
+    "address.street_1": 0.95,
+    "address.street_2": 0.0,
+    "address.city": 0.85,
+    "address.state": 0.9,
+    "address.postal_code": 0.85,
+    "address.country": 1.0,
+    "tax_ids.ein": 0.8,
+    "tax_ids.state_tax_id": 0.0,
+    "tax_ids.vat_id": 0.0,
+    "tax_ids.other_tax_id": 0.0,
+    "website": 0.8,
+    "phone": 0.9,
+    "email": 0.75,
+    "manual_review_required": 0.95,
+    "review_reason": 0.666667
+  },
+  "documents": [
+    {
+      "document_id": "inv_corpus_easy_01",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_easy_02",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_easy_03",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_easy_04",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_easy_05",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_hard_01",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_hard_02",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_hard_03_fail",
+      "overall_passed": false,
+      "field_accuracy": 0.538462
+    },
+    {
+      "document_id": "inv_corpus_hard_04_fail",
+      "overall_passed": false,
+      "field_accuracy": 0.307692
+    },
+    {
+      "document_id": "inv_corpus_hard_05_fail",
+      "overall_passed": false,
+      "field_accuracy": 0.857143
+    },
+    {
+      "document_id": "inv_corpus_medium_01",
+      "overall_passed": true,
+      "field_accuracy": 0.923077
+    },
+    {
+      "document_id": "inv_corpus_medium_02",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_medium_03",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_medium_04",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_medium_05_fail",
+      "overall_passed": false,
+      "field_accuracy": 0.692308
+    },
+    {
+      "document_id": "inv_corpus_missing_01",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_missing_02",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_missing_03",
+      "overall_passed": true,
+      "field_accuracy": 1.0
+    },
+    {
+      "document_id": "inv_corpus_missing_04_fail",
+      "overall_passed": false,
+      "field_accuracy": 0.5
+    },
+    {
+      "document_id": "inv_corpus_missing_05_fail",
+      "overall_passed": false,
+      "field_accuracy": 0.928571
+    }
+  ]
+}

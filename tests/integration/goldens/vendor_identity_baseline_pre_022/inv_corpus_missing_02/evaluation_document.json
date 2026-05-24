@@ -1,0 +1,116 @@
+{
+  "contract_set_version": "1.2.0",
+  "document_id": "inv_corpus_missing_02",
+  "difficulty": "missing_name",
+  "challenge_tags": [
+    "missing_company_name",
+    "logo_only",
+    "ein_present"
+  ],
+  "comparison_summary": {
+    "applicable_field_count": 14,
+    "matched_field_count": 14,
+    "mismatched_field_count": 0,
+    "missing_prediction_count": 0,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 1.0
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": true,
+    "review_routing_passed": true,
+    "overall_passed": true
+  },
+  "field_results": {
+    "company_name.value": {
+      "expected": "Quantum Holdings LLC",
+      "actual": "Quantum Holdings LLC",
+      "result": "match"
+    },
+    "company_name.present": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "company_name.inferred": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "address.street_1": {
+      "expected": "22 Logo Ln",
+      "actual": "22 Logo Ln",
+      "result": "match"
+    },
+    "address.street_2": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "address.city": {
+      "expected": "Charlotte",
+      "actual": "Charlotte",
+      "result": "match"
+    },
+    "address.state": {
+      "expected": "NC",
+      "actual": "NC",
+      "result": "match"
+    },
+    "address.postal_code": {
+      "expected": "28201",
+      "actual": "28201",
+      "result": "match"
+    },
+    "address.country": {
+      "expected": "US",
+      "actual": "US",
+      "result": "match"
+    },
+    "tax_ids.ein": {
+      "expected": "22-2222222",
+      "actual": "22-2222222",
+      "result": "match"
+    },
+    "tax_ids.state_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.vat_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.other_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "website": {
+      "expected": "https://quantum.example.com",
+      "actual": "https://quantum.example.com",
+      "result": "match"
+    },
+    "phone": {
+      "expected": "+1 704-555-0320",
+      "actual": "+1 704-555-0320",
+      "result": "match"
+    },
+    "email": {
+      "expected": "ap@quantum.example.com",
+      "actual": "ap@quantum.example.com",
+      "result": "match"
+    },
+    "manual_review_required": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "review_reason": {
+      "expected": "company_name_inferred",
+      "actual": "company_name_inferred",
+      "result": "match"
+    }
+  },
+  "notes": []
+}

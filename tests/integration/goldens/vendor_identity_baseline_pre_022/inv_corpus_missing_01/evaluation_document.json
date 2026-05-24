@@ -1,0 +1,116 @@
+{
+  "contract_set_version": "1.2.0",
+  "document_id": "inv_corpus_missing_01",
+  "difficulty": "missing_name",
+  "challenge_tags": [
+    "missing_company_name",
+    "logo_only",
+    "ein_present"
+  ],
+  "comparison_summary": {
+    "applicable_field_count": 14,
+    "matched_field_count": 14,
+    "mismatched_field_count": 0,
+    "missing_prediction_count": 0,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 1.0
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": true,
+    "review_routing_passed": true,
+    "overall_passed": true
+  },
+  "field_results": {
+    "company_name.value": {
+      "expected": "Probable Parts Co.",
+      "actual": "Probable Parts Co.",
+      "result": "match"
+    },
+    "company_name.present": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "company_name.inferred": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "address.street_1": {
+      "expected": "21 Inferred Way",
+      "actual": "21 Inferred Way",
+      "result": "match"
+    },
+    "address.street_2": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "address.city": {
+      "expected": "Reno",
+      "actual": "Reno",
+      "result": "match"
+    },
+    "address.state": {
+      "expected": "NV",
+      "actual": "NV",
+      "result": "match"
+    },
+    "address.postal_code": {
+      "expected": "89501",
+      "actual": "89501",
+      "result": "match"
+    },
+    "address.country": {
+      "expected": "US",
+      "actual": "US",
+      "result": "match"
+    },
+    "tax_ids.ein": {
+      "expected": "11-1111111",
+      "actual": "11-1111111",
+      "result": "match"
+    },
+    "tax_ids.state_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.vat_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.other_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "website": {
+      "expected": "https://probable.example.com",
+      "actual": "https://probable.example.com",
+      "result": "match"
+    },
+    "phone": {
+      "expected": "+1 775-555-0310",
+      "actual": "+1 775-555-0310",
+      "result": "match"
+    },
+    "email": {
+      "expected": "ap@probable.example.com",
+      "actual": "ap@probable.example.com",
+      "result": "match"
+    },
+    "manual_review_required": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "review_reason": {
+      "expected": "company_name_inferred",
+      "actual": "company_name_inferred",
+      "result": "match"
+    }
+  },
+  "notes": []
+}

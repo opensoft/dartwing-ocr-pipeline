@@ -1,0 +1,116 @@
+{
+  "contract_set_version": "1.2.0",
+  "document_id": "inv_corpus_easy_02",
+  "difficulty": "easy",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present",
+    "website_present"
+  ],
+  "comparison_summary": {
+    "applicable_field_count": 13,
+    "matched_field_count": 13,
+    "mismatched_field_count": 0,
+    "missing_prediction_count": 0,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 1.0
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": true,
+    "review_routing_passed": true,
+    "overall_passed": true
+  },
+  "field_results": {
+    "company_name.value": {
+      "expected": "Bluebird Supply Co.",
+      "actual": "BLUEBIRD SUPPLY CO.",
+      "result": "match"
+    },
+    "company_name.present": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "company_name.inferred": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "address.street_1": {
+      "expected": "22 Oak Ave",
+      "actual": "22 Oak Ave",
+      "result": "match"
+    },
+    "address.street_2": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "address.city": {
+      "expected": "Seattle",
+      "actual": "Seattle",
+      "result": "match"
+    },
+    "address.state": {
+      "expected": "WA",
+      "actual": "WA",
+      "result": "match"
+    },
+    "address.postal_code": {
+      "expected": "98101",
+      "actual": "98101",
+      "result": "match"
+    },
+    "address.country": {
+      "expected": "US",
+      "actual": "US",
+      "result": "match"
+    },
+    "tax_ids.ein": {
+      "expected": "23-4567890",
+      "actual": "23-4567890",
+      "result": "match"
+    },
+    "tax_ids.state_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.vat_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.other_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "website": {
+      "expected": "https://bluebird.example.com",
+      "actual": "https://bluebird.example.com",
+      "result": "match"
+    },
+    "phone": {
+      "expected": "+1 206-555-0110",
+      "actual": "+1 206-555-0110",
+      "result": "match"
+    },
+    "email": {
+      "expected": "billing@bluebird.example.com",
+      "actual": "billing@bluebird.example.com",
+      "result": "match"
+    },
+    "manual_review_required": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "review_reason": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    }
+  },
+  "notes": []
+}

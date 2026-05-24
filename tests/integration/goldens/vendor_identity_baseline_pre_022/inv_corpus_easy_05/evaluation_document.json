@@ -1,0 +1,116 @@
+{
+  "contract_set_version": "1.2.0",
+  "document_id": "inv_corpus_easy_05",
+  "difficulty": "easy",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present",
+    "website_present"
+  ],
+  "comparison_summary": {
+    "applicable_field_count": 13,
+    "matched_field_count": 13,
+    "mismatched_field_count": 0,
+    "missing_prediction_count": 0,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 1.0
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": true,
+    "review_routing_passed": true,
+    "overall_passed": true
+  },
+  "field_results": {
+    "company_name.value": {
+      "expected": "Elm Industries",
+      "actual": "ELM INDUSTRIES",
+      "result": "match"
+    },
+    "company_name.present": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "company_name.inferred": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "address.street_1": {
+      "expected": "5 Birch Ln",
+      "actual": "5 Birch Ln",
+      "result": "match"
+    },
+    "address.street_2": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "address.city": {
+      "expected": "Chicago",
+      "actual": "Chicago",
+      "result": "match"
+    },
+    "address.state": {
+      "expected": "IL",
+      "actual": "IL",
+      "result": "match"
+    },
+    "address.postal_code": {
+      "expected": "60601",
+      "actual": "60601",
+      "result": "match"
+    },
+    "address.country": {
+      "expected": "US",
+      "actual": "US",
+      "result": "match"
+    },
+    "tax_ids.ein": {
+      "expected": "56-7890123",
+      "actual": "56-7890123",
+      "result": "match"
+    },
+    "tax_ids.state_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.vat_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.other_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "website": {
+      "expected": "https://elmind.example.com",
+      "actual": "https://elmind.example.com",
+      "result": "match"
+    },
+    "phone": {
+      "expected": "+1 312-555-0140",
+      "actual": "+1 312-555-0140",
+      "result": "match"
+    },
+    "email": {
+      "expected": "ap@elmind.example.com",
+      "actual": "ap@elmind.example.com",
+      "result": "match"
+    },
+    "manual_review_required": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "review_reason": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    }
+  },
+  "notes": []
+}

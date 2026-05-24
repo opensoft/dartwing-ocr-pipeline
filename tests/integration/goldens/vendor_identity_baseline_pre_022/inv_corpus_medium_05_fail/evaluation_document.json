@@ -1,0 +1,115 @@
+{
+  "contract_set_version": "1.2.0",
+  "document_id": "inv_corpus_medium_05_fail",
+  "difficulty": "medium",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present"
+  ],
+  "comparison_summary": {
+    "applicable_field_count": 13,
+    "matched_field_count": 9,
+    "mismatched_field_count": 1,
+    "missing_prediction_count": 3,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 0.692308
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": false,
+    "review_routing_passed": true,
+    "overall_passed": false
+  },
+  "field_results": {
+    "company_name.value": {
+      "expected": "Juniper Tools LLC",
+      "actual": "Totally Different Name",
+      "result": "mismatch"
+    },
+    "company_name.present": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "company_name.inferred": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "address.street_1": {
+      "expected": "100 Hammer St",
+      "actual": "100 Hammer St",
+      "result": "match"
+    },
+    "address.street_2": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "address.city": {
+      "expected": "Nashville",
+      "actual": "Nashville",
+      "result": "match"
+    },
+    "address.state": {
+      "expected": "TN",
+      "actual": "TN",
+      "result": "match"
+    },
+    "address.postal_code": {
+      "expected": "37201",
+      "actual": "37201",
+      "result": "match"
+    },
+    "address.country": {
+      "expected": "US",
+      "actual": "US",
+      "result": "match"
+    },
+    "tax_ids.ein": {
+      "expected": "01-2345678",
+      "actual": null,
+      "result": "missing_prediction"
+    },
+    "tax_ids.state_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.vat_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.other_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "website": {
+      "expected": "https://junipertools.example.com",
+      "actual": null,
+      "result": "missing_prediction"
+    },
+    "phone": {
+      "expected": "+1 615-555-0190",
+      "actual": "+1 615-555-0190",
+      "result": "match"
+    },
+    "email": {
+      "expected": "ap@junipertools.example.com",
+      "actual": null,
+      "result": "missing_prediction"
+    },
+    "manual_review_required": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "review_reason": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    }
+  },
+  "notes": []
+}

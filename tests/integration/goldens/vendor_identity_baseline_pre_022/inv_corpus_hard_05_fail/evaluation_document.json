@@ -1,0 +1,116 @@
+{
+  "contract_set_version": "1.2.0",
+  "document_id": "inv_corpus_hard_05_fail",
+  "difficulty": "hard",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present",
+    "multi_entity_page"
+  ],
+  "comparison_summary": {
+    "applicable_field_count": 14,
+    "matched_field_count": 12,
+    "mismatched_field_count": 1,
+    "missing_prediction_count": 1,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 0.857143
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": true,
+    "review_routing_passed": false,
+    "overall_passed": false
+  },
+  "field_results": {
+    "company_name.value": {
+      "expected": "Oasis Water Co.",
+      "actual": "Oasis Water Co.",
+      "result": "match"
+    },
+    "company_name.present": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "company_name.inferred": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "address.street_1": {
+      "expected": "15 Spring Ln",
+      "actual": "15 Spring Ln",
+      "result": "match"
+    },
+    "address.street_2": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "address.city": {
+      "expected": "Tucson",
+      "actual": "Tucson",
+      "result": "match"
+    },
+    "address.state": {
+      "expected": "AZ",
+      "actual": "AZ",
+      "result": "match"
+    },
+    "address.postal_code": {
+      "expected": "85701",
+      "actual": "85701",
+      "result": "match"
+    },
+    "address.country": {
+      "expected": "US",
+      "actual": "US",
+      "result": "match"
+    },
+    "tax_ids.ein": {
+      "expected": "55-6677889",
+      "actual": "55-6677889",
+      "result": "match"
+    },
+    "tax_ids.state_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.vat_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.other_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "website": {
+      "expected": "https://oasis.example.com",
+      "actual": "https://oasis.example.com",
+      "result": "match"
+    },
+    "phone": {
+      "expected": "+1 520-555-0240",
+      "actual": "+1 520-555-0240",
+      "result": "match"
+    },
+    "email": {
+      "expected": "ap@oasis.example.com",
+      "actual": "ap@oasis.example.com",
+      "result": "match"
+    },
+    "manual_review_required": {
+      "expected": true,
+      "actual": false,
+      "result": "mismatch"
+    },
+    "review_reason": {
+      "expected": "multi_entity_page",
+      "actual": null,
+      "result": "missing_prediction"
+    }
+  },
+  "notes": []
+}
