@@ -41,23 +41,12 @@ from dartwing_ocr.validator.loader import (
 from dartwing_ocr.validator.report import (
     ArtifactName,
     ValidationOutcome,
-    ViolationCode,
     render_text,
 )
 from dartwing_ocr.validator.semantic_table_truth import (
     SemanticTruthValidationResult,
-    SidecarErrorKind,
     validate_sidecar,
 )
-
-# Mapping from sidecar-validation ViolationCode → CLI exit code per
-# validator-cli-contract.md. Lower codes win when multiple are present.
-_SIDECAR_VIOLATION_TO_EXIT_CODE: dict[str, int] = {
-    ViolationCode.SIDECAR_DOCUMENT_ID_MISMATCH: 3,
-    ViolationCode.SIDECAR_ROW_VIOLATION: 4,
-    ViolationCode.SIDECAR_SCHEMA_INVALID: 5,
-    ViolationCode.SIDECAR_JSON_INVALID: 5,
-}
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -133,30 +122,18 @@ def _format(outcome: ValidationOutcome, *, json_output: bool) -> str:
     return render_text(outcome)
 
 
-def _walk_violations(outcome: ValidationOutcome):
-    """Yield every Violation in ``outcome`` and its sub-reports recursively."""
-    yield from outcome.violations
-    for sub in outcome.sub_reports:
-        yield from _walk_violations(sub)
-
-
 def _folder_or_corpus_exit_code(outcome: ValidationOutcome) -> int:
-    """Exit code for ``validate folder`` / ``validate corpus``.
+    """Exit code for ``validate folder``.
 
-    Returns the lowest non-zero code among encountered sidecar-class
-    failures; otherwise returns 0 on pass or 1 on any other failure
-    (validator-cli-contract.md §`validate folder` and §`validate corpus`).
+    Per Codex P1 review on PR #50 (2026-05-24): thin shim around
+    :func:`corpus_report.compute_outcome_exit_code` so the
+    sidecar-violation-to-exit-code mapping has exactly one owner. The
+    ``validate corpus`` dispatcher uses the same primitive (inside
+    :func:`corpus_report.compute_exit_code` per-entry).
     """
-    if outcome.passed:
-        return 0
-    sidecar_codes: set[int] = set()
-    for v in _walk_violations(outcome):
-        mapped = _SIDECAR_VIOLATION_TO_EXIT_CODE.get(v.violation_code)
-        if mapped is not None:
-            sidecar_codes.add(mapped)
-    if sidecar_codes:
-        return min(sidecar_codes)
-    return 1
+    from dartwing_ocr.validator.corpus_report import compute_outcome_exit_code
+
+    return compute_outcome_exit_code(outcome)
 
 
 def _semantic_truth_exit_code(result: SemanticTruthValidationResult) -> int:
@@ -272,12 +249,34 @@ def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — validator C
             return _folder_or_corpus_exit_code(outcome)
 
         if args.command == "validate" and args.subcommand == "corpus":
-            from dartwing_ocr.validator.corpus import validate_corpus
-            outcome = validate_corpus(
-                args.path, version=args.version, fail_fast=args.fail_fast
+            # Feature 022 / US5 — partitioned corpus reporting per
+            # validator-cli-contract.md §`validate corpus`. The corpus
+            # is walked, every subfolder is partitioned via the Q23
+            # canonical-pattern allowlist (MI-21), and per-document
+            # validation runs on BOTH partitions (calibration ≠ skipped).
+            # Only the scored partition feeds the displayed aggregation
+            # counts; sidecar present/accepted/rejected counters are
+            # scoped to the scored set per the contract annotation.
+            from dartwing_ocr.validator.corpus_report import (
+                build_corpus_report,
+                compute_exit_code,
+                render_json,
+                render_text,
             )
-            print(_format(outcome, json_output=json_output))
-            return _folder_or_corpus_exit_code(outcome)
+
+            # ``--fail-fast`` is preserved as a CLI flag for backward
+            # compatibility but the partitioned corpus reporter always
+            # walks the full root so the reporting block reflects every
+            # folder. (Fail-fast made sense when the validator emitted
+            # a single ValidationOutcome with sub_reports; the US5
+            # contract requires complete partition counts to be
+            # reportable, which is incompatible with early break.)
+            report = build_corpus_report(args.path, version=args.version)
+            output = (
+                render_json(report) if json_output else render_text(report)
+            )
+            print(output)
+            return compute_exit_code(report)
 
         if args.command == "validate" and args.subcommand == "semantic-truth":
             # Feature 022 / US1 — validate the optional sidecar in isolation

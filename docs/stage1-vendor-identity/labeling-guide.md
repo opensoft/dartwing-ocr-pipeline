@@ -1,12 +1,12 @@
 # Stage 1 Vendor-Identity Labeling Guide
 
-**Contract set**: `1.0.0` · **Applies to**: `tests/stage1_vendor_identity/inv_XXX_*/expected.json` and `notes.md`
+**Contract set**: `1.3.0` (active per feature 022; v1.0.0 was the initial ratification — see `contracts/stage1_vendor_identity/AMENDMENTS.md` for the v1.0.0 → v1.1.0 → v1.2.0 → v1.3.0 trail) · **Applies to**: `tests/stage1_vendor_identity/inv_XXX_*/expected.json` and `notes.md`, AND every committed fixture under `tests/stage1_semantic_quality/inv_XXX_*/` (added by feature 022 — see §2.1).
 
 ---
 
 ## 1. Purpose and audience
 
-This guide is the authoritative reference for humans authoring or auditing labels in the stage 1 vendor-identity corpus. It captures the conventions that every `expected.json` file and every `notes.md` file in `tests/stage1_vendor_identity/` must follow.
+This guide is the authoritative reference for humans authoring or auditing labels in the stage 1 vendor-identity corpus AND in the feature 022 semantic-quality fixture corpus. It captures the conventions that every `expected.json` file and every `notes.md` file in `tests/stage1_vendor_identity/` must follow, and — per Clarifications Q44 / FR-026 — extends the §2 pre-inclusion screening checklist verbatim to every committed fixture under `tests/stage1_semantic_quality/`.
 
 Audience: labelers and auditors. Not a model-development document — model developers should read `prd-model-pipeline.md` and `architecture.md` instead.
 
@@ -29,6 +29,19 @@ Apply this checklist **before** a PDF is placed in the corpus. A document is inc
 - [ ] **No minors' data** (COPPA-sensitive fields).
 
 This is the only gate. There is no separate reviewer sign-off per document.
+
+### 2.1 Scope: which corpus roots does this checklist apply to?
+
+The §2 checklist is the same for both stage 1 corpus roots:
+
+| Corpus root | Purpose | Screening applies? |
+|---|---|---|
+| `tests/stage1_vendor_identity/` | Stable 20-document vendor-identity MVP baseline. | Yes — every PDF added here. |
+| `tests/stage1_semantic_quality/` | Semantic / table-quality gate fixtures (feature 022, Clarifications Q15 / FR-026). | Yes — every committed fixture, identical screening (Clarifications Q44). |
+
+**Note on the Q25 synthetic US2 fixture** (`tests/stage1_semantic_quality/inv_001_hard/`): the committed fixture is hand-authored and contains no `source.pdf`. It carries no real PII by construction — the body OCR lines, currency strings, and row text were synthesized to reproduce the degraded-body failure pattern from calibration evidence. The §2 checklist is therefore vacuously satisfied for the Q25 fixture, but every FUTURE committed fixture under `tests/stage1_semantic_quality/` — whether or not it includes a `source.pdf` — MUST pass the same §2 screening before landing. This is non-negotiable (Q44 / FR-026 / MI-25).
+
+The `tests/stage1_semantic_quality/` root follows the same canonical subfolder pattern `^inv_\d{3}_(easy|medium|hard)$` (Clarifications Q40), and the same `validate corpus` partitioned reporting block (validator-cli-contract.md §`validate corpus`) recognizes noncanonical names as calibration material per the default-exclude rule (Q23 / MI-21).
 
 ---
 

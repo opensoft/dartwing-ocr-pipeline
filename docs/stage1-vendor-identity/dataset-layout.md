@@ -36,6 +36,23 @@ tests/stage1_vendor_identity/
   evaluation_run_summary.json
 ```
 
+### Semantic-quality corpus root (feature 022)
+
+Feature 022 introduces a SECOND stage 1 corpus root for the deterministic semantic / table OCR quality gate, **distinct from the vendor-identity baseline** (Clarifications Q1 / Q15 / FR-026):
+
+```text
+tests/stage1_semantic_quality/
+  inv_001_hard/
+    preprocess_output.json    (hand-authored — Q25 / MI-25, no source.pdf)
+    semantic_table_truth.json (sidecar; row-text-tokens + currency truth)
+  inv_NNN_<difficulty>/
+  ...
+```
+
+Both roots follow the SAME canonical SCORED-CORPUS subfolder pattern: `^inv_\d{3}_(easy|medium|hard)$` (Clarifications Q40 — implemented as `dartwing_ocr.validator.corpus_pattern.CANONICAL_FOLDER_PATTERN`). Note that the underlying `folder.schema.json` accepts a broader pattern that ALSO matches the `missing_name` difficulty suffix; folders matching that broader pattern but NOT the Q40 scored pattern (i.e. `inv_XXX_missing_name`) are treated as CALIBRATION material per MI-20 / MI-21 / Q39 and excluded from scored aggregation under the validator's default-exclude rule (Q23). The closed scored-difficulty vocabulary (`easy` / `medium` / `hard`) is the scored-aggregation gate; the `missing_name` suffix is a folder-schema accepted form that is intentionally excluded from scored aggregation per the canonical pattern. The same §2 pre-inclusion PII / license screening from `labeling-guide.md` applies identically to fixtures under `tests/stage1_semantic_quality/` (Clarifications Q44 — see `labeling-guide.md` §2.1).
+
+`tests/stage1_vendor_identity/` MUST remain the stable 20-document vendor-identity MVP baseline and MUST NOT be extended with degraded-body / semantic-quality fixtures (FR-026).
+
 ## Why Per-Document Folders
 
 Per-document folders are easier for humans to review because all inputs, truth labels, generated outputs, and notes live together.
@@ -65,6 +82,20 @@ Optional future artifacts for ensemble mode:
   - per-voter raw outputs when multiple voters are enabled
 - `consensus_output.json`
   - a richer consensus artifact if field-level majority logic is stored separately later
+
+## Calibration folders and the canonical-pattern allowlist
+
+Feature 022 (Clarifications Q23) pins a **default-exclude** rule for scored corpus folders:
+
+- A subfolder of either corpus root is a **scored corpus folder** ONLY when its basename fully matches `^inv_\d{3}_(easy|medium|hard)$` (the Q40 canonical pattern, implemented as `dartwing_ocr.validator.corpus_pattern.CANONICAL_FOLDER_PATTERN` and reused by both the validator and the gate metrics aggregator).
+- Every other basename — including any name carrying an extra suffix such as `inv_024_hard_degraded_body`, wrong digit count (`inv_1_hard`), wrong delimiter (`INV_001_HARD`), or unrecognized difficulty word — is **calibration / test-fixture material**. Calibration folders are validated (mandatory artifacts checked, sidecar validated when present) but they are **NEVER** silently included in scored corpus aggregation.
+- This rule is the SINGLE source of truth referenced by:
+  - [`MI-20`](../../specs/022-ocr-semantic-quality-gate/contracts/module-invariants.md) — calibration folders appear in per-document `semantic_document_statuses` entries but are EXCLUDED from `semantic_table_quality_metrics` aggregate counts and the `semantic_table_quality_pass_rate` computation in `evaluation_run_summary.json` (Clarifications Q39).
+  - [`MI-21`](../../specs/022-ocr-semantic-quality-gate/contracts/module-invariants.md) — the canonical-pattern allowlist regex is the sole authority for determining whether a folder is a scored corpus folder; no folder with an extra suffix may appear in scored corpus evaluation output unless promoted through the full dataset / labeling / folder-contract / evaluator-contract amendment path.
+
+The `validate corpus` subcommand renders a partitioned reporting block per [`validator-cli-contract.md`](../../specs/022-ocr-semantic-quality-gate/contracts/validator-cli-contract.md) §`validate corpus` — separate counts and valid/invalid breakdowns for the scored and calibration partitions.
+
+Promoting a calibration folder (e.g. `inv_024_hard_degraded_body`) into committed scored corpus data requires the same change to also deliver the dataset, labeling-guide, folder-contract, and evaluator-contract amendments needed to validate and score it (FR-026 / SC-009).
 
 ## `difficulty`
 
