@@ -1,10 +1,17 @@
-"""Per-document evaluator — orchestrates compare + gates + scoring for one folder."""
+"""Per-document evaluator — orchestrates compare + gates + scoring for one folder.
+
+v1.3.0 (feature 022) wires the deterministic semantic table quality gate
+into this writer: every evaluation_document.json now carries
+``document_pass_fail.semantic_table_quality_passed`` (MI-17 / Q20) and,
+when a sidecar was found OR the gate landed on ``unevaluable``, the closed
+``semantic_table_quality`` object (data-model §7).
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from dartwing_ocr.evaluator.compare import (
     FieldResult,
@@ -40,16 +47,140 @@ from dartwing_ocr.evaluator.scoring import (
     compute_document_score,
     is_compatible_version,
 )
+from dartwing_ocr.evaluator.semantic_quality import run_semantic_quality_gate
+from dartwing_ocr.evaluator.semantic_quality_report import SemanticQualityResult
 
 # Local alias (keeps call sites private).
 _EVAL_DOC_FILENAME = EVAL_DOC_FILENAME
 
+# Per-document sidecar filename for the semantic quality gate (feature 022).
+_SEMANTIC_TABLE_TRUTH_FILENAME = "semantic_table_truth.json"
+_PREPROCESS_OUTPUT_FILENAME = "preprocess_output.json"
+
 Difficulty = Literal["easy", "medium", "hard", "missing_name"]
+
+
+# MI-17 / Q20 value-domain mapping for `document_pass_fail.semantic_table_quality_passed`.
+_SEMANTIC_PASSED_VALUE_DOMAIN: dict[str, bool | None] = {
+    "passed": True,
+    "failed": False,
+    "unevaluable": False,
+    "not_applicable": None,
+}
+
+
+def supports_semantic_quality_fields(contract_set_version: str) -> bool:
+    """Return True iff the contract set is v1.3.0 or above (semantic fields present).
+
+    Per Codex P1 review on PR #47 (2026-05-23): the v1.3.0 schemas added
+    ``semantic_table_quality``, ``document_pass_fail.semantic_table_quality_passed``,
+    ``semantic_table_quality_metrics`` and ``semantic_document_statuses``. A
+    writer pinned to v1.2.0 (or earlier) MUST NOT emit these fields —
+    otherwise (a) the older schema's validation fails on the unexpected
+    keys and (b) MI-22's byte-identity guarantee for vendor-identity flows
+    breaks. This helper is the single source of truth for that gate, used
+    by both :meth:`DocumentEvaluation.to_persistable_dict` (this module)
+    and :meth:`RunSummary.to_persistable_dict` (in :mod:`corpus`).
+    """
+    major, minor, _ = (int(p) for p in contract_set_version.split("."))
+    return (major, minor) >= (1, 3)
+
+
+def _semantic_quality_passed_value(status: str) -> bool | None:
+    """Map a SemanticQualityResult.status to the writer field value (MI-17 / Q20).
+
+    Returns ``True`` / ``False`` / ``None``. Raises ``ValueError`` on an
+    unknown status string (MI-11 invariant guard at the writer boundary).
+    """
+    try:
+        return _SEMANTIC_PASSED_VALUE_DOMAIN[status]
+    except KeyError as exc:
+        raise ValueError(
+            f"semantic_table_quality.status {status!r} is not in the closed "
+            f"Q26 enum {sorted(_SEMANTIC_PASSED_VALUE_DOMAIN)}"
+        ) from exc
+
+
+def _semantic_quality_result_to_persistable(
+    result: SemanticQualityResult,
+) -> dict[str, Any] | None:
+    """Serialize a :class:`SemanticQualityResult` to its on-disk JSON dict.
+
+    Returns ``None`` when ``status == "not_applicable"`` (the
+    ``semantic_table_quality`` key is OMITTED from the eval doc per
+    data-model §7 / evaluator-output-contract.md Example D).
+
+    For ``passed`` / ``failed`` / ``unevaluable``, emits the closed-shape
+    dict with sorted keys at every nesting level so the result is
+    deterministic regardless of the host JSON encoder's behavior (MI-16).
+    """
+    if result.status == "not_applicable":
+        return None
+
+    se = result.supporting_evidence
+    # Supporting evidence is guaranteed present on passed / failed / unevaluable
+    # by SemanticQualityResult invariants (semantic_quality_report.py).
+    assert se is not None, "supporting_evidence missing on evaluable verdict"
+    supporting_evidence = {
+        "body_confidence_mean": se.body_confidence_mean,
+        "body_confidence_min": se.body_confidence_min,
+        "body_line_count": se.body_line_count,
+        "body_token_count": se.body_token_count,
+        "header_band_excluded": se.header_band_excluded,
+    }
+
+    # failed_checks is always present on passed / failed / unevaluable per
+    # F5 resolution; empty list [] when passed or unevaluable; non-empty
+    # when failed.
+    failed_checks_list = []
+    for fc in result.failed_checks or ():
+        failed_checks_list.append(
+            {
+                "category": fc.category,
+                "expected": fc.expected,
+                "field": fc.field,
+                "observed": fc.observed,
+                "position_index": fc.position_index,
+                "predicate": fc.predicate,
+                "row_id": fc.row_id,
+            }
+        )
+
+    out: dict[str, Any] = {
+        "failed_checks": failed_checks_list,
+        "status": result.status,
+        "supporting_evidence": supporting_evidence,
+    }
+
+    # row_reasons is required when status == failed; omitted otherwise (MI-14).
+    if result.status == "failed" and result.row_reasons:
+        out["row_reasons"] = {
+            row_id: {
+                "categories": list(entry.categories),
+                "reason": entry.reason,
+            }
+            for row_id, entry in result.row_reasons.items()
+        }
+
+    # cause / cause_detail only when status == unevaluable.
+    if result.status == "unevaluable":
+        if result.cause is not None:
+            out["cause"] = result.cause
+        if result.cause_detail is not None:
+            out["cause_detail"] = result.cause_detail
+
+    return out
 
 
 @dataclass(frozen=True, slots=True)
 class DocumentEvaluation:
-    """Full in-memory representation of one document's evaluation (data-model §5)."""
+    """Full in-memory representation of one document's evaluation (data-model §5).
+
+    Carries the v1.3.0 (feature 022) semantic quality verdict alongside
+    the vendor-identity verdict. ``semantic_quality_result`` is always
+    present (never ``None``); when no sidecar was found, it carries a
+    ``status == "not_applicable"`` verdict.
+    """
 
     contract_set_version: str
     document_id: str
@@ -61,6 +192,7 @@ class DocumentEvaluation:
     notes: tuple[str, ...]
     document_score: float
     folder_path: Path
+    semantic_quality_result: SemanticQualityResult | None = None
 
     def __post_init__(self) -> None:
         if not is_compatible_version(self.contract_set_version, CONTRACT_SET_VERSION):
@@ -77,8 +209,39 @@ class DocumentEvaluation:
             )
 
     def to_persistable_dict(self) -> dict[str, object]:
-        """Serializable dict matching evaluation_document.schema.json (drops internal fields)."""
-        return {
+        """Serializable dict matching evaluation_document.schema.json (drops internal fields).
+
+        v1.3.0 additive output (feature 022, MI-17 / Q20):
+
+        - ``document_pass_fail.semantic_table_quality_passed`` — always
+          present; ``true`` / ``false`` / ``null`` per the status mapping.
+        - ``semantic_table_quality`` — present when status ∈ {passed,
+          failed, unevaluable}; absent when status == not_applicable.
+        """
+        # Vendor-identity portion preserved byte-identical to v1.2.0 (MI-22).
+        document_pass_fail: dict[str, Any] = {
+            "vendor_identity_passed": self.document_pass_fail.vendor_identity_passed,
+            "review_routing_passed": self.document_pass_fail.review_routing_passed,
+            "overall_passed": self.document_pass_fail.overall_passed,
+        }
+
+        # Semantic verdict — emit the additive
+        # `semantic_table_quality_passed` field per MI-17 / Q20 / FR-017
+        # ONLY when the pinned contract set is v1.3.0+. For pinned v1.2.0
+        # or earlier, omit (otherwise the older schema validation fails
+        # and MI-22 byte-identity is broken — Codex P1 PR #47 2026-05-23).
+        emit_semantic_fields = supports_semantic_quality_fields(self.contract_set_version)
+        if emit_semantic_fields:
+            if self.semantic_quality_result is not None:
+                document_pass_fail["semantic_table_quality_passed"] = (
+                    _semantic_quality_passed_value(self.semantic_quality_result.status)
+                )
+            else:
+                # Defensive default — should not occur on the writer path
+                # since evaluate_document always populates this field.
+                document_pass_fail["semantic_table_quality_passed"] = None
+
+        out: dict[str, object] = {
             "contract_set_version": self.contract_set_version,
             "document_id": self.document_id,
             "difficulty": self.difficulty,
@@ -91,11 +254,7 @@ class DocumentEvaluation:
                 "unexpected_prediction_count": self.comparison_summary.unexpected_prediction_count,
                 "field_accuracy": self.comparison_summary.field_accuracy,
             },
-            "document_pass_fail": {
-                "vendor_identity_passed": self.document_pass_fail.vendor_identity_passed,
-                "review_routing_passed": self.document_pass_fail.review_routing_passed,
-                "overall_passed": self.document_pass_fail.overall_passed,
-            },
+            "document_pass_fail": document_pass_fail,
             "field_results": {
                 fr.field_name: {
                     "expected": fr.expected,
@@ -106,6 +265,18 @@ class DocumentEvaluation:
             },
             "notes": list(self.notes),
         }
+
+        # semantic_table_quality object — present only when sidecar found
+        # or status == unevaluable (data-model §7 / evaluator-output-contract.md).
+        # Gated on v1.3.0+ contract per Codex P1 PR #47 2026-05-23.
+        if emit_semantic_fields and self.semantic_quality_result is not None:
+            stq = _semantic_quality_result_to_persistable(
+                self.semantic_quality_result
+            )
+            if stq is not None:
+                out["semantic_table_quality"] = stq
+
+        return out
 
 
 def evaluate_document(
@@ -198,6 +369,18 @@ def evaluate_document(
         overall_passed=overall_ok,
     )
 
+    # Feature 022 — semantic quality gate (data-model §13).
+    # Always invoked once per document (FR-017): sidecar absent → status
+    # = not_applicable WITHOUT reading preprocess_output.json. The gate
+    # itself is CPU-only, no Paddle, no network (MI-1).
+    sidecar_candidate = folder / _SEMANTIC_TABLE_TRUTH_FILENAME
+    preprocess_candidate = folder / _PREPROCESS_OUTPUT_FILENAME
+    semantic_result = run_semantic_quality_gate(
+        preprocess_output_path=preprocess_candidate if preprocess_candidate.is_file() else None,
+        sidecar_path=sidecar_candidate if sidecar_candidate.is_file() else None,
+        folder_basename=folder.name,
+    )
+
     evaluation = DocumentEvaluation(
         contract_set_version=pinned_version,
         document_id=exp_id,
@@ -209,6 +392,7 @@ def evaluate_document(
         notes=(),
         document_score=doc_score,
         folder_path=folder,
+        semantic_quality_result=semantic_result,
     )
 
     persistable = evaluation.to_persistable_dict()

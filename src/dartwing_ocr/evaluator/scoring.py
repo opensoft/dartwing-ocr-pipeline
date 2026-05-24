@@ -65,7 +65,7 @@ FIELD_WEIGHTS: dict[str, int] = {
     "review_reason": 4,
 }
 
-CONTRACT_SET_VERSION: str = "1.1.0"
+CONTRACT_SET_VERSION: str = "1.3.0"
 GATE_THRESHOLD: float = 0.85
 # Edge case "Weighted document_score = 0.849999…" in spec.md: compare with
 # inclusive `>=` + small epsilon so float rounding can't falsely fail a doc

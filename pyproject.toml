@@ -49,6 +49,12 @@ include = ["dartwing_ocr*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/contract_tests", "tests/pipeline_tests", "tests/unit", "tests/integration", "tests/evaluator_tests"]
+# Per Sonar PR #47 fix-pass 2026-05-23: tests/helpers/ holds shared
+# test-data builders (e.g. evaluation_artifacts.py) that multiple test
+# files import to dedupe scaffolding. Adding tests/ to pythonpath lets
+# `from helpers.evaluation_artifacts import ...` resolve under pytest's
+# --import-mode=importlib (which does NOT auto-prepend test dirs).
+pythonpath = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

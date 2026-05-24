@@ -6,6 +6,15 @@ codes based on field path (e.g. `SCHEMA_ENUM_VIOLATION` under `challenge_tags`
 becomes `CHALLENGE_TAG_UNKNOWN`) and enforces a handful of rules that are
 easier in Python than in JSON Schema (empty string in extracted value fields ⇒
 `NULL_VS_EMPTY_STRING`, missing `pipeline_version` / `policy_version`).
+
+Also exposes :func:`read_semantic_table_quality_passed` — a tiny
+backward-compat reader for the feature 022 v1.3.0 additive
+``document_pass_fail.semantic_table_quality_passed`` field. Per Q43 /
+MI-24 / FR-019, when reading a pre-feature ``evaluation_document.json``
+that lacks this field, callers MUST interpret the absent field as
+``None`` (= "the semantic gate did not run on this document"). The
+function returns the field's value verbatim when present, and ``None``
+when absent.
 """
 from __future__ import annotations
 
@@ -325,6 +334,37 @@ def _null_vs_empty_string_findings(
             )
         )
     return findings
+
+
+def read_semantic_table_quality_passed(
+    evaluation_document: dict[str, Any],
+) -> bool | None:
+    """Backward-compat read of ``document_pass_fail.semantic_table_quality_passed``.
+
+    Per Q43 / MI-24 / FR-019: when reading an ``evaluation_document.json``
+    that lacks ``document_pass_fail.semantic_table_quality_passed``,
+    interpret the absent field as ``None`` (= "the semantic gate did not
+    run on this document"). When the field IS present, return its value
+    verbatim — including ``None`` (which is a valid value-domain entry
+    meaning ``status == not_applicable``).
+
+    This reader is the single source of truth for backward-compat
+    interpretation of the new field. Callers who do raw ``dict``
+    lookups risk inferring "False" or raising ``KeyError`` on legacy
+    artifacts; both are FR-019 violations.
+
+    Args:
+        evaluation_document: A parsed ``evaluation_document.json`` dict.
+            The ``document_pass_fail`` key is expected (it is required by
+            both v1.2.0 and v1.3.0 schemas); a missing
+            ``document_pass_fail`` raises ``KeyError`` because that is a
+            real schema violation, not a backward-compat case.
+
+    Returns:
+        ``True`` / ``False`` / ``None`` per MI-17 / Q20 value-domain.
+    """
+    pass_fail = evaluation_document["document_pass_fail"]
+    return pass_fail.get("semantic_table_quality_passed")
 
 
 def validate_artifact(

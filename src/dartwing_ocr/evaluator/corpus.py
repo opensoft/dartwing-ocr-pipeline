@@ -1,4 +1,13 @@
-"""Corpus aggregator — lazy per-doc evaluation + run summary dataclasses."""
+"""Corpus aggregator — lazy per-doc evaluation + run summary dataclasses.
+
+v1.3.0 (feature 022) wires the corpus-level semantic gate aggregation into
+``evaluation_run_summary.json``:
+
+- ``semantic_table_quality_metrics`` — top-level namespace; calibration
+  folders excluded per Q39 / MI-20.
+- ``semantic_document_statuses`` — top-level sibling array (NOT nested
+  inside metrics per F6); includes calibration folders.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +15,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from dartwing_ocr.evaluator.compare import FieldResult
 from dartwing_ocr.evaluator.document import DocumentEvaluation, evaluate_document
@@ -29,6 +38,10 @@ from dartwing_ocr.evaluator.scoring import (
     ResultLabel,
     compute_document_score,
 )
+from dartwing_ocr.evaluator.semantic_quality_metrics import (
+    build_metrics_namespace,
+)
+from dartwing_ocr.evaluator.semantic_quality_report import SemanticQualityResult
 
 # Local aliases (keep call sites private).
 _EVAL_DOC_FILENAME = EVAL_DOC_FILENAME
@@ -70,6 +83,32 @@ class DocumentListEntry:
 _DIFFICULTY_KEYS: tuple[str, ...] = ("easy", "medium", "hard", "missing_name")
 
 
+# MI-17 / Q20 value-domain mapping for `semantic_table_quality_passed`
+# Imported from document.py rather than re-declared (deduped per Sourcery +
+# Copilot review on PR #47 2026-05-23 — single source of truth for MI-17/Q20
+# value-domain mapping prevents drift if the status enum changes).
+from dartwing_ocr.evaluator.document import (
+    _SEMANTIC_PASSED_VALUE_DOMAIN,
+    _SEMANTIC_TABLE_TRUTH_FILENAME,
+    _PREPROCESS_OUTPUT_FILENAME,
+    _semantic_quality_passed_value,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class SemanticDocumentStatusEntry:
+    """One entry in the top-level ``semantic_document_statuses`` array (F6).
+
+    Includes calibration folders (those whose basename does NOT match
+    ``CANONICAL_FOLDER_PATTERN``) per Q39 / MI-20. Sort order is
+    deterministic run-document order, applied by the writer.
+    """
+
+    document_id: str
+    semantic_table_quality_status: str
+    semantic_table_quality_passed: bool | None
+
+
 @dataclass(frozen=True, slots=True)
 class RunSummary:
     contract_set_version: str
@@ -82,6 +121,14 @@ class RunSummary:
     by_difficulty: dict[str, DifficultyStats]
     by_field: dict[str, float]
     documents: tuple[DocumentListEntry, ...]
+    # Feature 022 (v1.3.0 additive): per-document semantic gate verdicts
+    # carried into the writer so the run summary can emit
+    # `semantic_table_quality_metrics` + `semantic_document_statuses`.
+    # Tuple of `(folder_basename, SemanticQualityResult)` — preserves the
+    # deterministic run-document iteration order, NOT alphabetical by
+    # document_id (these may differ when folder_basename != document_id,
+    # though the corpus iterator currently uses alphabetical folder order).
+    semantic_per_document: tuple[tuple[str, SemanticQualityResult], ...] = ()
 
     def __post_init__(self) -> None:
         if set(self.by_difficulty.keys()) != set(_DIFFICULTY_KEYS):
@@ -145,7 +192,56 @@ class RunSummary:
             }
             for d in self.documents
         ]
+
+        # Feature 022 (v1.3.0 additive) — top-level sibling keys, NOT nested
+        # inside any vendor-identity block (per F6 resolution / Q36 / MI-22).
+        # Emit semantic fields on newly-written v1.3.0+ run summaries
+        # (FR-018), even when the per-document list is empty (yields a
+        # zeroed metrics namespace and an empty statuses array — both
+        # valid under the v1.3.0 schema). Per Codex P1 PR #47 2026-05-23:
+        # gate on v1.3.0+ so callers pinned to v1.2.0 produce a
+        # vendor-identity-only run summary (preserves MI-22 byte-identity
+        # for legacy pinned runs).
+        from dartwing_ocr.evaluator.document import supports_semantic_quality_fields
+
+        if supports_semantic_quality_fields(self.contract_set_version):
+            out["semantic_table_quality_metrics"] = build_metrics_namespace(
+                self.semantic_per_document
+            )
+            out["semantic_document_statuses"] = [
+                {
+                    "document_id": entry.document_id,
+                    "semantic_table_quality_status": entry.semantic_table_quality_status,
+                    "semantic_table_quality_passed": entry.semantic_table_quality_passed,
+                }
+                for entry in _build_semantic_document_statuses(self.semantic_per_document)
+            ]
         return out
+
+
+def _build_semantic_document_statuses(
+    per_document: Iterable[tuple[str, SemanticQualityResult]],
+) -> list[SemanticDocumentStatusEntry]:
+    """Build the ``semantic_document_statuses`` list per data-model §8.
+
+    Includes calibration folders per Q39 / MI-20 (they are excluded only
+    from aggregate counts, not from per-document status entries). Sort
+    order is the iteration order of ``per_document`` — the corpus
+    aggregator passes documents in the deterministic run-document order
+    (alphabetical folder basename for ``evaluate_corpus``).
+    """
+    entries: list[SemanticDocumentStatusEntry] = []
+    for folder_basename, result in per_document:
+        # The status entry's `document_id` uses the folder basename per the
+        # contract — the gate is identified by the folder it was applied to.
+        entries.append(
+            SemanticDocumentStatusEntry(
+                document_id=folder_basename,
+                semantic_table_quality_status=result.status,
+                semantic_table_quality_passed=_semantic_quality_passed_value(result.status),
+            )
+        )
+    return entries
 
 
 def list_document_folders(root: Path) -> list[Path]:
@@ -167,7 +263,15 @@ def _hydrate_document_evaluation(
 ) -> DocumentEvaluation:
     """Build a `DocumentEvaluation` from a schema-validated `evaluation_document.json`
     instance. Dataclass invariants are re-enforced. `document_score` is recomputed
-    from `field_results` (not persisted in the artifact)."""
+    from `field_results` (not persisted in the artifact).
+
+    Feature 022: the semantic quality gate is re-run during hydration so
+    the in-memory ``semantic_quality_result`` is always consistent with the
+    on-disk inputs (sidecar + preprocess_output). The gate is CPU-only,
+    pure-Python, and cheap — no network, no Paddle, no model call (MI-1).
+    """
+    from dartwing_ocr.evaluator.semantic_quality import run_semantic_quality_gate
+
     cs = instance["comparison_summary"]  # type: ignore[index]
     summary = ComparisonSummary(
         applicable_field_count=cs["applicable_field_count"],
@@ -193,6 +297,14 @@ def _hydrate_document_evaluation(
         )
         for name in SCORED_FIELDS
     )
+    # Re-run the gate to populate semantic_quality_result on hydration.
+    sidecar_path = folder / _SEMANTIC_TABLE_TRUTH_FILENAME
+    preprocess_path = folder / _PREPROCESS_OUTPUT_FILENAME
+    semantic_result = run_semantic_quality_gate(
+        preprocess_output_path=preprocess_path if preprocess_path.is_file() else None,
+        sidecar_path=sidecar_path if sidecar_path.is_file() else None,
+        folder_basename=folder.name,
+    )
     return DocumentEvaluation(
         contract_set_version=instance["contract_set_version"],  # type: ignore[arg-type]
         document_id=instance["document_id"],  # type: ignore[arg-type]
@@ -204,6 +316,7 @@ def _hydrate_document_evaluation(
         notes=tuple(instance["notes"]),  # type: ignore[arg-type]
         document_score=compute_document_score(field_results),
         folder_path=folder,
+        semantic_quality_result=semantic_result,
     )
 
 
@@ -442,6 +555,20 @@ def evaluate_corpus(
     by_field = build_by_field(ev_tuple)
     documents = build_documents_list(ev_tuple)
 
+    # Feature 022 (v1.3.0 additive): per-document semantic verdict carried
+    # into the writer so the run summary can emit
+    # `semantic_table_quality_metrics` + `semantic_document_statuses`.
+    # Iteration order mirrors `evaluations` — i.e. corpus folder iteration
+    # order, which is alphabetical by folder basename (see
+    # list_document_folders). Calibration folders appear here AND in
+    # `semantic_document_statuses` but are excluded from the metrics
+    # aggregates by the per-folder filter in build_metrics_namespace.
+    semantic_per_document: tuple[tuple[str, SemanticQualityResult], ...] = tuple(
+        (ev.folder_path.name, ev.semantic_quality_result)
+        for ev in ev_tuple
+        if ev.semantic_quality_result is not None
+    )
+
     summary = RunSummary(
         contract_set_version=pinned,
         run_id=generate_run_id(),
@@ -453,6 +580,7 @@ def evaluate_corpus(
         by_difficulty=by_difficulty,
         by_field=by_field,
         documents=documents,
+        semantic_per_document=semantic_per_document,
     )
 
     persistable = summary.to_persistable_dict()

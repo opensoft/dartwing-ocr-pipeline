@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.0.0/evaluation_run_summary.schema.json",
+  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.3.0/evaluation_run_summary.schema.json",
   "title": "evaluation_run_summary",
-  "description": "Run-level aggregate across the stage 1 corpus.",
+  "description": "Run-level aggregate across the stage 1 corpus. v1.3.0 adds the additive `semantic_table_quality_metrics` namespace and `semantic_document_statuses` array (feature 022).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -83,6 +83,72 @@
           "document_id": { "type": "string", "minLength": 1 },
           "overall_passed": { "type": "boolean" },
           "field_accuracy": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+        }
+      }
+    },
+    "semantic_table_quality_metrics": {
+      "type": "object",
+      "description": "Feature 022 (v1.3.0 additive). Top-level sibling key parallel to vendor-identity and feature-020 fields. Excludes calibration folders (those whose basename does not match CANONICAL_FOLDER_PATTERN) from aggregate counts per Q39/MI-20. Optional in the schema for backward-compat (FR-019/SC-008); required at write time on newly-generated reports (FR-018).",
+      "required": [
+        "semantic_applicable_document_count",
+        "semantic_not_applicable_document_count",
+        "semantic_evaluable_document_count",
+        "semantic_passed_document_count",
+        "semantic_failed_document_count",
+        "semantic_unevaluable_document_count",
+        "semantic_table_quality_pass_rate",
+        "semantic_failed_check_counts"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "semantic_applicable_document_count": { "type": "integer", "minimum": 0 },
+        "semantic_not_applicable_document_count": { "type": "integer", "minimum": 0 },
+        "semantic_evaluable_document_count": { "type": "integer", "minimum": 0 },
+        "semantic_passed_document_count": { "type": "integer", "minimum": 0 },
+        "semantic_failed_document_count": { "type": "integer", "minimum": 0 },
+        "semantic_unevaluable_document_count": { "type": "integer", "minimum": 0 },
+        "semantic_table_quality_pass_rate": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "passed / evaluable, rounded to 6 dp ROUND_HALF_EVEN. null when semantic_evaluable_document_count == 0."
+        },
+        "semantic_failed_check_counts": {
+          "type": "object",
+          "required": [
+            "malformed-currency-shape",
+            "missing-required-content",
+            "row-text-coverage-gap",
+            "row-alignment-failure"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "malformed-currency-shape": { "type": "integer", "minimum": 0 },
+            "missing-required-content": { "type": "integer", "minimum": 0 },
+            "row-text-coverage-gap": { "type": "integer", "minimum": 0 },
+            "row-alignment-failure": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "semantic_document_statuses": {
+      "type": "array",
+      "description": "Feature 022 (v1.3.0 additive). TOP-LEVEL sibling array (NOT nested inside semantic_table_quality_metrics) of per-document semantic status entries for the run scope, sorted by deterministic run-document order. Includes calibration folders; those are excluded from semantic_table_quality_metrics aggregate counts (Q39/MI-20). Optional in the schema for backward-compat (FR-019/SC-008); required at write time on newly-generated reports (FR-018).",
+      "items": {
+        "type": "object",
+        "required": [
+          "document_id",
+          "semantic_table_quality_status",
+          "semantic_table_quality_passed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "document_id": { "type": "string", "minLength": 1 },
+          "semantic_table_quality_status": {
+            "type": "string",
+            "enum": ["passed", "failed", "not_applicable", "unevaluable"]
+          },
+          "semantic_table_quality_passed": { "type": ["boolean", "null"] }
         }
       }
     }

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.0.0/evaluation_document.schema.json",
+  "$id": "https://ledgerlinc.local/contracts/stage1_vendor_identity/v1.3.0/evaluation_document.schema.json",
   "title": "evaluation_document",
-  "description": "Per-document evaluation output comparing expected.json to final_structured_payload.json.",
+  "description": "Per-document evaluation output comparing expected.json to final_structured_payload.json. v1.3.0 adds the additive `semantic_table_quality` object and `document_pass_fail.semantic_table_quality_passed` field (feature 022).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -53,7 +53,11 @@
       "properties": {
         "vendor_identity_passed": { "type": "boolean" },
         "review_routing_passed": { "type": "boolean" },
-        "overall_passed": { "type": "boolean" }
+        "overall_passed": { "type": "boolean" },
+        "semantic_table_quality_passed": {
+          "type": ["boolean", "null"],
+          "description": "Feature 022 (v1.3.0 additive). true when semantic status is 'passed'; false when 'failed' or 'unevaluable'; null when 'not_applicable' (no sidecar). Always present on newly-written reports; absent on pre-feature reports (FR-019)."
+        }
       }
     },
     "field_results": {
@@ -82,6 +86,102 @@
     "notes": {
       "type": "array",
       "items": { "type": "string" }
+    },
+    "semantic_table_quality": {
+      "type": "object",
+      "description": "Feature 022 (v1.3.0 additive). Present when a sidecar was found for the document OR when status is 'unevaluable' (sidecar present but inputs unreadable). Absent when status is 'not_applicable' (no sidecar).",
+      "additionalProperties": false,
+      "required": ["status", "failed_checks", "supporting_evidence"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["passed", "failed", "unevaluable"],
+          "description": "Closed enum within the semantic_table_quality object. The fourth canonical status, 'not_applicable', is intentionally excluded here: per data-model §7 the whole semantic_table_quality object MUST be ABSENT when status is not_applicable (signaled instead by document_pass_fail.semantic_table_quality_passed == null). The full four-value enum applies only to evaluation_run_summary.json's semantic_document_statuses entries. Tightened per Copilot + Codex P2 review on PR #47 2026-05-23."
+        },
+        "failed_checks": {
+          "type": "array",
+          "description": "Flat ordered array — source of truth (MI-14). Items ordered by sidecar row declaration order (outer) then by the fixed Q17 check-category order (inner): malformed-currency-shape, missing-required-content, row-text-coverage-gap, row-alignment-failure. Always present when the semantic_table_quality object is present; empty [] when status is 'passed' or 'unevaluable'; non-empty when status is 'failed'.",
+          "items": {
+            "type": "object",
+            "required": ["category", "row_id"],
+            "additionalProperties": false,
+            "properties": {
+              "category": {
+                "type": "string",
+                "enum": [
+                  "malformed-currency-shape",
+                  "missing-required-content",
+                  "row-text-coverage-gap",
+                  "row-alignment-failure"
+                ]
+              },
+              "row_id": { "type": "string", "minLength": 1 },
+              "field": { "type": ["string", "null"] },
+              "expected": { "type": "string" },
+              "observed": { "type": ["string", "null"] },
+              "predicate": { "type": "string" },
+              "position_index": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "row_reasons": {
+          "type": "object",
+          "description": "Per-row aggregation keyed by row_id, derived from failed_checks (MI-14). Required when status == 'failed'; omitted otherwise.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["categories", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "malformed-currency-shape",
+                    "missing-required-content",
+                    "row-text-coverage-gap",
+                    "row-alignment-failure"
+                  ]
+                }
+              },
+              "reason": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "supporting_evidence": {
+          "type": "object",
+          "description": "Closed shape. Document-aggregate body-OCR stats. body_confidence_min and body_confidence_mean are ALWAYS JSON numbers (never null) — emit 0.0 when body_line_count == 0 per F3/R-022.12.",
+          "required": [
+            "body_confidence_mean",
+            "body_confidence_min",
+            "body_line_count",
+            "body_token_count",
+            "header_band_excluded"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "body_confidence_mean": { "type": "number" },
+            "body_confidence_min": { "type": "number" },
+            "body_line_count": { "type": "integer", "minimum": 0 },
+            "body_token_count": { "type": "integer", "minimum": 0 },
+            "header_band_excluded": { "type": "boolean" }
+          }
+        },
+        "cause": {
+          "type": "string",
+          "enum": [
+            "preprocess_output_missing",
+            "preprocess_output_invalid_json",
+            "preprocess_output_schema_invalid",
+            "body_ocr_unreadable"
+          ],
+          "description": "Required when status == 'unevaluable'. Absent otherwise."
+        },
+        "cause_detail": {
+          "type": "string",
+          "description": "Optional free-text diagnostic. Present only when status == 'unevaluable'."
+        }
+      }
     }
   }
 }
