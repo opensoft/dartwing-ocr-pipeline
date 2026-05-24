@@ -272,12 +272,34 @@ def main(argv: list[str] | None = None) -> int:  # NOSONAR S3776 — validator C
             return _folder_or_corpus_exit_code(outcome)
 
         if args.command == "validate" and args.subcommand == "corpus":
-            from dartwing_ocr.validator.corpus import validate_corpus
-            outcome = validate_corpus(
-                args.path, version=args.version, fail_fast=args.fail_fast
+            # Feature 022 / US5 — partitioned corpus reporting per
+            # validator-cli-contract.md §`validate corpus`. The corpus
+            # is walked, every subfolder is partitioned via the Q23
+            # canonical-pattern allowlist (MI-21), and per-document
+            # validation runs on BOTH partitions (calibration ≠ skipped).
+            # Only the scored partition feeds the displayed aggregation
+            # counts; sidecar present/accepted/rejected counters are
+            # scoped to the scored set per the contract annotation.
+            from dartwing_ocr.validator.corpus_report import (
+                build_corpus_report,
+                compute_exit_code,
+                render_json,
+                render_text,
             )
-            print(_format(outcome, json_output=json_output))
-            return _folder_or_corpus_exit_code(outcome)
+
+            # ``--fail-fast`` is preserved as a CLI flag for backward
+            # compatibility but the partitioned corpus reporter always
+            # walks the full root so the reporting block reflects every
+            # folder. (Fail-fast made sense when the validator emitted
+            # a single ValidationOutcome with sub_reports; the US5
+            # contract requires complete partition counts to be
+            # reportable, which is incompatible with early break.)
+            report = build_corpus_report(args.path, version=args.version)
+            output = (
+                render_json(report) if json_output else render_text(report)
+            )
+            print(output)
+            return compute_exit_code(report)
 
         if args.command == "validate" and args.subcommand == "semantic-truth":
             # Feature 022 / US1 — validate the optional sidecar in isolation
