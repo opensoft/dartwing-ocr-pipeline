@@ -166,7 +166,7 @@ Single-project Python library + CLI extension. Source under `src/dartwing_ocr/`,
 
 - [X] T057 [US4] Capture the pre-feature vendor-identity baseline. From a clean checkout of `main` (no feature 022 code), run the evaluator over `tests/stage1_vendor_identity/` and commit the output as a golden artifact at `tests/integration/goldens/vendor_identity_baseline_pre_022/evaluation_run_summary.json` plus the 20 per-document `evaluation_document.json` files. T054 AS1 reads these to assert byte-identity post-feature. (If a pre-feature run cannot be captured because the feature has been in-progress, use the most recent committed baseline before feature 022 commits; document the SHA in the golden directory's README.)
 
-**Checkpoint**: User Story 4 fully verified — vendor-identity baseline byte-identical (SC-006 met), `semantic_table_quality_passed` value-domain end-to-end correct, features 019/021 untouched. Hard release gate is green.
+**Checkpoint**: User Story 4 fully verified — vendor-identity baseline byte-identical (SC-006 met), `semantic_table_quality_passed` value-domain end-to-end correct, features 019/021 untouched. Hard release gate is green *contingent on T069 (full pytest sweep) passing in CI*; per-suite local sweeps (validator + contract + evaluator + integration) were green at landing.
 
 ---
 
