@@ -74,45 +74,12 @@ def _run_validate_corpus(
     )
 
 
-def _seed_folder(target_root: Path, folder_name: str) -> Path:
-    """Copy the canonical ``inv_001_easy`` good fixture under ``target_root``
-    with the requested ``folder_name`` and rewrite its ``expected.json``
-    ``document_id`` + ``difficulty`` so the per-folder validator still
-    accepts the folder regardless of basename (including calibration
-    names like ``inv_024_hard_degraded_body``)."""
-    target = target_root / folder_name
-    shutil.copytree(GOOD_FIXTURE_FOLDER, target)
-
-    expected_path = target / "expected.json"
-    doc = json.loads(expected_path.read_text(encoding="utf-8"))
-    doc["document_id"] = folder_name
-
-    # Pick a difficulty value that the folder.schema.json accepts. We try
-    # to read the suffix from the canonical pattern; calibration folders
-    # may not be canonically suffixed, so we fall back to "hard" (which is
-    # in the closed difficulty vocabulary) and ensure notes.md exists so
-    # the hard-folder notes.md requirement is satisfied.
-    if folder_name.endswith("_easy"):
-        doc["difficulty"] = "easy"
-    elif folder_name.endswith("_medium"):
-        doc["difficulty"] = "medium"
-    elif folder_name.endswith("_missing_name"):
-        doc["difficulty"] = "missing_name"
-    else:
-        # Hard-class catch-all — covers calibration suffixes too.
-        doc["difficulty"] = "hard"
-
-    # notes.md is required for hard / missing_name. The seed fixture
-    # already ships one, so no extra write is needed.
-    expected_path.write_text(json.dumps(doc, indent=2), encoding="utf-8")
-    return target
-
-
-def _write_sidecar(folder: Path, payload: dict) -> Path:
-    """Write a ``semantic_table_truth.json`` under ``folder``."""
-    p = folder / "semantic_table_truth.json"
-    p.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    return p
+# Per Sonar PR #50 fix-pass 2026-05-24: _seed_folder + _write_sidecar
+# previously duplicated across two test files. Shared in
+# tests/helpers/corpus_fixtures.py; re-exported here so the test bodies
+# below stay readable.
+from helpers.corpus_fixtures import seed_corpus_folder as _seed_folder  # noqa: E402
+from helpers.corpus_fixtures import write_sidecar as _write_sidecar  # noqa: E402
 
 
 def _good_sidecar(document_id: str) -> dict:

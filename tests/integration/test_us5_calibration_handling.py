@@ -53,32 +53,12 @@ EVALUATOR_FIXTURE_DIR = REPO_ROOT / "tests" / "evaluator_tests" / "fixtures"
 # ---------------------------------------------------------------------------
 
 
-def _seed_folder(target_root: Path, folder_name: str) -> Path:
-    """Copy the canonical ``inv_001_easy`` good fixture under
-    ``target_root`` with the requested basename and rewrite its
-    ``expected.json`` so the per-folder validator accepts it
-    regardless of basename (including calibration-style basenames)."""
-    target = target_root / folder_name
-    shutil.copytree(GOOD_FIXTURE_FOLDER, target)
-    expected_path = target / "expected.json"
-    doc = json.loads(expected_path.read_text(encoding="utf-8"))
-    doc["document_id"] = folder_name
-    if folder_name.endswith("_easy"):
-        doc["difficulty"] = "easy"
-    elif folder_name.endswith("_medium"):
-        doc["difficulty"] = "medium"
-    elif folder_name.endswith("_missing_name"):
-        doc["difficulty"] = "missing_name"
-    else:
-        doc["difficulty"] = "hard"
-    expected_path.write_text(json.dumps(doc, indent=2), encoding="utf-8")
-    return target
-
-
-def _write_sidecar(folder: Path, payload: dict) -> Path:
-    p = folder / "semantic_table_truth.json"
-    p.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    return p
+# Per Sonar PR #50 fix-pass 2026-05-24: _seed_folder + _write_sidecar
+# previously duplicated across two test files. Shared in
+# tests/helpers/corpus_fixtures.py; re-exported here so the test bodies
+# below stay readable.
+from helpers.corpus_fixtures import seed_corpus_folder as _seed_folder  # noqa: E402
+from helpers.corpus_fixtures import write_sidecar as _write_sidecar  # noqa: E402
 
 
 def _run_validate_corpus_json(root: Path) -> subprocess.CompletedProcess[str]:
