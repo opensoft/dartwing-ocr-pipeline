@@ -1,0 +1,115 @@
+{
+  "contract_set_version": "1.2.0",
+  "document_id": "inv_corpus_hard_04_fail",
+  "difficulty": "hard",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present"
+  ],
+  "comparison_summary": {
+    "applicable_field_count": 13,
+    "matched_field_count": 4,
+    "mismatched_field_count": 9,
+    "missing_prediction_count": 0,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 0.307692
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": false,
+    "review_routing_passed": true,
+    "overall_passed": false
+  },
+  "field_results": {
+    "company_name.value": {
+      "expected": "Navigator Fleet Inc.",
+      "actual": "Unknown Shipper",
+      "result": "mismatch"
+    },
+    "company_name.present": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "company_name.inferred": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "address.street_1": {
+      "expected": "14 Pier Ave",
+      "actual": "99 Wrong St",
+      "result": "mismatch"
+    },
+    "address.street_2": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "address.city": {
+      "expected": "Norfolk",
+      "actual": "Wrong",
+      "result": "mismatch"
+    },
+    "address.state": {
+      "expected": "VA",
+      "actual": "XX",
+      "result": "mismatch"
+    },
+    "address.postal_code": {
+      "expected": "23501",
+      "actual": "00000",
+      "result": "mismatch"
+    },
+    "address.country": {
+      "expected": "US",
+      "actual": "US",
+      "result": "match"
+    },
+    "tax_ids.ein": {
+      "expected": "44-5566778",
+      "actual": "99-0000000",
+      "result": "mismatch"
+    },
+    "tax_ids.state_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.vat_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.other_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "website": {
+      "expected": "https://navfleet.example.com",
+      "actual": "https://wrong.example.com",
+      "result": "mismatch"
+    },
+    "phone": {
+      "expected": "+1 757-555-0230",
+      "actual": "+1 000-555-0000",
+      "result": "mismatch"
+    },
+    "email": {
+      "expected": "ap@navfleet.example.com",
+      "actual": "wrong@wrong.example.com",
+      "result": "mismatch"
+    },
+    "manual_review_required": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "review_reason": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    }
+  },
+  "notes": []
+}

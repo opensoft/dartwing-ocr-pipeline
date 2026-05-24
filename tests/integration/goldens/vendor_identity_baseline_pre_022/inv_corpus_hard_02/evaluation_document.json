@@ -1,0 +1,115 @@
+{
+  "contract_set_version": "1.2.0",
+  "document_id": "inv_corpus_hard_02",
+  "difficulty": "hard",
+  "challenge_tags": [
+    "explicit_company_name",
+    "ein_present"
+  ],
+  "comparison_summary": {
+    "applicable_field_count": 13,
+    "matched_field_count": 13,
+    "mismatched_field_count": 0,
+    "missing_prediction_count": 0,
+    "unexpected_prediction_count": 0,
+    "field_accuracy": 1.0
+  },
+  "document_pass_fail": {
+    "vendor_identity_passed": true,
+    "review_routing_passed": true,
+    "overall_passed": true
+  },
+  "field_results": {
+    "company_name.value": {
+      "expected": "Lantern Systems Co.",
+      "actual": "Lantern Systems Co.",
+      "result": "match"
+    },
+    "company_name.present": {
+      "expected": true,
+      "actual": true,
+      "result": "match"
+    },
+    "company_name.inferred": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "address.street_1": {
+      "expected": "12 Light St",
+      "actual": "12 Light St",
+      "result": "match"
+    },
+    "address.street_2": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "address.city": {
+      "expected": "Atlanta",
+      "actual": "Atlanta",
+      "result": "match"
+    },
+    "address.state": {
+      "expected": "GA",
+      "actual": "GA",
+      "result": "match"
+    },
+    "address.postal_code": {
+      "expected": "30301",
+      "actual": "30301",
+      "result": "match"
+    },
+    "address.country": {
+      "expected": "US",
+      "actual": "US",
+      "result": "match"
+    },
+    "tax_ids.ein": {
+      "expected": "22-3344556",
+      "actual": "22-3344556",
+      "result": "match"
+    },
+    "tax_ids.state_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.vat_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "tax_ids.other_tax_id": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    },
+    "website": {
+      "expected": "https://lanternsys.example.com",
+      "actual": "https://lanternsys.example.com",
+      "result": "match"
+    },
+    "phone": {
+      "expected": "+1 404-555-0210",
+      "actual": "+1 404-555-0210",
+      "result": "match"
+    },
+    "email": {
+      "expected": "ap@lanternsys.example.com",
+      "actual": "ap@lanternsys.example.com",
+      "result": "match"
+    },
+    "manual_review_required": {
+      "expected": false,
+      "actual": false,
+      "result": "match"
+    },
+    "review_reason": {
+      "expected": null,
+      "actual": null,
+      "result": "not_applicable"
+    }
+  },
+  "notes": []
+}
