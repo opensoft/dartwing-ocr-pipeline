@@ -33,7 +33,7 @@ Operator-facing environment variables owned by this project SHALL use the `DARTW
 - **THEN** the active variable is `DARTWING_GPU_WARMUP`
 
 ### Requirement: Active Workflow Paths
-Maintained local workflow instructions SHALL refer to the operator's checkout using the Dartwing repository directory name (`dartwing-ocr-pipeline`) and SHALL place Speckit worktrees in a sibling `dartwing-ocr-pipeline-worktrees` directory next to that checkout. The absolute parent path is operator-specific and is intentionally not specified here.
+Maintained local workflow instructions SHALL use the Dartwing repository directory name (`dartwing-ocr-pipeline`) for the checkout and SHALL place Speckit worktrees in a sibling `dartwing-ocr-pipeline-worktrees` directory next to that checkout. The absolute parent path is operator-specific; concrete absolute paths MAY appear in maintained workflow docs (e.g. `.specify/README.md`) as illustrative examples for the maintainer's environment.
 
 #### Scenario: Speckit creates a new worktree
 - **WHEN** the Speckit git extension creates a feature worktree

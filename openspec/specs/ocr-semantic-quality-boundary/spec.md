@@ -55,14 +55,14 @@ The project SHALL require degraded table-body candidates to pass the normal labe
 - **WHEN** table/body truth becomes part of evaluation
 - **THEN** the feature MUST define where that truth lives and update the labeling guide, schemas, or evaluator contract as needed
 
-### Requirement: Amendment is documentation-only until follow-up implementation
-This OpenSpec change SHALL NOT change runtime code, CLI behavior, environment variables, dependencies, canonical artifact schemas, or committed corpus baselines.
+### Requirement: Boundary capability is documentation-only
+This `ocr-semantic-quality-boundary` capability SHALL NOT define runtime code behavior, CLI behavior, environment variables, dependencies, canonical artifact schemas, or committed corpus baselines. It is a documentation-only capability whose purpose is to record what is and is not covered by previously shipped features (019/020/021) and to point at the `ocr-semantic-quality-gate` capability for forward implementation.
 
-#### Scenario: Reviewing the amendment diff
-- **WHEN** a reviewer inspects this OpenSpec amendment
-- **THEN** changes are limited to OpenSpec artifacts, documentation, and shipped Speckit spec notes
+#### Scenario: Inspecting the capability spec
+- **WHEN** a reviewer inspects this capability
+- **THEN** the requirements describe documentation expectations only, not runtime contracts
 
 #### Scenario: Runtime behavior is desired
-- **WHEN** the team wants semantic/table quality to alter pipeline execution
-- **THEN** that behavior MUST be implemented under a separate future OpenSpec/Speckit feature after this boundary amendment is accepted
+- **WHEN** semantic/table quality is proposed to alter pipeline execution
+- **THEN** that behavior MUST be defined under the `ocr-semantic-quality-gate` capability or a separate governed OpenSpec/Speckit feature, not under this boundary capability
 
