@@ -31,14 +31,14 @@ artifact already defines the behavior.
 - Keep the root checkout at `/home/brett/projects/dartwing/dartwing-ocr-pipeline`
 - Keep that root checkout on `main`
 - Run `/speckit.specify ...` from the root checkout
-- Speckit creates a new feature branch in a linked worktree under `../dartwing-ocr-pipeline-worktrees/`
+- Speckit creates a new feature branch in a linked worktree under `../ocr-pipeline-worktrees/`
 - Continue that feature from the returned `WORKTREE_PATH`, not from the root checkout
 
 The current git extension config is:
 
 - `checkout_mode: worktree`
 - `base_branch: main`
-- `worktree_root: ../dartwing-ocr-pipeline-worktrees`
+- `worktree_root: ../ocr-pipeline-worktrees`
 
 Config lives in `.specify/extensions/git/git-config.yml`.
 
@@ -61,7 +61,7 @@ Speckit will return a new branch name and a `WORKTREE_PATH`, for example:
 
 ```text
 BRANCH_NAME=002-one-doc-cli
-WORKTREE_PATH=/home/brett/projects/dartwing/dartwing-ocr-pipeline-worktrees/002-one-doc-cli
+WORKTREE_PATH=/home/brett/projects/dartwing/ocr-pipeline-worktrees/002-one-doc-cli
 ```
 
 Important: the new worktree is created on disk, but your current shell does **not** automatically `cd` into it.
@@ -69,7 +69,7 @@ Important: the new worktree is created on disk, but your current shell does **no
 Move into that worktree and continue the feature there:
 
 ```bash
-cd /home/brett/projects/dartwing/dartwing-ocr-pipeline-worktrees/002-one-doc-cli
+cd /home/brett/projects/dartwing/ocr-pipeline-worktrees/002-one-doc-cli
 ```
 
 Then run the rest of the flow from that worktree. The core path is:
@@ -209,8 +209,8 @@ Use one CLI session per active feature worktree.
 Example:
 
 1. Session 1 stays in the root checkout on `main` and is used only to launch new work.
-2. Session 2 works in `.../dartwing-ocr-pipeline-worktrees/002-one-doc-cli`.
-3. Session 3 works in `.../dartwing-ocr-pipeline-worktrees/003-pdf-preprocess`.
+2. Session 2 works in `.../ocr-pipeline-worktrees/002-one-doc-cli`.
+3. Session 3 works in `.../ocr-pipeline-worktrees/003-pdf-preprocess`.
 
 To start another feature:
 
@@ -240,7 +240,7 @@ git worktree list
 Remove a finished worktree:
 
 ```bash
-git worktree remove /home/brett/projects/dartwing/dartwing-ocr-pipeline-worktrees/002-one-doc-cli
+git worktree remove /home/brett/projects/dartwing/ocr-pipeline-worktrees/002-one-doc-cli
 ```
 
 Delete the local feature branch after merge or after you no longer need it:
