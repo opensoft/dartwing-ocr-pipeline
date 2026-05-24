@@ -1,14 +1,28 @@
-# Draft PRD Seed: OCR Semantic Quality Gate
+# PRD: OCR Semantic Quality Gate
 
-**Status**: Future feature seed only. This document is not an active implementation contract for the shipped stage 1 MVP. It records the desired fix direction for a separate governed feature after the as-built boundary amendment lands.
+**Status**: ACTIVE — feature 022 landed via stacked PRs #44 → #46 → #47 → #49 → #50 against `contract_set_version` `1.3.0` (2026-05-23). This PRD now records what was built, not what was proposed. See `specs/022-ocr-semantic-quality-gate/spec.md` for the authoritative requirement set and `contracts/stage1_vendor_identity/AMENDMENTS.md#v130--2026-05-23` for the contract-bump narrative.
 
-## Purpose
+## Landed scope (2026-05-23)
 
-This draft seed captures product requirements to consider for a follow-up feature that would detect OCR outputs that are syntactically confident but semantically wrong.
+The feature ships a deterministic, pure-CPU, harness-side semantic-table OCR quality gate. It evaluates four predicate-based checks in fixed order (no short-circuit) against an optional per-document `semantic_table_truth.json` sidecar and folds the verdict into the evaluator's existing artifacts as additive fields only. **No runtime pipeline code was modified** — Principle I and FR-028 guarantee, enforced by `tests/integration/test_features_019_021_unchanged.py`.
 
-Feature 019's OCR-only fallback trigger and feature 020's vendor-identity evidence gate are intentionally narrow. They decide whether the OCR-only path has enough vendor-identity evidence, mostly from the page-1 header band. They do not prove that invoice body rows, table cells, prices, quantities, or row alignment were read correctly.
+Key landed decisions (from the 44 Clarifications + 7 security-clarify questions):
 
-The intended future Speckit feature name is:
+- **Q14**: contract-set bumps 1.2.0 → 1.3.0 (additive; v1.2.0 frozen and read-accessible).
+- **Q20 / MI-17 / FR-025**: `document_pass_fail.semantic_table_quality_passed` value domain is `{true, false, false, null}` for status `{passed, failed, unevaluable, not_applicable}`.
+- **Q23 / MI-21 / SC-009**: canonical-pattern allowlist `^inv_\d{3}_(easy|medium|hard)$` partitions corpus folders into SCORED vs CALIBRATION. Calibration folders run the gate but do not feed scored aggregation.
+- **Q26**: closed snake_case status enum `{passed, failed, unevaluable, not_applicable}`.
+- **Q34**: stable-JSON serialization — sorted keys, UTF-8, LF, trailing newline, `Decimal` 6-dp `ROUND_HALF_EVEN`.
+- **Q39 / MI-20**: aggregate counters in `semantic_table_quality_metrics` reflect scored folders only.
+- **Q42 / MI-19**: `SemanticGateInvariantError` for invariant violations.
+- **Q-SEC-2/B**: sidecar `document_id` and `row_id` constrained to `^[A-Za-z0-9_-]{1,64}$` (path-traversal / log-injection defense).
+- **Q-SEC-7/B / FR-034**: air-gapped operation is a named requirement; the gate, validator, and evaluator make no network calls.
+
+Phase 8 polish (T063-T070) also lands: AMENDMENTS.md v1.3.0 entry, schemas.md delta, this PRD promotion, v1.3.0/README.md update, CLAUDE.md verification, quickstart walkthrough, full pytest sweep, and the FR↔task↔test coverage matrix.
+
+## Background (original problem statement)
+
+The intended future Speckit feature name was:
 
 - `022-ocr-semantic-quality-gate`
 

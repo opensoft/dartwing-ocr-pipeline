@@ -177,6 +177,15 @@ The stage 1 artifact shapes and the per-document folder contract are now enforce
 - `specs/020-vendor-evidence-gate/quickstart.md` — seven operator-facing paths (CPU default, GPU default, GPU OCR-only `sufficient` skip, GPU OCR-only `borderline` fallback, CPU warn-and-proceed, run_summary re-derivation, warm-corpus pipeline mode) + seven CPU-safe smoke tests
 - `specs/020-vendor-evidence-gate/contracts/cli-contract.md`, `module-invariants.md`, `run-summary-schema.md`, `evidence-gate-rule.md` — CLI flag + env-var contract, 27 module invariants (MI-1 through MI-27), `run_summary` schema bump (4 additive fields), v1 decision table (32-row truth table)
 - `specs/020-vendor-evidence-gate/checklists/contract.md`, `determinism.md`, `evidence-gate-policy.md`, `failure-handling.md`, `performance.md`, `requirements.md`, `scope.md`, `security.md` — 8 deep release-gate checklists (409 items total, all closed) covering schema preservation, deterministic control, gate policy, failure handling, performance measurability, requirements quality, scope boundaries, security/PII discipline
+- `specs/022-ocr-semantic-quality-gate/spec.md` — semantic-table OCR quality gate requirements (34 FR / 10 SC / 5 US), 44+7 Clarifications, `contract_set_version` bump 1.2.0 → 1.3.0 (Q14)
+- `specs/022-ocr-semantic-quality-gate/plan.md` — gate architecture, additive-only contract delta, harness-side scope (Principle I / FR-028)
+- `specs/022-ocr-semantic-quality-gate/research.md` — R-022 decisions covering Q-SEC-2/B safety pattern, Q34 stable-JSON serialization, Q39/MI-20 scored-vs-calibration partition, FR-034 air-gapped operation
+- `specs/022-ocr-semantic-quality-gate/contracts/validator-cli-contract.md`, `evaluator-output-contract.md`, `semantic-gate-rule.md` — CLI surface, four-check predicate evaluation order, output shape
+- `specs/022-ocr-semantic-quality-gate/quickstart.md` — operator-facing walkthroughs (sidecar authoring, calibration partition, scored aggregation, byte-determinism)
+- `tests/stage1_semantic_quality/` — Q25 synthetic CPU-only US2 fixture corpus (`inv_001_hard/preprocess_output.json` + `semantic_table_truth.json`, no `source.pdf`); first scored member is the foundation slice for the semantic-quality gate test surface
+- `tests/integration/goldens/vendor_identity_baseline_pre_022/` — T057 frozen vendor-identity baseline; AS1 byte-identity regression gate reads these to assert SC-006 / MI-22 after feature 022 lands
+- `contracts/stage1_vendor_identity/v1.3.0/` — feature 022 contract-set snapshot (adds `semantic_table_truth.schema.json`, extends three existing schemas additively, folder contract reserves the new sidecar filename)
+- `contracts/stage1_vendor_identity/AMENDMENTS.md#v130--2026-05-23` — v1.3.0 amendment narrative + preservation note
 - `.specify/memory/constitution.md` — governing principles; violations are design issues, not style issues
 - `openspec/README.md` — OpenSpec/Speckit split and handoff policy
 
