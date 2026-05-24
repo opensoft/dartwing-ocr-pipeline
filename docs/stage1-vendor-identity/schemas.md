@@ -560,3 +560,93 @@ Purpose:
   ]
 }
 ```
+
+## v1.3.0 delta — semantic-table OCR quality gate
+
+Contract set v1.3.0 (feature 022) adds the harness-side semantic-table
+OCR quality gate as an **additive-only** layer on top of v1.2.0. Every
+shape documented above remains valid; v1.3.0 introduces one new artifact
+schema and four additive fields on existing artifacts. See
+`contracts/stage1_vendor_identity/AMENDMENTS.md#v130--2026-05-23` for the
+full amendment entry.
+
+### New artifact: `semantic_table_truth.json`
+
+Optional per-document sidecar carrying the human-labeled truth the gate
+evaluates against. Lives at `<per-doc-folder>/semantic_table_truth.json`.
+Absence is well-formed — the gate emits `status: "not_applicable"`.
+
+Schema: `contracts/stage1_vendor_identity/v1.3.0/semantic_table_truth.schema.json`.
+
+```json
+{
+  "document_id": "inv_001_hard",
+  "rows": [
+    {
+      "row_id": "row-1",
+      "required_row_text_tokens": ["widget-a", "12.50"]
+    },
+    {
+      "row_id": "row-2",
+      "required_row_text_tokens": ["widget-b", "8.00"]
+    }
+  ]
+}
+```
+
+Both `document_id` and `row_id` are constrained to
+`^[A-Za-z0-9_-]{1,64}$` with `maxLength: 64` (Q-SEC-2/B safety pattern)
+so sidecar identifiers cannot be weaponized for path traversal or log
+injection.
+
+### Additive fields on `evaluation_document.json`
+
+Two new optional fields:
+
+- `semantic_table_quality` (object, omitted when no sidecar is present):
+  the gate's structured verdict. Contains the four predicate-based check
+  results evaluated in fixed order (no short-circuit), per-row reasons,
+  and a `status` enum drawn from
+  `{passed, failed, unevaluable, not_applicable}` (Clarifications Q26).
+- `document_pass_fail.semantic_table_quality_passed` (boolean or null):
+  the verdict folded into the existing pass/fail block. Value domain is
+  pinned by MI-17 / Q20 / FR-025:
+  - `status: "passed"` → `true`
+  - `status: "failed"` → `false`
+  - `status: "unevaluable"` → `false`
+  - `status: "not_applicable"` → `null` (sibling `vendor_identity_passed`
+    is unaffected)
+
+### Additive fields on `evaluation_run_summary.json`
+
+Two new optional top-level entries:
+
+- `semantic_table_quality_metrics` (object): eight fields — six
+  per-status document counters (`semantic_applicable_document_count`,
+  `semantic_not_applicable_document_count`,
+  `semantic_evaluable_document_count`,
+  `semantic_passed_document_count`,
+  `semantic_failed_document_count`,
+  `semantic_unevaluable_document_count`), a nullable
+  `semantic_table_quality_pass_rate` (`null` when `evaluable == 0`;
+  otherwise 6-decimal `ROUND_HALF_EVEN` per Q34's stable-JSON contract),
+  and a nested `semantic_failed_check_counts` object holding four
+  per-category integer counters (`malformed-currency-shape`,
+  `missing-required-content`, `row-text-coverage-gap`,
+  `row-alignment-failure`). Aggregate counters reflect SCORED folders
+  only (Q39 / MI-20 / SC-009) — calibration folders run the gate but
+  do not pollute the scored aggregation.
+- `semantic_document_statuses` (array): one entry per evaluated folder,
+  in canonical-pattern sort order, with `document_id`,
+  `semantic_table_quality_status`, `semantic_table_quality_passed`, and
+  `partition` (`"scored"` or `"calibration"`).
+
+### Backward-compat read path
+
+The evaluator continues to read pre-feature reports that stamp
+`contract_set_version` as `"1.0.0"`, `"1.1.0"`, or `"1.2.0"`. The
+v1.3.0 fields are emitted only when the active contract set is v1.3.0
+or higher; consumers that target an earlier set see byte-identical
+output to what they got before. Version gating lives in
+`supports_semantic_quality_fields()` in
+`src/dartwing_ocr/evaluator/document.py`.

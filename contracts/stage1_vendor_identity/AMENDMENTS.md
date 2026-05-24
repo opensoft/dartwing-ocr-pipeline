@@ -171,6 +171,112 @@ Test coverage for the new acceptance shape:
   the v1.2.0 contract set; a regression that silently reverts the schema
   would fail this test.
 
+### v1.3.0 — 2026-05-23
+
+**Branch**: `022-ocr-semantic-quality-gate` (stacked: PR #44 → #46 → #47 → #49 → #50).
+
+**Tier**: MINOR — additive only. All v1.0.0, v1.1.0, and v1.2.0 artifacts
+remain byte-identical and valid under v1.3.0. The amendment introduces
+one wholly new artifact schema (`semantic_table_truth.schema.json`),
+extends two evaluation report schemas (`evaluation_document.schema.json`,
+`evaluation_run_summary.schema.json`) with new optional fields whose
+absence is well-formed, and appends `semantic_table_truth.json` to the
+`folder.schema.json` `reserved_generated_filenames` list — every change
+is strictly additive at the artifact level and forward-compatible at
+the read path.
+
+Summary: introduce a deterministic, pure-CPU semantic-table OCR quality
+gate that runs harness-side over the evaluator's existing artifacts.
+The gate evaluates four predicate-based checks in fixed order (no
+short-circuit) against an optional per-document
+`semantic_table_truth.json` sidecar and folds the verdict into the
+evaluator's existing `evaluation_document.json` and corpus-level
+`evaluation_run_summary.json` as additive fields. No runtime pipeline
+code changes (FR-033 / Principle I). Air-gapped operation is a named
+requirement (FR-034, security-clarify Q-SEC-7/B).
+
+What was added:
+
+- **New artifact schema**: `semantic_table_truth.schema.json` — the
+  optional per-document truth sidecar. `document_id` and per-row
+  `row_id` are constrained to `^[A-Za-z0-9_-]{1,64}$` (Q-SEC-2/B
+  safety pattern + `maxLength: 64`) so sidecar identifiers cannot be
+  weaponized for path traversal or log injection.
+- **Folder contract delta** (`folder.schema.json`):
+  - `semantic_table_truth.json` appended to `reserved_generated_filenames`.
+  - Optional at the folder level (gate runs in `not_applicable` status
+    when absent).
+- **Evaluation-document delta** (`evaluation_document.schema.json`):
+  - New optional top-level object `semantic_table_quality` containing
+    the four check results, per-row reasons, and the snake_case status
+    enum `{passed, failed, unevaluable, not_applicable}` (Clarifications
+    Q26).
+  - New optional field `document_pass_fail.semantic_table_quality_passed`
+    with value domain `{true, false, false, null}` for status
+    `{passed, failed, unevaluable, not_applicable}` respectively
+    (FR-025, MI-17, Q20).
+- **Run-summary delta** (`evaluation_run_summary.schema.json`):
+  - New optional top-level namespace `semantic_table_quality_metrics`
+    with eight fields: six per-status document counters (`semantic_applicable_document_count`,
+    `semantic_not_applicable_document_count`, `semantic_evaluable_document_count`,
+    `semantic_passed_document_count`, `semantic_failed_document_count`,
+    `semantic_unevaluable_document_count`), a nullable
+    `semantic_table_quality_pass_rate` (`null` when `evaluable == 0`;
+    otherwise 6-decimal `ROUND_HALF_EVEN` per Q34), and a nested
+    `semantic_failed_check_counts` object whose four per-category
+    integer counters cover `malformed-currency-shape`,
+    `missing-required-content`, `row-text-coverage-gap`, and
+    `row-alignment-failure`.
+  - New optional top-level array `semantic_document_statuses` with one
+    entry per evaluated folder (scored + calibration both included;
+    only scored entries feed the aggregate counters per Q39 / MI-20 /
+    SC-009).
+- **Contract-set delta** (`contract_set.json`):
+  - `contract_set_version` → `"1.3.0"`.
+  - `"semantic_table_truth"` appended to `artifact_names`.
+  - `"semantic_table_truth": "semantic_table_truth.schema.json"` added
+    to `artifact_schemas`.
+  - **NOT** added to `pipeline_versioned_artifacts` or
+    `policy_versioned_artifacts` — the sidecar is harness-side truth
+    data, not a pipeline artifact.
+
+What did NOT change:
+
+- No runtime pipeline module (`src/dartwing_ocr/preprocessing/`,
+  `src/dartwing_ocr/extract/`, `src/dartwing_ocr/router/`,
+  `src/dartwing_ocr/assembler/`) was modified — Principle I and FR-028
+  guarantee, enforced by
+  `tests/integration/test_features_019_021_unchanged.py`.
+- No line-items field was added to any schema (FR-030 negative
+  assertion, also enforced by the same test).
+- `final_structured_payload.schema.json` v1.3.0 is byte-identical to
+  v1.2.0.
+- Validator code remains CPU-only with no Paddle / no network imports
+  on its hot path (MI-1, enforced by
+  `tests/unit/preprocessing/test_evidence_gate_cpu_isolation.py` and
+  `tests/unit/evaluator/test_semantic_quality_module_safety.py`).
+- Existing artifacts stamped `"1.0.0"`, `"1.1.0"`, or `"1.2.0"` remain
+  major-compatible with the v1.3.0 validator.
+
+Justification: this version bump implements the 022-ocr-semantic-quality-gate
+feature per `specs/022-ocr-semantic-quality-gate/spec.md` (44 Clarifications
++ 7 security-clarify questions resolved), Clarifications Q14 (contract bump
+required because four schemas are extended additively), Q20 / Q26 / Q34 /
+Q39 / Q-SEC-2/B / Q-SEC-7/B, and constitution Principle I (deterministic
+control of consensus-class decisions).
+
+Preservation note: no v1.0.0, v1.1.0, or v1.2.0 file was edited. All three
+remain the authoritative snapshots for consumers that haven't opted into
+v1.3.0. `v1.3.0/` is a strict superset.
+
+Cross-references:
+
+- Feature spec: `specs/022-ocr-semantic-quality-gate/spec.md`
+- Feature plan: `specs/022-ocr-semantic-quality-gate/plan.md`
+- Quickstart: `specs/022-ocr-semantic-quality-gate/quickstart.md`
+- Stacked PRs: #44 (foundation), #46 (US1 validator), #47 (US3 report
+  surface), #49 (US4 non-regression), #50 (US5 calibration governance).
+
 ## Deferred enhancements (not scheduled)
 
 Proposals captured here are honest signal that a concern is known and valid, but has been deferred from the feature that surfaced it. Each entry should state the motivation, a sketch of the change, and the bump it would require.
