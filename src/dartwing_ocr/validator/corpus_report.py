@@ -39,7 +39,6 @@ from dartwing_ocr.validator.corpus_pattern import (
 from dartwing_ocr.validator.folder import validate_folder
 from dartwing_ocr.validator.loader import ContractSet, load_contract_set
 from dartwing_ocr.validator.report import (
-    Severity,
     ValidationOutcome,
     ValidationOutcomeCounts,
     Violation,
@@ -171,6 +170,33 @@ def _walk_violation_codes(outcome: ValidationOutcome):
         yield v.violation_code
     for sub in outcome.sub_reports:
         yield from _walk_violation_codes(sub)
+
+
+def compute_outcome_exit_code(outcome: ValidationOutcome) -> int:
+    """Return the exit code for a single :class:`ValidationOutcome`.
+
+    Implements the same "lowest non-zero of {1, 3, 4, 5}" rule used by
+    :func:`compute_exit_code` for corpus reports, applied to one folder
+    outcome. ``0`` when ``outcome.passed`` is True, otherwise the lowest
+    sidecar-class code (3 / 4 / 5) present in any nested violation, or
+    ``1`` when no sidecar codes are present.
+
+    Per Codex P1 review on PR #50 (2026-05-24): unifies the previously
+    duplicated ``cli._folder_or_corpus_exit_code`` logic so the
+    sidecar-violation-to-exit-code mapping has exactly one owner. The
+    ``validate folder`` CLI dispatcher and the ``validate corpus``
+    per-entry walker both reduce to this primitive.
+    """
+    if outcome.passed:
+        return EXIT_CODE_PASS
+    sidecar_codes: set[int] = set()
+    for code in _walk_violation_codes(outcome):
+        mapped = _SIDECAR_VIOLATION_TO_EXIT_CODE.get(code)
+        if mapped is not None:
+            sidecar_codes.add(mapped)
+    if sidecar_codes:
+        return min(sidecar_codes)
+    return EXIT_CODE_MANDATORY_ARTIFACT_FAILURE
 
 
 def _sidecar_was_rejected(outcome: ValidationOutcome) -> bool:
@@ -558,6 +584,7 @@ __all__ = [
     "SidecarStats",
     "build_corpus_report",
     "compute_exit_code",
+    "compute_outcome_exit_code",
     "render_json",
     "render_text",
 ]

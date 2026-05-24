@@ -24,12 +24,9 @@ end-to-end (argparse → corpus reporter → exit code).
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 import sys
 from pathlib import Path
-
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 GOOD_FIXTURE_FOLDER = (
@@ -123,8 +120,13 @@ def test_text_output_partitions_scored_vs_calibration(tmp_path: Path) -> None:
     out = result.stdout
     assert "Scored corpus folders:" in out, result.stdout + result.stderr
     assert "Calibration folders:" in out, result.stdout + result.stderr
-    # Counts: 2 scored + 1 calibration
-    assert "Scored corpus folders:   2" in out or "Scored corpus folders:" in out
+    # Counts: 2 scored on the Scored line (count appears on the same
+    # line as the label; alignment-tolerant check via splitlines() to
+    # avoid coupling to whitespace width).
+    scored_line = next(
+        line for line in out.splitlines() if "Scored corpus folders:" in line
+    )
+    assert "2" in scored_line, scored_line
     # Pattern annotation per the contract block sample
     assert "^inv_\\d{3}_(easy|medium|hard)$" in out
 
@@ -221,6 +223,30 @@ def test_exit_code_six_when_corpus_root_missing(tmp_path: Path) -> None:
 
     result = _run_validate_corpus(missing)
     assert result.returncode == 6, (result.stdout, result.stderr)
+
+
+def test_json_output_when_corpus_root_missing_is_valid_payload(
+    tmp_path: Path,
+) -> None:
+    """Per Sourcery review on PR #50 (2026-05-24): the ``--json`` mode for
+    a missing corpus root MUST still emit a parseable JSON object that
+    declares ``root_missing: true`` and the requested root path — so
+    automation can distinguish "root not found" from "root present but
+    failed validation" without parsing stderr."""
+    missing = tmp_path / "does_not_exist"
+
+    result = _run_validate_corpus(missing, json_output=True)
+    assert result.returncode == 6, (result.stdout, result.stderr)
+
+    payload = json.loads(result.stdout)
+    assert payload["root_missing"] is True, payload
+    assert payload["corpus_root"] == str(missing), payload
+    # The partition + sidecar payload sections MUST be absent — there is
+    # nothing to report when the root doesn't exist.
+    assert "scored" not in payload, payload
+    assert "calibration" not in payload, payload
+    assert "sidecars" not in payload, payload
+    assert "folders" not in payload, payload
 
 
 def test_exit_code_three_when_sidecar_document_id_mismatch(tmp_path: Path) -> None:
