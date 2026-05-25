@@ -50,9 +50,17 @@ def safe_eager_delete(folder: Path, basenames: tuple[str, ...]) -> None:
     targets: list[Path] = []
     for basename in basenames:
         target = folder / basename
-        # If the path doesn't exist yet, no symlink resolution applies — skip the
-        # escape check (we'll skip the delete below too).
-        if target.exists() or target.is_symlink():
+        # S1 (triage): FR-017 sanctions only plain files at the four canonical
+        # basenames. Reject any symlink outright — even one pointing inside
+        # the folder. This eliminates the TOCTOU window where an attacker
+        # could swap the symlink target between the escape check and unlink.
+        if target.is_symlink():
+            raise EagerDeleteError(
+                f"refusing to eager-delete a symlink at a canonical basename: {target}"
+            )
+        # If the path doesn't exist yet, no symlink resolution applies — skip
+        # the escape check (the delete loop below will skip it too).
+        if target.exists():
             resolved = target.resolve()
             try:
                 resolved.relative_to(folder_str)
@@ -63,10 +71,11 @@ def safe_eager_delete(folder: Path, basenames: tuple[str, ...]) -> None:
                 ) from exc
         targets.append(target)
 
-    # No escape detected; proceed with deletes in basename order.
+    # No escape detected; proceed with deletes in basename order. Symlinks are
+    # already rejected above (S1), so this loop sees plain files only.
     for target in targets:
         try:
-            if target.is_symlink() or target.exists():
+            if target.exists():
                 target.unlink()
         except OSError as exc:
             raise EagerDeleteError(

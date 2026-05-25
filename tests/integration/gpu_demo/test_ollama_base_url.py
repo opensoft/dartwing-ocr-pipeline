@@ -78,3 +78,51 @@ def test_demo_ignores_other_ollama_urls(
 
     parsed = json.loads(stdout)
     assert parsed["readiness"]["overall_passed"] is True
+
+
+def test_invalid_ollama_base_url_exits_invalid_input(
+    monkeypatch,
+    ok_fixture_folder: Path,
+) -> None:
+    """B5 regression guard (triage / R-023.14).
+
+    A malformed ``OLLAMA_BASE_URL`` MUST surface as exit 2 (invalid-input)
+    BEFORE the readiness phase runs — not as an opaque ``ConnectError``
+    deep inside the Ollama reachability check.
+    """
+    monkeypatch.setenv("OLLAMA_BASE_URL", "not-a-url")
+
+    code, stdout = _invoke_main([
+        "--check-only",
+        "--voter-config", str(ok_fixture_folder / "voter_config.yaml"),
+    ])
+    assert code == ExitCode.INVALID_INPUT == 2, (
+        f"malformed OLLAMA_BASE_URL must exit 2 invalid-input; got {code}"
+    )
+    parsed = json.loads(stdout)
+    assert parsed["failure_kind"] == "invalid-input"
+    assert "OLLAMA_BASE_URL" in (parsed.get("diagnostic") or "")
+    # No readiness checks should have run yet.
+    assert parsed["readiness"]["overall_passed"] is False
+
+
+def test_non_localhost_ollama_base_url_emits_info_line(
+    monkeypatch,
+    capsys,
+    paddle_preflight_stub,
+    ollama_http_stub,
+    force_venv_interpreter,
+    ok_fixture_folder: Path,
+) -> None:
+    """B5 regression guard (R-023.14): non-localhost host → INFO stderr line."""
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://example.internal:11434")
+
+    # We don't care if readiness passes — only that the INFO line is printed
+    # before readiness runs (and the validator does NOT reject example.internal).
+    _invoke_main([
+        "--check-only",
+        "--voter-config", str(ok_fixture_folder / "voter_config.yaml"),
+    ])
+    captured = capsys.readouterr()
+    assert "non-localhost Ollama base URL" in captured.err
+    assert "example.internal" in captured.err

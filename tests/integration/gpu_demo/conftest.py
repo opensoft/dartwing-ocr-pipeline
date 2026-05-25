@@ -3,8 +3,8 @@
 Provides CPU-isolated stubs per R-023.4 + R-023.5:
 
 - :func:`paddle_preflight_stub` (T021): monkeypatches feature 014's preflight
-  to return ``PreflightState.PASS_ROCM_GPU`` so the demo's `paddle-rocm-preflight`
-  readiness check passes without booting Paddle on CI.
+  to return ``PreflightState.PPSTRUCTUREV3_INIT_SUCCEEDED`` so the demo's
+  `paddle-rocm-preflight` readiness check passes without booting Paddle on CI.
 - :func:`ollama_http_stub` (T022): an ``httpx.MockTransport`` that responds
   to ``/api/ps`` and ``/api/version`` with canned payloads. Mounted into
   ``httpx.get`` via the demo's readiness modules — see the implementation
@@ -31,10 +31,20 @@ FIXTURES_ROOT = Path(__file__).parent / "fixtures"
 
 
 class _StubPreflightReadout:
-    """Stand-in for feature 014's ``PreflightReadout`` (pass-by-default)."""
+    """Stand-in for feature 014's ``PreflightReadout`` (pass-by-default).
 
-    def __init__(self, state, recommendation: str = "") -> None:  # noqa: D401 — short helper
+    Mirrors the real frozen dataclass: 3 fields (state, evidence, recommendation).
+    ``evidence`` is set to ``None`` because the GPU MVP demo's
+    ``paddle-rocm-preflight`` readiness check reads only ``state`` and
+    ``recommendation``. If a future change in ``paddle_preflight.py`` starts
+    reading ``readout.evidence``, the stub will raise the same AttributeError
+    that the production module would — surfacing the divergence instead of
+    silently passing tests (triage T4).
+    """
+
+    def __init__(self, state, recommendation: str = "", evidence=None) -> None:  # noqa: D401
         self.state = state
+        self.evidence = evidence
         self.recommendation = recommendation
 
 

@@ -160,3 +160,23 @@ def test_interpreter_venv_failure_class(
     parsed = json.loads(stdout)
     assert parsed["failing_check_name"] == "interpreter/venv"
     assert parsed["failure_kind"] == "readiness-failed"
+
+    # T3 (triage): FR-026 fixed-order skip-after-fail guarantee for the FIRST
+    # check. interpreter/venv is check #1; the parametrized
+    # test_skip_on_upstream_fail covers checks 2-6 but explicitly excludes
+    # check #1. Assert here that ALL downstream checks are marked "skipped"
+    # so a regression that breaks short-circuiting on check #1 is detected.
+    checks_by_name = {c["name"]: c for c in parsed["readiness"]["checks"]}
+    for downstream in (
+        "paddle-rocm-preflight",
+        "ollama-reachability",
+        "ollama-version",
+        "ollama-model-gpu-placement",
+        "ollama-context-length",
+        "artifact-schema-validation",
+        "pipeline-runtime-timeout",
+    ):
+        assert checks_by_name[downstream]["status"] == "skipped", (
+            f"check '{downstream}' must be 'skipped' after interpreter/venv "
+            f"failed; got {checks_by_name[downstream]['status']}"
+        )

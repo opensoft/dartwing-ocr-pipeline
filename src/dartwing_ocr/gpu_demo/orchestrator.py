@@ -115,13 +115,16 @@ class _DefaultPipelineComposer:
         )
 
     def extract(self, document_folder: Path, voter_config: VoterConfigReference) -> Any:
-        raise PipelineUnavailable("extract", "see preprocess")
+        # M2: phase names MUST be StalledPhase literals ("extraction" not "extract").
+        raise PipelineUnavailable("extraction", "see preprocess")
 
     def route(self, document_folder: Path) -> Any:
-        raise PipelineUnavailable("route", "see preprocess")
+        # M2: "routing" matches the StalledPhase Literal.
+        raise PipelineUnavailable("routing", "see preprocess")
 
     def assemble(self, document_folder: Path) -> Any:
-        raise PipelineUnavailable("assemble", "see preprocess")
+        # M2: "final_payload" matches the StalledPhase Literal.
+        raise PipelineUnavailable("final_payload", "see preprocess")
 
 
 class PipelineUnavailable(RuntimeError):
@@ -147,6 +150,69 @@ class OrchestratorOptions:
     composer: Optional[PipelineComposer] = None  # None = default in-process composer
 
 
+@dataclass
+class _RunState:
+    """Mutable per-run state captured outside the frozen :class:`OrchestratorOptions`.
+
+    Holds values that originate inside the run (composer return values, cached
+    side-channel data) and need to be read later by quality derivation,
+    cpu-fallback interrogation, etc. Triage B3: prior to this container, the
+    orchestrator tried to publish ``_preprocess_run_summary`` via
+    ``getattr(frozen_options, ...)`` — which is structurally ``None`` for a
+    frozen dataclass and silently broke SC-004's gate-derived quality status.
+    """
+
+    preprocess_run_summary: Optional[dict[str, Any]] = None
+    pre_run_ollama_snapshot: Optional[dict[str, Any]] = None
+
+
+def _extract_pre_run_snapshot(
+    cached_api_ps_body: Any,
+    model_name: str,
+) -> Optional[dict[str, Any]]:
+    """Pull the matching model entry from the cached /api/ps body.
+
+    M3/K4 (triage / R-023.15): the Ollama reachability check publishes the
+    full ``/api/ps`` response body via ``ReadinessContext.cached_api_ps_body``.
+    The CPU-fallback probe receives the matching model entry as its
+    ``pre_run_snapshot`` so the pre-vs-post diff is computable and the
+    snapshot is echoed back into the emitted report.
+
+    Returns ``None`` if the cached body is absent, malformed, or doesn't
+    contain a matching entry.
+    """
+    if not isinstance(cached_api_ps_body, dict):
+        return None
+    models = cached_api_ps_body.get("models")
+    if not isinstance(models, list):
+        return None
+    for entry in models:
+        if isinstance(entry, dict) and entry.get("name") == model_name:
+            return entry
+    return None
+
+
+def _extract_run_summary(result: Any) -> Optional[dict[str, Any]]:
+    """Pull a ``run_summary`` payload out of a composer phase return value.
+
+    The composer protocol's return is typed ``Any`` so both legacy path-only
+    returns (e.g. ``Path``) and richer dict/object returns are accepted. A
+    real workstation composer should return either:
+
+    - a ``dict`` with a ``"run_summary"`` key, or
+    - an object whose ``.run_summary`` attribute is a ``dict``.
+
+    Anything else (including ``None`` or a bare ``Path``) is ignored — the
+    quality-status derivation then falls back to reading the persisted
+    ``run_summary.json`` on disk when the composer doesn't expose one.
+    """
+    if isinstance(result, dict):
+        rs = result.get("run_summary")
+        return rs if isinstance(rs, dict) else None
+    rs = getattr(result, "run_summary", None)
+    return rs if isinstance(rs, dict) else None
+
+
 def _build_options_from_args(args: argparse.Namespace) -> OrchestratorOptions:
     return OrchestratorOptions(
         check_only=bool(args.check_only),
@@ -159,6 +225,52 @@ def _build_options_from_args(args: argparse.Namespace) -> OrchestratorOptions:
             os.environ.get("OLLAMA_CONTEXT_LENGTH", str(DEFAULT_OLLAMA_CONTEXT_LENGTH))
         ),
     )
+
+
+_LOCALHOST_HOSTS: frozenset[str] = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
+class _InvalidOllamaBaseURL(ValueError):
+    """Raised by :func:`_validate_ollama_base_url` when the URL is unusable.
+
+    Triage B5 / R-023.14: ``OLLAMA_BASE_URL`` MUST be validated before the
+    readiness phase so a malformed value surfaces as exit 2 (``invalid-input``)
+    with a clear diagnostic, not an opaque ``ConnectError`` mid-readiness.
+    """
+
+
+def _validate_ollama_base_url(url: str) -> str:
+    """Validate ``OLLAMA_BASE_URL`` per R-023.14 and return the trimmed value.
+
+    Required behavior:
+
+    - Parse via :func:`urllib.parse.urlparse`.
+    - Scheme MUST be ``http`` or ``https``.
+    - Host MUST be non-empty.
+    - Invalid syntax raises :class:`_InvalidOllamaBaseURL`; the caller maps
+      this to ``failure_kind = "invalid-input"`` + exit 2.
+
+    Non-localhost hosts are valid; the caller emits an ``INFO`` stderr line
+    when the parsed host is not in :data:`_LOCALHOST_HOSTS`.
+    """
+    from urllib.parse import urlparse
+
+    if not isinstance(url, str) or not url.strip():
+        raise _InvalidOllamaBaseURL("OLLAMA_BASE_URL is empty")
+    candidate = url.strip()
+    try:
+        parsed = urlparse(candidate)
+    except ValueError as exc:
+        raise _InvalidOllamaBaseURL(f"OLLAMA_BASE_URL parse error: {exc}") from exc
+    if parsed.scheme not in ("http", "https"):
+        raise _InvalidOllamaBaseURL(
+            f"OLLAMA_BASE_URL scheme must be http or https; got {parsed.scheme!r}"
+        )
+    if not parsed.hostname:
+        raise _InvalidOllamaBaseURL(
+            f"OLLAMA_BASE_URL has no host component: {candidate!r}"
+        )
+    return candidate
 
 
 def _build_check_results(results) -> list[ReadinessCheck]:
@@ -204,6 +316,30 @@ def _emit_report(report: DemoRunReport) -> None:
     sys.stdout.flush()
 
 
+def _format_document_folder_for_report(options: OrchestratorOptions) -> Optional[str]:
+    """Return the ``document_folder`` value for the JSON report.
+
+    Triage M1/K5: ``data-model.md §1`` requires the *attempted* path to be
+    captured on invalid-input outcomes (e.g. ``--document-folder /no-such-dir``)
+    so operators can triage which path was rejected. ``--check-only`` is the
+    only outcome that legitimately yields ``null`` here.
+
+    - ``--check-only``: always ``None``.
+    - Folder exists: emit the canonicalized absolute path.
+    - Folder doesn't exist: emit the raw operator-supplied path so the
+      invalid-input diagnostic is paired with the path that was attempted.
+    """
+    if options.check_only:
+        return None
+    try:
+        if options.document_folder.exists():
+            return str(options.document_folder.resolve())
+    except OSError:
+        # Falls through to the raw-path branch on weird FS states.
+        pass
+    return str(options.document_folder)
+
+
 def _exit_code_for(
     runtime_outcome: Optional[RuntimeOutcome],
     failure_kind: Optional[FailureKind],
@@ -247,9 +383,7 @@ def _build_report(
         interpreter_path=os.path.realpath(sys.executable),
         voter_config_path=voter_ref.path if voter_ref else None,
         expected_extraction_model=voter_ref.model_name if voter_ref else None,
-        document_folder=str(options.document_folder.resolve())
-        if not options.check_only and options.document_folder.exists()
-        else None,
+        document_folder=_format_document_folder_for_report(options),
         bounded_timeout_seconds=options.bounded_timeout_seconds,
         readiness=readiness,
         runtime_outcome=runtime_outcome,
@@ -306,6 +440,43 @@ def run(args: argparse.Namespace) -> int:
             run_id,
             "voter config has multiple voters; demo uses the first "
             f"(model: {voter_ref.model_name})",
+        )
+
+    # ------------------------------------------------------------------
+    # 1b. OLLAMA_BASE_URL validation (R-023.14, triage B5). Invalid URL →
+    #     exit 2 invalid-input before any readiness phase runs. Non-localhost
+    #     hosts emit an INFO line so operators have a paper trail.
+    # ------------------------------------------------------------------
+    try:
+        _validate_ollama_base_url(options.ollama_base_url)
+    except _InvalidOllamaBaseURL as exc:
+        log.error(run_id, f"invalid input: {exc}")
+        report = _build_report(
+            options=options,
+            voter_ref=voter_ref,
+            readiness=ReadinessSummary(checks=[], overall_passed=False, elapsed_seconds=0.0),
+            runtime_outcome=None,
+            stalled_phase=None,
+            failure_kind="invalid-input",
+            failing_check_name=None,
+            phase_timings=_empty_phase_timings(),
+            total_runtime_seconds=None,
+            artifact_paths=None,
+            quality_status=None,
+            quality_status_source=None,
+            cpu_fallback=_all_null_cpu_fallback(),
+            diagnostic=str(exc),
+            run_id=run_id,
+        )
+        _emit_report(report)
+        return int(ExitCode.INVALID_INPUT)
+    from urllib.parse import urlparse as _urlparse
+
+    parsed_url = _urlparse(options.ollama_base_url.strip())
+    if parsed_url.hostname not in _LOCALHOST_HOSTS:
+        log.info(
+            run_id,
+            f"using non-localhost Ollama base URL: {options.ollama_base_url}",
         )
 
     # ------------------------------------------------------------------
@@ -507,6 +678,8 @@ def run(args: argparse.Namespace) -> int:
     diagnostic_msg: Optional[str] = None
 
     pipeline_start = time.monotonic()
+    # B3 mutable RunState (composer-published values; see _RunState docstring).
+    run_state = _RunState()
     # Per-phase timing closure
     timings: dict[str, Optional[float]] = {
         "preprocess": None,
@@ -522,7 +695,7 @@ def run(args: argparse.Namespace) -> int:
         log.info(run_id, f"phase: {phase} (starting)")
         phase_start = time.monotonic()
         try:
-            fn()
+            phase_result = fn()
         except PipelineUnavailable as exc:
             timings[phase] = time.monotonic() - phase_start
             runtime_outcome = f"failed_at_{phase}"  # type: ignore[assignment]
@@ -547,6 +720,13 @@ def run(args: argparse.Namespace) -> int:
             log.error(run_id, f"phase {phase} failed: {exc}")
         else:
             timings[phase] = time.monotonic() - phase_start
+            # B3: capture composer return-value into mutable RunState so quality
+            # derivation can read the preprocessing run_summary without going
+            # through the frozen-dataclass channel.
+            if phase == "preprocess":
+                rs = _extract_run_summary(phase_result)
+                if rs is not None:
+                    run_state.preprocess_run_summary = rs
             log.info(
                 run_id, f"phase: {phase} → {round(timings[phase] or 0, 3)}s"
             )
@@ -577,17 +757,35 @@ def run(args: argparse.Namespace) -> int:
         _run_phase("routing", lambda: composer.route(canonical_folder))
         _run_phase("final_payload", lambda: composer.assemble(canonical_folder))
     except TimeoutError as exc:
-        # SIGALRM-triggered timeout: pinpoint which phase was running.
+        # SIGALRM-triggered timeout: pinpoint which phase was running. B4:
+        # a late-arriving SIGALRM inside this except body would raise a second
+        # TimeoutError that nothing catches, violating FR-019's always-emit
+        # guarantee. Cancel the alarm immediately on entry to this block.
+        if hasattr(signal, "SIGALRM"):
+            try:
+                signal.alarm(0)
+            except TimeoutError:
+                pass  # late-arriving alarm; cleanup wins
         runtime_outcome = "timeout"
         stalled_phase = timeout_observed.get("phase")  # type: ignore[assignment]
         failure_kind = "pipeline-runtime-timeout"
         diagnostic_msg = str(exc)
         log.error(run_id, f"pipeline runtime timeout — stalled phase: {stalled_phase}")
     finally:
+        # B4: wrap both alarm-cancel and handler-restore in try/except so a
+        # SIGALRM that fires between phase return and `signal.alarm(0)` (or
+        # inside this finally block) cannot leak an unhandled TimeoutError
+        # past run() — FR-019 requires an emitted DemoRunReport on every path.
         if hasattr(signal, "SIGALRM"):
-            signal.alarm(0)
+            try:
+                signal.alarm(0)
+            except TimeoutError:
+                pass  # late-arriving alarm; cleanup wins
             if previous_handler is not None:
-                signal.signal(signal.SIGALRM, previous_handler)
+                try:
+                    signal.signal(signal.SIGALRM, previous_handler)
+                except TimeoutError:
+                    pass
 
     pipeline_elapsed = time.monotonic() - pipeline_start
     phase_timings = PhaseTimings(
@@ -612,14 +810,19 @@ def run(args: argparse.Namespace) -> int:
 
     # Schema-validation failure rewrites runtime_outcome to failed_at_final_payload
     # with failure_kind = artifact-schema-validation-failed (per FR-021 exit 5).
-    for r in post_results:
-        if r.name == "artifact-schema-validation" and r.status == "fail":
-            runtime_outcome = "failed_at_final_payload"
-            failure_kind = "artifact-schema-validation-failed"
-            if r.diagnostic is not None:
-                diagnostic_msg = (
-                    f"artifact-schema-validation failed: {r.diagnostic.observed!r}"
-                )
+    # Guard: only rewrite when the pipeline ran to completion. On an earlier
+    # phase failure (e.g. failed_at_extraction), the missing routing/final
+    # artifacts will trip check 7 as a side-effect; rewriting here would mask
+    # the true cause and downgrade exit 4 → exit 5.
+    if runtime_outcome is None:
+        for r in post_results:
+            if r.name == "artifact-schema-validation" and r.status == "fail":
+                runtime_outcome = "failed_at_final_payload"
+                failure_kind = "artifact-schema-validation-failed"
+                if r.diagnostic is not None:
+                    diagnostic_msg = (
+                        f"artifact-schema-validation failed: {r.diagnostic.observed!r}"
+                    )
 
     if runtime_outcome is None:
         runtime_outcome = "success"
@@ -639,9 +842,17 @@ def run(args: argparse.Namespace) -> int:
     # ------------------------------------------------------------------
     cpu_fallback = _all_null_cpu_fallback()
     if runtime_outcome is not None:  # pipeline ran (success or failure)
+        # M3/K4: thread the readiness-cached /api/ps body's matching model
+        # entry into the probe so pre_run_ollama_snapshot is populated in
+        # the emitted report and the pre-vs-post diff is actually computed.
+        pre_run_snapshot = _extract_pre_run_snapshot(
+            getattr(base_context, "cached_api_ps_body", None),
+            voter_ref.model_name,
+        )
         outcome = cpu_fallback_mod.interrogate(
             ollama_base_url=options.ollama_base_url,
             expected_model=voter_ref.model_name,
+            pre_run_snapshot=pre_run_snapshot,
         )
         cpu_fallback = CPUFallbackDetection(
             ollama_post_run=outcome.ollama_post_run,
@@ -649,6 +860,13 @@ def run(args: argparse.Namespace) -> int:
             pre_run_ollama_snapshot=outcome.pre_run_ollama_snapshot,
             post_run_ollama_snapshot=outcome.post_run_ollama_snapshot,
         )
+        # K3 (triage / R-023.15): aggregate-budget-exceeded → prescribed WARN.
+        if outcome.budget_exceeded:
+            log.warn(
+                run_id,
+                "post-run interrogation exceeded 5s budget; "
+                "CPU-fallback detection inconclusive",
+            )
         # SC-004 enforcement: silent CPU fallback → rewrite outcome.
         if outcome.fell_back and runtime_outcome == "success":
             runtime_outcome = "failed_at_extraction"
@@ -660,10 +878,26 @@ def run(args: argparse.Namespace) -> int:
             log.error(run_id, diagnostic_msg)
         elif outcome.unreachable and runtime_outcome == "success" and failure_kind is None:
             failure_kind = "post-run-interrogation-unreachable"
-            log.warn(
-                run_id,
+            # K6 (triage): demo-report-schema.md requires `diagnostic` to be
+            # non-null when `failure_kind` is non-null — set it here so the
+            # post-run-interrogation-unreachable branch doesn't emit a
+            # contradictory (failure_kind != null, diagnostic == null) report.
+            diagnostic_msg = (
                 "post-run interrogation could not confirm GPU placement "
-                f"(ollama={outcome.ollama_post_run}, paddle={outcome.paddle_post_run})",
+                f"(ollama={outcome.ollama_post_run}, paddle={outcome.paddle_post_run})"
+            )
+            log.warn(run_id, diagnostic_msg)
+        elif (
+            runtime_outcome == "success"
+            and outcome.ollama_post_run == "consistent"
+            and outcome.paddle_post_run == "consistent"
+        ):
+            # K7 (triage): match cli-contract.md "Worked examples" stderr signal
+            # so operators can confirm at a glance that post-run interrogation
+            # actually corroborated GPU placement (not just that nothing failed).
+            log.info(
+                run_id,
+                "post-run: ollama still GPU-placed; paddle still rocm_gpu",
             )
 
     # ------------------------------------------------------------------
@@ -695,8 +929,12 @@ def run(args: argparse.Namespace) -> int:
                     semantic_table_quality_passed=eval_result.semantic_table_quality_passed,
                 )
 
-        # Read preprocessing run_summary if the composer attached it.
-        run_summary = getattr(options, "_preprocess_run_summary", None)
+        # Read preprocessing run_summary from the mutable RunState. The
+        # composer's preprocess() return value is inspected by _run_phase and
+        # any dict/attr named ``run_summary`` is captured here. If the
+        # composer doesn't publish one, the quality module falls back to
+        # reading the persisted run_summary on disk (or to a stub default).
+        run_summary = run_state.preprocess_run_summary
         # Derive document_id from the canonical folder name (feature 020 convention).
         document_id = canonical_folder.name
         quality_status, quality_status_source = quality_mod.derive(

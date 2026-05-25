@@ -26,21 +26,43 @@ from dartwing_ocr.gpu_demo.readiness.base import (
 from dartwing_ocr.gpu_demo.report import CheckDiagnostic
 
 
+_BASENAME_TO_ARTIFACT_NAME: dict[str, str] = {
+    "preprocess_output.json": "preprocess_output",
+    "edge_extraction_output.json": "edge_extraction_output",
+    "routing_decision.json": "routing_decision",
+    "final_structured_payload.json": "final_structured_payload",
+}
+
+
 def _validate_artifact(path: Path) -> Optional[str]:
-    """Validate one artifact; return None on pass or the error message on fail."""
+    """Validate one artifact; return None on pass or the error message on fail.
+
+    Calls ``dartwing_ocr.validator.validate_artifact(path, contract=<name>)``
+    using the closed basename → ArtifactName mapping. The validator returns a
+    ``ValidationOutcome`` whose ``.passed`` boolean drives this check; on
+    failure we surface the first violation's code + path for the diagnostic.
+    """
     if not path.exists():
         return f"file does not exist: {path}"
+    contract = _BASENAME_TO_ARTIFACT_NAME.get(path.name)
+    if contract is None:
+        return f"no contract mapping for basename: {path.name}"
     try:
         # Lazy import — keeps the readiness package light when tests stub
         # the orchestrator entirely.
-        from dartwing_ocr.validator import artifact as artifact_validator
-
-        artifact_validator.validate_path(path)  # type: ignore[attr-defined]
+        from dartwing_ocr.validator import validate_artifact
     except ImportError as exc:
         return f"validator import failed: {exc}"
+    try:
+        outcome = validate_artifact(path, contract=contract)
     except Exception as exc:  # noqa: BLE001 — validator exposes its own taxonomy
         return f"{type(exc).__name__}: {exc}"
-    return None
+    if outcome.passed:
+        return None
+    if outcome.violations:
+        first = outcome.violations[0]
+        return f"{first.code} at {first.field_path or '/'}: {first.message}"
+    return "validator returned not-passed with no violations"
 
 
 @dataclass(frozen=True)

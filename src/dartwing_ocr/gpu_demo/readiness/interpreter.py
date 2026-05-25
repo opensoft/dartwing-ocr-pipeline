@@ -6,6 +6,7 @@ import os
 import sys
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 from dartwing_ocr.gpu_demo.readiness.base import (
     ReadinessContext,
@@ -14,10 +15,10 @@ from dartwing_ocr.gpu_demo.readiness.base import (
 from dartwing_ocr.gpu_demo.report import CheckDiagnostic
 
 
-_EXPECTED_VENV_NAMES: tuple[str, ...] = (
+_EXPECTED_VENV_NAMES: frozenset[str] = frozenset({
     ".venv-paddle-rocm",
     ".venv-paddle-dcu",  # established successor name; per FR-002 wording
-)
+})
 
 
 @dataclass(frozen=True)
@@ -29,7 +30,10 @@ class InterpreterVenvCheck:
     def run(self, context: ReadinessContext) -> ReadinessResult:
         start = time.monotonic()
         interpreter = os.path.realpath(sys.executable)
-        ok = any(name in interpreter for name in _EXPECTED_VENV_NAMES)
+        # L1 (triage): match against path components, not substring. A
+        # substring match accepted any path containing the venv name as
+        # a fragment (e.g. ``/home/x/.venv-paddle-rocm-backup/bin/python``).
+        ok = bool(_EXPECTED_VENV_NAMES.intersection(Path(interpreter).parts))
         elapsed = time.monotonic() - start
         if ok:
             return ReadinessResult(

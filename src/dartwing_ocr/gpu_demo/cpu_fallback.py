@@ -33,7 +33,20 @@ def _probe_ollama_post_run(
     model_name: str,
     pre_run_snapshot: Optional[dict[str, Any]],
 ) -> tuple[ProbeResult, Optional[dict[str, Any]]]:
-    """Re-query /api/ps and compare placement vs pre-run snapshot."""
+    """Re-query /api/ps and compare placement vs pre-run snapshot.
+
+    The verdict is built from two checks:
+
+    1. Post-run placement: ``size_vram == size`` AND ``size_vram > 0``
+       (current state is fully GPU-placed).
+    2. Pre-vs-post consistency (only when ``pre_run_snapshot`` is provided):
+       the post-run ``size_vram`` must match the pre-run ``size_vram``.
+
+    Both checks must succeed for the probe to report ``"consistent"``. Either
+    a current CPU placement OR a drop between pre and post counts as
+    ``"fell_back"``. (Triage M3: previously ``pre_run_snapshot`` was accepted
+    but never compared.)
+    """
     url = f"{ollama_base_url.rstrip('/')}/api/ps"
     try:
         response = httpx.get(url, timeout=_PROBE_TIMEOUT_SECONDS)
@@ -65,6 +78,14 @@ def _probe_ollama_post_run(
     size_vram = entry.get("size_vram")
     if not isinstance(size, int) or not isinstance(size_vram, int):
         return "unreachable", entry
+    # M3: compare against pre-run snapshot when available; any drop in
+    # `size_vram` from pre→post counts as fall-back even if current placement
+    # is full-GPU (catches a model that was reloaded mid-run on CPU then
+    # bounced back to GPU).
+    if isinstance(pre_run_snapshot, dict):
+        pre_size_vram = pre_run_snapshot.get("size_vram")
+        if isinstance(pre_size_vram, int) and pre_size_vram > size_vram:
+            return "fell_back", entry
     if size_vram > 0 and size_vram == size:
         return "consistent", entry
     return "fell_back", entry
@@ -116,15 +137,18 @@ def interrogate(
 
     elapsed = time.monotonic() - start
     if elapsed >= _AGGREGATE_BUDGET_SECONDS:
+        # K3 (triage / R-023.15): combined budget exceeded → BOTH probes
+        # marked "unreachable"; CPU-fallback detection is inconclusive. The
+        # orchestrator reads ``budget_exceeded`` and emits the prescribed
+        # WARN line. Keeping the actual Ollama probe result here would
+        # produce a misleading verdict ("we ran out of time AND we know X").
         return CPUFallbackOutcome(
-            ollama_post_run=ollama_result,
+            ollama_post_run="unreachable",
             paddle_post_run="unreachable",
             pre_run_ollama_snapshot=pre_run_snapshot,
             post_run_ollama_snapshot=post_snapshot,
-            fell_back=(ollama_result == "fell_back"),
-            unreachable=(
-                ollama_result == "unreachable"
-            ),
+            fell_back=False,
+            unreachable=True,
             budget_exceeded=True,
         )
 

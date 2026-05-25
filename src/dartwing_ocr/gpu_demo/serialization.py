@@ -104,9 +104,39 @@ def _report_to_dict(report: DemoRunReport) -> dict[str, Any]:
         "artifact_paths": report.artifact_paths,
         "quality_status": report.quality_status,
         "quality_status_source": report.quality_status_source,
-        "cpu_fallback_detection": dataclasses.asdict(report.cpu_fallback_detection),
+        "cpu_fallback_detection": _cap_snapshot_dicts(
+            dataclasses.asdict(report.cpu_fallback_detection)
+        ),
         "diagnostic": report.diagnostic,
     }
+
+
+_SNAPSHOT_RETAINED_KEYS: tuple[str, ...] = (
+    "name",
+    "size",
+    "size_vram",
+    "context_length",
+)
+
+
+def _cap_snapshot_dicts(cpu_fb: dict[str, Any]) -> dict[str, Any]:
+    """Project the snapshot dicts to a fixed-keys shape (triage M4).
+
+    ``pre_run_ollama_snapshot`` / ``post_run_ollama_snapshot`` originate from
+    Ollama ``/api/ps`` entries which can carry arbitrary additional fields. To
+    keep the JSON report bounded for downstream automation (and to match the
+    fields the data-model example explicitly lists), retain only the keys the
+    demo actually inspects. Any oversized fallback also goes through the 2 KiB
+    cap as a defensive secondary bound.
+    """
+    for key in ("pre_run_ollama_snapshot", "post_run_ollama_snapshot"):
+        entry = cpu_fb.get(key)
+        if isinstance(entry, dict):
+            cpu_fb[key] = {
+                k: entry[k] for k in _SNAPSHOT_RETAINED_KEYS if k in entry
+            }
+            cpu_fb[key] = _truncate_observed_value(cpu_fb[key])
+    return cpu_fb
 
 
 def to_json_line(report: DemoRunReport) -> str:
