@@ -231,7 +231,7 @@ description: "Task list for feature 023 GPU MVP Demo Hardening"
 
 ### Runbook deliverable
 
-- [ ] T072 Append the three new sections plus the colleague-dry-run appendix to `docs/stage1-vendor-identity/runbook-gpu-mvp-demo.md` per R-023.17: **§ Canonical Demo Command** (the bare command, the 5 flags, defaults, worked examples), **§ Readiness Failure Recovery Matrix** (one row per FR-016 closed-vocabulary check listing diagnostic shape + remediation), **§ Three-Run Stability Smoke Procedure (SC-006)** (operator pre-conditions, three successive runs, byte-comparison rule for the three deterministic artifacts, the operator sign-off block), and **§ Appendix: Colleague Dry-Run Sign-Off** (audit walkthrough 2026-05-25 Q11 — a colleague unfamiliar with the demo follows the runbook end-to-end, records gaps inline, and signs a dated line; no new SC). Also consolidate the prerequisites (Paddle venv, host Ollama startup script, OLLAMA_CONTEXT_LENGTH, 30 s cold-cache informal `--check-only` target, minimum Ollama version) into a single visible block at the top.
+- [X] T072 Append the three new sections plus the colleague-dry-run appendix to `docs/stage1-vendor-identity/runbook-gpu-mvp-demo.md` per R-023.17: **§ Canonical Demo Command** (the bare command, the 5 flags, defaults, worked examples), **§ Readiness Failure Recovery Matrix** (one row per FR-016 closed-vocabulary check listing diagnostic shape + remediation), **§ Three-Run Stability Smoke Procedure (SC-006)** (operator pre-conditions, three successive runs, byte-comparison rule for the three deterministic artifacts, the operator sign-off block), and **§ Appendix: Colleague Dry-Run Sign-Off** (audit walkthrough 2026-05-25 Q11 — a colleague unfamiliar with the demo follows the runbook end-to-end, records gaps inline, and signs a dated line; no new SC). Also consolidate the prerequisites (Paddle venv, host Ollama startup script, OLLAMA_CONTEXT_LENGTH, 30 s cold-cache informal `--check-only` target, minimum Ollama version) into a single visible block at the top.
 
 ### Workstation-only smoke test (workstation gate; not CI)
 
@@ -239,15 +239,15 @@ description: "Task list for feature 023 GPU MVP Demo Hardening"
 
 ### Documentation cross-references
 
-- [ ] T074 [P] Update `CLAUDE.md` (project-local) under `## Recent Changes` with a one-paragraph entry for feature 023 referencing `python -m dartwing_ocr.gpu_demo`, the runbook section, and SC-006 sign-off
+- [X] T074 [P] Update `CLAUDE.md` (project-local) under `## Recent Changes` with a one-paragraph entry for feature 023 referencing `python -m dartwing_ocr.gpu_demo`, the runbook section, and SC-006 sign-off
 
 ### FR ↔ task ↔ test traceability matrix
 
-- [ ] T074a [P] Author `specs/023-gpu-mvp-demo-hardening/coverage-fr-task-test.md` per audit walkthrough 2026-05-25 Q8, mirroring feature 022's `coverage-fr-task-test.md`. One row per FR / SC mapping to (a) the implementation task IDs that satisfy it, and (b) the test task IDs that exercise it. Regenerated as part of Phase 7 polish so it reflects the as-merged state.
+- [X] T074a [P] Author `specs/023-gpu-mvp-demo-hardening/coverage-fr-task-test.md` per audit walkthrough 2026-05-25 Q8, mirroring feature 022's `coverage-fr-task-test.md`. One row per FR / SC mapping to (a) the implementation task IDs that satisfy it, and (b) the test task IDs that exercise it. Regenerated as part of Phase 7 polish so it reflects the as-merged state.
 
 ### Final validation
 
-- [ ] T075 Run the full CPU pytest suite for this feature (`pytest tests/integration/gpu_demo/ -m "not gpu"`) and confirm: (a) ≤ 60 s wall-clock total per R-023.16, (b) all tests pass, (c) zero `xfail` results, (d) every CHK### test ID surfaced in `checklists/plan-coverage.md` §B/§C/§D is covered by at least one test function
+- [X] T075 Run the full CPU pytest suite for this feature (`pytest tests/integration/gpu_demo/ -m "not gpu"`) and confirm: (a) ≤ 60 s wall-clock total per R-023.16, (b) all tests pass, (c) zero `xfail` results, (d) every CHK### test ID surfaced in `checklists/plan-coverage.md` §B/§C/§D is covered by at least one test function
 
 **Checkpoint Polish:** All cross-story safety tests pass; the runbook is operator-ready; the workstation manual GPU smoke gate (SC-006/T073) is documented and can be invoked manually. Feature is ready for `/speckit.implement` if any tasks remain unchecked, or for review and merge if all pass.
 

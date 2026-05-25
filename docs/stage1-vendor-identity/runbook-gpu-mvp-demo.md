@@ -185,3 +185,139 @@ Concise table of common failure paths with named-cause remediation:
 - [docs/stage1-vendor-identity/ollama-runtime.md](./ollama-runtime.md) — host Ollama setup, WSL caveats.
 - [docs/stage1-vendor-identity/gpu-warmup-and-cache.md](./gpu-warmup-and-cache.md) — `MIOPEN_FIND_MODE=2`, warmup behavior, cache locations (feature 016 lineage).
 - [feature-021 `contracts/runbook.md`](../../specs/021-gpu-mvp-promotion/contracts/runbook.md) — the structural contract this runbook implements.
+
+---
+
+# Feature 023 extension — Canonical demo CLI
+
+The sections below are the feature-023 addendum (per T072 / `research.md` R-023.17). They document the single canonical `python -m dartwing_ocr.gpu_demo` entry point that hardens the four-step manual demo above into a one-command operator surface, plus the failure recovery matrix, the three-run stability smoke procedure that gates Jetson edge-fast promotion, and the colleague dry-run sign-off appendix that closes SC-001.
+
+## § Canonical Demo Command
+
+The canonical operator command is:
+
+```bash
+.venv-paddle-rocm/bin/python -m dartwing_ocr.gpu_demo
+```
+
+(or, equivalently, the `dartwing-gpu-demo` console-script entry point when the package is installed via `pip install -e .`).
+
+Closed five-flag surface (FR-016 / FR-018 / FR-022 / FR-027):
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `--check-only` | off | Run only the FR-016 readiness checks 1–6 (infrastructure readiness); skip pipeline phases; emit stable-shape `DemoRunReport` with runtime/quality/timing fields `null`. ≤ 10 s on a warm workstation (SC-007). |
+| `--document-folder PATH` | `tests/stage1_vendor_identity/inv_001_easy` | Per-document folder containing `source.pdf`. Ignored under `--check-only` per FR-018. |
+| `--voter-config PATH` | auto-discover (feature 005 / 021) | Override the active voter config (FR-005). |
+| `--preset NAME` | `header-first-v1` | Preprocessing preset (FR-011). `full-ocr` is opt-in. Ignored under `--check-only`. |
+| `--with-evaluator` | off | Invoke the feature 022 semantic-quality evaluator subprocess (FR-022; R-023.13). Warn-and-skip when `semantic_table_truth.json` is absent. |
+
+Consolidated prerequisites (operator must verify BEFORE invoking the demo):
+
+| # | Prerequisite | Verification |
+|---|---|---|
+| 1 | `.venv-paddle-rocm` active (interpreter under that venv's prefix) | `which python` shows `.../.venv-paddle-rocm/bin/python` |
+| 2 | Host Ollama started via `scripts/start-host-ollama-rocm-wsl.sh` (WSL) or equivalent native path | `curl -s http://localhost:11434/api/ps` returns `models: [...]` |
+| 3 | `OLLAMA_CONTEXT_LENGTH=2048` set when Ollama was started | exported in the same shell that ran the startup script |
+| 4 | Minimum Ollama version `>= 0.4.0` (R-023.10 — first release with stable `size_vram` on `/api/ps`) | `curl -s http://localhost:11434/api/version` |
+| 5 | Cold-cache `--check-only` budget: ≤ 30 s informal (warm: ≤ 10 s SC-007) | first run after fresh shell may exceed 10 s; > 30 s warrants investigation |
+
+stdout / stderr discipline (FR-019, audit walkthrough Q1/Q2/Q8/Q10):
+
+- **stdout**: exactly one `DemoRunReport` JSON line (UTF-8, newline-terminated, no second line). Pipe through `| jq` for inspection.
+- **stderr**: human-readable progress, warnings, errors. Severity prefix + 8-hex run-id prefix: `INFO:[a1b2c3d4] readiness: paddle-rocm-preflight → pass (2.34s)`. On success: a final `INFO:[<run_id>] runtime: success / quality: <status>` line. On `--check-only` pass: `INFO:[<run_id>] readiness passed (<elapsed>s)`.
+
+Closed exit-code table (FR-021):
+
+| Exit | Meaning |
+|---|---|
+| `0` | Success — pipeline completed, all four canonical artifacts schema-valid, post-run device interrogation confirms GPU placement |
+| `1` | Readiness failed — `failing_check_name` in the report identifies which of the 8 named checks failed |
+| `2` | Invalid input / usage — missing `source.pdf`, missing or malformed voter config, symlink-escape on eager-delete |
+| `3` | Pipeline runtime timeout (600 s ceiling) — `stalled_phase` identifies the phase executing when the budget elapsed |
+| `4` | Pipeline runtime error (incl. CPU-fallback detected by post-run interrogation) |
+| `5` | Artifact schema validation failed (one or more of the four canonicals post-run) |
+
+## § Readiness Failure Recovery Matrix
+
+One row per named check in the FR-016 closed vocabulary. The operator action column matches the `remediation` field of the corresponding `CheckDiagnostic`.
+
+| Check name | Likely cause | Operator action |
+|---|---|---|
+| `interpreter/venv` | Operator forgot to `source .venv-paddle-rocm/bin/activate` | `source .venv-paddle-rocm/bin/activate` then re-run |
+| `paddle-rocm-preflight` (ImportError) | `paddlepaddle-dcu` not installed in active venv | `.venv-paddle-rocm/bin/pip install paddlepaddle-dcu` |
+| `paddle-rocm-preflight` (device != rocm_gpu) | Stale wheel / broken ROCm exposure | Reinstall `paddlepaddle-dcu`; verify `/dev/dri/render*` permissions; check `HSA_OVERRIDE_GFX_VERSION` env var |
+| `ollama-reachability` | Host Ollama not running | `scripts/start-host-ollama-rocm-wsl.sh` |
+| `ollama-version` | Running Ollama < 0.4.0 (no stable `size_vram` on `/api/ps`) | Upgrade Ollama to ≥ 0.4.0; restart via the startup script |
+| `ollama-model-gpu-placement` (model missing) | Voter config references a model that's not loaded | `ollama pull <model>`; ensure it's referenced before the demo runs |
+| `ollama-model-gpu-placement` (`size_vram == 0` / `size_vram < size`) | Model on CPU or partially offloaded | Restart Ollama on a fresh GPU context; check VRAM headroom |
+| `ollama-context-length` | `OLLAMA_CONTEXT_LENGTH` env var missing or below 2048 when Ollama was started | Re-export `OLLAMA_CONTEXT_LENGTH=2048` and re-run the startup script |
+| `artifact-schema-validation` | Pipeline produced a malformed canonical artifact post-run (regression in features 003/005/008/009) | Inspect the listed artifact(s); see `observed` field for the full failure list in canonical order |
+| `pipeline-runtime-timeout` | One phase stalled past 600 s (typically a model hang during extraction) | `stalled_phase` identifies the phase; check Ollama health, GPU temperature, model size |
+
+## § Three-Run Stability Smoke Procedure (SC-006)
+
+This is the workstation manual gate that adopts the demo as the MVP integration-test checkpoint and gates the start of Jetson edge-fast implementation. Execute three consecutive demo runs against `tests/stage1_vendor_identity/inv_001_easy/` (or your nominated canonical fixture) and validate identical outcomes.
+
+```bash
+# Three consecutive runs, capturing the JSON line each time.
+for i in 1 2 3; do
+  .venv-paddle-rocm/bin/python -m dartwing_ocr.gpu_demo \
+    > /tmp/023-smoke/run${i}.json 2> /tmp/023-smoke/run${i}.log
+done
+```
+
+### Acceptance criteria (operator sign-off below)
+
+The smoke run is **PASS** if **all** of these hold:
+
+- [ ] All three runs exit `0`.
+- [ ] All three `DemoRunReport` lines have `runtime_outcome == "success"`.
+- [ ] All three `quality_status` values are identical (one of `pass` / `weak` / `review_required`).
+- [ ] All three `readiness.overall_passed` are `true`.
+- [ ] Byte-identical content for `preprocess_output.json`, `routing_decision.json`, `final_structured_payload.json` across the three runs (the three deterministic artifacts per round-2 Q10). `edge_extraction_output.json` is allowed to vary (model nondeterminism).
+
+### Sign-off block
+
+Fill in and commit alongside the merged feature 023 PR:
+
+```
+SC-006 three-run stability smoke
+================================
+Date         : YYYY-MM-DD
+Operator     : <name / handle>
+Workstation  : <hostname / hardware tag>
+Ollama ver   : <output of /api/version>
+Paddle wheel : <pip show paddlepaddle-dcu | grep Version>
+Run 1 outcome: <runtime_outcome> / <quality_status> / <readiness.overall_passed>
+Run 2 outcome: <runtime_outcome> / <quality_status> / <readiness.overall_passed>
+Run 3 outcome: <runtime_outcome> / <quality_status> / <readiness.overall_passed>
+Three-artifact byte-identity: PASS / FAIL
+Result: PASS / FAIL
+Notes  : <anything notable>
+Signed : <operator handle>
+```
+
+After SC-006 passes, the demo is the MVP integration-test checkpoint. The Jetson edge-fast implementation may begin.
+
+## § Appendix: Colleague Dry-Run Sign-Off (audit walkthrough Q11)
+
+SC-001 promises that a fresh operator following only this runbook can execute the demo end-to-end without undocumented commands or tribal knowledge. This appendix is the process gate that validates that promise.
+
+Procedure (one-time, before the feature 023 PR merges):
+
+1. A colleague who has NOT previously run the demo (or who has not run it in ≥ 30 days) follows this runbook end-to-end on a fresh shell.
+2. The colleague records any of the following inline (in a copy of this runbook or as a PR comment): commands that needed inference, prerequisites that weren't documented, error messages with no documented remediation, deltas between expected and actual output.
+3. The colleague signs the block below with the date.
+
+```
+Colleague dry-run sign-off
+==========================
+Date    : YYYY-MM-DD
+Reviewer: <name / handle>
+Gaps    : <count> (see inline notes / PR comments)
+Verdict : OK to merge / Needs runbook fixes (list gaps)
+Signed  : <reviewer handle>
+```
+
+This is a process gate, not a spec-level SC. The result is not a `runtime_outcome` value and does not affect the canonical artifact contracts.

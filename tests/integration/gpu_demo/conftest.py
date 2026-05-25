@@ -228,6 +228,51 @@ def stub_pipeline_composer():
     return _StubPipelineComposer
 
 
+class _TimeoutTriggerComposer(_StubPipelineComposer):
+    """Stub composer that fires ``SIGALRM`` inside the configured phase.
+
+    Triggers the orchestrator's SIGALRM handler synchronously via
+    ``signal.raise_signal(signal.SIGALRM)`` from inside the target phase.
+    The handler captures the in-flight phase and raises ``TimeoutError``;
+    the orchestrator's outer handler maps that to ``runtime_outcome: "timeout"``
+    with ``stalled_phase`` set + exit code 3 per FR-008 / FR-020.
+
+    Used by ``test_runtime_outcomes.py::test_timeout_sets_stalled_phase``.
+    """
+
+    def __init__(self, *, timeout_phase: str) -> None:
+        super().__init__(fail_phase=None)
+        self._timeout_phase = timeout_phase
+
+    def _maybe_timeout(self, phase: str) -> None:
+        if phase == self._timeout_phase:
+            import signal as _signal
+
+            _signal.raise_signal(_signal.SIGALRM)
+
+    def preprocess(self, document_folder, preset):  # noqa: ARG002
+        self._maybe_timeout("preprocess")
+        return super().preprocess(document_folder, preset)
+
+    def extract(self, document_folder, voter_config):  # noqa: ARG002
+        self._maybe_timeout("extraction")
+        return super().extract(document_folder, voter_config)
+
+    def route(self, document_folder):  # noqa: ARG002
+        self._maybe_timeout("routing")
+        return super().route(document_folder)
+
+    def assemble(self, document_folder):  # noqa: ARG002
+        self._maybe_timeout("final_payload")
+        return super().assemble(document_folder)
+
+
+@pytest.fixture
+def timeout_trigger_composer():
+    """Return the timeout-trigger composer class for A1 timeout tests."""
+    return _TimeoutTriggerComposer
+
+
 @pytest.fixture
 def bypass_schema_validation(monkeypatch: pytest.MonkeyPatch):
     """Make the artifact-schema-validation readiness check always return "pass".

@@ -529,6 +529,16 @@ def run(args: argparse.Namespace) -> int:
             failure_kind = "pipeline-runtime-error"
             diagnostic_msg = str(exc)
             log.error(run_id, f"phase {phase} failed: {exc}")
+        except TimeoutError:
+            # SIGALRM-triggered timeout — record the in-flight phase wall-clock
+            # and let the outer `except TimeoutError` handle the
+            # `runtime_outcome: "timeout"` mapping. Re-raising here is REQUIRED:
+            # without it the generic `except Exception` below would catch
+            # TimeoutError (TimeoutError → OSError → Exception) and mis-map it
+            # to `failed_at_<phase>` + exit 4 instead of the FR-008/FR-020
+            # `timeout` outcome + exit 3.
+            timings[phase] = time.monotonic() - phase_start
+            raise
         except Exception as exc:  # noqa: BLE001 — orchestrator catches all
             timings[phase] = time.monotonic() - phase_start
             runtime_outcome = f"failed_at_{phase}"  # type: ignore[assignment]

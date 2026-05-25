@@ -37,6 +37,46 @@ def per_doc(tmp_path: Path) -> Path:
 
 
 @pytest.mark.parametrize(
+    "timeout_phase",
+    ["preprocess", "extraction", "routing", "final_payload"],
+)
+def test_timeout_sets_stalled_phase(
+    timeout_phase: str,
+    paddle_preflight_stub,
+    ollama_http_stub,
+    force_venv_interpreter,
+    ok_fixture_folder: Path,
+    timeout_trigger_composer,
+    bypass_schema_validation,
+    patch_orchestrator_composer,
+    per_doc: Path,
+) -> None:
+    """T046 + FR-008 + FR-020: SIGALRM during phase X → runtime_outcome=timeout, stalled_phase=X.
+
+    Regression guard against the latent orchestrator bug where ``except Exception``
+    in ``_run_phase`` swallowed ``TimeoutError`` and mis-mapped it to
+    ``failed_at_<phase>`` + exit 4 instead of ``timeout`` + exit 3. The fix
+    adds ``except TimeoutError: raise`` ahead of the generic handler.
+    """
+    patch_orchestrator_composer(timeout_trigger_composer(timeout_phase=timeout_phase))
+    code, stdout = _invoke_main([
+        "--voter-config", str(ok_fixture_folder / "voter_config.yaml"),
+        "--document-folder", str(per_doc),
+    ])
+    assert code == ExitCode.PIPELINE_RUNTIME_TIMEOUT == 3, (
+        f"timeout in {timeout_phase} should exit 3; got {code}"
+    )
+
+    parsed = json.loads(stdout)
+    assert parsed["runtime_outcome"] == "timeout"
+    assert parsed["stalled_phase"] == timeout_phase
+    assert parsed["failure_kind"] == "pipeline-runtime-timeout"
+    # Quality null on every non-success outcome (invariant 5).
+    assert parsed["quality_status"] is None
+    assert parsed["quality_status_source"] is None
+
+
+@pytest.mark.parametrize(
     "fail_phase, expected_outcome",
     [
         ("preprocess", "failed_at_preprocess"),
