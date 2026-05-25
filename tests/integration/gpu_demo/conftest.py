@@ -180,10 +180,22 @@ class _StubPipelineComposer:
 
     Writes synthetic artifacts into the document folder so the orchestrator's
     happy-path can complete end-to-end without composing the real pipeline.
+
+    R2-6 (round-2 triage): the constructor accepts an optional
+    ``run_summary`` dict. When present, ``preprocess`` returns it as
+    ``{"run_summary": <dict>}`` so the orchestrator's ``_RunState`` capture
+    path (B3 fix) is exercised. Without this lever no CI test verified the
+    B3 channel — round-1 closed the structural bug but left zero coverage.
     """
 
-    def __init__(self, *, fail_phase: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        fail_phase: str | None = None,
+        run_summary: dict | None = None,
+    ) -> None:
         self._fail_phase = fail_phase
+        self._run_summary = run_summary
 
     def _maybe_fail(self, phase: str) -> None:
         if self._fail_phase == phase:
@@ -196,6 +208,8 @@ class _StubPipelineComposer:
             _json.dumps(_trivial_canonical_artifacts()["preprocess_output.json"]),
             encoding="utf-8",
         )
+        if self._run_summary is not None:
+            return {"path": path, "run_summary": self._run_summary}
         return path
 
     def extract(self, document_folder, voter_config):  # noqa: D401, ARG002

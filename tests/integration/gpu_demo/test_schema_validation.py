@@ -93,21 +93,31 @@ def test_phase_failure_does_not_mask_as_schema_failure(
     force_venv_interpreter,
     ok_fixture_folder: Path,
     stub_pipeline_composer,
-    bypass_schema_validation,
     patch_orchestrator_composer,
     per_doc: Path,
 ) -> None:
-    """B2 regression guard (triage).
+    """B2 regression guard (round-1 triage) + R2-1+R2-2 root-cause closure.
+
+    Round-2 review found that the original version of this test used
+    ``bypass_schema_validation``, which monkey-patched ``_validate_artifact``
+    to a no-op — making check 7 always ``"pass"`` and the guarded
+    ``if r.status == "fail"`` code path unreachable. Reverting the B2 guard
+    did NOT fail the test. **The fixture is intentionally dropped here so
+    the real ``_validate_artifact`` runs**, exercising the Pydantic
+    ``Violation.violation_code`` / ``.reason`` field access that the round-2
+    R2-1 fix corrected. If either the B2 guard OR the R2-1 field-name fix
+    regresses, this test fails.
 
     When the pipeline fails mid-phase (e.g. extraction), the post-pipeline
-    artifact-schema-validation check sees missing later artifacts and reports
-    ``fail``. The orchestrator MUST NOT rewrite the already-set
+    artifact-schema-validation check sees missing later artifacts and
+    reports ``"fail"``. The orchestrator MUST NOT rewrite the already-set
     ``runtime_outcome="failed_at_extraction"`` to ``failed_at_final_payload``,
     and the exit code MUST remain 4 (PIPELINE_RUNTIME_ERROR), not 5.
     """
     # Composer fails AT extraction; routing + final_payload artifacts will
-    # never be written. Post-pipeline check 7 would natively fail on the
-    # missing files; the guard added by triage B2 must hold.
+    # never be written. Post-pipeline check 7 will natively fail on the
+    # missing files (real _validate_artifact returns "file does not exist:
+    # <path>"); the B2 guard prevents the runtime_outcome rewrite.
     patch_orchestrator_composer(stub_pipeline_composer(fail_phase="extraction"))
 
     code, stdout = _invoke_main([
@@ -122,6 +132,14 @@ def test_phase_failure_does_not_mask_as_schema_failure(
     parsed = json.loads(stdout)
     assert parsed["runtime_outcome"] == "failed_at_extraction"
     assert parsed["failure_kind"] == "pipeline-runtime-error"
-    # The schema-validation check itself MAY report fail (since artifacts are
-    # missing), but the outcome cells above must reflect the true phase that
-    # died, not the downstream artifact-absence side effect.
+    # The schema-validation check itself reports fail (artifacts are missing
+    # or schema-invalid), but the outcome cells above reflect the true phase
+    # that died, not the downstream artifact-absence side effect.
+    schema_check = next(
+        c for c in parsed["readiness"]["checks"]
+        if c["name"] == "artifact-schema-validation"
+    )
+    assert schema_check["status"] == "fail", (
+        "schema check should naturally fail on missing/invalid artifacts; "
+        "if it reports pass, the validator is being bypassed (regression of R2-2)"
+    )

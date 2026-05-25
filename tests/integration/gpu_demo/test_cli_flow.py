@@ -157,3 +157,58 @@ def test_happy_path_failed_at_phase(
     # routing/final_payload never reached.
     assert parsed["phase_timings"]["routing"] is None
     assert parsed["phase_timings"]["final_payload"] is None
+
+
+def test_b3_run_summary_publishes_through_runstate(
+    paddle_preflight_stub,
+    ollama_http_stub,
+    force_venv_interpreter,
+    ok_fixture_folder: Path,
+    stub_pipeline_composer,
+    bypass_schema_validation,
+    patch_orchestrator_composer,
+    per_doc_folder: Path,
+) -> None:
+    """R2-6 (round-2 triage): B3 channel coverage.
+
+    Verifies the orchestrator's ``_RunState.preprocess_run_summary`` channel:
+    a composer that returns ``{"run_summary": {"evidence_gate_documents":
+    {<doc_id>: {"state": "sufficient"}}}}`` from ``preprocess()`` causes
+    ``quality_status`` to flip from the default ``"review_required"``
+    (insufficient gate state) to ``"pass"`` (sufficient gate + no manual
+    review required).
+
+    Without the B3 fix this test fails: the frozen-dataclass channel that
+    round-1 retired was structurally None, so quality derivation always
+    saw the missing-run_summary default.
+    """
+    document_id = per_doc_folder.name
+    composer = stub_pipeline_composer(
+        run_summary={
+            "evidence_gate_documents": {
+                document_id: {"state": "sufficient"},
+            },
+        },
+    )
+    patch_orchestrator_composer(composer)
+
+    code, stdout = _invoke_main(
+        [
+            "--voter-config", str(ok_fixture_folder / "voter_config.yaml"),
+            "--document-folder", str(per_doc_folder),
+        ]
+    )
+    from dartwing_ocr.gpu_demo.exit_codes import ExitCode
+
+    assert code == ExitCode.SUCCESS
+    parsed = json.loads(stdout)
+    assert parsed["runtime_outcome"] == "success"
+    # The headline assertion: quality_status MUST be "pass" when the composer
+    # publishes a sufficient evidence-gate verdict. Without the B3 _RunState
+    # channel, the orchestrator sees no run_summary and the truth table
+    # defaults to "review_required".
+    assert parsed["quality_status"] == "pass", (
+        f"expected quality_status=pass when composer publishes sufficient gate; "
+        f"got {parsed['quality_status']} — B3 channel is regressing"
+    )
+    assert parsed["quality_status_source"] == "gate"

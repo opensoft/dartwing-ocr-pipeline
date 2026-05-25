@@ -59,10 +59,34 @@ def _validate_artifact(path: Path) -> Optional[str]:
         return f"{type(exc).__name__}: {exc}"
     if outcome.passed:
         return None
+    # R2-1 (round-2 triage): the real Violation model exposes `violation_code`
+    # and `reason` (NOT `code`/`message` — those were a fictional API the
+    # round-1 B1 fix referenced). Previously this branch raised AttributeError
+    # on the first real schema failure, swallowed by the outer Exception
+    # catch, surfacing as an opaque stringified attribute error.
     if outcome.violations:
         first = outcome.violations[0]
-        return f"{first.code} at {first.field_path or '/'}: {first.message}"
-    return "validator returned not-passed with no violations"
+        return f"{first.violation_code} at {first.field_path or '/'}: {first.reason}"
+    # R2-12 (round-2 triage): a failed sub-report (e.g. nested folder
+    # validation) populates `outcome.sub_reports` not `outcome.violations`.
+    # Surface the first leaf violation found by walking the sub-report tree;
+    # without this walk operators would see the misleading "no violations"
+    # fallback that originally guarded an impossible state.
+    leaf = _first_leaf_violation(outcome)
+    if leaf is not None:
+        return f"{leaf.violation_code} at {leaf.field_path or '/'}: {leaf.reason}"
+    return "schema validation failed via sub-report (no leaf violation surfaced)"
+
+
+def _first_leaf_violation(outcome):
+    """Walk sub_reports recursively and return the first Violation found."""
+    for sub in getattr(outcome, "sub_reports", []) or []:
+        if sub.violations:
+            return sub.violations[0]
+        leaf = _first_leaf_violation(sub)
+        if leaf is not None:
+            return leaf
+    return None
 
 
 @dataclass(frozen=True)

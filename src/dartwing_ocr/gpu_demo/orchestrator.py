@@ -213,7 +213,28 @@ def _extract_run_summary(result: Any) -> Optional[dict[str, Any]]:
     return rs if isinstance(rs, dict) else None
 
 
+class _InvalidEnvVarError(ValueError):
+    """Raised by :func:`_build_options_from_args` when an env var is malformed.
+
+    R2-5 (round-2 triage): ``int(os.environ["OLLAMA_CONTEXT_LENGTH"])`` raises
+    ``ValueError`` for non-numeric values (e.g. ``"2k"``). Previously this
+    propagated past ``run()`` and prevented any DemoRunReport from being
+    emitted — violating FR-019's always-emit invariant. Caught explicitly so
+    we can map to a clean exit-2 ``invalid-input`` outcome with a useful
+    diagnostic.
+    """
+
+
 def _build_options_from_args(args: argparse.Namespace) -> OrchestratorOptions:
+    raw_ctx = os.environ.get(
+        "OLLAMA_CONTEXT_LENGTH", str(DEFAULT_OLLAMA_CONTEXT_LENGTH)
+    )
+    try:
+        ctx_length = int(raw_ctx)
+    except (TypeError, ValueError) as exc:
+        raise _InvalidEnvVarError(
+            f"OLLAMA_CONTEXT_LENGTH must be an integer; got {raw_ctx!r}"
+        ) from exc
     return OrchestratorOptions(
         check_only=bool(args.check_only),
         document_folder=Path(args.document_folder),
@@ -221,9 +242,7 @@ def _build_options_from_args(args: argparse.Namespace) -> OrchestratorOptions:
         preset=str(args.preset),
         with_evaluator=bool(args.with_evaluator),
         ollama_base_url=os.environ.get("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL),
-        ollama_context_length=int(
-            os.environ.get("OLLAMA_CONTEXT_LENGTH", str(DEFAULT_OLLAMA_CONTEXT_LENGTH))
-        ),
+        ollama_context_length=ctx_length,
     )
 
 
@@ -239,19 +258,25 @@ class _InvalidOllamaBaseURL(ValueError):
     """
 
 
-def _validate_ollama_base_url(url: str) -> str:
-    """Validate ``OLLAMA_BASE_URL`` per R-023.14 and return the trimmed value.
+def _validate_ollama_base_url(url: str) -> tuple[str, Any]:
+    """Validate ``OLLAMA_BASE_URL`` per R-023.14 and return ``(trimmed, parsed)``.
 
     Required behavior:
 
     - Parse via :func:`urllib.parse.urlparse`.
     - Scheme MUST be ``http`` or ``https``.
     - Host MUST be non-empty.
+    - Userinfo (``user``/``password`` components) MUST be empty — R2-8
+      (round-2 triage): credentials in OLLAMA_BASE_URL would otherwise echo
+      into the INFO stderr line, JSON report, and any HTTP request.
     - Invalid syntax raises :class:`_InvalidOllamaBaseURL`; the caller maps
       this to ``failure_kind = "invalid-input"`` + exit 2.
 
     Non-localhost hosts are valid; the caller emits an ``INFO`` stderr line
     when the parsed host is not in :data:`_LOCALHOST_HOSTS`.
+
+    R2-9 (round-2 triage): the function now returns the parsed result
+    alongside the trimmed string, so the caller doesn't re-import + re-parse.
     """
     from urllib.parse import urlparse
 
@@ -270,7 +295,12 @@ def _validate_ollama_base_url(url: str) -> str:
         raise _InvalidOllamaBaseURL(
             f"OLLAMA_BASE_URL has no host component: {candidate!r}"
         )
-    return candidate
+    if parsed.username or parsed.password:
+        raise _InvalidOllamaBaseURL(
+            "OLLAMA_BASE_URL must not contain userinfo (user:pass@); "
+            "credentials would be echoed into stderr and the JSON report"
+        )
+    return candidate, parsed
 
 
 def _build_check_results(results) -> list[ReadinessCheck]:
@@ -311,8 +341,27 @@ def _all_null_cpu_fallback() -> CPUFallbackDetection:
 
 
 def _emit_report(report: DemoRunReport) -> None:
-    """Write the single-line JSON DemoRunReport to stdout."""
-    sys.stdout.write(to_json_line(report))
+    """Write the single-line JSON DemoRunReport to stdout.
+
+    R2-4 (round-2 triage): FR-019 requires that a DemoRunReport line ALWAYS
+    appears on stdout, on every code path. A pathological value somewhere in
+    the report (e.g. a circular reference inside ``CheckDiagnostic.observed``
+    that ``json.dumps`` cannot serialize) would previously raise out of
+    ``run()`` with no emission. Guard the serialization so any such failure
+    falls back to a minimal-but-shape-stable error line carrying the run_id
+    and the closed-enum ``failure_kind`` set the operator needs to triage.
+    """
+    try:
+        sys.stdout.write(to_json_line(report))
+    except (TypeError, ValueError, RecursionError) as exc:
+        fallback = (
+            '{"kind":"demo_run_report","schema_version":'
+            f'"{DEMO_REPORT_SCHEMA_VERSION}","run_id":"{report.run_id}",'
+            '"runtime_outcome":null,"failure_kind":"invalid-input",'
+            f'"diagnostic":"report serialization failed: {type(exc).__name__}"'
+            "}\n"
+        )
+        sys.stdout.write(fallback)
     sys.stdout.flush()
 
 
@@ -405,8 +454,42 @@ def run(args: argparse.Namespace) -> int:
 
     Lifecycle ordering matches ``data-model.md`` §8.
     """
-    options = _build_options_from_args(args)
     run_id = new_run_id()
+    # R2-5 (round-2 triage): build options inside a guard so a malformed env
+    # var (e.g. OLLAMA_CONTEXT_LENGTH="2k") becomes exit 2 invalid-input
+    # WITH an emitted DemoRunReport per FR-019's always-emit invariant.
+    try:
+        options = _build_options_from_args(args)
+    except _InvalidEnvVarError as exc:
+        # Need a minimal `options` to fit the report shape — synthesize defaults
+        # from argparse only (env-var fields are the ones that failed).
+        fallback_options = OrchestratorOptions(
+            check_only=bool(args.check_only),
+            document_folder=Path(args.document_folder),
+            voter_config_override=Path(args.voter_config) if args.voter_config else None,
+            preset=str(args.preset),
+            with_evaluator=bool(args.with_evaluator),
+        )
+        log.error(run_id, f"invalid input: {exc}")
+        report = _build_report(
+            options=fallback_options,
+            voter_ref=None,
+            readiness=ReadinessSummary(checks=[], overall_passed=False, elapsed_seconds=0.0),
+            runtime_outcome=None,
+            stalled_phase=None,
+            failure_kind="invalid-input",
+            failing_check_name=None,
+            phase_timings=_empty_phase_timings(),
+            total_runtime_seconds=None,
+            artifact_paths=None,
+            quality_status=None,
+            quality_status_source=None,
+            cpu_fallback=_all_null_cpu_fallback(),
+            diagnostic=str(exc),
+            run_id=run_id,
+        )
+        _emit_report(report)
+        return int(ExitCode.INVALID_INPUT)
 
     # ------------------------------------------------------------------
     # 1. Voter-config load (exit 2 on any failure).
@@ -448,7 +531,7 @@ def run(args: argparse.Namespace) -> int:
     #     hosts emit an INFO line so operators have a paper trail.
     # ------------------------------------------------------------------
     try:
-        _validate_ollama_base_url(options.ollama_base_url)
+        trimmed_url, parsed_url = _validate_ollama_base_url(options.ollama_base_url)
     except _InvalidOllamaBaseURL as exc:
         log.error(run_id, f"invalid input: {exc}")
         report = _build_report(
@@ -470,13 +553,15 @@ def run(args: argparse.Namespace) -> int:
         )
         _emit_report(report)
         return int(ExitCode.INVALID_INPUT)
-    from urllib.parse import urlparse as _urlparse
-
-    parsed_url = _urlparse(options.ollama_base_url.strip())
+    # R2-9 (round-2 triage): persist the trimmed URL back into options so
+    # downstream readiness/probe code sees the canonical value (operators
+    # who set OLLAMA_BASE_URL="  http://x:11434  " would otherwise carry the
+    # whitespace into f"{base_url.rstrip('/')}/api/ps" — non-fatal but ugly).
+    options = dataclasses.replace(options, ollama_base_url=trimmed_url)
     if parsed_url.hostname not in _LOCALHOST_HOSTS:
         log.info(
             run_id,
-            f"using non-localhost Ollama base URL: {options.ollama_base_url}",
+            f"using non-localhost Ollama base URL: {trimmed_url}",
         )
 
     # ------------------------------------------------------------------
@@ -757,20 +842,41 @@ def run(args: argparse.Namespace) -> int:
         _run_phase("routing", lambda: composer.route(canonical_folder))
         _run_phase("final_payload", lambda: composer.assemble(canonical_folder))
     except TimeoutError as exc:
-        # SIGALRM-triggered timeout: pinpoint which phase was running. B4:
-        # a late-arriving SIGALRM inside this except body would raise a second
-        # TimeoutError that nothing catches, violating FR-019's always-emit
-        # guarantee. Cancel the alarm immediately on entry to this block.
+        # SIGALRM-triggered timeout: pinpoint which phase was running. R2-3
+        # (round-2 triage): mask SIGALRM via pthread_sigmask BEFORE touching
+        # any state so a queued alarm cannot fire mid-assignment and re-raise
+        # past run(). Wrap the assignment + log body in an extra try/except
+        # belt-and-suspenders for platforms that don't expose pthread_sigmask.
+        _previous_sigmask = None
+        if hasattr(signal, "pthread_sigmask") and hasattr(signal, "SIGALRM"):
+            try:
+                _previous_sigmask = signal.pthread_sigmask(
+                    signal.SIG_BLOCK, {signal.SIGALRM}
+                )
+            except (OSError, ValueError):
+                _previous_sigmask = None
         if hasattr(signal, "SIGALRM"):
             try:
                 signal.alarm(0)
             except TimeoutError:
-                pass  # late-arriving alarm; cleanup wins
-        runtime_outcome = "timeout"
-        stalled_phase = timeout_observed.get("phase")  # type: ignore[assignment]
-        failure_kind = "pipeline-runtime-timeout"
-        diagnostic_msg = str(exc)
-        log.error(run_id, f"pipeline runtime timeout — stalled phase: {stalled_phase}")
+                pass
+        try:
+            runtime_outcome = "timeout"
+            stalled_phase = timeout_observed.get("phase")  # type: ignore[assignment]
+            failure_kind = "pipeline-runtime-timeout"
+            diagnostic_msg = str(exc)
+            log.error(
+                run_id,
+                f"pipeline runtime timeout — stalled phase: {stalled_phase}",
+            )
+        except TimeoutError:
+            pass  # late-arriving alarm; state is already partially set
+        finally:
+            if _previous_sigmask is not None:
+                try:
+                    signal.pthread_sigmask(signal.SIG_SETMASK, _previous_sigmask)
+                except (OSError, ValueError):
+                    pass
     finally:
         # B4: wrap both alarm-cancel and handler-restore in try/except so a
         # SIGALRM that fires between phase return and `signal.alarm(0)` (or
@@ -798,13 +904,15 @@ def run(args: argparse.Namespace) -> int:
     # ------------------------------------------------------------------
     # 6. Post-pipeline readiness (schema validation, runtime timeout report).
     # ------------------------------------------------------------------
+    # R2-11 (round-2 triage): the timeout state used to be injected via
+    # object.__setattr__ on a frozen=True dataclass — the same anti-pattern
+    # B3 retired for `_preprocess_run_summary`. Promote to proper Optional
+    # fields on ReadinessContext and use dataclasses.replace.
     post_ctx = dataclasses.replace(
         base_context,
+        runtime_timeout_observed=timeout_observed["flag"],
+        stalled_phase=timeout_observed.get("phase"),
     )
-    # Attach the timeout-observed flag via attribute (the runtime_timeout
-    # check reads it via getattr).
-    object.__setattr__(post_ctx, "runtime_timeout_observed", timeout_observed["flag"])
-    object.__setattr__(post_ctx, "stalled_phase", timeout_observed.get("phase"))
 
     post_results = run_post_pipeline(post_ctx, pre_results)
 
@@ -823,6 +931,15 @@ def run(args: argparse.Namespace) -> int:
                     diagnostic_msg = (
                         f"artifact-schema-validation failed: {r.diagnostic.observed!r}"
                     )
+                # R2-15 (round-2 triage): exit 5 previously had no stderr
+                # line of record — operators had to read the JSON line to
+                # learn what failed. Emit an ERROR line so `grep ERROR
+                # demo.stderr` works as the stderr-cheat-sheet entry-point.
+                log.error(
+                    run_id,
+                    "artifact-schema-validation failed; see JSON "
+                    "readiness.checks[name=artifact-schema-validation].diagnostic",
+                )
 
     if runtime_outcome is None:
         runtime_outcome = "success"
@@ -838,10 +955,17 @@ def run(args: argparse.Namespace) -> int:
 
     # ------------------------------------------------------------------
     # 6b. Post-run CPU-fallback interrogation (US4 T064, R-023.15).
-    #     Runs on every pipeline path — success or failure — to enforce SC-004.
+    #     Runs on success + timeout + schema-fail paths to enforce SC-004.
+    #     R2-16 (round-2 triage): skipped on pipeline-runtime-error so the
+    #     stderr narrative isn't muddied with an extra WARN/INFO line about
+    #     device health after the operator already saw the phase-fail ERROR.
     # ------------------------------------------------------------------
     cpu_fallback = _all_null_cpu_fallback()
-    if runtime_outcome is not None:  # pipeline ran (success or failure)
+    _should_probe_devices = (
+        runtime_outcome is not None
+        and failure_kind != "pipeline-runtime-error"
+    )
+    if _should_probe_devices:
         # M3/K4: thread the readiness-cached /api/ps body's matching model
         # entry into the probe so pre_run_ollama_snapshot is populated in
         # the emitted report and the pre-vs-post diff is actually computed.

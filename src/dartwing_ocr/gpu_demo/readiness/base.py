@@ -40,6 +40,13 @@ class ReadinessContext:
     ollama_context_length: int
     check_only: bool
     cached_api_ps_body: Any = None  # populated by ollama-reachability check; consumed by 5+6
+    # R2-11 (round-2 triage): post-pipeline timeout state used to live behind
+    # an `object.__setattr__` frozen-bypass hack — the same anti-pattern B3
+    # was supposed to retire. Promote to proper Optional fields so the
+    # post-pipeline check reads them via attribute access against an
+    # immutable replace()-built context.
+    runtime_timeout_observed: bool = False
+    stalled_phase: Optional[str] = None
 
 
 @dataclass(frozen=True)
