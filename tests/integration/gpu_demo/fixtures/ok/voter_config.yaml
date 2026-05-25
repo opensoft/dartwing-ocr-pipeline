@@ -1,0 +1,5 @@
+# Minimal single-voter config for the GPU MVP demo happy-path test (T020).
+# Mirrors the feature 005 voter-config shape: one voter, one model identifier.
+voters:
+  - name: gpu-mvp-demo-default
+    model: qwen2.5-vl:7b

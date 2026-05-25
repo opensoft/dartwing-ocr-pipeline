@@ -39,6 +39,7 @@ dartwing-pipeline = "dartwing_ocr.pipeline.cli:main"
 dartwing-evidence-packet = "dartwing_ocr.evidence_packet.cli:main"
 dartwing-extract = "dartwing_ocr.extract.cli:main"
 dartwing-assemble = "dartwing_ocr.assembler.cli:main"
+dartwing-gpu-demo = "dartwing_ocr.gpu_demo.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
